@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Client dashboard — DEV-MATCH</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/css/client-dashboard.css">
+  <link rel="stylesheet" href="assets/css/project-detail.css">
+</head>
+<body>
+  <header class="client-topbar">
+    <a class="client-brand" href="devmatch-client-dashboard.html"><i>&lt;/&gt;</i><span>DEV-MATCH</span></a>
+    <label class="client-search">
+      <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
+      <input id="searchInput" type="search" placeholder="Search projects, developers, skills...">
+      <kbd>⌘K</kbd>
+    </label>
+    <div class="client-top-actions">
+      <div class="client-mode-switch" role="group" aria-label="Workspace mode">
+        <a class="client-mode" href="devmatch-dashboard.html"><span>&lt;/&gt;</span>Developer Mode</a>
+        <a class="client-mode active" href="devmatch-client-dashboard.html"><svg viewBox="0 0 24 24"><rect x="3" y="7" width="18" height="14" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>Client Mode</a>
+      </div>
+      <button class="client-icon-button" type="button" aria-label="Notifications" data-target="#requests">♧<i></i></button>
+      <a class="client-user" href="devmatch-profile.html?role=client"><span class="client-avatar" id="userAvatar">CL</span><span class="client-user-copy"><b id="topUserName">Client</b><small>Client</small></span><svg viewBox="0 0 24 24"><path d="m7 10 5 5 5-5"/></svg></a>
+    </div>
+  </header>
+
+  <aside class="client-sidebar">
+    <div class="client-workspace"><span class="workspace-icon"><svg viewBox="0 0 24 24"><rect x="3" y="7" width="18" height="14" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></span><span><b>Client workspace</b><small>Discover &amp; hire</small></span></div>
+    <button class="post-request" type="button" data-open-request><svg viewBox="0 0 24 24"><path d="M12 5v14m-7-7h14"/></svg>Post a Request</button>
+    <span class="client-nav-label">Menu</span>
+    <nav class="client-nav" aria-label="Client dashboard navigation">
+      <a class="client-nav-item active" href="#home"><svg viewBox="0 0 24 24"><path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-6v-7h-4v7H4a1 1 0 0 1-1-1z"/></svg>Home</a>
+      <a class="client-nav-item" href="#projects"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="m15.5 8.5-2 5-5 2 2-5z"/></svg>Discover Projects</a>
+      <a class="client-nav-item" href="devmatch-landing.html#developers"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"/><path d="M3 20a6 6 0 0 1 12 0m2-8a3 3 0 1 0 0-6m1 8a5 5 0 0 1 3 5"/></svg>Developers</a>
+      <a class="client-nav-item" href="#projects" data-favorites-filter><svg viewBox="0 0 24 24"><path d="m20.8 4.6-1.4-1.4a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8L12 21l8.8-8.6a5.5 5.5 0 0 0 0-7.8z"/></svg>Favorites<span class="client-nav-count" id="favoriteCount">0</span></a>
+      <a class="client-nav-item" href="#requests"><svg viewBox="0 0 24 24"><path d="M6 3h9l4 4v14H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"/><path d="M14 3v5h5M8 13h8m-8 4h8"/></svg>My Requests</a>
+      <a class="client-nav-item" href="#requests"><svg viewBox="0 0 24 24"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9m-8 13h4"/></svg>Notifications<span class="client-notification-count">2</span></a>
+    </nav>
+    <span class="client-nav-label account-label">Account</span>
+    <nav class="client-nav" aria-label="Account navigation">
+      <a class="client-nav-item" href="devmatch-profile.html?role=client"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>Profile</a>
+      <a class="client-nav-item" href="#settings"><svg viewBox="0 0 24 24"><path d="M4 21v-7m0-4V3m8 18v-9m0-4V3m8 18v-5m0-4V3M1 14h6m2-6h6m2 8h6"/></svg>Settings</a>
+    </nav>
+    <div class="client-sidebar-foot"><span></span>Demo workspace</div>
+  </aside>
+
+  <main class="client-main" id="home">
+    <section class="client-hero">
+      <div class="hero-orbit orbit-one"></div><div class="hero-orbit orbit-two"></div>
+      <p id="greeting">Good afternoon, Client</p>
+      <h1>What do you want to build today?</h1>
+      <form class="hero-search" id="heroSearch">
+        <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
+        <input id="heroSearchInput" type="search" placeholder="Try “restaurant website”, “POS”, or “Flutter developer”">
+        <button type="submit">Search</button>
+      </form>
+      <div class="popular"><span>Popular:</span><button type="button" data-query="Company Profile">Company profile</button><button type="button" data-query="Café POS">Café POS</button><button type="button" data-query="Booking">Booking app</button><button type="button" data-query="E-Commerce">Online store</button></div>
+    </section>
+
+    <section class="category-list" aria-label="Project categories">
+      <button class="category-card selected" type="button" data-category="All"><span class="category-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18m-9-9a15 15 0 0 1 0 18m0-18a15 15 0 0 0 0 18"/></svg></span><b>All projects</b><small>850 projects</small></button>
+      <button class="category-card" type="button" data-category="Company Profile"><span class="category-icon"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg></span><b>Company Profile</b><small>214 projects</small></button>
+      <button class="category-card" type="button" data-category="POS"><span class="category-icon"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M7 9h4m-4 4h10m-10 3h6"/></svg></span><b>POS</b><small>96 projects</small></button>
+      <button class="category-card" type="button" data-category="Inventory"><span class="category-icon"><svg viewBox="0 0 24 24"><path d="M3 6a2 2 0 0 1 2-2h5l2 2h7a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg></span><b>Inventory</b><small>71 projects</small></button>
+      <button class="category-card" type="button" data-category="Booking"><span class="category-icon"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/></svg></span><b>Booking</b><small>88 projects</small></button>
+      <button class="category-card" type="button" data-category="E-Commerce"><span class="category-icon"><svg viewBox="0 0 24 24"><rect x="3" y="7" width="18" height="14" rx="2"/><path d="M8 7V5a4 4 0 0 1 8 0v2"/></svg></span><b>E-Commerce</b><small>132 projects</small></button>
+      <button class="category-card" type="button" data-category="Other"><span class="category-icon"><svg viewBox="0 0 24 24"><path d="M12 3v3m0 12v3m9-9h-3M6 12H3m15.4-6.4-2.1 2.1M7.7 16.3l-2.1 2.1m12.8 0-2.1-2.1M7.7 7.7 5.6 5.6"/></svg></span><b>Other</b><small>249 projects</small></button>
+    </section>
+
+    <section class="client-projects" id="projects">
+      <div class="section-heading"><div><h2>Latest projects</h2><p id="resultsLabel">Explore ready-to-build ideas from independent developers.</p></div><a href="devmatch-landing.html#projects">Discover all <svg viewBox="0 0 24 24"><path d="M5 12h14m-7-7 7 7-7 7"/></svg></a></div>
+      <div class="client-project-grid" id="projectGrid"></div>
+      <p class="empty-state" id="emptyState" hidden>No projects match your search. Try another keyword or category.</p>
+    </section>
+
+    <section class="client-requests panel-client" id="requests">
+      <div class="section-heading"><div><h2>Your project requests</h2><p>Keep track of the work you want to get started.</p></div><button class="request-link" type="button" data-open-request>+ Post a request</button></div>
+      <div id="requestList" class="request-list"></div>
+    </section>
+    <p class="client-demo-note">Demo dashboard — projects and request activity shown here are sample data.</p>
+  </main>
+
+  <dialog class="project-detail-dialog" id="projectDetailDialog" aria-labelledby="projectTitle">
+    <div class="detail-dialog-bar">
+      <a class="detail-brand" href="devmatch-client-dashboard.html"><i>&lt;/&gt;</i><span>DEV-MATCH</span></a>
+      <span class="detail-modal-label">Project details</span>
+      <button class="close-detail" id="closeProjectDetail" type="button" aria-label="Close project details">×</button>
+    </div>
+    <div class="detail-page">
+      <div class="detail-error" id="detailError" role="alert" hidden></div>
+      <div id="projectContent" hidden>
+        <section class="project-heading">
+          <div>
+            <p class="detail-eyebrow" id="projectCategory"></p>
+            <h1 id="projectTitle"></h1>
+            <p class="project-subtitle" id="projectSummary"></p>
+            <p class="project-price" id="projectPrice"></p>
+          </div>
+        </section>
+        <section class="project-detail-grid">
+          <div class="detail-main-column">
+            <div class="project-cover" id="projectCover" aria-hidden="true"></div>
+            <section class="detail-section">
+              <h2>About this project</h2>
+              <p id="projectOverview"></p>
+              <p id="projectStack"></p>
+            </section>
+            <section class="detail-section included-section">
+              <h2>What's included</h2>
+              <div class="included-grid">
+                <div><span class="included-check">✓</span><span><b>Source code included</b><small>Full project files handed over</small></span></div>
+                <div><span class="included-check">✓</span><span><b>Deployment included</b><small>Ready for your hosting account</small></span></div>
+                <div><span class="included-check">✓</span><span><b>Documentation included</b><small>Setup and handover guide</small></span></div>
+                <div><span class="included-check">✓</span><span><b>Support included</b><small>Discuss the support period with developer</small></span></div>
+              </div>
+            </section>
+            <section class="detail-section">
+              <h2>Project details</h2>
+              <dl class="project-facts">
+                <div><dt>Project type</dt><dd id="projectType"></dd></div>
+                <div><dt>Category</dt><dd id="projectFactCategory"></dd></div>
+                <div><dt>Pricing type</dt><dd>Starting from</dd></div>
+                <div><dt>Project preview</dt><dd id="projectLink"></dd></div>
+                <div><dt>Created</dt><dd id="projectCreated"></dd></div>
+              </dl>
+            </section>
+            <section class="detail-section comments-section">
+              <div class="comments-heading"><h2>Comments <span id="commentCount">0</span></h2><label class="sort-comments"><select aria-label="Sort comments"><option>Newest</option><option>Oldest</option></select></label></div>
+              <form class="comment-form" id="commentForm">
+                <span class="comment-avatar" id="clientInitials">CL</span>
+                <div class="comment-compose"><label class="visually-hidden" for="commentInput">Write a comment</label><textarea id="commentInput" maxlength="500" placeholder="Ask the developer a question about this project..." required></textarea><button type="submit">Post comment</button></div>
+              </form>
+              <div class="comment-list" id="commentList" aria-live="polite"></div>
+              <p class="demo-disclaimer">Comments are saved in this browser for this demo.</p>
+            </section>
+          </div>
+          <aside class="developer-card">
+            <p class="developer-card-label">About the developer</p>
+            <div class="developer-profile"><span class="developer-profile-avatar" id="developerInitials"></span><div><h2 id="developerName"></h2><p><span id="developerHandle"></span> · <span id="developerLocation"></span></p></div></div>
+            <div class="developer-badges"><span class="developer-status"><i></i>Open for hiring</span><span class="developer-specialty" id="developerSpecialty"></span></div>
+            <p class="developer-help" id="developerBio"></p>
+            <dl class="developer-stats">
+              <div><dt>Projects</dt><dd id="developerProjects"></dd></div>
+              <div><dt>Views</dt><dd id="developerViews"></dd></div>
+              <div><dt>Favorites</dt><dd id="developerFavorites"></dd></div>
+            </dl>
+            <a class="view-developer-profile" id="viewDeveloperProfile" href="devmatch-developer-profile.html?developer=restaurant">View full profile <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14m-7-7 7 7-7 7"/></svg></a>
+            <button class="chat-developer chat-developer-secondary" type="button" data-open-chat>
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.5 11.5a8 8 0 0 1-8 8H6l-2.5 1.5.8-4.1a8 8 0 1 1 16.2-5.4Z"/><path d="M8.5 12h.01M12.5 12h.01M16.5 12h.01"/></svg>
+              Chat with developer
+            </button>
+          </aside>
+        </section>
+      </div>
+    </div>
+  </dialog>
+
+  <dialog class="chat-dialog" id="chatDialog" aria-labelledby="chatTitle">
+    <div class="chat-heading">
+      <div class="chat-person"><span class="developer-profile-avatar" id="chatInitials"></span><div><h2 id="chatTitle"></h2><p><span></span> In-app conversation</p></div></div>
+      <button class="close-chat" id="closeChat" type="button" aria-label="Close chat">×</button>
+    </div>
+    <div class="chat-messages" id="chatMessages" aria-live="polite"></div>
+    <form class="chat-compose" id="chatForm">
+      <label class="visually-hidden" for="chatInput">Write a message</label>
+      <textarea id="chatInput" maxlength="1000" placeholder="Write a message..." required></textarea>
+      <button type="submit" aria-label="Send message"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg></button>
+    </form>
+    <p class="chat-demo-note">Demo chat — messages are stored only in this browser.</p>
+  </dialog>
+
+  <dialog class="request-dialog" id="requestDialog">
+    <form id="requestForm">
+      <div class="dialog-heading"><div><span class="dialog-eyebrow">Project brief</span><h2>Post a request</h2></div><button class="dialog-close" type="button" aria-label="Close" data-close-request>×</button></div>
+      <label class="dialog-field">What do you want to build?<input class="dialog-input" name="title" required maxlength="100" placeholder="e.g. Online store for my business"></label>
+      <div class="dialog-row"><label class="dialog-field">Category<select class="dialog-input" name="category"><option>Company Profile</option><option>POS</option><option>Inventory</option><option>Booking</option><option>E-Commerce</option><option>Other</option></select></label><label class="dialog-field">Budget (optional)<input class="dialog-input" name="budget" maxlength="50" placeholder="e.g. Rp 5–10 juta"></label></div>
+      <label class="dialog-field">Project details<textarea class="dialog-input dialog-textarea" name="description" maxlength="500" placeholder="Tell developers about your goals and requirements"></textarea></label>
+      <p class="dialog-message" id="requestMessage" role="status"></p>
+      <div class="dialog-actions"><button class="cancel-request" type="button" data-close-request>Cancel</button><button class="post-request" type="submit">Save request</button></div>
+    </form>
+  </dialog>
+  <span class="floating-chat" role="img" aria-label="Chat" title="Chat">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5c-5 0-9 3.65-9 8.15 0 2.24 1.04 4.27 2.73 5.74L4.7 21l5.24-1.28c.67.12 1.36.18 2.06.18 5 0 9-3.65 9-8.15S17 3.5 12 3.5Z"/><circle cx="8.5" cy="11.7" r="1" fill="currentColor" stroke="none"/><circle cx="12" cy="11.7" r="1" fill="currentColor" stroke="none"/><circle cx="15.5" cy="11.7" r="1" fill="currentColor" stroke="none"/></svg>
+  </span>
+  <script src="assets/js/projects-data.js"></script>
+  <script src="assets/js/project-detail.js"></script>
+  <script src="assets/js/client-dashboard.js"></script>
+</body>
+</html>

@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>My projects — DEV-MATCH</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/css/dashboard.css">
+  <link rel="stylesheet" href="assets/css/my-projects.css?v=20261024-project-overview3">
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="devmatch-dashboard.html"><i>&lt;/&gt;</i><span>DEV-MATCH</span></a>
+    <label class="search">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
+      <input id="headerSearch" type="search" placeholder="Search project requests, clients...">
+      <kbd>⌘K</kbd>
+    </label>
+    <div class="top-actions">
+      <div class="mode-switch" role="group" aria-label="Workspace mode">
+        <a class="mode active" href="devmatch-dashboard.html"><span aria-hidden="true">&lt;/&gt;</span>Developer Mode</a>
+        <a class="mode" href="devmatch-client-dashboard.html"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="7" width="18" height="14" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>Client Mode</a>
+      </div>
+      <button class="icon-button notification-button" type="button" aria-label="Notifications"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9m-8 13h4"/></svg><i></i></button>
+      <a class="user-menu" href="devmatch-profile.html?role=dev"><span class="user-avatar" id="userAvatar">DM</span><span class="user-copy"><b id="topUserName">Developer</b><small>Developer</small></span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m7 10 5 5 5-5"/></svg></a>
+    </div>
+  </header>
+
+  <aside class="sidebar">
+    <div class="workspace"><span class="workspace-icon">&lt;/&gt;</span><span><b>Developer workspace</b><small>Showcase &amp; find clients</small></span></div>
+    <button class="add-project side-add" type="button" data-open-project><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14m-7-7h14"/></svg>Add Project</button>
+    <span class="nav-label">Menu</span>
+    <nav class="side-nav" aria-label="Dashboard navigation">
+      <a class="nav-item" href="devmatch-dashboard.html"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>Overview</a>
+      <a class="nav-item active" href="devmatch-my-projects.html" aria-current="page"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6a2 2 0 0 1 2-2h5l2 2h7a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>Projects</a>
+      <a class="nav-item" href="devmatch-landing.html#projects"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="m15.5 8.5-2 5-5 2 2-5z"/></svg>Find Projects</a>
+      <a class="nav-item" href="devmatch-landing.html#developers"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3"/><path d="M3 20a6 6 0 0 1 12 0m2-8a3 3 0 1 0 0-6m1 8a5 5 0 0 1 3 5"/></svg>Find Clients</a>
+      <a class="nav-item" href="devmatch-dashboard.html#projects"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m20.8 4.6-1.4-1.4a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8L12 21l8.8-8.6a5.5 5.5 0 0 0 0-7.8z"/></svg>Favorites</a>
+      <a class="nav-item" href="#notifications"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9m-8 13h4"/></svg>Notifications<span class="nav-count">3</span></a>
+    </nav>
+    <span class="nav-label account-label">Account</span>
+    <nav class="side-nav" aria-label="Account navigation">
+      <a class="nav-item" href="devmatch-profile.html?role=dev"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>Profile</a>
+      <a class="nav-item" href="#settings"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 21v-7m0-4V3m8 18v-9m0-4V3m8 18v-5m0-4V3M1 14h6m2-6h6m2 8h6"/></svg>Settings</a>
+    </nav>
+    <div class="sidebar-foot"><span class="online-dot"></span>Demo workspace</div>
+  </aside>
+
+  <main class="projects-page">
+    <section class="project-editor" id="projectEditor" hidden>
+      <div class="editor-breadcrumb"><button type="button" data-editor-cancel>Projects</button><span>/</span><span id="editorBreadcrumbCurrent">New</span></div>
+      <div class="editor-heading">
+        <div><h1 id="editorTitle">Add a new project</h1><p>Showcase a project clients can discover, favorite and hire you for.</p></div>
+        <div class="editor-heading-actions">
+          <button class="editor-button" type="button" data-save-draft>Save draft</button>
+          <button class="editor-button preview-button" type="button" data-preview-form><span aria-hidden="true">◉</span> Preview</button>
+          <button class="add-project primary-add publish-button" type="submit" form="projectForm" name="intent" value="publish">Publish project <span aria-hidden="true">→</span></button>
+        </div>
+      </div>
+      <div class="editor-layout">
+        <form id="projectForm" class="editor-form">
+          <section class="editor-card">
+            <header class="editor-card-heading"><span>1</span><div><h2>Basic information</h2><p>Name your project and describe what clients get.</p></div></header>
+            <label class="editor-field">Project name<input name="title" required maxlength="80" placeholder="e.g. Restaurant Website Development"><small><span id="titleCount">0</span> / 80 characters</small></label>
+            <label class="editor-field">Project description<textarea name="description" required maxlength="1000" rows="4" placeholder="Describe what you built, the problem it solves, and what the client receives."></textarea><small>Markdown supported · <span id="descriptionCount">0</span> / 1,000</small></label>
+            <label class="editor-field">Project link <span class="optional-label">Optional</span><input name="link" type="url" placeholder="https://your-project.example"><small>Live demo, Figma prototype or repository</small></label>
+          </section>
+          <section class="editor-card">
+            <header class="editor-card-heading"><span>2</span><div><h2>Media</h2><p>Screenshots and a demo video help clients trust your work.</p></div></header>
+            <label class="media-dropzone" id="mediaDropzone"><input id="projectMedia" name="media" type="file" accept="image/png,image/jpeg,image/webp,video/mp4,video/webm" multiple><span class="upload-icon" aria-hidden="true">↑</span><strong>Drag &amp; drop screenshots or a demo video, or <u>browse</u></strong><small>PNG, JPG up to 5 MB · MP4 up to 50 MB · max 8 files</small></label>
+            <div class="media-preview-list" id="mediaPreviewList" aria-live="polite"></div>
+            <p class="editor-message" id="mediaMessage" role="status"></p>
+          </section>
+          <section class="editor-card">
+            <header class="editor-card-heading"><span>3</span><div><h2>Type &amp; category</h2><p>Helps clients filter and find your project.</p></div></header>
+            <fieldset class="editor-choice-group"><legend>Project type</legend><div class="type-options">
+              <label class="type-option"><input type="radio" name="type" value="Website"><span aria-hidden="true">◎</span>Website</label>
+              <label class="type-option"><input type="radio" name="type" value="Android / iOS"><span aria-hidden="true">▱</span>Android / iOS App</label>
+              <label class="type-option"><input type="radio" name="type" value="Desktop App"><span aria-hidden="true">▦</span>Desktop App</label>
+              <label class="type-option"><input type="radio" name="type" value="Web App"><span aria-hidden="true">‹›</span>Web App</label>
+            </div></fieldset>
+            <fieldset class="editor-choice-group category-group"><legend>Project category</legend><div class="category-options">
+              <label class="category-option"><input type="radio" name="category" value="Company Profile"><span>Company Profile</span></label>
+              <label class="category-option"><input type="radio" name="category" value="POS"><span>POS</span></label>
+              <label class="category-option"><input type="radio" name="category" value="Inventory"><span>Inventory</span></label>
+              <label class="category-option"><input type="radio" name="category" value="Booking"><span>Booking</span></label>
+              <label class="category-option"><input type="radio" name="category" value="E-Commerce"><span>E-Commerce</span></label>
+              <label class="category-option"><input type="radio" name="category" value="Other"><span>Other</span></label>
+            </div></fieldset>
+          </section>
+          <section class="editor-card">
+            <header class="editor-card-heading"><span>4</span><div><h2>Pricing</h2><p>Choose how your price appears on the project card.</p></div></header>
+            <div class="pricing-options">
+              <label class="pricing-option"><input type="radio" name="priceType" value="Fixed price"><span><b>Fixed Price</b><small>One clear price</small></span></label>
+              <label class="pricing-option"><input type="radio" name="priceType" value="Starting from"><span><b>Starting From</b><small>Base price, add-ons extra</small></span></label>
+              <label class="pricing-option"><input type="radio" name="priceType" value="Negotiable"><span><b>Negotiable</b><small>Price shown, open to talk</small></span></label>
+              <label class="pricing-option"><input type="radio" name="priceType" value="Custom quote"><span><b>Custom Quote</b><small>Show a price range</small></span></label>
+            </div>
+            <div class="price-inputs">
+              <label class="editor-field" id="singlePriceField">Price<div class="currency-input"><span>Rp</span><input name="price" inputmode="numeric" placeholder="3.500.000"></div></label>
+              <div class="editor-field price-range-field" id="priceRangeField" hidden><span>Price range — Custom Quote only</span><div class="price-range-inputs"><label class="currency-input"><span>Rp</span><input name="priceMin" inputmode="numeric" placeholder="3.000.000"></label><span>—</span><label class="currency-input"><span>Rp</span><input name="priceMax" inputmode="numeric" placeholder="7.000.000"></label></div></div>
+            </div>
+            <small class="price-helper" id="priceHelper">Select a pricing option to continue.</small>
+          </section>
+          <section class="editor-card">
+            <header class="editor-card-heading"><span>5</span><div><h2>Included services</h2><p>Tick everything that comes with this project.</p></div></header>
+            <div class="service-options">
+              <label class="service-option"><input type="checkbox" name="services" value="Source code included"><span><b>Source code included</b><small>Full repository handed over</small></span></label>
+              <label class="service-option"><input type="checkbox" name="services" value="Documentation included"><span><b>Documentation included</b><small>Setup &amp; admin guide</small></span></label>
+              <label class="service-option"><input type="checkbox" name="services" value="Deployment included"><span><b>Deployment included</b><small>Hosting + domain setup</small></span></label>
+              <label class="service-option"><input type="checkbox" name="services" value="Maintenance included"><span><b>Maintenance included</b><small>Bug fixes after launch</small></span></label>
+              <label class="service-option"><input type="checkbox" name="services" value="Commercial use included"><span><b>Commercial use included</b><small>Client may resell / reuse</small></span></label>
+            </div>
+          </section>
+          <p class="editor-message" id="projectMessage" role="status"></p>
+        </form>
+        <aside class="editor-aside">
+          <p class="aside-label">Card preview</p>
+          <article class="listing-preview">
+            <div class="listing-preview-media" id="listingPreviewMedia"><span class="preview-type" id="previewType">Website</span><button type="button" class="preview-favorite" aria-label="Favorite preview">♡</button><div class="preview-art"><strong id="previewHeroTitle">Showcase your project.</strong><span></span><i></i><b></b></div></div>
+            <div class="listing-preview-content"><div class="preview-company"><span>Company profile</span><small>Just now</small></div><h3 id="previewTitle">Untitled project</h3><p id="previewDescription">Your project description will appear here.</p><div class="preview-starting"><small id="previewPriceType">Starting from</small><strong id="previewPrice">Rp 0</strong><span>→</span></div><div class="preview-owner"><span class="preview-avatar" id="previewAvatar">DM</span><b id="previewOwner">Developer</b><span>◉ 0 ♡ 0</span></div></div>
+          </article>
+          <section class="publish-checklist"><header><h2>Ready to publish</h2><span id="checklistCount">0 / 4</span></header><ul>
+            <li id="checkName"><span>✓</span>Name &amp; description</li><li id="checkMedia"><span>✓</span>At least 1 screenshot</li><li id="checkType"><span>✓</span>Type &amp; category</li><li id="checkPrice"><span>✓</span>Price set</li><li class="recommended" id="checkVideo"><span>×</span>Demo video (recommended)</li>
+          </ul></section>
+        </aside>
+      </div>
+    </section>
+    <section class="project-preview-mode" id="projectPreviewMode" hidden aria-label="Project overview preview">
+      <div class="preview-mode-banner">
+        <span class="preview-mode-icon" aria-hidden="true">◉</span>
+        <div><strong>Preview mode — this is exactly what clients will see</strong><p>Your project isn’t public yet. Views, favorites and comments start after publishing.</p></div>
+        <div class="preview-mode-actions"><button class="editor-button" type="button" data-exit-preview>Back to edit</button><button class="add-project primary-add publish-button" type="button" data-publish-preview>Publish project <span aria-hidden="true">→</span></button></div>
+      </div>
+      <div class="project-preview-layout">
+        <article class="preview-project-main">
+          <section class="preview-gallery">
+            <div class="preview-gallery-hero" id="previewGalleryHero"><span class="preview-type" id="previewModeType">Project type</span><div class="preview-gallery-art" aria-hidden="true"><strong id="previewGalleryBrand">Your project</strong><span></span><i></i><b></b></div><span class="preview-gallery-count" id="previewGalleryCount">0 / 0</span></div>
+            <div class="preview-gallery-thumbnails" id="previewGalleryThumbnails"></div>
+          </section>
+          <div class="preview-project-body">
+            <div class="preview-project-category"><span id="previewModeCategory">Project category</span><span>· Draft — not published</span></div>
+            <h1 id="previewModeTitle">Untitled project</h1>
+            <div class="preview-project-metrics"><span>◉ <b>0</b> views</span><span>♡ <b>0</b> favorites</span><span>▢ <b>0</b> comments</span></div>
+            <nav class="preview-project-tabs" aria-label="Project overview sections"><a href="#previewAbout">Overview</a><a href="#previewIncluded">What’s included</a><span>Comments (0)</span></nav>
+            <section class="preview-description-section" id="previewAbout"><h2>About this project</h2><p id="previewModeDescription">Add a description so clients can understand what this project offers.</p><p id="previewModeLinkWrap" hidden><a id="previewModeLink" target="_blank" rel="noopener noreferrer"></a></p></section>
+            <section class="preview-included-section" id="previewIncluded"><h2>What’s included</h2><div id="previewModeServices" class="preview-service-grid"><p class="preview-no-services">No included services selected.</p></div></section>
+            <section class="preview-details-section"><h2>Project details</h2><dl><div><dt>Project type</dt><dd id="previewDetailsType">Not selected</dd></div><div><dt>Category</dt><dd id="previewDetailsCategory">Not selected</dd></div><div><dt>Pricing type</dt><dd id="previewDetailsPricing">Not selected</dd></div><div><dt>Project link</dt><dd id="previewDetailsLink">Not added</dd></div></dl></section>
+            <section class="preview-comments-section"><h2>Comments <span>0</span></h2><p>Comments will appear here once your project is published.</p></section>
+          </div>
+        </article>
+        <aside class="preview-project-sidebar">
+          <section class="preview-side-card preview-price-card"><span class="preview-side-eyebrow" id="previewModePriceType">PRICING NOT SELECTED</span><strong id="previewModePrice">Price not set</strong><p>Final price depends on project scope and add-ons.</p><div class="preview-delivery-note">◷ <span>Delivery time can be discussed with the developer.</span></div><button class="preview-contact-button" type="button" disabled>◉ &nbsp; Contact Developer</button><button class="preview-favorite-button" type="button" disabled>♡ &nbsp; Add to Favorites</button><div class="preview-side-links"><span>↗ &nbsp; Share</span><span>⚑ &nbsp; Report</span></div></section>
+          <section class="preview-side-card preview-developer-card"><span class="preview-side-eyebrow">ABOUT THE DEVELOPER</span><div class="preview-developer-heading"><span class="preview-developer-avatar" id="previewModeAvatar">DM</span><span><strong id="previewModeDeveloper">Developer</strong><small id="previewModeHandle">@developer · Indonesia</small></span></div><div class="preview-developer-tags"><span id="previewModeAvailability">Open for hiring</span><span id="previewModeSpecialty">Developer</span></div><p class="preview-developer-bio" id="previewModeBio">Developer profile information will appear here.</p><div class="preview-developer-stats"><span><b>—</b><small>PROJECTS</small></span><span><b>—</b><small>VIEWS</small></span><span><b>—</b><small>FAVORITES</small></span></div><a class="preview-profile-link" href="devmatch-profile.html?role=dev">View full profile <span>→</span></a></section>
+          <p class="preview-protection-note">♧ &nbsp; Agree on scope, timeline and payment terms in writing before you start.</p>
+        </aside>
+      </div>
+    </section>
+    <section id="projectsList">
+    <section class="projects-heading">
+      <div><h1>My projects</h1><p>Manage your listings, pricing and visibility.</p></div>
+      <button class="add-project primary-add" type="button" data-open-project><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14m-7-7h14"/></svg>Add Project</button>
+    </section>
+    <section class="project-management" aria-label="Manage project listings">
+      <div class="projects-toolbar">
+        <div class="project-tabs" role="tablist" aria-label="Filter projects by status">
+          <button class="project-tab active" type="button" role="tab" aria-selected="true" data-status="all">All <span id="allCount">12</span></button>
+          <button class="project-tab" type="button" role="tab" aria-selected="false" data-status="published">Published <span id="publishedCount">10</span></button>
+          <button class="project-tab" type="button" role="tab" aria-selected="false" data-status="draft">Drafts <span id="draftCount">2</span></button>
+        </div>
+        <div class="project-tools">
+          <label class="table-search"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg><input id="projectSearch" type="search" placeholder="Search my projects"></label>
+          <label class="sort-select"><select id="projectSort" aria-label="Sort projects"><option value="updated">Last updated</option><option value="title">Project name</option><option value="price">Price</option><option value="views">Most viewed</option></select><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m7 10 5 5 5-5"/></svg></label>
+        </div>
+      </div>
+      <div class="project-table-wrap">
+        <table class="project-table">
+          <thead><tr><th scope="col">Project</th><th scope="col">Price</th><th scope="col">Status</th><th scope="col">Views</th><th scope="col">Favorites</th><th scope="col">Comments</th><th scope="col"><span class="visually-hidden">Actions</span></th></tr></thead>
+          <tbody id="managedProjectRows"></tbody>
+        </table>
+        <div class="table-footer"><span id="resultSummary">Showing 6 of 12 projects</span><nav class="pagination" id="pagination" aria-label="Project pages"></nav></div>
+        <p class="empty-projects" id="emptyProjects" hidden>No projects match your search.</p>
+      </div>
+    </section>
+    <p class="demo-note">Demo workspace — listing metrics are sample data.</p>
+    </section>
+  </main>
+
+  <dialog class="project-preview-dialog" id="projectPreviewDialog" aria-labelledby="previewDialogTitle">
+    <header class="preview-dialog-header"><div><span class="eyebrow">Project overview</span><p>Preview how this project will appear to clients.</p></div><button class="icon-button" type="button" aria-label="Close preview" data-close-preview>×</button></header>
+    <article class="full-project-preview">
+      <div class="full-preview-media" id="previewThumb"><span class="preview-type" id="previewDialogType">Project type</span><div class="full-preview-art" aria-hidden="true"><span></span><i></i><b></b></div></div>
+      <div class="full-preview-content">
+        <div class="full-preview-category" id="previewCategory">Project category</div>
+        <h2 id="previewDialogTitle">Untitled project</h2>
+        <p class="full-preview-description" id="previewDialogDescription">Your project description will appear here.</p>
+        <a class="full-preview-link" id="previewLink" hidden target="_blank" rel="noopener noreferrer"></a>
+        <div class="full-preview-price"><span id="previewDialogPriceType">Choose pricing</span><strong id="previewDialogPrice">Price not set</strong></div>
+        <section class="full-preview-services" id="previewServicesSection" hidden><h3>Included services</h3><div id="previewServices"></div></section>
+        <div class="full-preview-owner"><span class="preview-avatar" id="previewDialogAvatar">DM</span><span><b id="previewDialogOwner">Developer</b><small>Developer profile</small></span><span class="preview-demo-label">Preview</span></div>
+      </div>
+    </article>
+    <footer class="preview-dialog-footer"><p>This is a preview only. Your project won’t be published until you choose <b>Publish project</b>.</p><button class="add-project primary-add" type="button" data-close-preview>Back to editing</button></footer>
+  </dialog>
+  <script src="assets/js/my-projects.js?v=20261024-project-preview5"></script>
+</body>
+</html>

@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Choose your role — DEV-MATCH</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/css/role.css">
+</head>
+<body>
+  <header class="topbar">
+    <a class="logo" href="devmatch-landing.html"><i>&lt;/&gt;</i><span>DEV-MATCH</span></a>
+    <p>Already have an account? <a class="login" href="devmatch-auth.html?mode=login&amp;role=dev">Log in</a></p>
+  </header>
+
+  <main class="main">
+    <section class="card" aria-labelledby="title">
+      <span class="step">Step 1 of 2</span>
+      <h1 id="title">How do you want to use DEV-MATCH?</h1>
+      <p class="intro">You can switch modes anytime after signing up.</p>
+
+      <div class="roles" role="group" aria-label="Choose an account type">
+        <button class="role selected" type="button" data-role="dev" aria-pressed="true">
+          <span class="role-top">
+            <span class="icon"><svg viewBox="0 0 24 24"><path d="m16 18 6-6-6-6M8 6l-6 6 6 6"/></svg></span>
+            <span class="radio" aria-hidden="true"></span>
+          </span>
+          <span class="role-name">Developer</span>
+          <span class="description">Showcase your work and find your next client.</span>
+          <span class="divider"></span>
+          <span class="benefit"><span>✓</span> Portfolio with pricing</span>
+          <span class="benefit"><span>✓</span> Find client requests</span>
+          <span class="benefit"><span>✓</span> Performance dashboard</span>
+        </button>
+
+        <button class="role" type="button" data-role="client" aria-pressed="false">
+          <span class="role-top">
+            <span class="icon"><svg viewBox="0 0 24 24"><rect x="3" y="7" width="18" height="14" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M12 12v5"/></svg></span>
+            <span class="radio" aria-hidden="true"></span>
+          </span>
+          <span class="role-name">Client</span>
+          <span class="description">Find developers and turn your idea into reality.</span>
+          <span class="divider"></span>
+          <span class="benefit"><span>✓</span> Discover ready projects</span>
+          <span class="benefit"><span>✓</span> Post project requests</span>
+          <span class="benefit"><span>✓</span> Contact via WhatsApp</span>
+        </button>
+      </div>
+
+      <a class="continue" id="continueLink" href="devmatch-auth.html?mode=register&amp;role=dev">
+        <span id="continueText">Continue as Developer</span>
+        <svg viewBox="0 0 24 24"><path d="M5 12h14m-7-7 7 7-7 7"/></svg>
+      </a>
+      <p class="bottom-login">Already have an account? <a class="login" href="devmatch-auth.html?mode=login&amp;role=dev">Log in</a></p>
+    </section>
+  </main>
+  <script src="assets/js/role.js"></script>
+</body>
+</html>

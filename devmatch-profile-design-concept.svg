@@ -1,0 +1,262 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="1024" viewBox="0 0 1440 1024" fill="none">
+  <defs>
+    <linearGradient id="cover" x1="352" y1="94" x2="1294" y2="248" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#19233D"/>
+      <stop offset=".56" stop-color="#303D70"/>
+      <stop offset="1" stop-color="#5468CC"/>
+    </linearGradient>
+    <linearGradient id="food" x1="766" y1="505" x2="1050" y2="690" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFF5E5"/>
+      <stop offset="1" stop-color="#E8C89D"/>
+    </linearGradient>
+    <linearGradient id="dash" x1="1075" y1="505" x2="1376" y2="690" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#EEF0FF"/>
+      <stop offset="1" stop-color="#D8DCFF"/>
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="150%">
+      <feDropShadow dx="0" dy="7" stdDeviation="12" flood-color="#27304A" flood-opacity=".08"/>
+    </filter>
+  </defs>
+  <rect width="1440" height="1024" fill="#F6F7FB"/>
+  <rect width="1440" height="76" fill="#FFFFFF"/>
+  <path d="M0 75.5H1440" stroke="#E8EAF0"/>
+
+  <rect x="28" y="22" width="34" height="34" rx="10" fill="#202A49"/>
+  <path d="M36 38h5l3-5h5m-13 11h5l3-5h5" stroke="#AFC0FF" stroke-width="2" stroke-linecap="round"/>
+  <text x="72" y="45" fill="#20263A" font-family="Arial,sans-serif" font-size="20" font-weight="700">DEV-MATCH</text>
+  <rect x="292" y="18" width="422" height="40" rx="12" fill="#F7F8FB" stroke="#E8EAF0"/>
+  <circle cx="314" cy="37" r="6" stroke="#82899B" stroke-width="1.8"/>
+  <path d="m319 42 5 5" stroke="#82899B" stroke-width="1.8" stroke-linecap="round"/>
+  <text x="337" y="42" fill="#9197A6" font-family="Arial,sans-serif" font-size="13">Search projects, developers, skills...</text>
+  <rect x="668" y="27" width="28" height="21" rx="6" fill="#FFFFFF" stroke="#E5E7ED"/>
+  <text x="675" y="42" fill="#737A8E" font-family="Arial,sans-serif" font-size="10" font-weight="700">⌘K</text>
+  <rect x="928" y="18" width="244" height="40" rx="20" fill="#F4F5F9"/>
+  <text x="946" y="43" fill="#747B8E" font-family="Arial,sans-serif" font-size="12">‹/›  Developer Mode</text>
+  <rect x="1054" y="22" width="113" height="32" rx="16" fill="#FFFFFF" filter="url(#shadow)"/>
+  <text x="1070" y="43" fill="#252B3D" font-family="Arial,sans-serif" font-size="12" font-weight="700">▣  Client Mode</text>
+  <circle cx="1214" cy="38" r="19" fill="#FFFFFF" stroke="#E7E9EF"/>
+  <path d="M1209 39a5 5 0 0 1 10 0c0 5 2 5 2 7h-14c0-2 2-2 2-7m4 10h2" stroke="#5F6679" stroke-width="1.5" stroke-linecap="round"/>
+  <circle cx="1221" cy="26" r="4" fill="#EA6C72"/>
+  <circle cx="1263" cy="38" r="17" fill="#EDEFF7"/>
+  <text x="1252" y="43" fill="#3F4968" font-family="Arial,sans-serif" font-size="12" font-weight="700">JS</text>
+  <text x="1290" y="36" fill="#252B3D" font-family="Arial,sans-serif" font-size="12" font-weight="700">Jessica Sitorus</text>
+  <text x="1290" y="51" fill="#8A90A0" font-family="Arial,sans-serif" font-size="10">Client</text>
+  <path d="m1404 35 5 5 5-5" stroke="#777E91" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <rect y="76" width="250" height="948" fill="#FFFFFF"/>
+  <path d="M249.5 76v948" stroke="#E8EAF0"/>
+  <rect x="18" y="98" width="214" height="62" rx="13" fill="#F5F6FA"/>
+  <rect x="30" y="113" width="34" height="34" rx="10" fill="#202A49"/>
+  <path d="M39 122h16v15H39zM43 119v3m8-3v3m-12 5h16" stroke="#DCE4FF" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="75" y="126" fill="#252B3D" font-family="Arial,sans-serif" font-size="13" font-weight="700">Client workspace</text>
+  <text x="75" y="144" fill="#7A8193" font-family="Arial,sans-serif" font-size="12">Discover &amp; hire</text>
+  <rect x="18" y="174" width="214" height="46" rx="11" fill="#202A49"/>
+  <path d="M125 187v18m-9-9h18" stroke="#FFFFFF" stroke-width="1.8" stroke-linecap="round"/>
+  <text x="147" y="202" fill="#FFFFFF" font-family="Arial,sans-serif" font-size="13" font-weight="700" text-anchor="middle">Post a Request</text>
+  <text x="28" y="254" fill="#9AA0AE" font-family="Arial,sans-serif" font-size="10" font-weight="700" letter-spacing="1.2">MENU</text>
+  <g font-family="Arial,sans-serif" font-size="14">
+    <path d="m33 283 8-6 8 6v10h-6v-6h-4v6h-6z" stroke="#778094" stroke-width="1.6" stroke-linejoin="round"/>
+    <text x="65" y="291" fill="#596176">Home</text>
+    <circle cx="41" cy="326" r="8" stroke="#778094" stroke-width="1.6"/><path d="m44 322-2 5-5 2 2-5z" stroke="#778094" stroke-width="1.3"/>
+    <text x="65" y="331" fill="#596176">Discover Projects</text>
+    <rect x="18" y="348" width="214" height="43" rx="10" fill="#EEF0FA"/>
+    <circle cx="37" cy="365" r="5" stroke="#344276" stroke-width="1.6"/><path d="M28 382a9 9 0 0 1 18 0m5-12a5 5 0 1 0 0-10m1 13a7 7 0 0 1 6 7" stroke="#344276" stroke-width="1.6" stroke-linecap="round"/>
+    <text x="65" y="375" fill="#29365F" font-weight="700">Developers</text>
+    <path d="m49 411-1.5-1.4a5 5 0 0 0-7 0L39 411l-1.5-1.4a5 5 0 0 0-7 7L39 425l8.5-8.4a5 5 0 0 0 0-7Z" stroke="#778094" stroke-width="1.5"/>
+    <text x="65" y="421" fill="#596176">Favorites</text>
+    <path d="M33 445h12l5 5v14H33zM44 445v6h6m-13 5h8m-8 4h8" stroke="#778094" stroke-width="1.5" stroke-linejoin="round"/>
+    <text x="65" y="460" fill="#596176">My Requests</text>
+    <path d="M47 486a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9m-7 13h3" stroke="#778094" stroke-width="1.5" stroke-linecap="round"/>
+    <text x="65" y="497" fill="#596176">Notifications</text>
+    <rect x="194" y="483" width="24" height="20" rx="10" fill="#FCE9EA"/><text x="202" y="497" fill="#CF515B" font-size="11" font-weight="700">2</text>
+  </g>
+  <text x="28" y="550" fill="#9AA0AE" font-family="Arial,sans-serif" font-size="10" font-weight="700" letter-spacing="1.2">ACCOUNT</text>
+  <circle cx="40" cy="582" r="6" stroke="#778094" stroke-width="1.6"/><path d="M29 600a11 11 0 0 1 22 0" stroke="#778094" stroke-width="1.6"/>
+  <text x="65" y="588" fill="#596176" font-family="Arial,sans-serif" font-size="14">Profile</text>
+  <path d="M32 620v-7m0 15v-4m10 4v-9m0-6v-4m10 20v-7m0-6v-7m-23 9h7m3-6h7m2 8h7" stroke="#778094" stroke-width="1.5" stroke-linecap="round"/>
+  <text x="65" y="632" fill="#596176" font-family="Arial,sans-serif" font-size="14">Settings</text>
+  <rect x="18" y="899" width="214" height="105" rx="14" fill="#F8F9FC" stroke="#E9EBF1"/>
+  <text x="32" y="923" fill="#31384D" font-family="Arial,sans-serif" font-size="12" font-weight="700">Are you a developer?</text>
+  <text x="32" y="945" fill="#747B8D" font-family="Arial,sans-serif" font-size="11">Switch to Developer Mode to</text>
+  <text x="32" y="961" fill="#747B8D" font-family="Arial,sans-serif" font-size="11">showcase your projects.</text>
+  <text x="32" y="986" fill="#394873" font-family="Arial,sans-serif" font-size="11" font-weight="700">Switch to Developer Mode →</text>
+
+  <text x="290" y="113" fill="#7C8395" font-family="Arial,sans-serif" font-size="13">Developers</text>
+  <path d="m362 108 5 5-5 5" stroke="#A4A9B5" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="381" y="113" fill="#293047" font-family="Arial,sans-serif" font-size="13" font-weight="700">Rizky Aditya</text>
+  <rect x="286" y="137" width="1124" height="128" rx="20" fill="url(#cover)"/>
+  <path d="M286 175h1124M286 213h1124M286 251h1124M332 137v153m48-153v153m48-153v153m48-153v153m48-153v153m48-153v153m48-153v153m48-153v153m48-153v153m48-153v153m48-153v153m48-153v153m48-153v153m48-153v153m48-153v153m48-153v153m48-153v153m48-153v153m48-153v153m48-153v153m48-153v153m48-153v153m48-153v153" stroke="#FFFFFF" stroke-opacity=".075"/>
+  <circle cx="1272" cy="201" r="62" fill="#7887E8" fill-opacity=".2"/>
+  <circle cx="1272" cy="201" r="46" fill="#A9B5FF" fill-opacity=".15"/>
+  <text x="1229" y="215" fill="#E4E8FF" font-family="Arial,sans-serif" font-size="35" font-weight="300">&lt;/&gt;</text>
+  <circle cx="358" cy="290" r="56" fill="#E4E7F0" stroke="#F6F7FB" stroke-width="6"/>
+  <text x="324" y="303" fill="#30364B" font-family="Arial,sans-serif" font-size="34" font-weight="700">RA</text>
+  <text x="428" y="296" fill="#20263A" font-family="Arial,sans-serif" font-size="28" font-weight="700">Rizky Aditya</text>
+  <rect x="622" y="274" width="141" height="28" rx="14" fill="#E4F6ED"/>
+  <circle cx="638" cy="288" r="4" fill="#20A76B"/>
+  <text x="649" y="292" fill="#198354" font-family="Arial,sans-serif" font-size="12" font-weight="700">Open for hiring</text>
+  <text x="428" y="324" fill="#727A8E" font-family="Arial,sans-serif" font-size="14">@rizkyaditya</text>
+  <circle cx="544" cy="319" r="2" fill="#A6ABBA"/>
+  <path d="M562 314c-5 0-9 4-9 9 0 6 9 13 9 13s9-7 9-13c0-5-4-9-9-9Zm0 6a3 3 0 1 0 0 6 3 3 0 0 0 0-6Z" stroke="#858C9E" stroke-width="1.3"/>
+  <text x="578" y="324" fill="#727A8E" font-family="Arial,sans-serif" font-size="14">Medan, Indonesia</text>
+  <path d="m725 315-7 7 7 7m9-14 7 7-7 7m-2-17-5 20" stroke="#858C9E" stroke-width="1.2" stroke-linecap="round"/>
+  <text x="750" y="324" fill="#727A8E" font-family="Arial,sans-serif" font-size="14">Full-stack developer</text>
+  <rect x="1072" y="282" width="42" height="40" rx="11" fill="#FFFFFF" stroke="#E5E8EF"/>
+  <path d="M1096 294h8v8m-8-8-9 9" stroke="#5B6379" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+  <rect x="1122" y="282" width="108" height="40" rx="11" fill="#FFFFFF" stroke="#E5E8EF"/>
+  <path d="m1144 297 2-2a4 4 0 0 1 6 0l1 1 1-1a4 4 0 0 1 6 6l-7 7-7-7a4 4 0 0 1-1-4Z" stroke="#41495D" stroke-width="1.5"/>
+  <text x="1164" y="307" fill="#30364A" font-family="Arial,sans-serif" font-size="13" font-weight="700">Favorite</text>
+  <rect x="1238" y="282" width="172" height="40" rx="11" fill="#202A49"/>
+  <path d="M1262 296a7 7 0 0 1 13 4c0 4-5 8-5 8h-5l-3 2 .5-4a7 7 0 0 1-.5-10Z" stroke="#FFFFFF" stroke-width="1.4" stroke-linejoin="round"/>
+  <text x="1283" y="307" fill="#FFFFFF" font-family="Arial,sans-serif" font-size="12" font-weight="700">Contact Developer</text>
+
+  <g filter="url(#shadow)">
+    <rect x="286" y="354" width="270" height="92" rx="16" fill="#FFFFFF"/>
+    <rect x="568" y="354" width="270" height="92" rx="16" fill="#FFFFFF"/>
+    <rect x="850" y="354" width="270" height="92" rx="16" fill="#FFFFFF"/>
+    <rect x="1132" y="354" width="278" height="92" rx="16" fill="#FFFFFF"/>
+  </g>
+  <rect x="304" y="372" width="48" height="48" rx="13" fill="#F1F3FA"/>
+  <path d="M317 382h22v18h-22zM321 378v4m14-4v4m-18 5h22" stroke="#53618F" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="367" y="397" fill="#20263A" font-family="Arial,sans-serif" font-size="25" font-weight="700">18</text>
+  <text x="367" y="418" fill="#7C8393" font-family="Arial,sans-serif" font-size="12">Total projects</text>
+  <rect x="586" y="372" width="48" height="48" rx="13" fill="#F1F3FA"/>
+  <path d="m610 385-2-2a5 5 0 0 0-7 7l9 9 9-9a5 5 0 0 0-7-7l-2 2Z" stroke="#53618F" stroke-width="1.7"/>
+  <text x="649" y="397" fill="#20263A" font-family="Arial,sans-serif" font-size="25" font-weight="700">864</text>
+  <text x="649" y="418" fill="#7C8393" font-family="Arial,sans-serif" font-size="12">Project favorites</text>
+  <rect x="868" y="372" width="48" height="48" rx="13" fill="#F1F3FA"/>
+  <circle cx="892" cy="386" r="6" stroke="#53618F" stroke-width="1.7"/>
+  <path d="M881 408a11 11 0 0 1 22 0" stroke="#53618F" stroke-width="1.7"/>
+  <text x="931" y="397" fill="#20263A" font-family="Arial,sans-serif" font-size="25" font-weight="700">312</text>
+  <text x="931" y="418" fill="#7C8393" font-family="Arial,sans-serif" font-size="12">Developer favorites</text>
+  <rect x="1150" y="372" width="48" height="48" rx="13" fill="#FFF3E5"/>
+  <circle cx="1174" cy="396" r="12" stroke="#EB9A42" stroke-width="1.7"/><circle cx="1174" cy="396" r="4" fill="#EB9A42"/>
+  <text x="1213" y="397" fill="#20263A" font-family="Arial,sans-serif" font-size="25" font-weight="700">12.4k</text>
+  <text x="1213" y="418" fill="#7C8393" font-family="Arial,sans-serif" font-size="12">Total views</text>
+
+  <g filter="url(#shadow)">
+    <rect x="286" y="466" width="324" height="194" rx="16" fill="#FFFFFF"/>
+    <rect x="286" y="674" width="324" height="128" rx="16" fill="#FFFFFF"/>
+    <rect x="286" y="816" width="324" height="163" rx="16" fill="#FFFFFF"/>
+  </g>
+  <text x="310" y="498" fill="#20263A" font-family="Arial,sans-serif" font-size="17" font-weight="700">About</text>
+  <text x="310" y="528" fill="#545C70" font-family="Arial,sans-serif" font-size="14">I help Indonesian SMEs go digital with fast, reliable</text>
+  <text x="310" y="550" fill="#545C70" font-family="Arial,sans-serif" font-size="14">websites and POS systems. 5 years shipping Laravel</text>
+  <text x="310" y="572" fill="#545C70" font-family="Arial,sans-serif" font-size="14">+ React for cafés, clinics and retailers across North</text>
+  <text x="310" y="594" fill="#545C70" font-family="Arial,sans-serif" font-size="14">Sumatra.</text>
+  <text x="310" y="626" fill="#9AA0AE" font-family="Arial,sans-serif" font-size="10" font-weight="700" letter-spacing=".6">GENDER</text>
+  <text x="310" y="646" fill="#30364A" font-family="Arial,sans-serif" font-size="13" font-weight="700">Male</text>
+  <text x="408" y="626" fill="#9AA0AE" font-family="Arial,sans-serif" font-size="10" font-weight="700" letter-spacing=".6">EXPERIENCE</text>
+  <text x="408" y="646" fill="#30364A" font-family="Arial,sans-serif" font-size="13" font-weight="700">5 years</text>
+  <text x="528" y="626" fill="#9AA0AE" font-family="Arial,sans-serif" font-size="10" font-weight="700" letter-spacing=".6">AGE</text>
+  <text x="528" y="646" fill="#30364A" font-family="Arial,sans-serif" font-size="13" font-weight="700">27</text>
+  <text x="310" y="709" fill="#20263A" font-family="Arial,sans-serif" font-size="17" font-weight="700">Skills</text>
+  <g font-family="Arial,sans-serif" font-size="12" font-weight="700">
+    <rect x="310" y="724" width="58" height="27" rx="7" fill="#EEF0F7"/><text x="322" y="742" fill="#4A5470">React</text>
+    <rect x="375" y="724" width="70" height="27" rx="7" fill="#EEF0F7"/><text x="386" y="742" fill="#4A5470">Laravel</text>
+    <rect x="452" y="724" width="72" height="27" rx="7" fill="#EEF0F7"/><text x="462" y="742" fill="#4A5470">Next.js</text>
+    <rect x="531" y="724" width="58" height="27" rx="7" fill="#EEF0F7"/><text x="540" y="742" fill="#4A5470">MySQL</text>
+    <rect x="310" y="761" width="87" height="27" rx="7" fill="#EEF0F7"/><text x="319" y="779" fill="#4A5470">PostgreSQL</text>
+    <rect x="404" y="761" width="78" height="27" rx="7" fill="#EEF0F7"/><text x="413" y="779" fill="#4A5470">Tailwind</text>
+    <rect x="489" y="761" width="48" height="27" rx="7" fill="#EEF0F7"/><text x="500" y="779" fill="#4A5470">Figma</text>
+    <rect x="544" y="761" width="50" height="27" rx="7" fill="#EEF0F7"/><text x="551" y="779" fill="#4A5470">Docker</text>
+  </g>
+  <text x="310" y="850" fill="#20263A" font-family="Arial,sans-serif" font-size="17" font-weight="700">Experience</text>
+  <circle cx="316" cy="878" r="4" fill="#344276"/><path d="M316 883v38" stroke="#D8DBE5"/>
+  <text x="331" y="882" fill="#30364A" font-family="Arial,sans-serif" font-size="13" font-weight="700">Senior Web Developer</text>
+  <text x="331" y="900" fill="#818798" font-family="Arial,sans-serif" font-size="11">Sinar Digital · 2023 – Present</text>
+  <circle cx="316" cy="923" r="4" fill="#344276"/>
+  <text x="331" y="928" fill="#30364A" font-family="Arial,sans-serif" font-size="13" font-weight="700">Full-stack Developer</text>
+  <text x="331" y="946" fill="#818798" font-family="Arial,sans-serif" font-size="11">Freelance · 2021 – 2023</text>
+
+  <path d="M636 477h98" stroke="#293047" stroke-width="2"/>
+  <text x="636" y="473" fill="#252B3D" font-family="Arial,sans-serif" font-size="15" font-weight="700">Projects</text>
+  <text x="704" y="473" fill="#697187" font-family="Arial,sans-serif" font-size="14">(18)</text>
+  <text x="758" y="473" fill="#7A8193" font-family="Arial,sans-serif" font-size="14">Comments</text>
+  <rect x="1264" y="455" width="146" height="34" rx="17" fill="#FFFFFF" stroke="#E5E8EF"/>
+  <text x="1280" y="477" fill="#4B5368" font-family="Arial,sans-serif" font-size="12">Most viewed</text>
+  <path d="m1389 469 5 5 5-5" stroke="#777E91" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+  <rect x="636" y="500" width="57" height="33" rx="17" fill="#202A49"/>
+  <text x="653" y="521" fill="#FFFFFF" font-family="Arial,sans-serif" font-size="12" font-weight="700">All</text>
+  <rect x="701" y="500" width="117" height="33" rx="17" fill="#FFFFFF" stroke="#E5E8EF"/>
+  <text x="716" y="521" fill="#4C5469" font-family="Arial,sans-serif" font-size="12">Website</text>
+  <text x="776" y="521" fill="#9298A7" font-family="Arial,sans-serif" font-size="11">9</text>
+  <rect x="826" y="500" width="126" height="33" rx="17" fill="#FFFFFF" stroke="#E5E8EF"/>
+  <text x="841" y="521" fill="#4C5469" font-family="Arial,sans-serif" font-size="12">Web App</text>
+  <text x="910" y="521" fill="#9298A7" font-family="Arial,sans-serif" font-size="11">6</text>
+  <rect x="960" y="500" width="154" height="33" rx="17" fill="#FFFFFF" stroke="#E5E8EF"/>
+  <text x="974" y="521" fill="#4C5469" font-family="Arial,sans-serif" font-size="12">Android / iOS</text>
+  <text x="1092" y="521" fill="#9298A7" font-family="Arial,sans-serif" font-size="11">3</text>
+
+  <g filter="url(#shadow)">
+    <rect x="636" y="548" width="374" height="424" rx="16" fill="#FFFFFF"/>
+    <rect x="1024" y="548" width="386" height="424" rx="16" fill="#FFFFFF"/>
+  </g>
+  <rect x="636" y="548" width="374" height="203" rx="16" fill="url(#food)"/>
+  <rect x="650" y="562" width="73" height="27" rx="14" fill="#FFFFFF"/>
+  <text x="665" y="580" fill="#30364A" font-family="Arial,sans-serif" font-size="11" font-weight="700">Website</text>
+  <circle cx="985" cy="577" r="17" fill="#FFFFFF"/>
+  <path d="m986 570-1.5-1.4a4.2 4.2 0 0 0-6 6l6 6 6-6a4.2 4.2 0 0 0-6-6l-1.5 1.4Z" stroke="#535B70" stroke-width="1.5"/>
+  <rect x="661" y="596" width="324" height="139" rx="9" fill="#FFFCF7"/>
+  <rect x="661" y="596" width="324" height="16" rx="9" fill="#F5F1E9"/>
+  <circle cx="675" cy="604" r="2" fill="#DEB690"/><circle cx="683" cy="604" r="2" fill="#DEB690"/><circle cx="691" cy="604" r="2" fill="#DEB690"/>
+  <text x="681" y="645" fill="#30364A" font-family="Georgia,serif" font-size="20" font-weight="700">Savor every</text>
+  <text x="681" y="668" fill="#30364A" font-family="Georgia,serif" font-size="20" font-weight="700">moment.</text>
+  <rect x="681" y="682" width="86" height="9" rx="4.5" fill="#DB6F43"/>
+  <rect x="681" y="699" width="104" height="7" rx="3.5" fill="#E8DCCB"/>
+  <circle cx="907" cy="671" r="43" fill="#E9CEAA"/>
+  <circle cx="907" cy="671" r="34" fill="#FEF7EA"/>
+  <circle cx="907" cy="671" r="27" fill="#81A968"/>
+  <circle cx="900" cy="666" r="13" fill="#E7773D"/>
+  <circle cx="916" cy="664" r="9" fill="#F4C74D"/>
+  <circle cx="912" cy="680" r="9" fill="#CF4931"/>
+  <text x="658" y="780" fill="#777E8D" font-family="Arial,sans-serif" font-size="10" font-weight="700" letter-spacing=".8">COMPANY PROFILE</text>
+  <text x="658" y="807" fill="#20263A" font-family="Arial,sans-serif" font-size="17" font-weight="700">Restaurant Website Development</text>
+  <text x="658" y="831" fill="#72798B" font-family="Arial,sans-serif" font-size="12">Modern responsive website for a restaurant business</text>
+  <text x="658" y="849" fill="#72798B" font-family="Arial,sans-serif" font-size="12">— menu, reservations and maps.</text>
+  <rect x="658" y="865" width="330" height="57" rx="11" fill="#F5F6FA"/>
+  <text x="674" y="884" fill="#9AA0AE" font-family="Arial,sans-serif" font-size="9" font-weight="700">STARTING FROM</text>
+  <text x="674" y="907" fill="#20263A" font-family="Arial,sans-serif" font-size="17" font-weight="700">Rp 3.500.000</text>
+  <circle cx="965" cy="894" r="16" fill="#FFFFFF" stroke="#E6E8EF"/>
+  <path d="M958 894h13m-5-5 5 5-5 5" stroke="#697187" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M658 936h330" stroke="#EAEBF0"/>
+  <circle cx="671" cy="954" r="11" fill="#E9EBF3"/>
+  <text x="666" y="958" fill="#46506F" font-family="Arial,sans-serif" font-size="8" font-weight="700">RA</text>
+  <text x="690" y="959" fill="#30364A" font-family="Arial,sans-serif" font-size="11" font-weight="700">Rizky Aditya</text>
+  <text x="889" y="959" fill="#838A9A" font-family="Arial,sans-serif" font-size="10">◎ 245  ♡ 32</text>
+
+  <rect x="1024" y="548" width="386" height="203" rx="16" fill="url(#dash)"/>
+  <rect x="1038" y="562" width="73" height="27" rx="14" fill="#FFFFFF"/>
+  <text x="1053" y="580" fill="#30364A" font-family="Arial,sans-serif" font-size="11" font-weight="700">Web App</text>
+  <circle cx="1385" cy="577" r="17" fill="#FFFFFF"/>
+  <path d="m1386 570-1.5-1.4a4.2 4.2 0 0 0-6 6l6 6 6-6a4.2 4.2 0 0 0-6-6l-1.5 1.4Z" stroke="#535B70" stroke-width="1.5"/>
+  <rect x="1049" y="596" width="336" height="139" rx="9" fill="#FFFFFF"/>
+  <rect x="1049" y="596" width="336" height="17" rx="9" fill="#F4F5FA"/>
+  <circle cx="1063" cy="604" r="2" fill="#C5C8D8"/><circle cx="1071" cy="604" r="2" fill="#C5C8D8"/><circle cx="1079" cy="604" r="2" fill="#C5C8D8"/>
+  <rect x="1049" y="613" width="31" height="122" fill="#252B59"/>
+  <rect x="1056" y="624" width="17" height="4" rx="2" fill="#8B91FF"/><rect x="1056" y="636" width="17" height="4" rx="2" fill="#696FD8"/><rect x="1056" y="648" width="17" height="4" rx="2" fill="#696FD8"/>
+  <rect x="1092" y="622" width="279" height="22" rx="5" fill="#F7F8FC"/>
+  <text x="1101" y="637" fill="#444B63" font-family="Arial,sans-serif" font-size="9" font-weight="700">Sales today</text>
+  <rect x="1092" y="652" width="79" height="34" rx="5" fill="#F2F3FA"/>
+  <rect x="1177" y="652" width="79" height="34" rx="5" fill="#F2F3FA"/>
+  <rect x="1262" y="652" width="79" height="34" rx="5" fill="#F2F3FA"/>
+  <text x="1101" y="674" fill="#313A65" font-family="Arial,sans-serif" font-size="12" font-weight="700">4,2jt</text>
+  <text x="1186" y="674" fill="#313A65" font-family="Arial,sans-serif" font-size="12" font-weight="700">128</text>
+  <text x="1271" y="674" fill="#313A65" font-family="Arial,sans-serif" font-size="12" font-weight="700">36</text>
+  <path d="M1100 718h241" stroke="#E9EAF2"/>
+  <rect x="1111" y="697" width="12" height="21" rx="3" fill="#C5C9F8"/><rect x="1132" y="686" width="12" height="32" rx="3" fill="#C5C9F8"/><rect x="1153" y="703" width="12" height="15" rx="3" fill="#C5C9F8"/><rect x="1174" y="679" width="12" height="39" rx="3" fill="#827DF0"/><rect x="1195" y="692" width="12" height="26" rx="3" fill="#C5C9F8"/><rect x="1216" y="674" width="12" height="44" rx="3" fill="#6259E8"/><rect x="1237" y="696" width="12" height="22" rx="3" fill="#C5C9F8"/><rect x="1258" y="682" width="12" height="36" rx="3" fill="#A8ADF5"/>
+  <text x="1046" y="780" fill="#777E8D" font-family="Arial,sans-serif" font-size="10" font-weight="700" letter-spacing=".8">POS</text>
+  <text x="1046" y="807" fill="#20263A" font-family="Arial,sans-serif" font-size="17" font-weight="700">Kasir Kopi POS</text>
+  <text x="1046" y="831" fill="#72798B" font-family="Arial,sans-serif" font-size="12">Café POS with recipe-based stock deduction</text>
+  <text x="1046" y="849" fill="#72798B" font-family="Arial,sans-serif" font-size="12">and shift closing reports.</text>
+  <rect x="1046" y="865" width="342" height="57" rx="11" fill="#F5F6FA"/>
+  <text x="1062" y="884" fill="#9AA0AE" font-family="Arial,sans-serif" font-size="9" font-weight="700">FIXED PRICE</text>
+  <text x="1062" y="907" fill="#20263A" font-family="Arial,sans-serif" font-size="17" font-weight="700">Rp 6.000.000</text>
+  <circle cx="1365" cy="894" r="16" fill="#FFFFFF" stroke="#E6E8EF"/>
+  <path d="M1358 894h13m-5-5 5 5-5 5" stroke="#697187" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M1046 936h342" stroke="#EAEBF0"/>
+  <circle cx="1059" cy="954" r="11" fill="#E9EBF3"/>
+  <text x="1054" y="958" fill="#46506F" font-family="Arial,sans-serif" font-size="8" font-weight="700">RA</text>
+  <text x="1078" y="959" fill="#30364A" font-family="Arial,sans-serif" font-size="11" font-weight="700">Rizky Aditya</text>
+  <text x="1288" y="959" fill="#838A9A" font-family="Arial,sans-serif" font-size="10">◎ 1.2k  ♡ 96</text>
+</svg>
