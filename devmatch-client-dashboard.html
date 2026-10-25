@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="assets/css/client-dashboard.css">
+  <link rel="stylesheet" href="assets/css/client-dashboard.css?v=20261025-requests-page8">
   <link rel="stylesheet" href="assets/css/project-detail.css">
 </head>
 <body>
@@ -34,11 +34,11 @@
     <span class="client-nav-label">Menu</span>
     <nav class="client-nav" aria-label="Client dashboard navigation">
       <a class="client-nav-item active" href="#home"><svg viewBox="0 0 24 24"><path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-6v-7h-4v7H4a1 1 0 0 1-1-1z"/></svg>Home</a>
-      <a class="client-nav-item" href="#projects"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="m15.5 8.5-2 5-5 2 2-5z"/></svg>Discover Projects</a>
+      <a class="client-nav-item" href="#discover" data-discover-nav><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="m15.5 8.5-2 5-5 2 2-5z"/></svg>Discover Projects</a>
       <a class="client-nav-item" href="devmatch-landing.html#developers"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"/><path d="M3 20a6 6 0 0 1 12 0m2-8a3 3 0 1 0 0-6m1 8a5 5 0 0 1 3 5"/></svg>Developers</a>
       <a class="client-nav-item" href="#projects" data-favorites-filter><svg viewBox="0 0 24 24"><path d="m20.8 4.6-1.4-1.4a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8L12 21l8.8-8.6a5.5 5.5 0 0 0 0-7.8z"/></svg>Favorites<span class="client-nav-count" id="favoriteCount">0</span></a>
-      <a class="client-nav-item" href="#requests"><svg viewBox="0 0 24 24"><path d="M6 3h9l4 4v14H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"/><path d="M14 3v5h5M8 13h8m-8 4h8"/></svg>My Requests</a>
-      <a class="client-nav-item" href="#requests"><svg viewBox="0 0 24 24"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9m-8 13h4"/></svg>Notifications<span class="client-notification-count">2</span></a>
+      <a class="client-nav-item" href="#requests" data-request-nav><svg viewBox="0 0 24 24"><path d="M6 3h9l4 4v14H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"/><path d="M14 3v5h5M8 13h8m-8 4h8"/></svg>My Requests</a>
+      <a class="client-nav-item" href="#notifications"><svg viewBox="0 0 24 24"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9m-8 13h4"/></svg>Notifications<span class="client-notification-count">2</span></a>
     </nav>
     <span class="client-nav-label account-label">Account</span>
     <nav class="client-nav" aria-label="Account navigation">
@@ -62,27 +62,218 @@
     </section>
 
     <section class="category-list" aria-label="Project categories">
-      <button class="category-card selected" type="button" data-category="All"><span class="category-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18m-9-9a15 15 0 0 1 0 18m0-18a15 15 0 0 0 0 18"/></svg></span><b>All projects</b><small>850 projects</small></button>
-      <button class="category-card" type="button" data-category="Company Profile"><span class="category-icon"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg></span><b>Company Profile</b><small>214 projects</small></button>
-      <button class="category-card" type="button" data-category="POS"><span class="category-icon"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M7 9h4m-4 4h10m-10 3h6"/></svg></span><b>POS</b><small>96 projects</small></button>
-      <button class="category-card" type="button" data-category="Inventory"><span class="category-icon"><svg viewBox="0 0 24 24"><path d="M3 6a2 2 0 0 1 2-2h5l2 2h7a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg></span><b>Inventory</b><small>71 projects</small></button>
-      <button class="category-card" type="button" data-category="Booking"><span class="category-icon"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/></svg></span><b>Booking</b><small>88 projects</small></button>
-      <button class="category-card" type="button" data-category="E-Commerce"><span class="category-icon"><svg viewBox="0 0 24 24"><rect x="3" y="7" width="18" height="14" rx="2"/><path d="M8 7V5a4 4 0 0 1 8 0v2"/></svg></span><b>E-Commerce</b><small>132 projects</small></button>
-      <button class="category-card" type="button" data-category="Other"><span class="category-icon"><svg viewBox="0 0 24 24"><path d="M12 3v3m0 12v3m9-9h-3M6 12H3m15.4-6.4-2.1 2.1M7.7 16.3l-2.1 2.1m12.8 0-2.1-2.1M7.7 7.7 5.6 5.6"/></svg></span><b>Other</b><small>249 projects</small></button>
+      <button class="category-card selected" type="button" data-category="All"><span class="category-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18m-9-9a15 15 0 0 1 0 18m0-18a15 15 0 0 0 0 18"/></svg></span><b>All projects</b><small data-category-count="All">0 projects</small></button>
+      <button class="category-card" type="button" data-category="Company Profile"><span class="category-icon"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg></span><b>Company Profile</b><small data-category-count="Company Profile">0 projects</small></button>
+      <button class="category-card" type="button" data-category="POS"><span class="category-icon"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M7 9h4m-4 4h10m-10 3h6"/></svg></span><b>POS</b><small data-category-count="POS">0 projects</small></button>
+      <button class="category-card" type="button" data-category="Inventory"><span class="category-icon"><svg viewBox="0 0 24 24"><path d="M3 6a2 2 0 0 1 2-2h5l2 2h7a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg></span><b>Inventory</b><small data-category-count="Inventory">0 projects</small></button>
+      <button class="category-card" type="button" data-category="Booking"><span class="category-icon"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/></svg></span><b>Booking</b><small data-category-count="Booking">0 projects</small></button>
+      <button class="category-card" type="button" data-category="E-Commerce"><span class="category-icon"><svg viewBox="0 0 24 24"><rect x="3" y="7" width="18" height="14" rx="2"/><path d="M8 7V5a4 4 0 0 1 8 0v2"/></svg></span><b>E-Commerce</b><small data-category-count="E-Commerce">0 projects</small></button>
+      <button class="category-card" type="button" data-category="Other"><span class="category-icon"><svg viewBox="0 0 24 24"><path d="M12 3v3m0 12v3m9-9h-3M6 12H3m15.4-6.4-2.1 2.1M7.7 16.3l-2.1 2.1m12.8 0-2.1-2.1M7.7 7.7 5.6 5.6"/></svg></span><b>Other</b><small data-category-count="Other">0 projects</small></button>
+    </section>
+
+    <section class="discover-page" id="discover" hidden aria-labelledby="discoverTitle">
+      <header class="discover-heading">
+        <div><h1 id="discoverTitle">Discover projects</h1><p>Browse ready-to-build projects from independent developers — prices included.</p></div>
+        <div class="discover-view-switch" role="group" aria-label="Browse marketplace">
+          <button class="active" type="button" aria-current="page">Projects <span id="discoverProjectCount">0</span></button>
+          <a href="devmatch-landing.html#developers">Developers <span>Browse</span></a>
+        </div>
+      </header>
+      <form class="discover-search" id="discoverSearchForm" role="search">
+        <label><span class="visually-hidden">Search projects</span><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg><input id="discoverSearchInput" type="search" placeholder="Search project name, developer, category, type..."></label>
+        <button type="submit">Search</button>
+      </form>
+      <div class="discover-filters" aria-label="Filter projects">
+        <span class="filter-icon" aria-hidden="true">▽</span>
+        <label><span class="visually-hidden">Category</span><select id="discoverCategory"><option value="All">Category</option><option>Company Profile</option><option>POS</option><option>Inventory</option><option>Booking</option><option>E-Commerce</option><option>Other</option></select></label>
+        <label><span class="visually-hidden">Project type</span><select id="discoverType"><option value="All">Project type</option><option>Website</option><option>Web App</option><option>Android / iOS</option></select></label>
+        <label><span class="visually-hidden">Price</span><select id="discoverPrice"><option value="All">Price</option><option value="under-5">Under Rp 5 million</option><option value="5-to-8">Rp 5–8 million</option><option value="over-8">Over Rp 8 million</option></select></label>
+        <label><span class="visually-hidden">Specialization</span><select id="discoverSpecialty"><option value="All">Specialization</option><option>Full-stack</option><option>Frontend</option><option>Mobile app</option></select></label>
+        <label class="discover-sort"><span>Sort by</span><select id="discoverSort" aria-label="Sort projects"><option value="newest">Newest</option><option value="oldest">Oldest</option><option value="price-low">Price: low to high</option><option value="price-high">Price: high to low</option></select></label>
+      </div>
+      <div class="discover-results-heading"><h2>Latest projects <span id="discoverResultsNote">· showing newest first</span></h2><span id="discoverResultsCount">0 projects</span></div>
+      <div class="client-project-grid discover-project-grid" id="discoverGrid"></div>
+      <p class="empty-state" id="discoverEmptyState" hidden>No projects match these filters. Try changing your search or filters.</p>
+    </section>
+
+    <section class="requests-page" id="requests" hidden aria-labelledby="requestsPageTitle">
+      <header class="requests-page-heading">
+        <div><h1 id="requestsPageTitle">My Requests</h1><p>Track the work you want to get started, and see who's interested.</p></div>
+        <button class="request-primary-button" type="button" data-open-request><span aria-hidden="true">＋</span> Post a request</button>
+      </header>
+      <div class="request-stats-grid" id="requestStats">
+        <article class="request-stat-card"><small>OPEN REQUESTS</small><strong id="requestStatOpen">0</strong><span><b id="requestStatClosed">0</b> closed, <b id="requestStatDraft">0</b> draft</span></article>
+        <article class="request-stat-card"><small>TOTAL VIEWS</small><strong id="requestStatViews">0</strong><span>across all requests</span></article>
+        <article class="request-stat-card"><small>SAVED BY DEVELOPERS</small><strong id="requestStatSaves">0</strong><span>developers who bookmarked</span></article>
+        <article class="request-stat-card"><small>COMMENTS</small><strong id="requestStatComments">0</strong><span>on your requests</span></article>
+      </div>
+      <div class="requests-workspace">
+        <div class="requests-main-column">
+          <div class="requests-toolbar">
+            <div class="request-status-tabs" role="tablist" aria-label="Filter requests">
+              <button class="active" type="button" role="tab" aria-selected="true" data-request-filter="all">All <span id="requestCountAll">0</span></button>
+              <button type="button" role="tab" aria-selected="false" data-request-filter="open">Open <span id="requestCountOpen">0</span></button>
+              <button type="button" role="tab" aria-selected="false" data-request-filter="closed">Closed <span id="requestCountClosed">0</span></button>
+              <button type="button" role="tab" aria-selected="false" data-request-filter="draft">Draft <span id="requestCountDraft">0</span></button>
+            </div>
+            <div class="requests-tools">
+              <label class="request-search"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg><input id="requestSearch" type="search" placeholder="Search my requests"></label>
+              <label class="request-sort"><span class="visually-hidden">Sort requests</span><select id="requestSort"><option value="newest">Newest first</option><option value="oldest">Oldest first</option></select></label>
+            </div>
+          </div>
+          <div class="request-list" id="requestList"></div>
+          <p class="requests-empty" id="requestsEmpty" hidden>No requests match this view yet. Post a request to get started.</p>
+          <p class="requests-message" id="requestsMessage" role="status" aria-live="polite"></p>
+        </div>
+        <aside class="requests-sidebar">
+          <section class="request-activity-card"><header><h2>Latest activity</h2><button type="button" data-request-filter="all">View all</button></header><div id="requestActivityList" class="request-activity-list"></div></section>
+          <section class="request-tip-card"><span class="request-tip-icon" aria-hidden="true">✦</span><h2>Tip</h2><p>Once you've found a developer, close the request so others stop replying. You can reopen it anytime.</p></section>
+        </aside>
+      </div>
+    </section>
+
+    <section class="request-detail-page" id="requestDetailPage" hidden aria-labelledby="requestDetailTitle">
+      <nav class="request-detail-breadcrumb" aria-label="Breadcrumb">
+        <button type="button" data-back-to-requests>My Requests</button><span aria-hidden="true">›</span><span id="requestDetailBreadcrumbTitle">Project request</span>
+      </nav>
+      <div class="request-detail-layout">
+        <div class="request-detail-main">
+          <article class="request-detail-card">
+            <header class="request-detail-owner">
+              <span class="request-detail-avatar" id="requestDetailAvatar">CL</span>
+              <div><strong id="requestDetailOwner">Client</strong><small id="requestDetailLocation">Client workspace</small></div>
+              <span class="request-detail-status" id="requestDetailStatus">Open</span>
+              <button class="request-card-secondary" type="button" data-edit-detail-request>Edit request</button>
+            </header>
+            <div class="request-detail-meta" id="requestDetailMeta"></div>
+            <h1 id="requestDetailTitle"></h1>
+            <p class="request-detail-description" id="requestDetailDescription"></p>
+            <dl class="request-detail-facts">
+              <div class="request-detail-budget-fact"><dt>Budget</dt><dd><span id="requestDetailBudget"></span><span class="request-detail-negotiable" id="requestDetailNegotiable" hidden>Negotiable</span></dd></div>
+              <div class="request-detail-deadline-fact"><dt>Deadline</dt><dd id="requestDetailDeadline"></dd><small id="requestDetailDeadlineRemaining"></small></div>
+            </dl>
+            <section class="request-detail-specialties"><h2>Required specialization</h2><div id="requestDetailSpecialties"></div></section>
+            <footer class="request-detail-stats"><span id="requestDetailViews"></span><span id="requestDetailSaves"></span><span id="requestDetailComments"></span><time id="requestDetailCreated"></time></footer>
+          </article>
+          <section class="request-detail-comments">
+            <header><h2>Comments <span id="requestDetailCommentCount">0</span></h2><span class="request-detail-comment-sort">Oldest first</span></header>
+            <div id="requestDetailCommentsList"></div>
+            <p id="requestDetailCommentsEmpty">No comments yet. Developer comments will appear here.</p>
+          </section>
+        </div>
+        <aside class="request-detail-aside">
+          <section class="request-detail-client-card">
+            <span class="request-detail-eyebrow">ABOUT THE CLIENT</span>
+            <div class="request-detail-client"><span class="request-detail-avatar" id="requestDetailAsideAvatar">CL</span><div><strong id="requestDetailAsideName">Client</strong><small><span id="requestDetailAsideLocation">Indonesia</span><span aria-hidden="true"> · </span><span id="requestDetailRating">No ratings yet</span></small></div></div>
+            <div class="request-detail-client-stats"><div><small>REQUESTS</small><strong id="requestDetailRequestCount">0</strong></div><div><small>OPEN</small><strong id="requestDetailOpenCount">0</strong></div><div><small>HIRED</small><strong>0</strong></div></div>
+            <button class="request-detail-close" type="button" data-detail-status-action>Close request</button>
+            <button class="request-detail-delete" type="button" data-detail-delete>Delete request</button>
+          </section>
+          <section class="request-detail-commenters"><h2>Developers who commented</h2><div id="requestDetailCommentersList"></div><p id="requestDetailCommentersEmpty">No developers have commented yet.</p></section>
+        </aside>
+      </div>
+    </section>
+
+    <section class="request-composer" id="requestComposer" hidden aria-labelledby="requestPageTitle">
+      <div class="request-breadcrumb"><button type="button" data-back-to-requests>My Requests</button><span>/</span><span>New</span></div>
+      <header class="request-page-heading">
+        <div><h1 id="requestPageTitle">Post a project request</h1><p>Describe what you need — developers will comment and contact you.</p></div>
+        <div class="request-page-actions"><button class="request-secondary-button" type="button" data-save-request-draft>Save draft</button><button class="request-primary-button" type="button" data-post-request>Post Project Request <span aria-hidden="true">→</span></button></div>
+      </header>
+      <div class="request-composer-layout">
+        <form class="request-composer-form" id="requestComposerForm" novalidate>
+          <section class="request-form-card">
+            <header><h2>Project basics</h2><p>Give developers a clear idea of what you need.</p></header>
+            <label class="request-form-field">Project title<input class="request-control" name="title" maxlength="100" placeholder="e.g. Build an E-Commerce Website"><small><span id="requestTitleCount">0</span> / 100 characters</small></label>
+            <fieldset class="request-chip-field"><legend>Category</legend><div class="request-chip-list">
+              <label><input type="radio" name="category" value="Company Profile"><span>Company Profile</span></label><label><input type="radio" name="category" value="POS"><span>POS</span></label><label><input type="radio" name="category" value="Inventory"><span>Inventory</span></label><label><input type="radio" name="category" value="Booking"><span>Booking</span></label><label><input type="radio" name="category" value="E-Commerce"><span>E-Commerce</span></label><label><input type="radio" name="category" value="Other"><span>Other</span></label>
+            </div></fieldset>
+            <label class="request-form-field request-conditional-field" data-category-other hidden>What kind of project is it?<input class="request-control" name="categoryOther" maxlength="80" placeholder="e.g. Learning management system"></label>
+            <fieldset class="request-chip-field"><legend>Project type</legend><div class="request-chip-list request-type-list">
+              <label><input type="radio" name="projectType" value="Website"><span>Website</span></label><label><input type="radio" name="projectType" value="Web App"><span>Web App</span></label><label><input type="radio" name="projectType" value="Android / iOS"><span>Android / iOS</span></label><label><input type="radio" name="projectType" value="Desktop App"><span>Desktop App</span></label>
+            </div></fieldset>
+            <label class="request-form-field">Description<textarea class="request-control request-description" name="description" maxlength="1500" placeholder="Tell developers about your goals, requirements, and what a successful result looks like."></textarea><small>Tip: mention features, references and what will be managed · <span id="requestDescriptionCount">0</span> / 1,500</small></label>
+            <section class="request-reference-section" aria-labelledby="requestReferencesTitle">
+              <div class="request-reference-heading"><h3 id="requestReferencesTitle">References <i class="request-optional">Optional</i></h3><p>Share links or images that help explain your idea.</p></div>
+              <label class="request-form-field">Reference links<textarea class="request-control request-reference-links" name="references" rows="2" placeholder="https://example.com/inspiration"></textarea><small>Add one link per line.</small></label>
+              <label class="request-upload-control"><input id="requestReferenceFiles" name="referenceFiles" type="file" accept="image/png,image/jpeg,image/webp" multiple><span class="request-upload-icon" aria-hidden="true">↑</span><span><b>Add reference images</b><small>PNG, JPG, or WebP · up to 5 images, 5 MB each</small></span></label>
+              <ul class="request-attachment-list" id="requestAttachmentList" aria-live="polite" hidden></ul>
+            </section>
+          </section>
+          <section class="request-form-card">
+            <header><h2>Budget &amp; timeline</h2><p>Ranges help developers decide quickly.</p></header>
+            <div class="request-budget-row">
+              <label class="request-form-field">Budget from<div class="request-currency"><span>Rp</span><input name="budgetFrom" inputmode="numeric" placeholder="8.000.000" aria-label="Budget from in rupiah"></div></label>
+              <span class="request-budget-separator" aria-hidden="true">—</span>
+              <label class="request-form-field">Budget to<div class="request-currency"><span>Rp</span><input name="budgetTo" inputmode="numeric" placeholder="15.000.000" aria-label="Budget to in rupiah"></div></label>
+            </div>
+            <label class="request-negotiable"><span><b>Budget is negotiable</b><small>Show a “Negotiable” badge so developers can propose alternatives.</small></span><input type="checkbox" name="negotiable"><i aria-hidden="true"></i></label>
+            <div class="request-budget-row request-timeline-row">
+              <label class="request-form-field"><span>Deadline <i class="request-required">Required</i></span><div class="request-date-picker" data-request-date-picker>
+                <input class="request-picker-value" type="text" name="deadline" tabindex="-1" aria-hidden="true">
+                <button class="request-control request-date-trigger" type="button" aria-label="Choose required deadline date" aria-haspopup="dialog" aria-expanded="false" aria-required="true" aria-controls="requestDeadlineCalendar"><span data-date-label>Choose a date</span><svg aria-hidden="true" viewBox="0 0 20 20"><rect x="3" y="4.5" width="14" height="12" rx="2"/><path d="M6.5 2.8v3.4m7-3.4v3.4M3 8.5h14"/></svg></button>
+                <div class="request-date-panel" id="requestDeadlineCalendar" role="dialog" aria-label="Choose project deadline" hidden>
+                  <div class="request-date-header"><button type="button" data-date-nav="-1" aria-label="Previous month">‹</button><strong data-date-month></strong><button type="button" data-date-nav="1" aria-label="Next month">›</button></div>
+                  <div class="request-date-grid request-date-weekdays" aria-hidden="true"><span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span></div>
+                  <div class="request-date-grid request-date-days" role="group" aria-label="Days"></div>
+                  <div class="request-date-footer"><button type="button" data-date-clear>Clear date</button><button type="button" data-date-today>Today</button></div>
+                </div>
+              </div></label>
+              <label class="request-form-field"><span>Target start <i class="request-optional">Optional</i></span><div class="request-month-picker" data-month-picker>
+                <input class="request-picker-value" type="text" name="targetStart" tabindex="-1" aria-hidden="true">
+                <button class="request-control request-month-trigger" type="button" aria-label="Target start month, optional" aria-haspopup="dialog" aria-expanded="false" aria-controls="requestMonthPanel"><span data-month-label>Choose…</span><svg aria-hidden="true" viewBox="0 0 20 20"><rect x="3" y="4.5" width="14" height="12" rx="2"/><path d="M6.5 2.8v3.4m7-3.4v3.4M3 8.5h14"/></svg></button>
+                <div class="request-month-panel" id="requestMonthPanel" role="dialog" aria-label="Choose target start month" hidden>
+                  <div class="request-month-header"><button type="button" data-year-step="-1" aria-label="Previous year">‹</button><strong data-month-year></strong><button type="button" data-year-step="1" aria-label="Next year">›</button></div>
+                  <div class="request-month-grid" role="group" aria-label="Months"></div>
+                  <div class="request-month-footer"><button type="button" data-month-clear>Clear</button><button type="button" data-month-current>This month</button></div>
+                </div>
+              </div></label>
+            </div>
+          </section>
+          <section class="request-form-card">
+            <header><h2>Required specialization</h2><p>Select one or more — developers filter requests by these.</p></header>
+            <fieldset class="request-chip-field"><legend class="visually-hidden">Required specialization</legend><div class="request-chip-list request-specialty-list">
+              <label><input type="checkbox" name="specialties" value="Frontend"><span>＋ &nbsp;Frontend</span></label><label><input type="checkbox" name="specialties" value="Backend"><span>＋ &nbsp;Backend</span></label><label><input type="checkbox" name="specialties" value="UI/UX"><span>＋ &nbsp;UI/UX</span></label><label><input type="checkbox" name="specialties" value="Full-stack"><span>＋ &nbsp;Full-stack</span></label><label><input type="checkbox" name="specialties" value="Mobile"><span>＋ &nbsp;Mobile</span></label><label><input type="checkbox" name="specialties" value="Game Development"><span>＋ &nbsp;Game Development</span></label><label><input type="checkbox" name="specialties" value="Other"><span>＋ &nbsp;Other</span></label>
+            </div></fieldset>
+            <label class="request-form-field request-conditional-field" data-specialty-other hidden>Which specialization do you need?<input class="request-control" name="specialtyOther" maxlength="80" placeholder="e.g. Blockchain development"></label>
+          </section>
+          <p class="request-form-message" id="requestComposerMessage" role="status" aria-live="polite"></p>
+        </form>
+        <aside class="request-composer-aside">
+          <span class="request-aside-label">HOW DEVELOPERS WILL SEE IT</span>
+          <article class="request-preview-card">
+            <div class="request-preview-owner"><span id="requestPreviewAvatar">CL</span><span><b id="requestPreviewName">Client</b><small>Preview · Indonesia</small></span><button type="button" aria-label="Preview only; favorite action unavailable" disabled>♡</button></div>
+            <span class="request-preview-category" id="requestPreviewCategory">Category</span>
+            <span class="request-preview-type" id="requestPreviewType">Project type</span>
+            <h2 id="requestPreviewTitle">Your project title</h2>
+            <p id="requestPreviewDescription">Your project description will appear here to help developers understand what you need.</p>
+            <small class="request-preview-reference-note" id="requestPreviewReferences" hidden></small>
+            <div class="request-preview-budget"><span><small>BUDGET</small><b id="requestPreviewBudget">Budget not set</b></span><span class="request-preview-deadline"><small>DEADLINE</small><b id="requestPreviewDeadline">Not set</b></span></div>
+            <div class="request-preview-specialties"><span>Required</span><div id="requestPreviewSpecialtyTags"><i>Choose specialization</i></div></div>
+            <div class="request-preview-footer"><span>◉ 0 &nbsp; ♡ 0 &nbsp; ▢ 0</span><span>Preview only →</span></div>
+          </article>
+          <section class="request-tips-card"><h2>Requests that get more replies</h2><ul><li>Share 1–2 reference websites you like</li><li>Give a realistic budget range</li><li>Mention who will maintain it after launch</li></ul></section>
+        </aside>
+      </div>
     </section>
 
     <section class="client-projects" id="projects">
-      <div class="section-heading"><div><h2>Latest projects</h2><p id="resultsLabel">Explore ready-to-build ideas from independent developers.</p></div><a href="devmatch-landing.html#projects">Discover all <svg viewBox="0 0 24 24"><path d="M5 12h14m-7-7 7 7-7 7"/></svg></a></div>
+      <div class="section-heading"><div><h2>Latest projects</h2><p id="resultsLabel">Explore ready-to-build ideas from independent developers.</p></div><a href="#discover" data-discover-nav>Discover all <svg viewBox="0 0 24 24"><path d="M5 12h14m-7-7 7 7-7 7"/></svg></a></div>
       <div class="client-project-grid" id="projectGrid"></div>
       <p class="empty-state" id="emptyState" hidden>No projects match your search. Try another keyword or category.</p>
     </section>
 
-    <section class="client-requests panel-client" id="requests">
-      <div class="section-heading"><div><h2>Your project requests</h2><p>Keep track of the work you want to get started.</p></div><button class="request-link" type="button" data-open-request>+ Post a request</button></div>
-      <div id="requestList" class="request-list"></div>
-    </section>
     <p class="client-demo-note">Demo dashboard — projects and request activity shown here are sample data.</p>
   </main>
+
+  <dialog class="request-view-dialog" id="requestViewDialog" aria-labelledby="requestViewTitle">
+    <div class="request-view-header"><div><span class="request-dialog-eyebrow">PROJECT REQUEST</span><h2 id="requestViewTitle"></h2></div><button class="dialog-close" type="button" data-close-request-view aria-label="Close request details">×</button></div>
+    <div class="request-view-meta" id="requestViewMeta"></div>
+    <p class="request-view-description" id="requestViewDescription"></p>
+    <dl class="request-view-facts"><div><dt>Budget</dt><dd id="requestViewBudget"></dd></div><div><dt>Deadline</dt><dd id="requestViewDeadline"></dd></div><div><dt>Target start</dt><dd id="requestViewStart"></dd></div><div><dt>Required specialization</dt><dd id="requestViewSpecialties"></dd></div></dl>
+    <section class="request-view-references" id="requestViewReferences" hidden><h3>References</h3><div id="requestViewLinks"></div><ul id="requestViewAttachments"></ul></section>
+    <div class="request-view-footer"><span id="requestViewStatus"></span><button class="request-primary-button" type="button" data-close-request-view>Done</button></div>
+  </dialog>
 
   <dialog class="project-detail-dialog" id="projectDetailDialog" aria-labelledby="projectTitle">
     <div class="detail-dialog-bar">
@@ -173,21 +364,11 @@
     <p class="chat-demo-note">Demo chat — messages are stored only in this browser.</p>
   </dialog>
 
-  <dialog class="request-dialog" id="requestDialog">
-    <form id="requestForm">
-      <div class="dialog-heading"><div><span class="dialog-eyebrow">Project brief</span><h2>Post a request</h2></div><button class="dialog-close" type="button" aria-label="Close" data-close-request>×</button></div>
-      <label class="dialog-field">What do you want to build?<input class="dialog-input" name="title" required maxlength="100" placeholder="e.g. Online store for my business"></label>
-      <div class="dialog-row"><label class="dialog-field">Category<select class="dialog-input" name="category"><option>Company Profile</option><option>POS</option><option>Inventory</option><option>Booking</option><option>E-Commerce</option><option>Other</option></select></label><label class="dialog-field">Budget (optional)<input class="dialog-input" name="budget" maxlength="50" placeholder="e.g. Rp 5–10 juta"></label></div>
-      <label class="dialog-field">Project details<textarea class="dialog-input dialog-textarea" name="description" maxlength="500" placeholder="Tell developers about your goals and requirements"></textarea></label>
-      <p class="dialog-message" id="requestMessage" role="status"></p>
-      <div class="dialog-actions"><button class="cancel-request" type="button" data-close-request>Cancel</button><button class="post-request" type="submit">Save request</button></div>
-    </form>
-  </dialog>
   <span class="floating-chat" role="img" aria-label="Chat" title="Chat">
     <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5c-5 0-9 3.65-9 8.15 0 2.24 1.04 4.27 2.73 5.74L4.7 21l5.24-1.28c.67.12 1.36.18 2.06.18 5 0 9-3.65 9-8.15S17 3.5 12 3.5Z"/><circle cx="8.5" cy="11.7" r="1" fill="currentColor" stroke="none"/><circle cx="12" cy="11.7" r="1" fill="currentColor" stroke="none"/><circle cx="15.5" cy="11.7" r="1" fill="currentColor" stroke="none"/></svg>
   </span>
   <script src="assets/js/projects-data.js"></script>
   <script src="assets/js/project-detail.js"></script>
-  <script src="assets/js/client-dashboard.js"></script>
+  <script src="assets/js/client-dashboard.js?v=20261025-requests-page4"></script>
 </body>
 </html>

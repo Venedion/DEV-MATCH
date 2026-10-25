@@ -86,7 +86,7 @@ function render(){
   visibleProjects=filtered.slice((currentPage-1)*perPage,currentPage*perPage);
   rows.innerHTML=visibleProjects.map(project=>`
     <tr>
-      <td><div class="project-cell">${thumbnail(project)}<div><h2 class="project-title">${escapeHtml(project.title)}</h2><p class="project-subtitle">${escapeHtml(project.type)} · ${escapeHtml(project.category)}</p></div></div></td>
+      <td><div class="project-cell">${thumbnail(project)}<div><h2 class="project-title">${escapeHtml(project.title)}</h2><p class="project-subtitle">${escapeHtml(displayProjectChoice(project.type,project.typeOther,'Project type'))} · ${escapeHtml(displayProjectChoice(project.category,project.categoryOther,'Project category'))}</p></div></div></td>
       <td><span class="price-type">${escapeHtml(project.priceType)}</span><span class="price-value">${escapeHtml(project.price||'Contact for price')}</span></td>
       <td><span class="status-badge${project.status==='draft'?' draft':''}">${project.status==='draft'?'Draft':'Published'}</span></td>
       <td class="metric">${formatMetric(project.views)}</td><td class="metric">${formatMetric(project.favorites)}</td><td class="metric">${formatMetric(project.comments)}</td>
@@ -135,16 +135,20 @@ function showEditor(project=null){
   document.getElementById('projectMessage').textContent='';
   document.getElementById('mediaMessage').textContent='';
   document.getElementById('mediaPreviewList').replaceChildren();
+  form.elements.typeOther.value='';
+  form.elements.categoryOther.value='';
   if(project){
     form.elements.title.value=project.title==='Untitled project'?'':project.title;
     form.elements.description.value=project.description||'';
     form.elements.link.value=project.link||'';
     [...form.elements.type].find(option=>option.value===project.type)?.click();
     [...form.elements.category].find(option=>option.value===project.category)?.click();
+    form.elements.typeOther.value=project.typeOther||'';
+    form.elements.categoryOther.value=project.categoryOther||'';
     [...form.elements.priceType].find(option=>option.value===project.priceType)?.click();
-    form.elements.price.value=project.priceValue||String(project.price||'').replace(/^Rp\s*/,'').replace(/\./g,'');
-    form.elements.priceMin.value=project.priceMin||'';
-    form.elements.priceMax.value=project.priceMax||'';
+    form.elements.price.value=digitsOnly(project.priceValue||project.price||'');
+    form.elements.priceMin.value=digitsOnly(project.priceMin||'');
+    form.elements.priceMax.value=digitsOnly(project.priceMax||'');
     form.querySelectorAll('[name="services"]').forEach(input=>{input.checked=(project.services||[]).includes(input.value)});
   }
   projectsPage.hidden=true;
@@ -172,23 +176,29 @@ function previewProjectData(){
     description:form.elements.description.value.trim(),
     link:form.elements.link.value.trim(),
     type:form.elements.type.value,
+    typeOther:form.elements.typeOther.value.trim(),
     category:form.elements.category.value,
+    categoryOther:form.elements.categoryOther.value.trim(),
     priceType:form.elements.priceType.value,
     price:currentPrice(),
     services:[...form.querySelectorAll('[name="services"]:checked')].map(input=>input.value),
     coverImage:existingCoverImage
   };
 }
+function displayProjectChoice(value,detail,fallback){
+  if(!value)return fallback;
+  return value==='Other'&&detail?`Other: ${detail}`:value;
+}
 function populatePreviewMode(project){
-  document.getElementById('previewModeType').textContent=project.type||'Project type';
-  document.getElementById('previewModeCategory').textContent=project.category||'Project category';
+  document.getElementById('previewModeType').textContent=displayProjectChoice(project.type,project.typeOther,'Project type');
+  document.getElementById('previewModeCategory').textContent=displayProjectChoice(project.category,project.categoryOther,'Project category');
   document.getElementById('previewModeTitle').textContent=project.title||'Untitled project';
   document.getElementById('previewGalleryBrand').textContent=project.title||'Your project';
   document.getElementById('previewModeDescription').textContent=project.description||'Add a description so clients can understand what this project offers.';
   document.getElementById('previewModePriceType').textContent=(project.priceType||'Pricing not selected').toUpperCase();
   document.getElementById('previewModePrice').textContent=project.price&&project.price!=='Contact for price'?project.price:'Price not set';
-  document.getElementById('previewDetailsType').textContent=project.type||'Not selected';
-  document.getElementById('previewDetailsCategory').textContent=project.category||'Not selected';
+  document.getElementById('previewDetailsType').textContent=displayProjectChoice(project.type,project.typeOther,'Not selected');
+  document.getElementById('previewDetailsCategory').textContent=displayProjectChoice(project.category,project.categoryOther,'Not selected');
   document.getElementById('previewDetailsPricing').textContent=project.priceType||'Not selected';
   let safeLink='';
   try{
@@ -329,8 +339,11 @@ function openPreview(project){
   document.getElementById('projectPreviewDialog').showModal();
 }
 
+function digitsOnly(value){
+  return String(value||'').replace(/\D/g,'');
+}
 function moneyValue(value){
-  const digits=String(value||'').replace(/\D/g,'');
+  const digits=digitsOnly(value);
   return digits?`Rp ${Number(digits).toLocaleString('id-ID')}`:'';
 }
 function currentPrice(){
@@ -376,6 +389,8 @@ function updateEditor(){
   const description=form.elements.description.value.trim();
   const type=form.elements.type.value;
   const category=form.elements.category.value;
+  const typeOther=form.elements.typeOther.value.trim();
+  const categoryOther=form.elements.categoryOther.value.trim();
   const priceType=form.elements.priceType.value;
   const price=currentPrice();
   const hasImage=selectedMedia.some(file=>file.type.startsWith('image/'))||Boolean(existingCoverImage);
@@ -392,8 +407,8 @@ function updateEditor(){
   document.getElementById('previewTitle').textContent=title||'Untitled project';
   document.getElementById('previewHeroTitle').textContent=title||'Showcase your project.';
   document.getElementById('previewDescription').textContent=description||'Your project description will appear here.';
-  document.getElementById('previewType').textContent=type||'Project type';
-  document.querySelector('.preview-company>span').textContent=category||'Project category';
+  document.getElementById('previewType').textContent=displayProjectChoice(type,typeOther,'Project type');
+  document.querySelector('.preview-company>span').textContent=displayProjectChoice(category,categoryOther,'Project category');
   document.getElementById('previewPriceType').textContent=priceType||'Choose pricing';
   document.getElementById('previewPrice').textContent=price||'Rp 0';
   document.getElementById('previewOwner').textContent=displayName;
@@ -416,6 +431,8 @@ function updateEditor(){
   videoItem.classList.toggle('complete',hasVideo);
   videoItem.querySelector('span').textContent=hasVideo?'✓':'×';
   document.querySelectorAll('.pricing-option').forEach(option=>option.classList.toggle('selected',option.querySelector('input').checked));
+  document.getElementById('typeOtherField').hidden=type!=='Other';
+  document.getElementById('categoryOtherField').hidden=category!=='Other';
   document.getElementById('priceRangeField').hidden=priceType!=='Custom quote';
   document.getElementById('singlePriceField').hidden=!priceType||priceType==='Custom quote';
   document.getElementById('priceHelper').textContent=!priceType?'Select a pricing option to continue.':price?`Shown as “${priceType} ${price}”.`:'Enter a price to show it on your project card.';
@@ -484,6 +501,8 @@ async function saveProject(status){
     if(!title||!description)missing.push('project name and description');
     if(!selectedMedia.some(file=>file.type.startsWith('image/'))&&!existingCoverImage)missing.push('at least one screenshot');
     if(!form.elements.type.value||!form.elements.category.value)missing.push('project type and category');
+    else if(form.elements.type.value==='Other'&&!form.elements.typeOther.value.trim())missing.push('a description for the other project type');
+    if(form.elements.category.value==='Other'&&!form.elements.categoryOther.value.trim())missing.push('a description for the other project category');
     if(!priceType)missing.push('a pricing option');
     else if(!hasCompletePrice())missing.push(priceType==='Custom quote'?'both ends of the price range':'a price');
     if(missing.length){
@@ -511,7 +530,9 @@ async function saveProject(status){
     description,
     link:form.elements.link.value.trim(),
     type:form.elements.type.value,
+    typeOther:form.elements.typeOther.value.trim(),
     category:form.elements.category.value,
+    categoryOther:form.elements.categoryOther.value.trim(),
     priceType,
     price:currentPrice()||'Contact for price',
     priceValue:priceType==='Custom quote'?'':form.elements.price.value.trim(),
@@ -555,7 +576,16 @@ document.querySelector('[data-exit-preview]').addEventListener('click',()=>{
   editor.scrollIntoView({block:'start'});
 });
 document.querySelector('[data-publish-preview]').addEventListener('click',()=>saveProject('published'));
-form.addEventListener('input',updateEditor);
+form.addEventListener('input',event=>{
+  if(['price','priceMin','priceMax'].includes(event.target.name)){
+    const input=event.target;
+    const caret=input.selectionStart;
+    const digitsBeforeCaret=digitsOnly(input.value.slice(0,caret)).length;
+    input.value=digitsOnly(input.value);
+    input.setSelectionRange(digitsBeforeCaret,digitsBeforeCaret);
+  }
+  updateEditor();
+});
 form.addEventListener('change',event=>{
   if(event.target.name==='media'){
     addMedia([...event.target.files]);

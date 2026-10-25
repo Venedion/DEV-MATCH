@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="assets/css/dashboard.css">
-  <link rel="stylesheet" href="assets/css/my-projects.css?v=20261024-project-overview3">
+  <link rel="stylesheet" href="assets/css/my-projects.css?v=20261025-project-other1">
 </head>
 <body>
   <header class="topbar">
@@ -80,7 +80,9 @@
               <label class="type-option"><input type="radio" name="type" value="Android / iOS"><span aria-hidden="true">▱</span>Android / iOS App</label>
               <label class="type-option"><input type="radio" name="type" value="Desktop App"><span aria-hidden="true">▦</span>Desktop App</label>
               <label class="type-option"><input type="radio" name="type" value="Web App"><span aria-hidden="true">‹›</span>Web App</label>
+              <label class="type-option"><input type="radio" name="type" value="Other"><span aria-hidden="true">＋</span>Other</label>
             </div></fieldset>
+            <label class="editor-field choice-other-field" id="typeOtherField" hidden>What type of project is it?<input name="typeOther" maxlength="60" placeholder="e.g. Browser extension"><small>Enter a short, specific project type.</small></label>
             <fieldset class="editor-choice-group category-group"><legend>Project category</legend><div class="category-options">
               <label class="category-option"><input type="radio" name="category" value="Company Profile"><span>Company Profile</span></label>
               <label class="category-option"><input type="radio" name="category" value="POS"><span>POS</span></label>
@@ -89,6 +91,7 @@
               <label class="category-option"><input type="radio" name="category" value="E-Commerce"><span>E-Commerce</span></label>
               <label class="category-option"><input type="radio" name="category" value="Other"><span>Other</span></label>
             </div></fieldset>
+            <label class="editor-field choice-other-field" id="categoryOtherField" hidden>What category is it?<input name="categoryOther" maxlength="60" placeholder="e.g. Education"><small>Enter a short, specific category.</small></label>
           </section>
           <section class="editor-card">
             <header class="editor-card-heading"><span>4</span><div><h2>Pricing</h2><p>Choose how your price appears on the project card.</p></div></header>
@@ -204,6 +207,6 @@
     </article>
     <footer class="preview-dialog-footer"><p>This is a preview only. Your project won’t be published until you choose <b>Publish project</b>.</p><button class="add-project primary-add" type="button" data-close-preview>Back to editing</button></footer>
   </dialog>
-  <script src="assets/js/my-projects.js?v=20261024-project-preview5"></script>
+  <script src="assets/js/my-projects.js?v=20261025-project-other1"></script>
 </body>
 </html>
