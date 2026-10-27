@@ -4,6 +4,11 @@ const nameParts=displayName.trim().split(/\s+/).filter(Boolean);
 document.getElementById('welcomeName').textContent=nameParts[0]||'Developer';
 document.getElementById('topUserName').textContent=displayName;
 document.getElementById('userAvatar').textContent=nameParts.slice(0,2).map(part=>part[0]).join('').toUpperCase()||'DM';
+const notificationReadIds=new Set(JSON.parse(localStorage.getItem('devmatch-dev-notifications-read')||'[]'));
+const unreadNotificationCount=['jessica-comment','rizky-message'].filter(id=>!notificationReadIds.has(id)).length;
+document.getElementById('developerNotificationCount').textContent=String(unreadNotificationCount);
+document.getElementById('developerNotificationCount').hidden=unreadNotificationCount===0;
+document.querySelector('.notification-button i').hidden=unreadNotificationCount===0;
 
 const defaultProjects=[
   {title:'Restaurant Website',type:'Website',views:2480,price:'Rp 3.500.000'},

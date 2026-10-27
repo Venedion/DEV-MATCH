@@ -3,6 +3,14 @@ const clientName=clientProfile.displayName||'Client';
 const clientNameParts=clientName.trim().split(/\s+/).filter(Boolean);
 document.getElementById('topUserName').textContent=clientName;
 document.getElementById('userAvatar').textContent=clientNameParts.slice(0,2).map(part=>part[0]).join('').toUpperCase()||'CL';
+const notificationReadIds=new Set(JSON.parse(localStorage.getItem('devmatch-client-notifications-read')||'[]'));
+const unreadNotificationCount=['jessica-comment','rizky-message'].filter(id=>!notificationReadIds.has(id)).length;
+document.querySelectorAll('.client-notification-count').forEach(count=>{
+  count.textContent=String(unreadNotificationCount);
+  count.hidden=unreadNotificationCount===0;
+});
+const notificationDot=document.querySelector('.client-icon-button i');
+if(notificationDot)notificationDot.hidden=unreadNotificationCount===0;
 const hour=new Date().getHours();
 document.getElementById('greeting').textContent=(hour<12?'Good morning, ':hour<18?'Good afternoon, ':'Good evening, ')+clientNameParts[0];
 
