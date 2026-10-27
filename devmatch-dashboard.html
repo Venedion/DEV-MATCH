@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Developer dashboard — DEV-MATCH</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/css/dashboard.css?v=20261024-project-editor">
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="devmatch-dashboard.html"><i>&lt;/&gt;</i><span>DEV-MATCH</span></a>
+    <label class="search">
+      <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
+      <input id="searchInput" type="search" placeholder="Search project requests, clients...">
+      <kbd>⌘K</kbd>
+    </label>
+    <div class="top-actions">
+      <div class="mode-switch" role="group" aria-label="Workspace mode">
+        <a class="mode active" href="devmatch-dashboard.html"><span aria-hidden="true">&lt;/&gt;</span>Developer Mode</a>
+        <a class="mode" href="devmatch-client-dashboard.html"><svg viewBox="0 0 24 24"><rect x="3" y="7" width="18" height="14" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>Client Mode</a>
+      </div>
+      <button class="icon-button notification-button" type="button" aria-label="Notifications" data-target="#interactions"><svg viewBox="0 0 24 24"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9m-8 13h4"/></svg><i></i></button>
+      <a class="user-menu" href="devmatch-profile.html?role=dev"><span class="user-avatar" id="userAvatar">DM</span><span class="user-copy"><b id="topUserName">Developer</b><small>Developer</small></span><svg viewBox="0 0 24 24"><path d="m7 10 5 5 5-5"/></svg></a>
+    </div>
+  </header>
+
+  <aside class="sidebar">
+    <div class="workspace"><span class="workspace-icon">&lt;/&gt;</span><span><b>Developer workspace</b><small>Showcase &amp; find clients</small></span></div>
+    <a class="add-project side-add" href="devmatch-my-projects.html?create=1"><svg viewBox="0 0 24 24"><path d="M12 5v14m-7-7h14"/></svg>Add Project</a>
+    <span class="nav-label">Menu</span>
+    <nav class="side-nav" aria-label="Dashboard navigation">
+      <a class="nav-item active" href="#overview"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>Overview</a>
+      <a class="nav-item" href="devmatch-my-projects.html"><svg viewBox="0 0 24 24"><path d="M3 6a2 2 0 0 1 2-2h5l2 2h7a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>Projects</a>
+      <a class="nav-item" href="devmatch-landing.html#projects"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="m15.5 8.5-2 5-5 2 2-5z"/></svg>Find Projects</a>
+      <a class="nav-item" href="devmatch-landing.html#developers"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"/><path d="M3 20a6 6 0 0 1 12 0m2-8a3 3 0 1 0 0-6m1 8a5 5 0 0 1 3 5"/></svg>Find Clients</a>
+      <a class="nav-item" href="#projects"><svg viewBox="0 0 24 24"><path d="m20.8 4.6-1.4-1.4a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8L12 21l8.8-8.6a5.5 5.5 0 0 0 0-7.8z"/></svg>Favorites</a>
+      <a class="nav-item" href="#interactions"><svg viewBox="0 0 24 24"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9m-8 13h4"/></svg>Notifications<span class="nav-count">3</span></a>
+    </nav>
+    <span class="nav-label account-label">Account</span>
+    <nav class="side-nav" aria-label="Account navigation">
+      <a class="nav-item" href="devmatch-profile.html?role=dev"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>Profile</a>
+      <a class="nav-item" href="#settings"><svg viewBox="0 0 24 24"><path d="M4 21v-7m0-4V3m8 18v-9m0-4V3m8 18v-5m0-4V3M1 14h6m2-6h6m2 8h6"/></svg>Settings</a>
+    </nav>
+    <div class="sidebar-foot"><span class="online-dot"></span>Demo workspace</div>
+  </aside>
+
+  <main class="dashboard" id="overview">
+    <section class="welcome">
+      <div><p class="eyebrow">Developer workspace</p><h1>Good morning, <span id="welcomeName">Developer</span></h1><p>Here’s how your projects performed over the last 30 days.</p></div>
+      <div class="welcome-actions"><div class="period-select" id="periodSelect"><span class="period-icon-wrap" aria-hidden="true"><svg class="period-icon" viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="16" rx="2.5"/><path d="M8 3.5v4M16 3.5v4M3.5 10h17M7.5 13h3m3 0h3m-9 4h3"/></svg></span><button class="period-trigger" id="periodTrigger" type="button" aria-label="Dashboard date range" aria-haspopup="listbox" aria-expanded="false" aria-controls="periodOptions"><span id="periodValue">Last 30 days</span><svg class="chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="m7 10 5 5 5-5"/></svg></button><div class="period-options" id="periodOptions" role="listbox" aria-label="Dashboard date range" hidden><button type="button" role="option" aria-selected="true" data-range="30">Last 30 days</button><button type="button" role="option" aria-selected="false" data-range="7">Last 7 days</button><button type="button" role="option" aria-selected="false" data-range="90">Last 90 days</button></div><input id="dateRange" type="hidden" value="30"></div><a class="add-project primary-add" href="devmatch-my-projects.html?create=1"><svg viewBox="0 0 24 24"><path d="M12 5v14m-7-7h14"/></svg>Add Project</a></div>
+    </section>
+
+    <section class="stats" aria-label="Project statistics">
+      <article class="stat-card"><div class="stat-top"><span>Total Projects</span><span class="stat-icon"><svg viewBox="0 0 24 24"><path d="M3 6a2 2 0 0 1 2-2h5l2 2h7a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg></span></div><strong id="totalProjects">12</strong><p><span class="trend">↗ +2 this month</span><span class="comparison">vs last 30 days</span></p></article>
+      <article class="stat-card"><div class="stat-top"><span>Total Views</span><span class="stat-icon"><svg viewBox="0 0 24 24"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg></span></div><strong id="totalViews">12,480</strong><p><span class="trend">↗ +12.4%</span><span class="comparison">vs last 30 days</span></p></article>
+      <article class="stat-card"><div class="stat-top"><span>Total Favorites</span><span class="stat-icon"><svg viewBox="0 0 24 24"><path d="m20.8 4.6-1.4-1.4a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8L12 21l8.8-8.6a5.5 5.5 0 0 0 0-7.8z"/></svg></span></div><strong>864</strong><p><span class="trend">↗ +8.1%</span><span class="comparison">vs last 30 days</span></p></article>
+      <article class="stat-card"><div class="stat-top"><span>Total Comments</span><span class="stat-icon"><svg viewBox="0 0 24 24"><path d="M21 11.5a8.5 8.5 0 0 1-8.5 8.5H4l1.5-4A8.5 8.5 0 1 1 21 11.5z"/></svg></span></div><strong>156</strong><p><span class="trend">↗ +5.3%</span><span class="comparison">vs last 30 days</span></p></article>
+    </section>
+
+    <section class="content-grid">
+      <article class="panel performance-panel">
+        <div class="panel-heading"><div><h2>Project performance</h2><div class="chart-summary"><strong id="chartViews">12,480</strong><span class="trend">↗ +12.4%</span></div></div><div class="chart-controls" role="group" aria-label="Chart date range"><button type="button" data-chart-range="7">7D</button><button type="button" class="selected" data-chart-range="30">30D</button><button type="button" data-chart-range="90">90D</button></div></div>
+        <div class="chart-legend"><span><i class="legend-views"></i>Views</span><span><i class="legend-favorites"></i>Favorites</span></div>
+        <div class="chart-wrap"><div class="y-labels"><span>1.5k</span><span>1k</span><span>500</span><span>250</span><span>0</span></div>
+          <svg class="chart" viewBox="0 0 700 230" preserveAspectRatio="none" role="img" aria-label="Views and favorites trend chart">
+            <defs><linearGradient id="viewsFill" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#171719" stop-opacity=".16"/><stop offset="1" stop-color="#171719" stop-opacity="0"/></linearGradient></defs>
+            <path class="grid-line" d="M0 20H700M0 68H700M0 116H700M0 164H700M0 212H700"/>
+            <path id="viewsArea" class="views-area" d="M0 174 C35 164 44 128 96 143 S157 104 208 111 S278 65 328 94 S390 123 439 96 S505 35 555 58 S628 52 700 23 V212 H0Z"/>
+            <path id="viewsLine" class="views-line" d="M0 174 C35 164 44 128 96 143 S157 104 208 111 S278 65 328 94 S390 123 439 96 S505 35 555 58 S628 52 700 23"/>
+            <path id="favoritesLine" class="favorites-line" d="M0 198 C52 194 61 174 112 183 S171 162 221 171 S279 148 332 157 S387 166 442 148 S504 131 555 137 S632 112 700 104"/>
+          </svg>
+          <div class="x-labels" id="chartLabels"><span>Sep 7</span><span>Sep 12</span><span>Sep 17</span><span>Sep 22</span><span>Sep 27</span><span>Oct 2</span><span>Oct 6</span></div>
+        </div>
+      </article>
+      <article class="panel viewed-panel" id="projects">
+        <div class="panel-heading"><h2>Most viewed projects</h2><a href="devmatch-my-projects.html">View all</a></div>
+        <div class="project-list" id="projectList"></div>
+      </article>
+    </section>
+
+    <section class="content-grid lower-grid">
+      <article class="panel comments-panel" id="interactions">
+        <div class="panel-heading"><h2>Recent comments</h2><span class="new-count">3 new</span></div>
+        <div class="comment-list">
+          <article class="comment"><span class="comment-avatar">JS</span><p><b>Jessica Sitorus</b> on <strong>Restaurant Website</strong><span>Could we add an online reservation option?</span></p><time>12m ago</time></article>
+          <article class="comment"><span class="comment-avatar purple">KT</span><p><b>Kevin Tanoto</b> on <strong>Kasir Pintar POS</strong><span>Looks great! Is this available for multiple branches?</span></p><time>1h ago</time></article>
+          <article class="comment"><span class="comment-avatar peach">AN</span><p><b>Anindya</b> on <strong>Klinik Booking App</strong><span>Can the reminders be sent through WhatsApp?</span></p><time>3h ago</time></article>
+        </div>
+      </article>
+      <article class="panel interactions-panel">
+        <div class="panel-heading"><h2>Client interactions</h2><a href="#interactions">See all</a></div>
+        <div class="interaction-list">
+          <p><span class="interaction-icon"><svg viewBox="0 0 24 24"><path d="m20.8 4.6-1.4-1.4a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8L12 21l8.8-8.6a5.5 5.5 0 0 0 0-7.8z"/></svg></span><span><b>Jessica Sitorus</b> favorited Restaurant Website<small>15 minutes ago</small></span></p>
+          <p><span class="interaction-icon message"><svg viewBox="0 0 24 24"><path d="M21 11.5a8.5 8.5 0 0 1-8.5 8.5H4l1.5-4A8.5 8.5 0 1 1 21 11.5z"/></svg></span><span><b>Anindya</b> commented on Klinik Booking App<small>1 hour ago</small></span></p>
+          <p><span class="interaction-icon view"><svg viewBox="0 0 24 24"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg></span><span><b>8 new clients</b> viewed your projects<small>Today</small></span></p>
+        </div>
+      </article>
+    </section>
+    <p class="demo-note">Demo dashboard — metrics and activity shown here are sample data.</p>
+  </main>
+
+  <span class="floating-chat" role="img" aria-label="Chat" title="Chat">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5c-5 0-9 3.65-9 8.15 0 2.24 1.04 4.27 2.73 5.74L4.7 21l5.24-1.28c.67.12 1.36.18 2.06.18 5 0 9-3.65 9-8.15S17 3.5 12 3.5Z"/><circle cx="8.5" cy="11.7" r="1" fill="currentColor" stroke="none"/><circle cx="12" cy="11.7" r="1" fill="currentColor" stroke="none"/><circle cx="15.5" cy="11.7" r="1" fill="currentColor" stroke="none"/></svg>
+  </span>
+  <script src="assets/js/dashboard.js?v=20261024-project-editor"></script>
+</body>
+</html>

@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>DEV-MATCH — Where Developers and Clients Connect</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/css/landing.css">
+</head>
+<body>
+<nav><div class="wrap">
+  <a class="logo" href="#top"><i>&lt;/&gt;</i><span>DEV-MATCH</span></a>
+  <div class="links"><a href="#how">How it works</a><a href="#projects">Explore</a></div>
+  <div class="toggle" role="group" aria-label="Choose mode">
+    <button id="m-dev" aria-pressed="true"><svg viewBox="0 0 24 24"><path d="m16 18 6-6-6-6M8 6l-6 6 6 6"/></svg>Developer Mode</button>
+    <button id="m-cli" aria-pressed="false"><svg viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>Client Mode</button>
+  </div>
+  <div class="right"><a id="loginLink" href="devmatch-auth.html?mode=login&amp;role=dev">Log in</a><a class="btn sm2" id="startLink" href="devmatch-role.html?role=dev">Get started</a></div>
+</div></nav>
+
+<main id="top">
+<header class="hero"><div class="wrap">
+  <span class="pill"><b>New</b>Great work starts with the right connection</span>
+  <h1>Where Developers and Clients Connect</h1>
+  <p class="lead">DEV-MATCH is where independent developers showcase real, ready-to-build projects — and where businesses discover the right developer, compare prices, and reach out directly on WhatsApp or in chat.</p>
+  <div class="paths">
+    <article class="path on" id="p-dev">
+      <div class="top"><div class="ico"><svg viewBox="0 0 24 24"><path d="m16 18 6-6-6-6M8 6l-6 6 6 6"/></svg></div><span class="tag">FOR BUILDERS</span></div>
+      <div><h2>I am a developer</h2><p style="margin-top:10px">Showcase your best work, discover meaningful projects, and connect with your next client.</p></div>
+      <div class="stage"><div class="shot a">Building<br>better futures.<div style="margin-top:8px;height:8px;width:40px;border-radius:9px;background:#6366f1"></div></div><div class="shot b"><small>Sales today</small><div class="bar"><i style="height:30%"></i><i style="height:50%"></i><i style="height:40%"></i><i style="height:80%"></i><i style="height:60%"></i><i style="height:95%"></i></div><b style="font-size:12px">Rp 3.500.000</b></div><div class="shot c">Savor every<br>moment.<div style="margin:8px 0;height:8px;width:50px;border-radius:9px;background:#e0622b"></div></div></div>
+      <div class="cta-row"><a class="btn" href="devmatch-auth.html?mode=register&amp;role=dev">Start showcasing <svg viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg></a><small>Free for developers</small></div>
+    </article>
+    <article class="path" id="p-cli">
+      <div class="top"><div class="ico"><svg viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg></div><span class="tag">FOR VISIONARIES</span></div>
+      <div><h2>I need a developer</h2><p style="margin-top:10px">Explore ready-to-build ideas and find the right developer to bring your vision to life.</p></div>
+      <div class="stage"><div class="dev-list">
+        <div class="row"><div class="av">RA</div><div>Rizky Aditya<span>Full-stack developer</span></div><em class="status s-ok" style="font-style:normal">● Open for hiring</em></div>
+        <div class="row"><div class="av">SN</div><div>Sarah Nasution<span>UI/UX developer</span></div><em class="status s-free" style="font-style:normal">● Freelance</em></div>
+        <div class="row"><div class="av">DK</div><div>Daniel Kurniawan<span>Mobile developer</span></div><em class="status s-ok" style="font-style:normal">● Open for hiring</em></div>
+      </div></div>
+      <div class="cta-row"><a class="btn" href="devmatch-auth.html?mode=register&amp;role=client">Find your developer <svg viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg></a><small>No signup fees</small></div>
+    </article>
+  </div>
+  <div class="stats"><div><b>2,400+</b><span>independent developers</span></div><div><b>850+</b><span>projects to explore</span></div><div><b>1,200+</b><span>connections made</span></div></div>
+</div></header>
+
+<section id="how"><div class="wrap center">
+  <div class="head"><span class="sm">How DEV-MATCH works</span><h2>Two sides. One simple flow.</h2><p>Pick your mode — you can switch anytime from the navigation.</p></div>
+  <div class="how">
+    <div class="panel" id="h-dev"><h3><svg viewBox="0 0 24 24"><path d="m16 18 6-6-6-6M8 6l-6 6 6 6"/></svg>For developers</h3>
+      <div class="step"><em>1</em><div><b>Build your profile</b><p>Add your specialization, skills, experience and WhatsApp number in a guided 4-step setup.</p></div></div>
+      <div class="step"><em>2</em><div><b>Showcase projects with pricing</b><p>Upload screenshots or a demo video, set a fixed, starting-from, negotiable or custom-quote price.</p></div></div>
+      <div class="step"><em>3</em><div><b>Get discovered &amp; hired</b><p>Clients favorite, comment and chat with you directly. Browse client requests to find your next job.</p></div></div></div>
+    <div class="panel dim" id="h-cli"><h3><svg viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>For clients</h3>
+      <div class="step"><em>1</em><div><b>Tell us you’re hiring</b><p>Create a free client account in under a minute — no fees, no bidding wars.</p></div></div>
+      <div class="step"><em>2</em><div><b>Discover projects &amp; developers</b><p>Search ready-to-build projects by category, type, price or specialization.</p></div></div>
+      <div class="step"><em>3</em><div><b>Connect and rate</b><p>Compare, favorite, ask in comments — then chat or contact the developer on WhatsApp. Rate each other after you work together.</p></div></div></div>
+  </div>
+</div></section>
+
+<section class="alt" id="projects"><div class="wrap">
+  <div class="head"><div><span class="sm">Featured projects</span><h2>Ready-to-build projects, priced upfront</h2><p>Every listing shows what’s included and what it costs — no guessing.</p></div><a class="btn ghost" href="#">Explore all projects <svg viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg></a></div>
+  <div class="chips" id="chips"></div>
+  <div class="grid4" id="projGrid"></div>
+</div></section>
+
+<section id="developers"><div class="wrap">
+  <div class="head"><div><span class="sm">Featured developers</span><h2>Meet developers clients trust</h2></div><a class="btn ghost" href="#">Browse developers <svg viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg></a></div>
+  <div class="grid4" id="devGrid"></div>
+</div></section>
+
+<section class="alt"><div class="wrap center">
+  <div class="head"><span class="sm">Why DEV-MATCH</span><h2>Built for trust, made for speed</h2></div>
+  <div class="why">
+    <div><div class="ico"><svg viewBox="0 0 24 24"><path d="M13 2 3 14h9l-1 8 10-12h-9z"/></svg></div><h3>Real projects, real prices</h3><p>Fixed, starting-from, negotiable or custom-quote — pricing is always visible on the card.</p></div>
+    <div><div class="ico"><svg viewBox="0 0 24 24"><path d="M21 11.5a8.4 8.4 0 0 1-12.4 7.4L3 20l1.2-5.4A8.4 8.4 0 1 1 21 11.5z"/></svg></div><h3>Chat or WhatsApp</h3><p>No middleman and no platform fees. Message in DEV-MATCH or reach the developer on WhatsApp in one tap.</p></div>
+    <div><div class="ico"><svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></svg></div><h3>Trustworthy profiles</h3><p>Specialization, status, skills, portfolio stats, comments and two-way ratings in one place.</p></div>
+    <div><div class="ico"><svg viewBox="0 0 24 24"><path d="m16 18 6-6-6-6M8 6l-6 6 6 6"/></svg></div><h3>Two modes, one account</h3><p>Switch between Developer and Client Mode anytime — the whole experience adapts.</p></div>
+  </div>
+</div></section>
+
+<section class="dark"><div class="wrap">
+  <span class="sm">Role-specific benefits</span>
+  <h2 style="font-size:clamp(34px,5vw,52px);margin:12px 0 36px">Everything each side needs</h2>
+  <div class="two">
+    <div class="bcard"><span class="badge">&lt;&gt; Developer Mode</span><h3>Turn your portfolio into a storefront</h3>
+      <ul><li><svg viewBox="0 0 24 24"><path d="m5 12 5 5 9-10"/></svg>List projects with prices and included services</li><li><svg viewBox="0 0 24 24"><path d="m5 12 5 5 9-10"/></svg>Track views, favorites and comments per project</li><li><svg viewBox="0 0 24 24"><path d="m5 12 5 5 9-10"/></svg>Discover client project requests that match your skills</li><li><svg viewBox="0 0 24 24"><path d="m5 12 5 5 9-10"/></svg>Get notified when clients favorite, comment or message</li><li><svg viewBox="0 0 24 24"><path d="m5 12 5 5 9-10"/></svg>Build your reputation with client ratings</li></ul>
+      <a class="btn" href="devmatch-auth.html?mode=register&amp;role=dev">Create developer account <svg viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg></a></div>
+    <div class="bcard"><span class="badge">Client Mode</span><h3>Hire with confidence, not guesswork</h3>
+      <ul><li><svg viewBox="0 0 24 24"><path d="m5 12 5 5 9-10"/></svg>Browse real projects with transparent prices</li><li><svg viewBox="0 0 24 24"><path d="m5 12 5 5 9-10"/></svg>Filter developers by specialization, price and popularity</li><li><svg viewBox="0 0 24 24"><path d="m5 12 5 5 9-10"/></svg>Post a project request and let developers come to you</li><li><svg viewBox="0 0 24 24"><path d="m5 12 5 5 9-10"/></svg>Save favorites, chat in-app or contact on WhatsApp</li><li><svg viewBox="0 0 24 24"><path d="m5 12 5 5 9-10"/></svg>Check ratings and reviews from other clients</li></ul>
+      <a class="btn" href="devmatch-auth.html?mode=register&amp;role=client">Create client account <svg viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg></a></div>
+  </div>
+</div></section>
+
+<section id="join"><div class="wrap"><div class="final">
+  <div><h2>Ready to make your next great connection?</h2><p>Join 2,400+ developers and the businesses who hire them.</p></div>
+  <div style="display:flex;gap:12px;flex-wrap:wrap"><a class="btn" href="devmatch-auth.html?mode=register&amp;role=dev">&lt;&gt; I’m a developer</a><a class="btn o" href="devmatch-auth.html?mode=register&amp;role=client">I need a developer</a></div>
+</div></div></section>
+</main>
+
+<footer><div class="wrap">
+  <div><a class="logo" href="#top"><i>&lt;/&gt;</i>DEV-MATCH</a><p>Where developers and clients connect. Made for independent builders and the businesses that need them.</p></div>
+  <div><h4>Product</h4><a href="#how">How it works</a><a href="#projects">Explore projects</a><a href="#developers">Find developers</a><a href="devmatch-auth.html?mode=register&amp;role=client">Post a request</a></div>
+  <div><h4>For developers</h4><a href="devmatch-auth.html?mode=register&amp;role=dev">Create profile</a><a href="devmatch-auth.html?mode=login&amp;role=dev">Add a project</a><a href="devmatch-auth.html?mode=login&amp;role=dev">Find clients</a><a href="devmatch-auth.html?mode=login&amp;role=dev">Dashboard</a></div>
+  <div><h4>Company</h4><a href="#">About</a><a href="#">Contact</a><a href="#">Privacy</a><a href="#">Terms</a></div>
+  <div class="copy">© 2026 DEV-MATCH. All rights reserved.</div>
+</div></footer>
+
+<script src="assets/js/landing.js"></script>
+</body>
+</html>

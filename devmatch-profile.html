@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Set up your profile — DEV-MATCH</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/css/profile.css?v=20261024-birthday-calendar">
+</head>
+<body>
+  <header class="topbar">
+    <a class="logo" href="devmatch-landing.html"><i>&lt;/&gt;</i><span>DEV-MATCH</span></a>
+    <div class="progress"><span id="progressLabel">Step 1 of 4</span><span class="progress-track"><i id="progressBar"></i></span></div>
+    <a class="save-exit" href="devmatch-landing.html">Save &amp; exit</a>
+  </header>
+
+  <main class="layout">
+    <nav class="steps" aria-label="Profile setup steps">
+      <ol>
+        <li class="active" data-step-item="0"><span class="number">1</span><span><b>Basic info</b><small>Name, location, birthday</small></span></li>
+        <li data-step-item="1"><span class="number">2</span><span><b id="stepTwoLabel">Specialization</b><small id="stepTwoHint">Role, status, experience</small></span></li>
+        <li data-step-item="2"><span class="number">3</span><span><b id="stepThreeLabel">Skills &amp; bio</b><small id="stepThreeHint">What you're great at</small></span></li>
+        <li data-step-item="3"><span class="number">4</span><span><b>Contact &amp; links</b><small>WhatsApp and socials</small></span></li>
+      </ol>
+    </nav>
+
+    <section class="form-card">
+      <form id="profileForm" novalidate>
+        <span class="step-pill" id="stepPill">Step 1</span>
+        <h1 id="formTitle">Let’s set up your developer profile</h1>
+        <p class="form-intro" id="formIntro">Clients see this information on your profile and project cards.</p>
+        <div id="stepFields"></div>
+        <p class="form-error" id="formError" role="alert"></p>
+        <div class="form-actions">
+          <button class="back-button" type="button" id="backButton" hidden><svg viewBox="0 0 24 24"><path d="M19 12H5m7 7-7-7 7-7"/></svg>Back</button>
+          <div class="action-right">
+            <button class="skip" type="button" id="skipButton">Skip for now</button>
+            <button class="continue" type="submit"><span id="continueLabel">Continue</span><svg viewBox="0 0 24 24"><path d="M5 12h14m-7-7 7 7-7 7"/></svg></button>
+          </div>
+        </div>
+      </form>
+    </section>
+
+    <aside class="preview">
+      <span class="preview-label">Live preview</span>
+      <article class="profile-card">
+        <div class="cover"></div>
+        <div class="preview-body">
+          <span class="avatar" id="previewAvatar">DM</span>
+          <h2 id="previewName">Your name</h2>
+          <p class="handle" id="previewHandle">@username · Indonesia</p>
+          <div class="preview-tags" id="previewTags"><i></i><i></i></div>
+          <div class="preview-lines"><i></i><i></i></div>
+        </div>
+      </article>
+      <p class="preview-note"><span aria-hidden="true">ⓘ</span> This is how people will see your profile card.</p>
+    </aside>
+  </main>
+  <script src="assets/js/profile.js?v=20261024-birthday-calendar"></script>
+</body>
+</html>

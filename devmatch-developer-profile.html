@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Developer profile — DEV-MATCH</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/css/developer-profile.css">
+</head>
+<body>
+  <header class="profile-topbar">
+    <a class="brand" href="devmatch-client-dashboard.html"><i>&lt;/&gt;</i><span>DEV-MATCH</span></a>
+    <label class="top-search">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
+      <input id="profileSearch" type="search" placeholder="Search projects, developers, skills...">
+      <kbd>⌘K</kbd>
+    </label>
+    <div class="top-actions">
+      <div class="mode-switch" role="group" aria-label="Workspace mode">
+        <a href="devmatch-dashboard.html"><span>&lt;/&gt;</span>Developer Mode</a>
+        <a class="active" href="devmatch-client-dashboard.html"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="7" width="18" height="14" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>Client Mode</a>
+      </div>
+      <button class="icon-button" type="button" aria-label="Notifications">♧<i></i></button>
+      <a class="user-link" href="devmatch-profile.html?role=client"><span class="user-avatar" id="clientInitials">CL</span><span><b id="clientName">Client</b><small>Client</small></span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m7 10 5 5 5-5"/></svg></a>
+    </div>
+  </header>
+
+  <aside class="sidebar">
+    <div class="workspace"><span class="workspace-icon">▣</span><span><b>Client workspace</b><small>Discover &amp; hire</small></span></div>
+    <a class="post-request" href="devmatch-client-dashboard.html#requests"><span>＋</span>Post a Request</a>
+    <span class="nav-label">Menu</span>
+    <nav aria-label="Client dashboard navigation">
+      <a href="devmatch-client-dashboard.html#home"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-6v-7h-4v7H4a1 1 0 0 1-1-1z"/></svg>Home</a>
+      <a href="devmatch-client-dashboard.html#projects"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="m15.5 8.5-2 5-5 2 2-5z"/></svg>Discover Projects</a>
+      <a class="selected" href="devmatch-landing.html#developers"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3"/><path d="M3 20a6 6 0 0 1 12 0m2-8a3 3 0 1 0 0-6m1 8a5 5 0 0 1 3 5"/></svg>Developers</a>
+      <a href="devmatch-client-dashboard.html#projects"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m20.8 4.6-1.4-1.4a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8L12 21l8.8-8.6a5.5 5.5 0 0 0 0-7.8z"/></svg>Favorites</a>
+      <a href="devmatch-client-dashboard.html#requests"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h9l4 4v14H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"/><path d="M14 3v5h5M8 13h8m-8 4h8"/></svg>My Requests</a>
+      <a href="devmatch-client-dashboard.html#requests"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9m-8 13h4"/></svg>Notifications<span class="notification-count">2</span></a>
+    </nav>
+    <span class="nav-label account-label">Account</span>
+    <nav aria-label="Account navigation">
+      <a href="devmatch-profile.html?role=client"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>Profile</a>
+      <a href="devmatch-client-dashboard.html#settings"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 21v-7m0-4V3m8 18v-9m0-4V3m8 18v-5m0-4V3M1 14h6m2-6h6m2 8h6"/></svg>Settings</a>
+    </nav>
+    <div class="sidebar-foot"><b>Are you a developer?</b><span>Switch to Developer Mode to showcase your projects.</span><a href="devmatch-dashboard.html">Switch to Developer Mode →</a></div>
+  </aside>
+
+  <main class="profile-main">
+    <div class="breadcrumbs"><a href="devmatch-landing.html#developers">Developers</a><span>›</span><b id="breadcrumbName">Developer</b></div>
+    <section class="profile-cover" aria-label="Developer cover"><span>&lt;/&gt;</span></section>
+    <section class="identity">
+      <div class="identity-person">
+        <span class="large-avatar" id="developerInitials">DM</span>
+        <div class="identity-copy"><div class="identity-title"><h1 id="developerName">Developer</h1><span class="open-badge"><i></i>Open for hiring</span></div>
+          <div class="identity-meta"><span id="developerHandle"></span><span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 10c0 5-8 11-8 11S4 15 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="2.5"/></svg><span id="developerLocation"></span></span><span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m8 8-4 4 4 4m8-8 4 4-4 4m-2-11-4 14"/></svg><span id="developerRole"></span></span><span><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/></svg>Joined <span id="developerJoined"></span></span></div>
+        </div>
+      </div>
+      <div class="identity-actions"><button class="icon-action" type="button" aria-label="Copy profile link" id="copyProfileLink">↗</button><button class="favorite-profile" type="button" id="favoriteDeveloper" aria-pressed="false">♡ <span>Favorite</span></button><a class="contact-button" id="contactDeveloper" href="devmatch-client-dashboard.html"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.5 11.5a8 8 0 0 1-8 8H6l-2.5 1.5.8-4.1a8 8 0 1 1 16.2-5.4Z"/><path d="M8.5 12h.01M12.5 12h.01M16.5 12h.01"/></svg>Contact Developer</a></div>
+    </section>
+
+    <section class="stat-grid" aria-label="Developer statistics">
+      <article class="stat-card"><span class="stat-icon">▱</span><div><b id="statProjects">0</b><small>Total projects</small></div></article>
+      <article class="stat-card"><span class="stat-icon">♡</span><div><b id="statProjectFavorites">0</b><small>Project favorites</small></div></article>
+      <article class="stat-card"><span class="stat-icon">♙</span><div><b id="statDeveloperFavorites">0</b><small>Developer favorites</small></div></article>
+      <article class="stat-card"><span class="stat-icon views-icon">◎</span><div><b id="statViews">0</b><small>Total views</small></div></article>
+    </section>
+
+    <div class="profile-columns">
+      <aside class="profile-sidebar">
+        <section class="info-card about-card"><h2>About</h2><p id="developerAbout"></p><dl class="about-facts"><div><dt>Gender</dt><dd id="developerGender"></dd></div><div><dt>Experience</dt><dd id="developerExperience"></dd></div><div><dt>Age</dt><dd id="developerAge"></dd></div></dl></section>
+        <section class="info-card"><h2>Skills</h2><div class="skills-list" id="developerSkills"></div></section>
+        <section class="info-card"><h2>Experience</h2><ol class="experience-list" id="developerExperienceList"></ol></section>
+        <section class="info-card"><h2>Links</h2><div class="links-list" id="developerLinks"></div></section>
+        <section class="contact-card"><h2>Have a project in mind?</h2><p>Let’s talk about how we can build something great together.</p><a id="sidebarContactDeveloper" href="devmatch-client-dashboard.html"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.5 11.5a8 8 0 0 1-8 8H6l-2.5 1.5.8-4.1a8 8 0 1 1 16.2-5.4Z"/><path d="M8.5 12h.01M12.5 12h.01M16.5 12h.01"/></svg>Chat with developer</a></section>
+      </aside>
+
+      <section class="portfolio">
+        <div class="portfolio-tabs" role="tablist" aria-label="Developer profile sections"><button class="active" type="button" role="tab" aria-selected="true" data-tab="projects">Projects (<span id="portfolioCount">0</span>)</button><button type="button" role="tab" aria-selected="false" data-tab="comments">Comments</button><label class="sort-control"><select id="sortProjects" aria-label="Sort projects"><option value="views">Most viewed</option><option value="newest">Newest</option><option value="title">Title A–Z</option></select></label></div>
+        <div class="portfolio-filters" id="portfolioFilters" aria-label="Filter projects"></div>
+        <div class="portfolio-grid" id="portfolioGrid"></div>
+        <div class="comments-panel" id="commentsPanel" hidden></div>
+        <p class="portfolio-empty" id="portfolioEmpty" hidden>No projects match this filter.</p>
+        <button class="load-more" type="button" id="loadMore" hidden>Load more projects</button>
+      </section>
+    </div>
+  </main>
+  <script src="assets/js/projects-data.js"></script>
+  <script src="assets/js/developer-profile.js"></script>
+</body>
+</html>
