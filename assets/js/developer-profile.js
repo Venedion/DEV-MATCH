@@ -57,7 +57,7 @@ document.getElementById('developerGender').textContent=profile.gender;
 document.getElementById('developerExperience').textContent=profile.experience;
 document.getElementById('developerAge').textContent=profile.age;
 document.getElementById('portfolioCount').textContent=project.developerProjects;
-const chatTarget=`devmatch-client-dashboard.html?chatProject=${encodeURIComponent(project.id)}`;
+const chatTarget=`devmatch-chat.html?role=client&project=${encodeURIComponent(project.id)}`;
 document.getElementById('contactDeveloper').href=chatTarget;
 document.getElementById('sidebarContactDeveloper').href=chatTarget;
 document.getElementById('developerSkills').innerHTML=profile.skills.map(skill=>`<span>${escapeHtml(skill)}</span>`).join('');

@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Messages &amp; Chat — DEV-MATCH</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/css/dashboard.css?v=20261028-chat">
+  <link rel="stylesheet" href="assets/css/chat.css?v=20261028-chat">
+</head>
+<body class="chat-body">
+  <!-- Topbar -->
+  <header class="topbar">
+    <a class="brand" href="devmatch-dashboard.html"><i>&lt;/&gt;</i><span>DEV-MATCH</span></a>
+    <label class="search">
+      <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
+      <input id="searchInput" type="search" placeholder="Search project requests, clients...">
+      <kbd>⌘K</kbd>
+    </label>
+    <div class="top-actions">
+      <div class="mode-switch" role="group" aria-label="Workspace mode">
+        <a class="mode active" id="devModeLink" href="devmatch-chat.html"><span aria-hidden="true">&lt;/&gt;</span>Developer Mode</a>
+        <a class="mode" id="clientModeLink" href="devmatch-chat.html?role=client"><svg viewBox="0 0 24 24"><rect x="3" y="7" width="18" height="14" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>Client Mode</a>
+      </div>
+      <a class="icon-button notification-button" href="devmatch-developer-notifications.html" aria-label="Notifications">
+        <svg viewBox="0 0 24 24"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9m-8 13h4"/></svg>
+        <i></i>
+      </a>
+      <a class="user-menu" href="devmatch-profile.html?role=dev">
+        <span class="user-avatar" id="userAvatar">DM</span>
+        <span class="user-copy"><b id="topUserName">Developer</b><small>Developer</small></span>
+        <svg viewBox="0 0 24 24"><path d="m7 10 5 5 5-5"/></svg>
+      </a>
+    </div>
+  </header>
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="workspace" id="workspaceBadge">
+      <span class="workspace-icon">&lt;/&gt;</span>
+      <span><b>Developer workspace</b><small>Showcase &amp; find clients</small></span>
+    </div>
+    <a class="add-project side-add" href="devmatch-my-projects.html?create=1">
+      <svg viewBox="0 0 24 24"><path d="M12 5v14m-7-7h14"/></svg>Add Project
+    </a>
+    <span class="nav-label">Menu</span>
+    <nav class="side-nav" aria-label="Dashboard navigation">
+      <a class="nav-item" href="devmatch-dashboard.html">
+        <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+        Overview
+      </a>
+      <a class="nav-item active" href="devmatch-chat.html" aria-current="page">
+        <svg viewBox="0 0 24 24"><path d="M21 11.5a8.5 8.5 0 0 1-8.5 8.5H4l1.5-4A8.5 8.5 0 1 1 21 11.5z"/></svg>
+        Messages
+        <span class="nav-count chat-unread-total-badge" style="background:#e7f6ed;color:#15934f;">3</span>
+      </a>
+      <a class="nav-item" href="devmatch-my-projects.html">
+        <svg viewBox="0 0 24 24"><path d="M3 6a2 2 0 0 1 2-2h5l2 2h7a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
+        My Projects
+      </a>
+      <a class="nav-item" href="devmatch-landing.html#projects">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="m15.5 8.5-2 5-5 2 2-5z"/></svg>
+        Find Projects
+      </a>
+      <a class="nav-item" href="devmatch-landing.html#developers">
+        <svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"/><path d="M3 20a6 6 0 0 1 12 0m2-8a3 3 0 1 0 0-6m1 8a5 5 0 0 1 3 5"/></svg>
+        Find Clients
+      </a>
+      <a class="nav-item" href="devmatch-dashboard.html#projects">
+        <svg viewBox="0 0 24 24"><path d="m20.8 4.6-1.4-1.4a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8L12 21l8.8-8.6a5.5 5.5 0 0 0 0-7.8z"/></svg>
+        Favorites
+      </a>
+      <a class="nav-item" href="devmatch-developer-notifications.html">
+        <svg viewBox="0 0 24 24"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9m-8 13h4"/></svg>
+        Notifications
+        <span class="nav-count" id="developerNotificationCount">2</span>
+      </a>
+    </nav>
+    <span class="nav-label account-label">Account</span>
+    <nav class="side-nav" aria-label="Account navigation">
+      <a class="nav-item" href="devmatch-profile.html?role=dev">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>
+        Profile
+      </a>
+      <a class="nav-item" href="#settings">
+        <svg viewBox="0 0 24 24"><path d="M4 21v-7m0-4V3m8 18v-9m0-4V3m8 18v-5m0-4V3M1 14h6m2-6h6m2 8h6"/></svg>
+        Settings
+      </a>
+    </nav>
+    <div class="sidebar-foot"><span class="online-dot"></span>Demo workspace</div>
+  </aside>
+
+  <!-- Chat Viewport -->
+  <div class="chat-viewport" id="chatViewport">
+    <!-- Column 1: Conversations List -->
+    <section class="chat-conv-pane" aria-label="Conversation list">
+      <header class="chat-conv-header">
+        <div class="chat-conv-title-wrap">
+          <h1>Messages</h1>
+          <span class="chat-total-badge" id="chatTotalBadge">3</span>
+        </div>
+        <div class="chat-conv-actions">
+          <button class="chat-tool-btn" id="markAllReadBtn" type="button" title="Mark all conversations as read" aria-label="Mark all read">
+            <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+          </button>
+        </div>
+      </header>
+
+      <!-- Search in conversations -->
+      <div class="chat-search-wrap">
+        <div class="chat-search-box">
+          <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
+          <input type="search" id="chatSearchInput" placeholder="Search conversations...">
+        </div>
+      </div>
+
+      <!-- Filter tabs -->
+      <div class="chat-filter-tabs" role="tablist" aria-label="Filter conversations">
+        <button class="chat-filter-btn active" type="button" data-filter="all">All</button>
+        <button class="chat-filter-btn" type="button" data-filter="unread">Unread</button>
+        <button class="chat-filter-btn" type="button" data-filter="clients">Clients</button>
+        <button class="chat-filter-btn" type="button" data-filter="devs">Developers</button>
+      </div>
+
+      <!-- Conversations UL -->
+      <ul class="chat-conv-list" id="chatConvList">
+        <!-- Rendered by chat.js -->
+      </ul>
+    </section>
+
+    <!-- Column 2: Active Chat Main Window -->
+    <main class="chat-main-pane" id="chatMainPane">
+      <!-- Active Header -->
+      <header class="chat-main-header">
+        <div class="chat-header-user">
+          <button class="chat-back-btn" id="chatBackBtn" type="button" aria-label="Back to conversations list">
+            <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+          </button>
+          <div class="chat-avatar" id="activeAvatar">JS</div>
+          <div class="chat-header-details">
+            <div class="chat-header-name">
+              <span id="activeName">Jessica Sitorus</span>
+              <span class="chat-role-pill" id="activeRole">Client</span>
+            </div>
+            <div class="chat-header-status">
+              <span class="chat-header-status-dot" id="activeStatusDot"></span>
+              <span id="activeStatusText">Active now</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="chat-header-actions">
+          <a class="chat-action-btn" id="viewProjectBtn" href="#" target="_blank">
+            <svg viewBox="0 0 24 24"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+            <span>Project</span>
+          </a>
+          <a class="chat-action-btn whatsapp-btn" id="activeWhatsAppBtn" href="#" target="_blank" rel="noopener noreferrer">
+            <svg viewBox="0 0 24 24"><path d="M17.5 14.4c-.3-.1-1.8-.9-2.1-1-.3-.1-.5-.1-.7.1s-.8 1-.9 1.2c-.2.2-.4.2-.7.1s-1.3-.5-2.5-1.5c-.9-.8-1.5-1.8-1.7-2.1-.2-.3 0-.5.1-.7.1-.1.3-.3.4-.5.1-.2.2-.3.3-.5s0-.4-.1-.5c-.1-.1-.7-1.7-1-2.3-.3-.6-.5-.5-.7-.5h-.6c-.2 0-.6.1-.9.4s-1.2 1.2-1.2 2.9 1.2 3.4 1.4 3.6c.2.2 2.4 3.7 5.8 5.1 3.4 1.4 3.4.9 4 .9.6 0 2-.8 2.3-1.6.3-.8.3-1.5.2-1.6-.1-.1-.3-.2-.6-.3z"/><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm0 18.2c-1.6 0-3.1-.4-4.4-1.2l-.3-.2-3.3.9.9-3.2-.2-.4a8.2 8.2 0 1 1 7.3 4.1z"/></svg>
+            <span class="wa-text">WhatsApp</span>
+          </a>
+          <button class="chat-action-btn icon-only" id="toggleDetailBtn" type="button" title="View details" aria-label="Toggle details panel">
+            <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+          </button>
+        </div>
+      </header>
+
+      <!-- Sticky Project Context Banner -->
+      <aside class="chat-project-banner" id="activeProjectBanner">
+        <div class="chat-project-banner-info">
+          <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18M8 4v5m8-5v5"/></svg>
+          <span>Discussing: <strong id="activeProjectTitle">Restaurant Website Development</strong> (<span id="activeProjectPrice">Rp 3.500.000</span>)</span>
+        </div>
+        <a class="chat-project-banner-link" id="viewProjectLink" href="#" target="_blank">View details</a>
+      </aside>
+
+      <!-- Messages Thread -->
+      <section class="chat-thread-container" id="chatThreadContainer" aria-label="Message history">
+        <div id="chatMessages">
+          <!-- Rendered by chat.js -->
+        </div>
+      </section>
+
+      <!-- Quick reply suggestions -->
+      <div class="chat-quick-replies" id="chatQuickReplies" aria-label="Quick replies">
+        <!-- Rendered by chat.js -->
+      </div>
+
+      <!-- Message Composer -->
+      <footer class="chat-composer-wrap">
+        <form class="chat-composer-form" id="chatComposerForm">
+          <div class="chat-composer-tools">
+            <button class="chat-composer-btn" id="chatAttachBtn" type="button" title="Attach file or proposal" aria-label="Attach file">
+              <svg viewBox="0 0 24 24"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
+            </button>
+          </div>
+          <textarea class="chat-composer-input" id="chatMessageInput" rows="1" placeholder="Write a message... (Press Enter to send)" required></textarea>
+          <button class="chat-send-btn" type="submit" aria-label="Send message">
+            <svg viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+          </button>
+        </form>
+        <div class="chat-composer-hint">
+          <span>DEV-MATCH Direct Messenger</span>
+          <span>Shift + Enter for new line</span>
+        </div>
+      </footer>
+    </main>
+
+    <!-- Column 3: Contact & Project Details Drawer -->
+    <aside class="chat-detail-pane" id="chatDetailPane" aria-label="Contact and project details">
+      <header class="chat-detail-header">
+        <h3>Contact &amp; Details</h3>
+        <button class="chat-detail-close" id="closeDetailBtn" type="button" aria-label="Close details panel">
+          <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </header>
+
+      <div class="chat-detail-content">
+        <!-- Profile Summary -->
+        <div class="chat-detail-profile">
+          <div class="chat-detail-avatar" id="detailAvatar">JS</div>
+          <h4 class="chat-detail-name" id="detailName">Jessica Sitorus</h4>
+          <p class="chat-detail-sub" id="detailRole">Client · Verified Contact</p>
+          <div class="chat-detail-rating">★ 4.9 <small style="color:var(--muted);font-weight:400;">(12 projects completed)</small></div>
+        </div>
+
+        <!-- Inquired Project Card -->
+        <div class="chat-detail-section">
+          <h5 class="chat-detail-section-title">Inquired Project</h5>
+          <div class="chat-detail-project-card">
+            <h4 id="detailProjectTitle">Restaurant Website Development</h4>
+            <p id="detailProjectDesc">Warm, responsive bistro website with digital menu and reservations.</p>
+            <div class="chat-detail-project-price" id="detailProjectPrice">Rp 3.500.000 · Agreed estimate</div>
+          </div>
+        </div>
+
+        <!-- Shared Documents -->
+        <div class="chat-detail-section">
+          <h5 class="chat-detail-section-title">Shared Files &amp; Media</h5>
+          <ul class="chat-detail-files-list" id="detailFilesList">
+            <!-- Rendered by chat.js -->
+          </ul>
+        </div>
+
+        <!-- Direct Actions -->
+        <div class="chat-detail-section">
+          <h5 class="chat-detail-section-title">Quick Actions</h5>
+          <div style="display:grid;gap:8px;">
+            <a class="chat-action-btn whatsapp-btn" id="detailWhatsAppAction" href="#" target="_blank" style="justify-content:center;height:38px;">
+              <svg viewBox="0 0 24 24"><path d="M17.5 14.4c-.3-.1-1.8-.9-2.1-1-.3-.1-.5-.1-.7.1s-.8 1-.9 1.2c-.2.2-.4.2-.7.1s-1.3-.5-2.5-1.5c-.9-.8-1.5-1.8-1.7-2.1-.2-.3 0-.5.1-.7.1-.1.3-.3.4-.5.1-.2.2-.3.3-.5s0-.4-.1-.5c-.1-.1-.7-1.7-1-2.3-.3-.6-.5-.5-.7-.5h-.6c-.2 0-.6.1-.9.4s-1.2 1.2-1.2 2.9 1.2 3.4 1.4 3.6c.2.2 2.4 3.7 5.8 5.1 3.4 1.4 3.4.9 4 .9.6 0 2-.8 2.3-1.6.3-.8.3-1.5.2-1.6-.1-.1-.3-.2-.6-.3z"/><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm0 18.2c-1.6 0-3.1-.4-4.4-1.2l-.3-.2-3.3.9.9-3.2-.2-.4a8.2 8.2 0 1 1 7.3 4.1z"/></svg>
+              Chat on WhatsApp
+            </a>
+            <a class="chat-action-btn" href="mailto:client@example.com" style="justify-content:center;height:38px;">
+              <svg viewBox="0 0 24 24"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+              Send Email
+            </a>
+          </div>
+        </div>
+      </div>
+    </aside>
+  </div>
+
+  <script src="assets/js/chat.js?v=20261028-chat"></script>
+</body>
+</html>

@@ -494,7 +494,9 @@ body{font-size:16px}
 .dialog-heading h2{font-size:23px}
 .dialog-field{font-size:14px}
 .dialog-message,.cancel-request{font-size:13px}
-.floating-chat{position:fixed;right:24px;bottom:24px;z-index:10;width:62px;height:62px;display:grid;place-items:center;border:1px solid #e5e5e8;border-radius:50%;background:#fff;color:var(--cd-ink);box-shadow:0 8px 24px #0002}
+.floating-chat{position:fixed;right:24px;bottom:24px;z-index:10;width:62px;height:62px;display:grid;place-items:center;border:1px solid #e5e5e8;border-radius:50%;background:#fff;color:var(--cd-ink);box-shadow:0 8px 24px #0002;text-decoration:none;cursor:pointer;transition:transform .18s ease,box-shadow .18s ease,background-color .18s ease}
+.floating-chat:hover{transform:translateY(-3px);box-shadow:0 12px 28px #0003;background-color:#fafafa;color:var(--cd-ink)}
+.floating-chat-badge{position:absolute;top:-2px;right:-2px;min-width:20px;height:20px;padding:0 5px;display:grid;place-items:center;border:2px solid #fff;border-radius:99px;background:#15934f;color:#fff;font-size:11px;font-weight:700;line-height:1}
 .floating-chat svg{width:39px;height:39px;stroke-width:2.5}
 @media(max-width:820px){.client-nav-label,.client-nav-item,.client-sidebar-foot{font-size:0}}
 @media(max-width:600px){.floating-chat{right:16px;bottom:16px;width:54px;height:54px}.floating-chat svg{width:34px;height:34px}.client-hero>p{font-size:14px}.client-hero h1{font-size:30px}.hero-search input{font-size:13px}.hero-search button{font-size:13px}.popular{font-size:12px}.popular button{font-size:11px}.category-card b{font-size:12px}.category-card small{font-size:11px}.section-heading h2{font-size:18px}.section-heading p,.section-heading>a{font-size:12px}.project-body h3{font-size:14px}.project-body>p,.project-by{font-size:11px}.project-price{font-size:14px}.client-demo-note{font-size:11px}}

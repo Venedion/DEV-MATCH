@@ -10,6 +10,16 @@ document.getElementById('developerNotificationCount').textContent=String(unreadN
 document.getElementById('developerNotificationCount').hidden=unreadNotificationCount===0;
 document.querySelector('.notification-button i').hidden=unreadNotificationCount===0;
 
+try {
+  const chatConvs = JSON.parse(localStorage.getItem('devmatch_chat_conversations_v2') || '[]');
+  const chatUnread = chatConvs.length ? chatConvs.reduce((sum, c) => sum + (c.unreadCount || 0), 0) : 3;
+  const floatingBadge = document.getElementById('floatingChatBadge');
+  if (floatingBadge) {
+    floatingBadge.textContent = String(chatUnread);
+    floatingBadge.hidden = chatUnread === 0;
+  }
+} catch (e) {}
+
 const defaultProjects=[
   {title:'Restaurant Website',type:'Website',views:2480,price:'Rp 3.500.000'},
   {title:'Kasir Pintar POS',type:'Web App',views:1920,price:'Rp 6.000.000'},
