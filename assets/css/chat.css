@@ -1121,7 +1121,64 @@ body.chat-body {
   }
 
   .chat-main-header {
-    padding: 0 12px;
+    height: auto;
+    min-height: 100px;
+    padding: 10px 12px;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-content: center;
+    row-gap: 8px;
+  }
+
+  .chat-header-user {
+    grid-column: 1 / -1;
+    width: 100%;
+    gap: 10px;
+  }
+
+  .chat-back-btn,
+  .chat-header-user > .chat-avatar {
+    flex: none;
+  }
+
+  .chat-header-details {
+    flex: 1;
+  }
+
+  .chat-header-name {
+    white-space: nowrap;
+  }
+
+  .chat-role-pill {
+    display: none;
+  }
+
+  .chat-header-status {
+    white-space: nowrap;
+  }
+
+  .chat-header-actions {
+    grid-column: 2;
+    justify-self: end;
+    gap: 6px;
+  }
+
+  .chat-project-banner {
+    padding: 8px 12px;
+    align-items: flex-start;
+  }
+
+  .chat-project-banner-info {
+    display: block;
+    flex: 1;
+  }
+
+  .chat-project-banner-info svg {
+    display: none;
+  }
+
+  .chat-project-banner-info strong {
+    white-space: normal;
   }
 
   .chat-thread-container {
