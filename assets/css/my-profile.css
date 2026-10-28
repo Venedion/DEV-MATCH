@@ -238,17 +238,24 @@ body{font-size:16px;line-height:1.55}
 .activity-copy{color:#374151;font-size:13px;line-height:1.6}
 .activity-item time{color:#6b7280;font-size:12px}
 .profile-toast{right:24px;bottom:24px;padding:14px 18px;font-size:13px}
-.sidebar .nav-label{font-size:11px;font-weight:700;letter-spacing:.06em}
-.sidebar .nav-item{gap:11px;font-size:14px;font-weight:500;line-height:1.45}
+body.my-profile-page .topbar,
+body.my-profile-page .sidebar,
+body.my-profile-page .sidebar .workspace,
+body.my-profile-page .sidebar .side-add,
+body.my-profile-page .sidebar nav,
+body.my-profile-page .sidebar nav a{line-height:normal}
+.sidebar .nav-label{font-size:12px;font-weight:700;letter-spacing:.06em}
+.sidebar .nav-item{gap:11px;font-size:15px;font-weight:500;line-height:1.45}
 .sidebar .nav-item svg{width:19px;height:19px}
 .sidebar .workspace b{font-size:13px}
 .sidebar .workspace small,.sidebar-foot{font-size:12px}
 .sidebar .side-add{font-size:14px}
-.topbar .search input{font-size:13px}
-.topbar .mode{font-size:12px}
+.topbar .search input{font-size:14px}
+.topbar .mode{font-size:13px}
 .topbar .user-copy b{font-size:13px}
 .topbar .user-copy small{font-size:12px}
 .topbar .icon-button svg{width:19px;height:19px}
+@media(max-width:1220px){.topbar .mode{font-size:10px}}
 @media(max-width:1180px){
   .profile-page-heading h1{font-size:29px}
   .profile-stats{gap:8px}
@@ -265,7 +272,6 @@ body{font-size:16px;line-height:1.55}
   .sidebar .nav-label,.sidebar .nav-item,.sidebar .side-add,.sidebar-foot{font-size:0}
   .sidebar .nav-item,.sidebar .nav-item.active{font-size:0}
   .sidebar .nav-item svg{width:19px;height:19px}
-  .sidebar .nav-label{display:none}
   .sidebar-foot{display:none}
   .topbar .search input{font-size:12px}
 }

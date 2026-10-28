@@ -337,7 +337,17 @@
 
   // Setup mode links in topbar / sidebar
   function setupWorkspaceLinks() {
+    document.body.classList.toggle('client-shell-page', !isDeveloper);
     if (!isDeveloper) {
+      const messagesLink = document.querySelector('.side-nav a[href="devmatch-chat.html"], .side-nav a[href="devmatch-chat.html?role=client"]');
+      if (messagesLink) messagesLink.href = 'devmatch-chat.html?role=client';
+      const notificationsUrl = 'devmatch-notifications.html';
+      document.querySelectorAll('.notification-button, .client-icon-button').forEach(link => {
+        link.href = notificationsUrl;
+      });
+      const notificationsLink = [...document.querySelectorAll('.side-nav a, .client-nav a')]
+        .find(link => link.textContent.trim().startsWith('Notifications'));
+      if (notificationsLink) notificationsLink.href = notificationsUrl;
       document.querySelectorAll('.mode').forEach(m => m.classList.remove('active'));
       const clientMode = document.querySelector('.mode-switch a[href*="client"]');
       if (clientMode) clientMode.classList.add('active');
@@ -366,4 +376,3 @@
   initHashTab();
 
 })();
-

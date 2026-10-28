@@ -38,7 +38,7 @@ svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.8;stroke
 .post-request{height:42px;display:flex;align-items:center;justify-content:center;gap:9px;border:0;border-radius:9px;background:var(--cd-ink);color:#fff;font-size:13px;font-weight:600;cursor:pointer}
 .post-request:hover{background:#333}
 .post-request svg{width:16px;height:16px}
-.client-sidebar>.post-request{margin-bottom:22px}
+.client-sidebar>.post-request{flex:0 0 42px;margin-bottom:22px}
 .client-nav-label{margin:0 0 8px;color:#94969d;font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase}
 .client-nav{display:grid;gap:4px}
 .client-nav-item{min-height:42px;display:flex;align-items:center;gap:11px;padding:0 11px;border-radius:8px;color:#4c4e55;font-size:14px;font-weight:500}

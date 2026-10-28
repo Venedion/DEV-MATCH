@@ -217,7 +217,7 @@
           </div>
           <h3>No saved projects found</h3>
           <p>${favoriteProjectIds.length === 0 ? 'You haven’t saved any projects yet. Browse developer projects and click the heart icon to save your favorites.' : 'No saved projects match your filter or search query.'}</p>
-          <a class="fav-btn primary" href="devmatch-client-dashboard.html#discover" style="margin:0 auto;display:inline-flex;">
+          <a class="fav-btn primary" href="devmatch-discover-projects.html" style="margin:0 auto;display:inline-flex;">
             <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="m15.5 8.5-2 5-5 2 2-5z"/></svg>
             Discover Projects
           </a>
@@ -506,6 +506,7 @@
   function loadUserProfile() {
     try {
       const isClient = new URLSearchParams(window.location.search).get('role') === 'client';
+      document.body.classList.toggle('client-shell-page', isClient);
       const key = isClient ? 'devmatch-profile-client' : 'devmatch-profile-dev';
       const profile = JSON.parse(localStorage.getItem(key) || '{}');
       const name = profile.displayName || (isClient ? 'Client' : 'Developer');
@@ -517,6 +518,15 @@
       if (topUserNameEl) topUserNameEl.textContent = name;
 
       if (isClient) {
+        const messagesLink = document.querySelector('.side-nav a[href="devmatch-chat.html"], .side-nav a[href="devmatch-chat.html?role=client"]');
+        if (messagesLink) messagesLink.href = 'devmatch-chat.html?role=client';
+        const notificationsUrl = 'devmatch-notifications.html';
+        document.querySelectorAll('.notification-button, .client-icon-button').forEach(link => {
+          link.href = notificationsUrl;
+        });
+        const notificationsLink = [...document.querySelectorAll('.side-nav a, .client-nav a')]
+          .find(link => link.textContent.trim().startsWith('Notifications'));
+        if (notificationsLink) notificationsLink.href = notificationsUrl;
         document.querySelectorAll('.mode').forEach(m => m.classList.remove('active'));
         const clientMode = document.querySelector('.mode-switch a[href*="client"]');
         if (clientMode) clientMode.classList.add('active');
