@@ -1,0 +1,17 @@
+.custom-select{width:100%;min-width:0;position:relative}
+.custom-select.open{z-index:31}
+.custom-select-native{width:1px!important;height:1px!important;position:absolute!important;overflow:hidden!important;clip:rect(0,0,0,0)!important;white-space:nowrap!important;clip-path:inset(50%)!important;opacity:0!important;pointer-events:none!important}
+.custom-select-trigger{width:100%;min-width:0;height:40px;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:0 13px;border:1px solid var(--line,#e4e5e8);border-radius:9px;background:#fafafc;color:var(--ink,#171719);font:inherit;font-size:13px;text-align:left;cursor:pointer;transition:border-color .15s,background .15s,box-shadow .15s}
+.custom-select-trigger:hover{border-color:#c6c8ce;background:#fff}
+.custom-select-trigger:focus-visible,.custom-select.open .custom-select-trigger{border-color:var(--ink,#171719);outline:0;background:#fff;box-shadow:0 0 0 1px var(--ink,#171719)}
+.custom-select-trigger:disabled{opacity:.55;cursor:not-allowed}
+.custom-select-value{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.custom-select-chevron{width:8px;height:8px;flex:none;border-right:1.5px solid #777982;border-bottom:1.5px solid #777982;transform:translateY(-2px) rotate(45deg);transition:transform .15s,border-color .15s}
+.custom-select.open .custom-select-chevron{border-color:var(--ink,#171719);transform:translateY(2px) rotate(225deg)}
+.custom-select-options{max-height:min(260px,45vh);position:absolute;z-index:30;top:calc(100% + 6px);right:0;left:0;overflow:auto;padding:5px;border:1px solid var(--line,#e4e5e8);border-radius:10px;background:#fff;box-shadow:0 12px 30px #1717191c}
+.custom-select-options[hidden]{display:none}
+.custom-select-option{min-height:36px;position:relative;display:flex;align-items:center;padding:7px 32px 7px 10px;border-radius:7px;color:var(--ink,#171719);font-size:13px;line-height:1.4;cursor:pointer}
+.custom-select-option:hover,.custom-select-option:focus-visible{outline:0;background:#f2f2f4}
+.custom-select-option[aria-selected="true"]{background:#f2f2f4;font-weight:700}
+.custom-select-option[aria-selected="true"]:after{position:absolute;right:11px;color:var(--green,#168b4a);content:"✓";font-size:12px}
+.custom-select-option[aria-disabled="true"]{opacity:.5;cursor:not-allowed}

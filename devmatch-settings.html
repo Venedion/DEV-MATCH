@@ -1,0 +1,674 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Settings — DEV-MATCH</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/css/dashboard.css?v=20261028-settings">
+  <link rel="stylesheet" href="assets/css/settings.css?v=20261028-settings">
+  <link rel="stylesheet" href="assets/css/custom-select.css?v=20261028-custom-dropdowns-v4">
+</head>
+<body>
+  <!-- Topbar -->
+  <header class="topbar">
+    <a class="brand" href="devmatch-dashboard.html"><i>&lt;/&gt;</i><span>DEV-MATCH</span></a>
+    <label class="search">
+      <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
+      <input id="searchInput" type="search" placeholder="Search project requests, clients...">
+      <kbd>⌘K</kbd>
+    </label>
+    <div class="top-actions">
+      <div class="mode-switch" role="group" aria-label="Workspace mode">
+        <a class="mode active" id="devModeLink" href="devmatch-settings.html"><span aria-hidden="true">&lt;/&gt;</span>Developer Mode</a>
+        <a class="mode" id="clientModeLink" href="devmatch-settings.html?role=client"><svg viewBox="0 0 24 24"><rect x="3" y="7" width="18" height="14" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>Client Mode</a>
+      </div>
+      <a class="icon-button notification-button" href="devmatch-developer-notifications.html" aria-label="Notifications">
+        <svg viewBox="0 0 24 24"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9m-8 13h4"/></svg><i></i>
+      </a>
+      <a class="user-menu" href="devmatch-settings.html">
+        <span class="user-avatar" id="userAvatar">DM</span>
+        <span class="user-copy"><b id="topUserName">Developer</b><small>Developer</small></span>
+        <svg viewBox="0 0 24 24"><path d="m7 10 5 5 5-5"/></svg>
+      </a>
+    </div>
+  </header>
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="workspace" id="workspaceBadge">
+      <span class="workspace-icon">&lt;/&gt;</span>
+      <span><b>Developer workspace</b><small>Showcase &amp; find clients</small></span>
+    </div>
+    <a class="add-project side-add" href="devmatch-my-projects.html?create=1"><svg viewBox="0 0 24 24"><path d="M12 5v14m-7-7h14"/></svg>Add Project</a>
+    <span class="nav-label">Menu</span>
+    <nav class="side-nav" aria-label="Dashboard navigation">
+      <a class="nav-item" href="devmatch-dashboard.html"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>Overview</a>
+      <a class="nav-item" href="devmatch-chat.html"><svg viewBox="0 0 24 24"><path d="M21 11.5a8.5 8.5 0 0 1-8.5 8.5H4l1.5-4A8.5 8.5 0 1 1 21 11.5z"/></svg>Messages<span class="nav-count" style="background:#e7f6ed;color:#15934f;">3</span></a>
+      <a class="nav-item" href="devmatch-my-projects.html"><svg viewBox="0 0 24 24"><path d="M3 6a2 2 0 0 1 2-2h5l2 2h7a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>My Projects</a>
+      <a class="nav-item" href="devmatch-landing.html#projects"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="m15.5 8.5-2 5-5 2 2-5z"/></svg>Find Projects</a>
+      <a class="nav-item" href="devmatch-landing.html#developers"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"/><path d="M3 20a6 6 0 0 1 12 0m2-8a3 3 0 1 0 0-6m1 8a5 5 0 0 1 3 5"/></svg>Find Clients</a>
+      <a class="nav-item" href="devmatch-favorites.html"><svg viewBox="0 0 24 24"><path d="m20.8 4.6-1.4-1.4a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8L12 21l8.8-8.6a5.5 5.5 0 0 0 0-7.8z"/></svg>Favorites</a>
+      <a class="nav-item" href="devmatch-developer-notifications.html"><svg viewBox="0 0 24 24"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9m-8 13h4"/></svg>Notifications<span class="nav-count" id="developerNotificationCount">2</span></a>
+    </nav>
+    <span class="nav-label account-label">Account</span>
+    <nav class="side-nav" aria-label="Account navigation">
+      <a class="nav-item" href="devmatch-profile.html?role=dev"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>Profile</a>
+      <a class="nav-item active" href="devmatch-settings.html" aria-current="page"><svg viewBox="0 0 24 24"><path d="M4 21v-7m0-4V3m8 18v-9m0-4V3m8 18v-5m0-4V3M1 14h6m2-6h6m2 8h6"/></svg>Settings</a>
+    </nav>
+    <div class="sidebar-foot"><span class="online-dot"></span>Demo workspace</div>
+  </aside>
+
+  <!-- Main Settings Layout -->
+  <main class="dashboard settings-page">
+    <header class="settings-header">
+      <p class="settings-eyebrow">Account &amp; Preferences</p>
+      <h1>Settings</h1>
+      <p>Manage your account profile, security, role rates, notifications, and integration preferences.</p>
+    </header>
+
+    <div class="settings-layout">
+      <!-- Left Category Navigation -->
+      <nav class="settings-nav" aria-label="Settings categories">
+        <button class="settings-nav-btn active" type="button" data-tab="account">
+          <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+          Profile &amp; Account
+        </button>
+
+        <button class="settings-nav-btn" type="button" data-tab="security">
+          <svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          Login &amp; Security
+          <span class="settings-nav-badge">2FA</span>
+        </button>
+
+        <button class="settings-nav-btn" type="button" data-tab="role-specific">
+          <svg viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
+          <span id="roleTabLabel">Rates &amp; Payouts</span>
+        </button>
+
+        <button class="settings-nav-btn" type="button" data-tab="notifications">
+          <svg viewBox="0 0 24 24"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9m-8 13h4"/></svg>
+          Notifications
+        </button>
+
+        <button class="settings-nav-btn" type="button" data-tab="privacy">
+          <svg viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+          Privacy &amp; Visibility
+        </button>
+
+        <button class="settings-nav-btn" type="button" data-tab="integrations">
+          <svg viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+          Connected Apps
+        </button>
+
+        <button class="settings-nav-btn" type="button" data-tab="preferences">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+          Preferences &amp; Region
+        </button>
+      </nav>
+
+      <!-- Right Panels Content -->
+      <div class="settings-content">
+
+        <!-- PANEL 1: Profile & Account -->
+        <section class="settings-panel" id="panel-account">
+          <form class="settings-card" id="accountForm">
+            <header class="settings-card-header">
+              <h2>Basic Profile</h2>
+              <p>Your public identity shown to clients and collaborators on DEV-MATCH.</p>
+            </header>
+
+            <!-- Avatar Row -->
+            <div class="settings-avatar-row">
+              <div class="settings-avatar-preview" id="settingsAvatarPreview">DM</div>
+              <div class="settings-avatar-actions">
+                <span class="settings-label">Profile photo</span>
+                <p class="settings-hint">Square format, PNG or JPG under 2MB.</p>
+                <div class="settings-avatar-btns">
+                  <button class="settings-btn" id="changeAvatarBtn" type="button">Change Avatar</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Form Grid -->
+            <div class="settings-form-grid">
+              <div class="settings-field">
+                <label class="settings-label" for="settingsDisplayName">Display Name</label>
+                <input class="settings-input" id="settingsDisplayName" type="text" required placeholder="e.g. Rizky Aditya">
+              </div>
+
+              <div class="settings-field">
+                <label class="settings-label" for="settingsUsername">Username</label>
+                <input class="settings-input" id="settingsUsername" type="text" required placeholder="e.g. rizkyaditya">
+              </div>
+
+              <div class="settings-field">
+                <label class="settings-label" for="settingsEmail">
+                  Email Address
+                  <small style="color:var(--green);font-weight:700;">● Verified</small>
+                </label>
+                <input class="settings-input" id="settingsEmail" type="email" required placeholder="name@example.com">
+                <span class="settings-hint">Changing email requires one-time re-verification.</span>
+              </div>
+
+              <div class="settings-field">
+                <label class="settings-label" for="settingsWhatsapp">WhatsApp Number</label>
+                <input class="settings-input" id="settingsWhatsapp" type="tel" placeholder="6281234567890">
+                <span class="settings-hint">Clients can contact you directly via one-tap WhatsApp.</span>
+              </div>
+
+              <div class="settings-field span-2">
+                <label class="settings-label" for="settingsCity">City / Location</label>
+                <input class="settings-input" id="settingsCity" type="text" placeholder="e.g. Medan, Sumatera Utara">
+              </div>
+
+              <div class="settings-field span-2">
+                <label class="settings-label" for="settingsBio">Bio &amp; Introduction</label>
+                <textarea class="settings-textarea" id="settingsBio" placeholder="Tell clients about your background and services..."></textarea>
+                <span class="settings-hint">Brief overview of your experience and what you build.</span>
+              </div>
+            </div>
+
+            <footer class="settings-card-footer">
+              <button class="settings-btn primary" type="submit">Save Profile Changes</button>
+            </footer>
+          </form>
+        </section>
+
+        <!-- PANEL 2: Login & Security -->
+        <section class="settings-panel" id="panel-security" hidden>
+          <!-- Password Card -->
+          <form class="settings-card" id="passwordForm">
+            <header class="settings-card-header">
+              <h2>Change Password</h2>
+              <p>Keep your account secure with a strong and unique password.</p>
+            </header>
+
+            <div class="settings-form-grid full-width" style="max-width:500px;">
+              <div class="settings-field">
+                <label class="settings-label" for="currentPassword">Current Password</label>
+                <input class="settings-input" id="currentPassword" type="password" placeholder="••••••••" required>
+              </div>
+
+              <div class="settings-field">
+                <label class="settings-label" for="newPassword">New Password</label>
+                <input class="settings-input" id="newPassword" type="password" minlength="8" placeholder="At least 8 characters" required>
+              </div>
+
+              <div class="settings-field">
+                <label class="settings-label" for="confirmPassword">Confirm New Password</label>
+                <input class="settings-input" id="confirmPassword" type="password" minlength="8" placeholder="Repeat new password" required>
+              </div>
+            </div>
+
+            <footer class="settings-card-footer">
+              <button class="settings-btn primary" type="submit">Update Password</button>
+            </footer>
+          </form>
+
+          <!-- 2FA & Active Sessions Card -->
+          <div class="settings-card">
+            <header class="settings-card-header">
+              <h2>Two-Factor Authentication (2FA) &amp; Sessions</h2>
+              <p>Add an extra layer of protection when signing in to DEV-MATCH.</p>
+            </header>
+
+            <div class="settings-toggle-list">
+              <div class="settings-toggle-row">
+                <div class="settings-toggle-info">
+                  <h3>Authenticator App (TOTP)</h3>
+                  <p>Use Google Authenticator or 1Password to generate one-time login codes.</p>
+                </div>
+                <label class="settings-switch" aria-label="Toggle Two Factor Authentication">
+                  <input type="checkbox" id="twoFactorToggle" checked>
+                  <span class="settings-slider"></span>
+                </label>
+              </div>
+            </div>
+
+            <div style="margin-top:24px;">
+              <span class="settings-label" style="margin-bottom:12px;">Active Login Sessions</span>
+              
+              <div class="settings-session-item current-session">
+                <div class="settings-session-device">
+                  <div class="settings-session-icon">
+                    <svg viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+                  </div>
+                  <div class="settings-session-info">
+                    <b>Chrome on Windows <span class="settings-badge-active">Active now</span></b>
+                    <span>Medan, Indonesia · IP 180.244.xxx.xxx</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="settings-session-item">
+                <div class="settings-session-device">
+                  <div class="settings-session-icon">
+                    <svg viewBox="0 0 24 24"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
+                  </div>
+                  <div class="settings-session-info">
+                    <b>Safari on iPhone 15 Pro</b>
+                    <span>Medan, Indonesia · Last active 3 hours ago</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <footer class="settings-card-footer">
+              <button class="settings-btn danger" id="logoutSessionsBtn" type="button">Log Out All Other Devices</button>
+            </footer>
+          </div>
+
+          <!-- Danger Zone -->
+          <div class="settings-card danger-zone">
+            <header class="settings-card-header">
+              <h2>Danger Zone</h2>
+              <p>Irreversible actions related to your DEV-MATCH account and data.</p>
+            </header>
+
+            <div class="settings-toggle-list">
+              <div class="settings-toggle-row">
+                <div class="settings-toggle-info">
+                  <h3>Deactivate Account</h3>
+                  <p>Temporarily hide your profile, projects, and active availability.</p>
+                </div>
+                <button class="settings-btn" id="deactivateAccountBtn" type="button">Deactivate</button>
+              </div>
+
+              <div class="settings-toggle-row">
+                <div class="settings-toggle-info">
+                  <h3 style="color:#b91c1c;">Delete Account Permanently</h3>
+                  <p>Permanently remove your account, projects, reviews, and conversation threads.</p>
+                </div>
+                <button class="settings-btn danger" id="deleteAccountBtn" type="button">Delete Account</button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- PANEL 3: Role Specific (Developer Rates & Payouts OR Client Company & Billing) -->
+        <section class="settings-panel" id="panel-role-specific" hidden>
+          <form class="settings-card" id="roleSpecificForm">
+            <header class="settings-card-header">
+              <h2 id="roleHeaderTitle">Developer Rates &amp; Payout Settings</h2>
+              <p id="roleHeaderDesc">Configure your baseline pricing, accepted engagements, and bank payout details.</p>
+            </header>
+
+            <!-- Developer Fields Section -->
+            <div id="developerSpecificFields">
+              <div class="settings-form-grid" style="margin-bottom:20px;">
+                <div class="settings-field">
+                  <label class="settings-label" for="settingsHourlyRate">Hourly Rate Default</label>
+                  <input class="settings-input" id="settingsHourlyRate" type="text" placeholder="Rp 150.000 / hour">
+                </div>
+
+                <div class="settings-field">
+                  <label class="settings-label" for="settingsMinProject">Minimum Project Budget</label>
+                  <input class="settings-input" id="settingsMinProject" type="text" placeholder="Rp 3.500.000">
+                </div>
+
+                <div class="settings-field span-2">
+                  <label class="settings-label" for="settingsAvailability">Hiring Availability Status</label>
+                  <select class="settings-select" id="settingsAvailability">
+                    <option value="Open for hiring">Open for hiring (Ready for new projects)</option>
+                    <option value="Freelance">Freelance (Select projects only)</option>
+                    <option value="Busy">Busy (Limited capacity)</option>
+                    <option value="Not available">Not available</option>
+                  </select>
+                </div>
+              </div>
+
+              <!-- Bank Payout Box -->
+              <span class="settings-label" style="margin-bottom:10px;">Bank / E-Wallet Payout Account</span>
+              <div class="settings-bank-box">
+                <div class="settings-form-grid">
+                  <div class="settings-field">
+                    <label class="settings-label" for="settingsBankName">Bank / E-Wallet</label>
+                    <select class="settings-select" id="settingsBankName">
+                      <option value="BCA">BCA (Bank Central Asia)</option>
+                      <option value="Mandiri">Bank Mandiri</option>
+                      <option value="BRI">Bank BRI</option>
+                      <option value="BNI">Bank BNI</option>
+                      <option value="GoPay">GoPay / GoTo Financial</option>
+                      <option value="OVO">OVO</option>
+                      <option value="Dana">DANA</option>
+                    </select>
+                  </div>
+
+                  <div class="settings-field">
+                    <label class="settings-label" for="settingsBankAccount">Account Number</label>
+                    <input class="settings-input" id="settingsBankAccount" type="text" placeholder="e.g. 8820192841">
+                  </div>
+
+                  <div class="settings-field span-2">
+                    <label class="settings-label" for="settingsAccountHolder">Account Holder Name</label>
+                    <input class="settings-input" id="settingsAccountHolder" type="text" placeholder="Must match your official bank ID">
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Client Fields Section (Toggled via JS if role=client) -->
+            <div id="clientSpecificFields" hidden>
+              <div class="settings-form-grid">
+                <div class="settings-field">
+                  <label class="settings-label" for="settingsCompanyName">Company / Business Name</label>
+                  <input class="settings-input" id="settingsCompanyName" type="text" placeholder="e.g. PT Ombak Bistro Mandiri">
+                </div>
+
+                <div class="settings-field">
+                  <label class="settings-label" for="settingsIndustry">Industry Sector</label>
+                  <input class="settings-input" id="settingsIndustry" type="text" placeholder="e.g. Food &amp; Beverage / Retail">
+                </div>
+
+                <div class="settings-field span-2">
+                  <label class="settings-label" for="settingsNpwp">NPWP / Tax ID (Optional)</label>
+                  <input class="settings-input" id="settingsNpwp" type="text" placeholder="09.254.891.2-121.000">
+                  <span class="settings-hint">Used for commercial invoice issuance and withholding tax receipts.</span>
+                </div>
+              </div>
+            </div>
+
+            <footer class="settings-card-footer">
+              <button class="settings-btn primary" type="submit">Save Role Settings</button>
+            </footer>
+          </form>
+        </section>
+
+        <!-- PANEL 4: Notification Settings -->
+        <section class="settings-panel" id="panel-notifications" hidden>
+          <form class="settings-card" id="notificationsForm">
+            <header class="settings-card-header">
+              <h2>Notification Preferences</h2>
+              <p>Choose what events trigger alerts and which channels you receive them on.</p>
+            </header>
+
+            <!-- Channels -->
+            <span class="settings-label" style="margin-bottom:12px;">Active Delivery Channels</span>
+            <div class="settings-toggle-list" style="margin-bottom:24px;">
+              <div class="settings-toggle-row">
+                <div class="settings-toggle-info">
+                  <h3>In-App Notifications</h3>
+                  <p>Receive live badges and toast alerts directly inside DEV-MATCH dashboard.</p>
+                </div>
+                <label class="settings-switch">
+                  <input type="checkbox" checked>
+                  <span class="settings-slider"></span>
+                </label>
+              </div>
+
+              <div class="settings-toggle-row">
+                <div class="settings-toggle-info">
+                  <h3>WhatsApp Direct Alerts</h3>
+                  <p>Get instant WhatsApp pings for new project inquiries and client messages.</p>
+                </div>
+                <label class="settings-switch">
+                  <input type="checkbox" checked>
+                  <span class="settings-slider"></span>
+                </label>
+              </div>
+
+              <div class="settings-toggle-row">
+                <div class="settings-toggle-info">
+                  <h3>Email Updates</h3>
+                  <p>Receive email summaries when messages are unread for over 30 minutes.</p>
+                </div>
+                <label class="settings-switch">
+                  <input type="checkbox" checked>
+                  <span class="settings-slider"></span>
+                </label>
+              </div>
+            </div>
+
+            <!-- Categories -->
+            <span class="settings-label" style="margin-bottom:12px;">Event Triggers</span>
+            <div class="settings-toggle-list" style="margin-bottom:24px;">
+              <div class="settings-toggle-row">
+                <div class="settings-toggle-info">
+                  <h3>Messages &amp; Inquiries</h3>
+                  <p>Direct chats and project questions from clients or developers.</p>
+                </div>
+                <label class="settings-switch">
+                  <input type="checkbox" checked>
+                  <span class="settings-slider"></span>
+                </label>
+              </div>
+
+              <div class="settings-toggle-row">
+                <div class="settings-toggle-info">
+                  <h3>Project Favorites &amp; Views</h3>
+                  <p>When clients bookmark your projects to their favorites list.</p>
+                </div>
+                <label class="settings-switch">
+                  <input type="checkbox">
+                  <span class="settings-slider"></span>
+                </label>
+              </div>
+
+              <div class="settings-toggle-row">
+                <div class="settings-toggle-info">
+                  <h3>Reviews &amp; Client Ratings</h3>
+                  <p>When a client publishes a rating or comment on completed milestones.</p>
+                </div>
+                <label class="settings-switch">
+                  <input type="checkbox" checked>
+                  <span class="settings-slider"></span>
+                </label>
+              </div>
+
+              <div class="settings-toggle-row">
+                <div class="settings-toggle-info">
+                  <h3>Payouts &amp; Invoice Receipts</h3>
+                  <p>Transactional alerts when funds are cleared or invoices issued.</p>
+                </div>
+                <label class="settings-switch">
+                  <input type="checkbox" checked>
+                  <span class="settings-slider"></span>
+                </label>
+              </div>
+            </div>
+
+            <!-- Frequency -->
+            <div class="settings-field" style="max-width:320px;">
+              <label class="settings-label" for="digestFrequency">Email Digest Frequency</label>
+              <select class="settings-select" id="digestFrequency">
+                <option value="realtime">Real-time (Immediate notification)</option>
+                <option value="daily">Daily Digest (Once every evening)</option>
+                <option value="weekly">Weekly Summary (Every Monday)</option>
+              </select>
+            </div>
+
+            <footer class="settings-card-footer">
+              <button class="settings-btn primary" type="submit">Save Preferences</button>
+            </footer>
+          </form>
+        </section>
+
+        <!-- PANEL 5: Privacy & Visibility -->
+        <section class="settings-panel" id="panel-privacy" hidden>
+          <form class="settings-card" id="privacyForm">
+            <header class="settings-card-header">
+              <h2>Privacy &amp; Profile Visibility</h2>
+              <p>Control who can discover your portfolio cards and send project messages.</p>
+            </header>
+
+            <div class="settings-form-grid full-width" style="max-width:550px;margin-bottom:20px;">
+              <div class="settings-field">
+                <label class="settings-label" for="profileVisibility">Profile &amp; Showcase Visibility</label>
+                <select class="settings-select" id="profileVisibility">
+                  <option value="public">Public (Visible on landing page &amp; explore catalog)</option>
+                  <option value="registered">Registered Users Only (Must be logged in to view)</option>
+                  <option value="private">Private (Only accessed via direct link)</option>
+                </select>
+                <span class="settings-hint">Setting to private removes your cards from public search.</span>
+              </div>
+
+              <div class="settings-field">
+                <label class="settings-label" for="messagePermissions">Who Can Send Inquiries / Messages</label>
+                <select class="settings-select" id="messagePermissions">
+                  <option value="everyone">Anyone on DEV-MATCH</option>
+                  <option value="verified">Verified clients only</option>
+                </select>
+              </div>
+            </div>
+
+            <span class="settings-label" style="margin-bottom:12px;">Blocked Accounts</span>
+            <div class="settings-session-item" style="margin-bottom:20px;">
+              <div class="settings-session-device">
+                <div class="settings-session-icon">
+                  <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg>
+                </div>
+                <div class="settings-session-info">
+                  <b>No blocked users</b>
+                  <span>Users you block will not be able to message you or see your rates.</span>
+                </div>
+              </div>
+            </div>
+
+            <footer class="settings-card-footer">
+              <button class="settings-btn primary" type="submit">Update Privacy Settings</button>
+            </footer>
+          </form>
+        </section>
+
+        <!-- PANEL 6: Connected Apps / Integrations -->
+        <section class="settings-panel" id="panel-integrations" hidden>
+          <div class="settings-card">
+            <header class="settings-card-header">
+              <h2>Connected Apps &amp; OAuth</h2>
+              <p>Link your developer tools and messaging apps for quick sign-in and direct outreach.</p>
+            </header>
+
+            <div class="settings-apps-list">
+              <!-- WhatsApp -->
+              <div class="settings-app-card">
+                <div class="settings-app-info">
+                  <div class="settings-app-icon" style="color:#25d366;">
+                    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M17.5 14.4c-.3-.1-1.8-.9-2.1-1-.3-.1-.5-.1-.7.1s-.8 1-.9 1.2c-.2.2-.4.2-.7.1s-1.3-.5-2.5-1.5c-.9-.8-1.5-1.8-1.7-2.1-.2-.3 0-.5.1-.7.1-.1.3-.3.4-.5.1-.2.2-.3.3-.5s0-.4-.1-.5c-.1-.1-.7-1.7-1-2.3-.3-.6-.5-.5-.7-.5h-.6c-.2 0-.6.1-.9.4s-1.2 1.2-1.2 2.9 1.2 3.4 1.4 3.6c.2.2 2.4 3.7 5.8 5.1 3.4 1.4 3.4.9 4 .9.6 0 2-.8 2.3-1.6.3-.8.3-1.5.2-1.6-.1-.1-.3-.2-.6-.3z"/><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm0 18.2c-1.6 0-3.1-.4-4.4-1.2l-.3-.2-3.3.9.9-3.2-.2-.4a8.2 8.2 0 1 1 7.3 4.1z"/></svg>
+                  </div>
+                  <div class="settings-app-copy">
+                    <b>WhatsApp Business</b>
+                    <small>Connected as +62 812-3456-7890 · Direct inquiry bridge active</small>
+                  </div>
+                </div>
+                <button class="settings-btn primary" type="button" data-app-toggle="WhatsApp" data-connected="true">Connected</button>
+              </div>
+
+              <!-- GitHub -->
+              <div class="settings-app-card">
+                <div class="settings-app-info">
+                  <div class="settings-app-icon" style="color:#24292e;">
+                    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0 1 12 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0 0 22 12.017C22 6.484 17.522 2 12 2z"/></svg>
+                  </div>
+                  <div class="settings-app-copy">
+                    <b>GitHub</b>
+                    <small>Sync repositories, showcase live project code commits</small>
+                  </div>
+                </div>
+                <button class="settings-btn" type="button" data-app-toggle="GitHub" data-connected="false">Connect</button>
+              </div>
+
+              <!-- Google -->
+              <div class="settings-app-card">
+                <div class="settings-app-info">
+                  <div class="settings-app-icon" style="color:#ea4335;">
+                    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12.48 10.92v3.28h7.84c-.24 1.84-.853 3.187-1.787 4.133-1.147 1.147-2.933 2.4-6.053 2.4-4.827 0-8.6-3.893-8.6-8.72s3.773-8.72 8.6-8.72c2.6 0 4.507 1.027 5.907 2.347l2.307-2.307C18.747 1.44 16.133 0 12.48 0 5.867 0 .307 5.387.307 12s5.56 12 12.173 12c3.573 0 6.267-1.173 8.373-3.36 2.16-2.16 2.84-5.213 2.84-7.667 0-.76-.053-1.467-.173-2.053H12.48z"/></svg>
+                  </div>
+                  <div class="settings-app-copy">
+                    <b>Google Account</b>
+                    <small>Single sign-on &amp; Google Meet calendar scheduling</small>
+                  </div>
+                </div>
+                <button class="settings-btn primary" type="button" data-app-toggle="Google" data-connected="true">Connected</button>
+              </div>
+
+              <!-- LinkedIn -->
+              <div class="settings-app-card">
+                <div class="settings-app-info">
+                  <div class="settings-app-icon" style="color:#0a66c2;">
+                    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.28 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.75M6.88 8.56a1.68 1.68 0 0 0 1.68-1.68c0-.93-.75-1.69-1.68-1.69a1.69 1.69 0 0 0-1.69 1.69c0 .93.76 1.68 1.69 1.68m1.39 9.94v-8.37H5.5v8.37h2.77z"/></svg>
+                  </div>
+                  <div class="settings-app-copy">
+                    <b>LinkedIn</b>
+                    <small>Display verified professional employment credential</small>
+                  </div>
+                </div>
+                <button class="settings-btn" type="button" data-app-toggle="LinkedIn" data-connected="false">Connect</button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- PANEL 7: Platform Preferences -->
+        <section class="settings-panel" id="panel-preferences" hidden>
+          <form class="settings-card" id="preferencesForm">
+            <header class="settings-card-header">
+              <h2>Language &amp; Regional Formatting</h2>
+              <p>Configure interface localization, timezone, and calendar date display.</p>
+            </header>
+
+            <div class="settings-form-grid">
+              <div class="settings-field">
+                <label class="settings-label" for="settingLanguage">Interface Language</label>
+                <select class="settings-select" id="settingLanguage">
+                  <option value="id">Bahasa Indonesia (Default)</option>
+                  <option value="en">English (US)</option>
+                </select>
+              </div>
+
+              <div class="settings-field">
+                <label class="settings-label" for="settingTimezone">Timezone</label>
+                <select class="settings-select" id="settingTimezone">
+                  <option value="Asia/Jakarta">WIB — Western Indonesia Time (UTC+07:00)</option>
+                  <option value="Asia/Makassar">WITA — Central Indonesia Time (UTC+08:00)</option>
+                  <option value="Asia/Jayapura">WIT — Eastern Indonesia Time (UTC+09:00)</option>
+                  <option value="Asia/Singapore">Singapore Time (UTC+08:00)</option>
+                </select>
+              </div>
+
+              <div class="settings-field">
+                <label class="settings-label" for="settingDateFormat">Date Format</label>
+                <select class="settings-select" id="settingDateFormat">
+                  <option value="dd/mm/yyyy">DD/MM/YYYY (28/10/2026)</option>
+                  <option value="yyyy-mm-dd">YYYY-MM-DD (2026-10-28)</option>
+                  <option value="medium">28 Oct 2026</option>
+                </select>
+              </div>
+
+              <div class="settings-field">
+                <label class="settings-label" for="settingCurrency">Primary Currency</label>
+                <select class="settings-select" id="settingCurrency">
+                  <option value="IDR">IDR (Rupiah — Rp)</option>
+                  <option value="USD">USD ($)</option>
+                </select>
+              </div>
+            </div>
+
+            <footer class="settings-card-footer">
+              <button class="settings-btn primary" type="submit">Save Regional Preferences</button>
+            </footer>
+          </form>
+        </section>
+
+      </div>
+    </div>
+  </main>
+
+  <!-- Toast Notification -->
+  <div class="settings-toast" id="settingsToast" role="status" aria-live="polite">
+    <svg viewBox="0 0 24 24" style="width:16px;height:16px;stroke:#4ade80;fill:none;stroke-width:2;"><polyline points="20 6 9 17 4 12"/></svg>
+    <span id="settingsToastText">Settings updated successfully</span>
+  </div>
+
+  <!-- Floating Chat Link -->
+  <a class="floating-chat" href="devmatch-chat.html" aria-label="Messages &amp; Chat" title="Open Messages &amp; Chat">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5c-5 0-9 3.65-9 8.15 0 2.24 1.04 4.27 2.73 5.74L4.7 21l5.24-1.28c.67.12 1.36.18 2.06.18 5 0 9-3.65 9-8.15S17 3.5 12 3.5Z"/><circle cx="8.5" cy="11.7" r="1" fill="currentColor" stroke="none"/><circle cx="12" cy="11.7" r="1" fill="currentColor" stroke="none"/><circle cx="15.5" cy="11.7" r="1" fill="currentColor" stroke="none"/></svg>
+    <span class="floating-chat-badge">3</span>
+  </a>
+
+  <script src="assets/js/settings.js?v=20261028-settings"></script>
+  <script src="assets/js/custom-select.js?v=20261028-custom-dropdowns-v3"></script>
+</body>
+</html>

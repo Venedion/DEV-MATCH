@@ -232,6 +232,7 @@ function render(){
   error.textContent='';
   const country=document.getElementById('country');
   if(country)country.value=profile.country;
+  window.initializeCustomSelects(fields);
   updatePreview();
 }
 

@@ -48,6 +48,10 @@ svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2;stroke-l
 .field-label{display:block;margin-bottom:8px;font-size:15px;font-weight:700}
 .control{width:100%;height:50px;padding:0 15px;border:1px solid var(--line);border-radius:10px;background:var(--surface);font-size:16px}
 .control:focus{outline:2px solid var(--focus);outline-offset:1px}
+.form-card .custom-select-trigger{height:50px;padding:0 15px;border-radius:10px;background:var(--surface);font-size:16px}
+.form-card .custom-select-trigger:focus-visible,.form-card .custom-select.open .custom-select-trigger{outline:2px solid var(--focus);outline-offset:1px;box-shadow:none}
+.form-card .custom-select-options{border-radius:10px}
+.form-card .custom-select-option{min-height:42px;padding:8px 11px;font-size:15px}
 .birthday-picker{position:relative}
 .birthday-trigger{display:flex;align-items:center;justify-content:space-between;text-align:left;cursor:pointer}
 .birthday-trigger>span{color:#292b32}
