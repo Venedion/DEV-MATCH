@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="assets/css/client-dashboard.css?v=20261025-requests-page8">
+  <link rel="stylesheet" href="assets/css/client-dashboard.css?v=20261028-project-detail-click">
   <link rel="stylesheet" href="assets/css/project-detail.css">
 </head>
 <body>
@@ -35,10 +35,10 @@
     <nav class="client-nav" aria-label="Client dashboard navigation">
       <a class="client-nav-item active" href="#home"><svg viewBox="0 0 24 24"><path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-6v-7h-4v7H4a1 1 0 0 1-1-1z"/></svg>Home</a>
       <a class="client-nav-item" href="devmatch-chat.html?role=client"><svg viewBox="0 0 24 24"><path d="M21 11.5a8.5 8.5 0 0 1-8.5 8.5H4l1.5-4A8.5 8.5 0 1 1 21 11.5z"/></svg>Messages<span class="client-nav-count" style="background:#e7f6ed;color:#15934f;">3</span></a>
+      <a class="client-nav-item" href="#requests" data-request-nav><svg viewBox="0 0 24 24"><path d="M6 3h9l4 4v14H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"/><path d="M14 3v5h5M8 13h8m-8 4h8"/></svg>My Requests</a>
       <a class="client-nav-item" href="#discover" data-discover-nav><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="m15.5 8.5-2 5-5 2 2-5z"/></svg>Discover Projects</a>
       <a class="client-nav-item" href="devmatch-landing.html#developers"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"/><path d="M3 20a6 6 0 0 1 12 0m2-8a3 3 0 1 0 0-6m1 8a5 5 0 0 1 3 5"/></svg>Developers</a>
-      <a class="client-nav-item" href="#projects" data-favorites-filter><svg viewBox="0 0 24 24"><path d="m20.8 4.6-1.4-1.4a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8L12 21l8.8-8.6a5.5 5.5 0 0 0 0-7.8z"/></svg>Favorites<span class="client-nav-count" id="favoriteCount">0</span></a>
-      <a class="client-nav-item" href="#requests" data-request-nav><svg viewBox="0 0 24 24"><path d="M6 3h9l4 4v14H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"/><path d="M14 3v5h5M8 13h8m-8 4h8"/></svg>My Requests</a>
+      <a class="client-nav-item" href="devmatch-favorites.html?role=client"><svg viewBox="0 0 24 24"><path d="m20.8 4.6-1.4-1.4a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8L12 21l8.8-8.6a5.5 5.5 0 0 0 0-7.8z"/></svg>Favorites<span class="client-nav-count" id="favoriteCount">0</span></a>
       <a class="client-nav-item" href="devmatch-notifications.html"><svg viewBox="0 0 24 24"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9m-8 13h4"/></svg>Notifications<span class="client-notification-count">2</span></a>
     </nav>
     <span class="client-nav-label account-label">Account</span>
@@ -341,28 +341,14 @@
               <div><dt>Favorites</dt><dd id="developerFavorites"></dd></div>
             </dl>
             <a class="view-developer-profile" id="viewDeveloperProfile" href="devmatch-developer-profile.html?developer=restaurant">View full profile <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14m-7-7 7 7-7 7"/></svg></a>
-            <button class="chat-developer chat-developer-secondary" type="button" data-open-chat>
+            <a class="chat-developer chat-developer-secondary" id="chatDeveloperLink" href="devmatch-chat.html?role=client">
               <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.5 11.5a8 8 0 0 1-8 8H6l-2.5 1.5.8-4.1a8 8 0 1 1 16.2-5.4Z"/><path d="M8.5 12h.01M12.5 12h.01M16.5 12h.01"/></svg>
               Chat with developer
-            </button>
+            </a>
           </aside>
         </section>
       </div>
     </div>
-  </dialog>
-
-  <dialog class="chat-dialog" id="chatDialog" aria-labelledby="chatTitle">
-    <div class="chat-heading">
-      <div class="chat-person"><span class="developer-profile-avatar" id="chatInitials"></span><div><h2 id="chatTitle"></h2><p><span></span> In-app conversation</p></div></div>
-      <button class="close-chat" id="closeChat" type="button" aria-label="Close chat">×</button>
-    </div>
-    <div class="chat-messages" id="chatMessages" aria-live="polite"></div>
-    <form class="chat-compose" id="chatForm">
-      <label class="visually-hidden" for="chatInput">Write a message</label>
-      <textarea id="chatInput" maxlength="1000" placeholder="Write a message..." required></textarea>
-      <button type="submit" aria-label="Send message"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg></button>
-    </form>
-    <p class="chat-demo-note">Demo chat — messages are stored only in this browser.</p>
   </dialog>
 
   <a class="floating-chat" href="devmatch-chat.html?role=client" aria-label="Messages &amp; Chat" title="Open Messages &amp; Chat">
@@ -371,6 +357,6 @@
   </a>
   <script src="assets/js/projects-data.js"></script>
   <script src="assets/js/project-detail.js"></script>
-  <script src="assets/js/client-dashboard.js?v=20261025-requests-page4"></script>
+  <script src="assets/js/client-dashboard.js?v=20261028-project-detail-click"></script>
 </body>
 </html>

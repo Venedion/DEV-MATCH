@@ -89,7 +89,7 @@ const content=[
     title:'Add contact & links',
     intro:'Add optional ways for people to contact you or view your work.',
     fields:()=>`
-      <div class="field"><label class="field-label" for="whatsapp">WhatsApp number <span class="optional-hint">Optional</span></label><input class="control" id="whatsapp" inputmode="tel" autocomplete="tel" placeholder="+62 812 3456 7890" value="${escapeHtml(profile.whatsapp)}"><p class="field-hint">Leave blank if you prefer not to share your number.</p></div>
+      <div class="field"><label class="field-label" for="whatsapp">WhatsApp number <span class="optional-hint">Optional</span></label><input class="control" id="whatsapp" type="tel" inputmode="numeric" autocomplete="tel" pattern="[0-9]*" maxlength="20" placeholder="6281234567890" value="${escapeHtml(profile.whatsapp)}"><p class="field-hint">Enter digits only. Leave blank if you prefer not to share your number.</p></div>
       <div class="field"><label class="field-label" for="website">Website or portfolio (optional)</label><input class="control" id="website" type="url" placeholder="https://example.com" value="${escapeHtml(profile.website)}"></div>
       <div class="field"><label class="field-label" for="instagram">Instagram (optional)</label><input class="control" id="instagram" type="url" placeholder="https://instagram.com/username" value="${escapeHtml(profile.instagram)}"></div>`
   }
@@ -251,7 +251,7 @@ function saveCurrentFields(){
     profile.bio=read('bio');
     profile.project=read('project')||profile.project;
   }else{
-    profile.whatsapp=read('whatsapp');
+    profile.whatsapp=read('whatsapp').replace(/\D/g,'');
     profile.website=read('website');
     profile.instagram=read('instagram');
   }
@@ -270,6 +270,15 @@ function finish(){
 
 document.getElementById('stepFields').addEventListener('input',event=>{
   const target=event.target;
+  if(target.id==='whatsapp'){
+    const digits=target.value.replace(/\D/g,'');
+    if(target.value!==digits){
+      const position=target.selectionStart;
+      const removedBeforeCursor=target.value.slice(0,position).replace(/\d/g,'').length;
+      target.value=digits;
+      target.setSelectionRange(Math.max(0,position-removedBeforeCursor),Math.max(0,position-removedBeforeCursor));
+    }
+  }
   const entryElement=target.closest('[data-experience-id]');
   if(entryElement&&target.dataset.experienceField){
     const entry=profile.experiences.find(item=>item.id===entryElement.dataset.experienceId);
@@ -432,6 +441,7 @@ else{
     else if(typeof draft[key]==='string')profile[key]=draft[key];
   });
   if(typeof draft.instagram!=='string'&&typeof draft.social==='string')profile.instagram=draft.social;
+  profile.whatsapp=profile.whatsapp.replace(/\D/g,'');
   nextExperienceId=profile.experiences.reduce((max,entry)=>Math.max(max,Number(entry.id)||0),0);
 }
 render();

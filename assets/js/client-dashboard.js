@@ -83,6 +83,7 @@ function projectCardMarkup(project,discover=false){
         <h3>${escapeHtml(project.title)}</h3><p>${escapeHtml(project.description)}</p>
         ${discover?`<div class="discover-card-price"><span>STARTING FROM</span><strong>${escapeHtml(project.price)}</strong><span class="discover-card-arrow" aria-hidden="true">→</span></div>`:`<div class="project-price">${escapeHtml(project.price)}</div>`}
         <div class="project-by"><span class="developer-avatar">${escapeHtml(project.initials)}</span>${escapeHtml(project.developer)}<span class="developer-location">${escapeHtml(project.location)}</span></div>
+        <button class="project-card-view" type="button" data-project-open="${escapeHtml(project.id)}">View details <span aria-hidden="true">→</span></button>
       </div>
     </article>`;
 }
@@ -201,6 +202,11 @@ function renderRequests(){
 }
 
 function handleProjectGridClick(event){
+  const openButton=event.target.closest('[data-project-open]');
+  if(openButton){
+    window.openProjectDetails(openButton.dataset.projectOpen);
+    return;
+  }
   const button=event.target.closest('[data-favorite]');
   if(button){
     const id=button.dataset.favorite;

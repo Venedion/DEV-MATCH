@@ -82,8 +82,9 @@ svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.8;stroke
 .section-heading>a svg{width:15px;height:15px}
 .section-heading>a:hover,.request-link:hover{text-decoration:underline;text-underline-offset:3px}
 .client-project-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px}
-.client-project-card{min-width:0;overflow:hidden;border:1px solid var(--cd-line);border-radius:15px;background:var(--cd-surface);transition:transform .16s,box-shadow .16s}
+.client-project-card{min-width:0;overflow:hidden;border:1px solid var(--cd-line);border-radius:15px;background:var(--cd-surface);cursor:pointer;transition:transform .16s,box-shadow .16s}
 .client-project-card:hover{transform:translateY(-2px);box-shadow:0 9px 22px #0000000c}
+.client-project-card:focus-visible{outline:2px solid var(--cd-ink);outline-offset:3px}
 .project-art{height:164px;position:relative;overflow:hidden;padding:14px;background:#f3e8d7}
 .client-project-card:nth-child(3n+2) .project-art{background:#e7e8fc}
 .client-project-card:nth-child(3n) .project-art{background:#ece8fc}
@@ -123,6 +124,8 @@ svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.8;stroke
 .project-body>p{min-height:34px;margin-top:5px;color:var(--cd-muted);font-size:10px;line-height:1.5}
 .project-price{margin-top:8px;font-size:13px;font-weight:800}
 .project-by{display:flex;align-items:center;gap:6px;margin-top:10px;padding-top:9px;border-top:1px solid #f0f0f2;color:#4e5057;font-size:10px;font-weight:600}
+.project-card-view{display:flex;align-items:center;gap:6px;margin-top:12px;padding:0;border:0;background:none;color:var(--cd-ink);font:inherit;font-size:10px;font-weight:700;cursor:pointer}
+.project-card-view:hover span{text-decoration:underline;text-underline-offset:3px}
 .developer-avatar{width:23px;height:23px;display:grid;place-items:center;border-radius:50%;background:#ededf0;font-size:8px;font-weight:800}
 .developer-location{margin-left:auto;color:#85878e;font-size:9px;font-weight:400}
 .panel-client{margin-top:30px;padding:18px;border:1px solid var(--cd-line);border-radius:14px;background:#fff}

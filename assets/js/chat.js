@@ -862,10 +862,56 @@
   }
 
   // Query parameter handling (e.g. ?contact=rizky or ?project=restaurant)
+  function getOrCreateProjectConversation(project) {
+    const existing = conversations.find(c => c.roleType === 'dev' && c.project && c.project.id === project.id);
+    if (existing) return existing;
+
+    const contactId = project.handle.replace(/^@/, '').toLowerCase();
+    const id = `project-${project.id}-${contactId}`;
+    const conversation = conversations.find(c => c.id === id);
+    if (conversation) return conversation;
+
+    const newConversation = {
+      id,
+      contactId,
+      name: project.developer,
+      initials: project.initials,
+      role: 'Developer',
+      roleType: 'dev',
+      color: 'blue',
+      online: true,
+      statusText: 'Active now',
+      project: {
+        id: project.id,
+        title: project.title,
+        category: project.category,
+        price: project.price,
+        summary: project.description,
+        link: `devmatch-developer-profile.html?developer=${encodeURIComponent(project.id)}`
+      },
+      files: [],
+      messages: [{
+        id: `intro-${project.id}`,
+        from: 'them',
+        senderName: project.developer,
+        text: `Hi! Thanks for your interest in ${project.title}. What would you like to know?`,
+        time: 'Now'
+      }],
+      unreadCount: 0,
+      quickReplies: [],
+      autoReplies: []
+    };
+
+    conversations.push(newConversation);
+    saveConversations(conversations);
+    return newConversation;
+  }
+
   function handleQueryParams() {
     const params = new URLSearchParams(window.location.search);
     const contactParam = params.get('contact');
     const projectParam = params.get('project');
+    const isClientRole = params.get('role') === 'client';
 
     if (contactParam) {
       const match = conversations.find(c => c.contactId === contactParam || c.id.includes(contactParam));
@@ -873,7 +919,15 @@
         activeConvId = match.id;
       }
     } else if (projectParam) {
-      const match = conversations.find(c => c.project && c.project.id === projectParam);
+      let match;
+      if (isClientRole) {
+        const project = window.DEVMATCH_SAMPLE_PROJECTS.find(item => item.id === projectParam);
+        match = project
+          ? getOrCreateProjectConversation(project)
+          : conversations.find(c => c.roleType === 'dev' && c.project && c.project.id === projectParam);
+      } else {
+        match = conversations.find(c => c.project && c.project.id === projectParam);
+      }
       if (match) {
         activeConvId = match.id;
       }
@@ -888,6 +942,10 @@
       const profile = JSON.parse(localStorage.getItem(storageKey) || '{}');
       const name = profile.displayName || (isClientRole ? 'Client' : 'Developer');
       const initials = name.trim().split(/\s+/).filter(Boolean).slice(0, 2).map(p => p[0]).join('').toUpperCase() || 'DM';
+      const updateNavLabel = (link, label) => {
+        const textNode = link && Array.from(link.childNodes).find(node => node.nodeType === Node.TEXT_NODE && node.textContent.trim());
+        if (textNode) textNode.textContent = ` ${label} `;
+      };
 
       const userAvatarEl = document.getElementById('userAvatar');
       const topUserNameEl = document.getElementById('topUserName');
@@ -914,6 +972,27 @@
         const overviewLink = document.querySelector('.side-nav a[href="devmatch-dashboard.html"]');
         if (overviewLink) {
           overviewLink.href = 'devmatch-client-dashboard.html';
+          updateNavLabel(overviewLink, 'Home');
+        }
+
+        const projectsLink = document.querySelector('.side-nav a[href="devmatch-my-projects.html"]');
+        if (projectsLink) {
+          projectsLink.href = 'devmatch-client-dashboard.html#requests';
+          updateNavLabel(projectsLink, 'My Requests');
+        }
+
+        const findProjectsLink = document.querySelector('.side-nav a[href="devmatch-landing.html#projects"]');
+        if (findProjectsLink) {
+          findProjectsLink.href = 'devmatch-client-dashboard.html#discover';
+          updateNavLabel(findProjectsLink, 'Discover Projects');
+        }
+
+        const findClientsLink = document.querySelector('.side-nav a[href="devmatch-landing.html#developers"]');
+        updateNavLabel(findClientsLink, 'Developers');
+
+        const favoritesLink = document.querySelector('.side-nav a[href="devmatch-dashboard.html#projects"]');
+        if (favoritesLink) {
+          favoritesLink.href = 'devmatch-client-dashboard.html#projects';
         }
 
         const notifLink = document.querySelector('.side-nav a[href="devmatch-developer-notifications.html"]');
