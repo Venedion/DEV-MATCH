@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>My Profile — DEV-MATCH</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/css/dashboard.css?v=20261024-project-editor">
+  <link rel="stylesheet" href="assets/css/my-profile.css?v=20261028-profile-v4">
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" id="brandLink" href="devmatch-dashboard.html"><i>&lt;/&gt;</i><span>DEV-MATCH</span></a>
+    <label class="search">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
+      <input id="searchInput" type="search" placeholder="Search projects, developers, skills...">
+      <kbd>⌘K</kbd>
+    </label>
+    <div class="top-actions">
+      <div class="mode-switch" role="group" aria-label="Workspace mode">
+        <a class="mode active" id="devModeLink" href="devmatch-my-profile.html?role=dev"><span aria-hidden="true">&lt;/&gt;</span>Developer Mode</a>
+        <a class="mode" id="clientModeLink" href="devmatch-my-profile.html?role=client"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="7" width="18" height="14" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>Client Mode</a>
+      </div>
+      <a class="icon-button notification-button" id="notificationsLink" href="devmatch-developer-notifications.html" aria-label="Notifications"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9m-8 13h4"/></svg><i></i></a>
+      <a class="user-menu" id="userMenu" href="devmatch-my-profile.html">
+        <span class="user-avatar" id="userAvatar">DM</span>
+        <span class="user-copy"><b id="topUserName">Developer</b><small id="topUserRole">Developer</small></span>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m7 10 5 5 5-5"/></svg>
+      </a>
+    </div>
+  </header>
+
+  <aside class="sidebar">
+    <div class="workspace" id="workspaceBadge"><span class="workspace-icon" id="workspaceIcon">&lt;/&gt;</span><span><b id="workspaceTitle">Developer workspace</b><small id="workspaceSubtitle">Showcase &amp; find clients</small></span></div>
+    <a class="add-project side-add" id="createAction" href="devmatch-my-projects.html?create=1"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14m-7-7h14"/></svg><span id="createActionLabel">Add Project</span></a>
+    <span class="nav-label">Menu</span>
+    <nav class="side-nav" aria-label="Dashboard navigation">
+      <a class="nav-item" id="overviewLink" href="devmatch-dashboard.html"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>Overview</a>
+      <a class="nav-item" id="messagesLink" href="devmatch-chat.html"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 11.5a8.5 8.5 0 0 1-8.5 8.5H4l1.5-4A8.5 8.5 0 1 1 21 11.5z"/></svg>Messages</a>
+      <a class="nav-item" id="projectsLink" href="devmatch-my-projects.html"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6a2 2 0 0 1 2-2h5l2 2h7a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg><span id="projectsLinkLabel">My Projects</span></a>
+      <a class="nav-item" href="devmatch-favorites.html"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m20.8 4.6-1.4-1.4a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8L12 21l8.8-8.6a5.5 5.5 0 0 0 0-7.8z"/></svg>Favorites</a>
+      <a class="nav-item" id="notificationsNavLink" href="devmatch-developer-notifications.html"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9m-8 13h4"/></svg>Notifications</a>
+    </nav>
+    <span class="nav-label account-label">Account</span>
+    <nav class="side-nav" aria-label="Account navigation">
+      <a class="nav-item active" id="profileNavLink" href="devmatch-my-profile.html" aria-current="page"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>Profile</a>
+      <a class="nav-item" id="settingsLink" href="devmatch-settings.html"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 21v-7m0-4V3m8 18v-9m0-4V3m8 18v-5m0-4V3M1 14h6m2-6h6m2 8h6"/></svg>Settings</a>
+    </nav>
+    <div class="sidebar-foot"><span class="online-dot"></span>Demo workspace</div>
+  </aside>
+
+  <main class="dashboard profile-page">
+    <header class="profile-page-heading">
+      <div><p class="eyebrow">Account</p><h1>My Profile</h1></div>
+      <a class="edit-profile-button" id="editProfile" href="devmatch-settings.html#account"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m14 5 5 5M4 20l4-.8L19.2 8a2.8 2.8 0 0 0-4-4L4 15.2 4 20z"/></svg>Edit Profile</a>
+    </header>
+    <div class="profile-public-banner" id="previewBanner" hidden><span>Public profile preview</span><a id="returnFromPreview" href="devmatch-my-profile.html">Back to My Profile</a></div>
+
+    <section class="profile-identity-card" aria-labelledby="profileName">
+      <div class="profile-cover"><span class="cover-code" aria-hidden="true">&lt;/&gt;</span><span class="cover-orbit cover-orbit-one"></span><span class="cover-orbit cover-orbit-two"></span></div>
+      <div class="identity-body">
+        <div class="identity-avatar" id="profileAvatar">DM</div>
+        <div class="identity-main">
+          <div class="identity-title-row"><div><h2 id="profileName">Developer</h2><span class="availability-badge" id="availabilityBadge"><i></i><span>Open for hiring</span></span></div>
+            <div class="profile-actions">
+              <button class="button button-secondary" id="shareProfile" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.6 10.6 6.8-4.2m-6.8 7 6.8 4.2"/></svg>Share Profile</button>
+              <a class="button button-secondary" id="previewProfile" href="#" target="_blank" rel="noopener noreferrer"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>Preview as Public</a>
+            </div>
+          </div>
+          <p class="identity-bio" id="identityBio"></p>
+          <div class="identity-meta">
+            <span id="identityHandle"></span><span id="identityLocation"></span><span id="identitySpecialty"></span><span id="identityJoined"></span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="profile-columns">
+      <aside class="profile-details">
+        <section class="profile-card about-card">
+          <div class="card-heading"><h2 id="aboutHeading">About</h2></div>
+          <p class="about-copy" id="aboutCopy"></p>
+        </section>
+        <section class="profile-card" id="roleInfoCard"></section>
+        <section class="profile-card">
+          <div class="card-heading"><h2 id="skillsHeading">Skills &amp; Tech Stacks</h2></div>
+          <div class="skill-list" id="skillList"></div>
+        </section>
+        <section class="profile-card">
+          <div class="card-heading"><h2>Experience</h2></div>
+          <ol class="experience-list" id="experienceList"></ol>
+        </section>
+        <section class="profile-card">
+          <div class="card-heading"><h2>Connected Apps</h2><span class="subtle-label">Verified status</span></div>
+          <div class="connected-list" id="connectedList"></div>
+        </section>
+        <section class="profile-card contact-card">
+          <div class="card-heading"><h2>Quick Contact</h2></div>
+          <p id="contactIntro">Have a project in mind? Let's talk.</p>
+          <a class="contact-whatsapp" id="whatsappLink" href="#" target="_blank" rel="noopener noreferrer"><span aria-hidden="true">◉</span>Chat on WhatsApp</a>
+          <a class="contact-message" id="directMessageLink" href="devmatch-chat.html?role=client"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 11.5a8.5 8.5 0 0 1-8.5 8.5H4l1.5-4A8.5 8.5 0 1 1 21 11.5z"/></svg>Direct Message</a>
+        </section>
+      </aside>
+
+      <section class="profile-showcase">
+        <div class="profile-stats" aria-label="Profile statistics">
+          <article class="profile-stat"><span>Showcase</span><strong id="statProjects">12</strong><small id="statProjectsCaption">projects</small></article>
+          <article class="profile-stat"><span id="statSavesLabel">Project favorites</span><strong id="statSaves">864</strong><small>saves</small></article>
+          <article class="profile-stat"><span id="statRatingLabel">Client rating</span><strong id="statRating">★ 4.9</strong><small id="statReviews">from 24 reviews</small></article>
+          <article class="profile-stat"><span>Profile views</span><strong id="statViews">12.4k</strong><small>all time</small></article>
+        </div>
+        <div class="showcase-card">
+          <div class="profile-tabs" role="tablist" aria-label="Profile content">
+            <button class="profile-tab active" id="tabProjects" type="button" role="tab" aria-selected="true" aria-controls="panelProjects" data-profile-tab="projects">Showcase Projects</button>
+            <button class="profile-tab" id="tabReviews" type="button" role="tab" aria-selected="false" aria-controls="panelReviews" data-profile-tab="reviews">Client Reviews</button>
+            <button class="profile-tab" id="tabActivity" type="button" role="tab" aria-selected="false" aria-controls="panelActivity" data-profile-tab="activity">Activity &amp; Inquiries</button>
+          </div>
+          <section class="tab-panel active" id="panelProjects" role="tabpanel" aria-labelledby="tabProjects" tabindex="0">
+            <div class="showcase-heading"><div><h2 id="showcaseHeading">Selected work</h2><p id="showcaseDescription">A few projects that show what I can build.</p></div><a id="allProjectsLink" href="devmatch-my-projects.html">Manage projects <span aria-hidden="true">→</span></a></div>
+            <div class="project-grid" id="projectGrid"></div>
+          </section>
+          <section class="tab-panel" id="panelReviews" role="tabpanel" aria-labelledby="tabReviews" tabindex="0" hidden>
+            <div class="showcase-heading"><div><h2>Client Reviews</h2><p>Feedback from people I've worked with.</p></div></div>
+            <div class="review-list" id="reviewList"></div>
+          </section>
+          <section class="tab-panel" id="panelActivity" role="tabpanel" aria-labelledby="tabActivity" tabindex="0" hidden>
+            <div class="showcase-heading"><div><h2>Activity &amp; Inquiries</h2><p id="activityDescription">Recent updates from this profile.</p></div></div>
+            <div class="activity-list" id="activityList"></div>
+          </section>
+        </div>
+      </section>
+    </div>
+    <div class="profile-toast" id="profileToast" role="status" aria-live="polite"></div>
+  </main>
+  <script src="assets/js/my-profile.js?v=20261028-profile-v3"></script>
+</body>
+</html>

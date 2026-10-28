@@ -26,7 +26,7 @@ const savedProjects=JSON.parse(localStorage.getItem(storageKey)||'[]');
 let migratedSavedProjects=false;
 savedProjects.forEach((project,index)=>{
   if(!project.id){
-    project.id=`saved-${index}-${Date.now()}`;
+    project.id=`saved-${index}`;
     migratedSavedProjects=true;
   }
 });
@@ -669,5 +669,10 @@ if(currentStatus==='published'){
   });
 }
 render();
-if(new URLSearchParams(window.location.search).get('create')==='1')showEditor();
+const pageParams=new URLSearchParams(window.location.search);
+if(pageParams.get('create')==='1')showEditor();
+else if(pageParams.has('project')){
+  const requestedProject=projects.find(project=>project.id===pageParams.get('project'));
+  if(requestedProject)openPreview(requestedProject);
+}
 })();

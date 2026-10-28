@@ -207,7 +207,7 @@
 .publish-checklist li>span{width:16px;height:16px;display:grid;place-items:center;border-radius:50%;background:#f0f1f3;color:#9297a2;font-size:10px;font-weight:800}
 .publish-checklist li.complete>span{background:#e5f6ec;color:#25a35c}
 .publish-checklist li.recommended{color:#999da7}
-.project-preview-dialog{width:min(720px,calc(100vw - 32px));max-height:calc(100dvh - 32px);overflow:auto;padding:24px;border:1px solid var(--line);border-radius:16px;background:#fff;color:var(--ink);box-shadow:0 20px 70px #0003}
+.project-preview-dialog{width:min(720px,calc(100vw - 32px));max-height:calc(100dvh - 32px);margin:auto;overflow:auto;padding:24px;border:1px solid var(--line);border-radius:16px;background:#fff;color:var(--ink);box-shadow:0 20px 70px #0003}
 .project-preview-dialog::backdrop{background:#10131dcc;backdrop-filter:blur(3px)}
 .preview-dialog-header{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:17px}
 .project-preview-dialog .eyebrow{color:var(--muted);font-size:11px;font-weight:700;letter-spacing:.07em;text-transform:uppercase}
