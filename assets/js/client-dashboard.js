@@ -15,7 +15,8 @@ const hour=new Date().getHours();
 document.getElementById('greeting').textContent=(hour<12?'Good morning, ':hour<18?'Good afternoon, ':'Good evening, ')+clientNameParts[0];
 
 const sampleProjects=window.DEVMATCH_SAMPLE_PROJECTS;
-const favoritesKey='devmatch-client-favorites';
+const favoritesKey='devmatch-client-project-favorites';
+if(localStorage.getItem(favoritesKey)===null){const legacy=localStorage.getItem('devmatch-client-favorites');if(legacy!==null)localStorage.setItem(favoritesKey,legacy);}
 const requestsKey='devmatch-client-requests';
 let favorites=JSON.parse(localStorage.getItem(favoritesKey)||'[]');
 let requests=JSON.parse(localStorage.getItem(requestsKey)||'[]');

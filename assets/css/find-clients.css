@@ -10,48 +10,6 @@
   --fc-radius: 14px;
 }
 
-/* Sidebar Hire Promo Card */
-.sidebar-hire-card {
-  margin-top: auto;
-  margin-bottom: 10px;
-  padding: 14px 13px;
-  background: #f8f8f9;
-  border: 1px solid #e7e7ea;
-  border-radius: 12px;
-}
-
-.sidebar-hire-card strong {
-  display: block;
-  font-size: 12.5px;
-  font-weight: 700;
-  color: var(--fc-ink);
-  line-height: 1.35;
-  margin-bottom: 4px;
-}
-
-.sidebar-hire-card p {
-  font-size: 11.5px;
-  line-height: 1.45;
-  color: #64748b;
-  margin-bottom: 9px;
-}
-
-.sidebar-hire-card a {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  font-size: 12px;
-  font-weight: 700;
-  color: var(--fc-ink);
-  text-decoration: none;
-  transition: color 0.15s;
-}
-
-.sidebar-hire-card a:hover {
-  text-decoration: underline;
-  color: #000;
-}
-
 /* Main Container */
 .find-clients-main {
   max-width: 1560px;

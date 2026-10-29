@@ -1046,8 +1046,13 @@
           updateNavLabel(findProjectsLink, 'Discover Projects');
         }
 
-        const findClientsLink = document.querySelector('.side-nav a[href="devmatch-landing.html#developers"]');
-        updateNavLabel(findClientsLink, 'Developers');
+        const findClientsLink = document.querySelector('.side-nav a[href="devmatch-find-clients.html"]');
+        if (findClientsLink) {
+          findClientsLink.href = 'devmatch-find-developers.html';
+          updateNavLabel(findClientsLink, 'Developers');
+          const icon = findClientsLink.querySelector('svg');
+          if (icon) icon.outerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3"/><path d="M3 20a6 6 0 0 1 12 0m2-8a3 3 0 1 0 0-6m1 8a5 5 0 0 1 3 5"/></svg>';
+        }
 
         const favoritesLink = document.querySelector('.side-nav a[href="devmatch-favorites.html"]');
         if (favoritesLink) {

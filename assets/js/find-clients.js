@@ -397,15 +397,8 @@
   }
 
   function updateFavoriteBadge() {
-    if (favoriteCountEl) {
-      try {
-        const projFavs = JSON.parse(localStorage.getItem('devmatch-client-favorites') || '[]');
-        const projCount = Array.isArray(projFavs) ? projFavs.length : 0;
-        favoriteCountEl.textContent = String(projCount + favoriteIds.length);
-      } catch (e) {
-        favoriteCountEl.textContent = String(favoriteIds.length);
-      }
-    }
+    if (window.DEVMATCH_NAV_BADGES) window.DEVMATCH_NAV_BADGES.updateFavorites();
+    else if (favoriteCountEl) favoriteCountEl.textContent = String(favoriteIds.length);
   }
 
   // Filter & Sort Logic

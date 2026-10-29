@@ -37,7 +37,10 @@ const developerProjects=projects.filter(item=>item.developer===project.developer
 const portfolio=profile.portfolio;
 const profileName=project.developer;
 const initials=project.initials;
-const favoriteKey='devmatch-developer-favorites';
+const favoriteKey='devmatch-client-dev-favorites';
+if(localStorage.getItem('devmatch-client-project-favorites')===null){const legacy=localStorage.getItem('devmatch-client-favorites');if(legacy!==null)localStorage.setItem('devmatch-client-project-favorites',legacy);}
+const favoriteDeveloper=(window.DEVMATCH_SAMPLE_DEVELOPERS||[]).find(developer=>developer.handle===project.handle);
+const favoriteId=favoriteDeveloper?.id||project.handle;
 const favorites=JSON.parse(localStorage.getItem(favoriteKey)||'[]');
 
 document.title=`${profileName} — DEV-MATCH`;
@@ -68,15 +71,17 @@ const client=JSON.parse(localStorage.getItem('devmatch-profile-client')||'{}');
 document.getElementById('clientName').textContent=client.displayName||'Client';
 document.getElementById('clientInitials').textContent=(client.displayName||'Client').trim().split(/\s+/).filter(Boolean).slice(0,2).map(part=>part[0]).join('').toUpperCase()||'CL';
 const favoriteButton=document.getElementById('favoriteDeveloper');
-favoriteButton.setAttribute('aria-pressed',String(favorites.includes(project.handle)));
-if(favorites.includes(project.handle))favoriteButton.innerHTML='♥ <span>Favorited</span>';
+function renderFavoriteButton(saved){
+  favoriteButton.setAttribute('aria-pressed',String(saved));
+  favoriteButton.innerHTML=`<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78L12 21l8.84-8.61a5.5 5.5 0 0 0 0-7.78Z"/></svg><span>${saved?'Favorited':'Favorite'}</span>`;
+}
+renderFavoriteButton(favorites.includes(favoriteId));
 favoriteButton.addEventListener('click',()=>{
   const current=JSON.parse(localStorage.getItem(favoriteKey)||'[]');
-  const alreadyFavorited=current.includes(project.handle);
-  const updated=current.includes(project.handle)?current.filter(handle=>handle!==project.handle):[...current,project.handle];
+  const alreadyFavorited=current.includes(favoriteId);
+  const updated=alreadyFavorited?current.filter(id=>id!==favoriteId):[...current,favoriteId];
   localStorage.setItem(favoriteKey,JSON.stringify(updated));
-  favoriteButton.setAttribute('aria-pressed',String(updated.includes(project.handle)));
-  favoriteButton.innerHTML=updated.includes(project.handle)?'♥ <span>Favorited</span>':'♡ <span>Favorite</span>';
+  renderFavoriteButton(updated.includes(favoriteId));
   const favoritesCount=Number(document.getElementById('statDeveloperFavorites').textContent)+(alreadyFavorited?-1:1);
   document.getElementById('statDeveloperFavorites').textContent=String(favoritesCount);
 });
@@ -110,16 +115,20 @@ function viewCount(value){
   return value.toLowerCase().includes('k')?count*1000:count;
 }
 function renderProjects(){
+  const savedProjects=JSON.parse(localStorage.getItem('devmatch-client-project-favorites')||'[]');
   const items=portfolio.filter(item=>(activeFilter==='All'||item.type===activeFilter)&&(!activeQuery||`${item.title} ${item.description} ${item.type}`.toLowerCase().includes(activeQuery)));
   const sort=sortSelect.value;
   items.sort((a,b)=>sort==='title'?a.title.localeCompare(b.title):sort==='newest'?portfolio.indexOf(a)-portfolio.indexOf(b):viewCount(b.views)-viewCount(a.views));
   grid.innerHTML=items.map(item=>`<article class="portfolio-card">
-    <div class="portfolio-art ${escapeHtml(item.art)}"><span class="art-tag">${escapeHtml(item.type)}</span><button type="button" class="project-favorite" data-project-favorite="${escapeHtml(item.id)}" aria-label="Add ${escapeHtml(item.title)} to favorites" aria-pressed="false">♡</button>${artContent(item)}</div>
+    <div class="portfolio-art ${escapeHtml(item.art)}"><span class="art-tag">${escapeHtml(item.type)}</span><button type="button" class="project-favorite" data-project-favorite="${escapeHtml(item.id)}" aria-label="${savedProjects.includes(item.id)?'Remove':'Add'} ${escapeHtml(item.title)} ${savedProjects.includes(item.id)?'from':'to'} favorites" aria-pressed="${savedProjects.includes(item.id)}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78L12 21l8.84-8.61a5.5 5.5 0 0 0 0-7.78Z"/></svg></button>${artContent(item)}</div>
     <div class="portfolio-card-body"><div class="project-card-meta"><b>${escapeHtml(item.category)}</b><span>${escapeHtml(item.age)}</span></div><h3>${escapeHtml(item.title)}</h3><p>${escapeHtml(item.description)}</p><div class="portfolio-price"><span><small> ${item.price.includes('—')?'CUSTOM QUOTE':'STARTING FROM'}</small><b>${escapeHtml(item.price)}</b></span><a href="devmatch-discover-projects.html" aria-label="Explore ${escapeHtml(item.title)}">→</a></div><div class="portfolio-by"><span>${escapeHtml(initials)}</span><b>${escapeHtml(profileName)}</b><small>◎ ${escapeHtml(item.views)} &nbsp;♡ ${escapeHtml(item.favorites)}</small></div></div>
   </article>`).join('');
   document.querySelectorAll('[data-project-favorite]').forEach(button=>button.addEventListener('click',()=>{
-    button.setAttribute('aria-pressed',String(button.getAttribute('aria-pressed')!=='true'));
-    button.textContent=button.getAttribute('aria-pressed')==='true'?'♥':'♡';
+    const id=button.dataset.projectFavorite;
+    const saved=JSON.parse(localStorage.getItem('devmatch-client-project-favorites')||'[]');
+    const updated=saved.includes(id)?saved.filter(value=>value!==id):[...saved,id];
+    localStorage.setItem('devmatch-client-project-favorites',JSON.stringify(updated));
+    renderProjects();
   }));
   empty.hidden=items.length>0;
 }

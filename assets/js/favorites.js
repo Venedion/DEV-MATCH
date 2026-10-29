@@ -1,8 +1,8 @@
 /**
  * Favorites Page Logic - DEV-MATCH
  * Fully mode-aware:
- * - Developer Mode: Saved Projects ('devmatch-client-favorites') & Saved Clients ('devmatch-favorite-clients')
- * - Client Mode:    Saved Projects ('devmatch-client-favorites') & Saved Developers ('devmatch-client-dev-favorites')
+ * - Developer Mode: saved projects and saved clients
+ * - Client Mode: saved projects and saved developers
  * Strictly separated storage per mode.
  */
 
@@ -17,14 +17,18 @@
     "'": '&#39;'
   }[char]));
 
-  // Storage Keys
-  const PROJECTS_KEY = 'devmatch-client-favorites';
-  const CLIENTS_KEY = 'devmatch-favorite-clients';
-  const DEVS_KEY = 'devmatch-client-dev-favorites';
-
   // Mode detection
   const urlParams = new URLSearchParams(window.location.search);
   const isClient = urlParams.get('role') === 'client' || document.body.classList.contains('client-shell-page');
+
+  // Storage Keys
+  const PROJECTS_KEY = isClient ? 'devmatch-client-project-favorites' : 'devmatch-developer-project-favorites';
+  const CLIENTS_KEY = 'devmatch-favorite-clients';
+  const DEVS_KEY = 'devmatch-client-dev-favorites';
+  if (localStorage.getItem(PROJECTS_KEY) === null) {
+    const legacyProjects = localStorage.getItem('devmatch-client-favorites');
+    if (legacyProjects !== null) localStorage.setItem(PROJECTS_KEY, legacyProjects);
+  }
 
   // Helper getters
   function getAllProjects() {
@@ -45,7 +49,7 @@
       if (typeof localStorage !== 'undefined') {
         const stored = localStorage.getItem(PROJECTS_KEY);
         if (stored) return JSON.parse(stored);
-        const defaultFavorites = ['restaurant', 'pos', 'booking'];
+        const defaultFavorites = isClient ? ['restaurant', 'pos', 'booking'] : ['pos', 'inventory'];
         localStorage.setItem(PROJECTS_KEY, JSON.stringify(defaultFavorites));
         return defaultFavorites;
       }
@@ -883,12 +887,45 @@
       const key = isClient ? 'devmatch-profile-client' : 'devmatch-profile-dev';
       const profile = JSON.parse(localStorage.getItem(key) || '{}');
       const name = profile.displayName || (isClient ? 'Jessica Sitorus' : 'Developer');
-      const initials = name.trim().split(/\s+/).filter(Boolean).slice(0, 2).map(p => p[0]).join('').toUpperCase() || (isClient ? 'JS' : 'DM');
-
+      const initials = name.trim().split(/\s+/).filter(Boolean).slice(0, 2).map(part => part[0]).join('').toUpperCase() || (isClient ? 'JS' : 'DM');
+      const role = isClient ? 'Client' : 'Developer';
       const userAvatarEl = document.getElementById('userAvatar');
       const topUserNameEl = document.getElementById('topUserName');
       if (userAvatarEl) userAvatarEl.textContent = initials;
       if (topUserNameEl) topUserNameEl.textContent = name;
+      document.querySelector('.user-copy small').textContent = role;
+
+      const modeLinks = document.querySelectorAll('.mode-switch .mode');
+      modeLinks.forEach((link, index) => link.classList.toggle('active', isClient ? index === 1 : index === 0));
+      if (isClient) {
+        const brand = document.querySelector('.topbar .brand');
+        if (brand) brand.href = 'devmatch-client-dashboard.html';
+        const workspace = document.querySelector('.workspace');
+        if (workspace) workspace.innerHTML = '<span class="workspace-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="7" width="18" height="14" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></span><span><b>Client workspace</b><small>Discover &amp; hire</small></span>';
+        const addLink = document.querySelector('.side-add');
+        if (addLink) {
+          addLink.href = 'devmatch-client-dashboard.html#requests';
+          addLink.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14m-7-7h14"/></svg>Post a Request';
+          addLink.classList.add('post-request');
+        }
+        const menu = document.querySelector('.side-nav[aria-label="Dashboard navigation"]');
+        if (menu) menu.innerHTML = `
+          <a class="nav-item" href="devmatch-client-dashboard.html"><svg viewBox="0 0 24 24"><path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-6v-7h-4v7H4a1 1 0 0 1-1-1z"/></svg>Home</a>
+          <a class="nav-item" href="devmatch-chat.html?role=client"><svg viewBox="0 0 24 24"><path d="M21 11.5a8.5 8.5 0 0 1-8.5 8.5H4l1.5-4A8.5 8.5 0 1 1 21 11.5z"/></svg>Messages<span class="nav-count chat-unread-total-badge">3</span></a>
+          <a class="nav-item" href="devmatch-client-dashboard.html#requests"><svg viewBox="0 0 24 24"><path d="M6 3h9l4 4v14H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"/><path d="M14 3v5h5M8 13h8m-8 4h8"/></svg>My Requests</a>
+          <a class="nav-item" href="devmatch-discover-projects.html"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="m15.5 8.5-2 5-5 2 2-5z"/></svg>Discover Projects</a>
+          <a class="nav-item" href="devmatch-find-developers.html"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"/><path d="M3 20a6 6 0 0 1 12 0m2-8a3 3 0 1 0 0-6m1 8a5 5 0 0 1 3 5"/></svg>Developers</a>
+          <a class="nav-item active" href="devmatch-favorites.html?role=client" aria-current="page"><svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78L12 21l8.84-8.61a5.5 5.5 0 0 0 0-7.78Z"/></svg>Favorites<span class="nav-count" id="favoriteCount">0</span></a>
+          <a class="nav-item" href="devmatch-notifications.html"><svg viewBox="0 0 24 24"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9m-8 13h4"/></svg>Notifications<span class="nav-count notification-count" id="clientNotificationCount">2</span></a>`;
+        const account = document.querySelector('.side-nav[aria-label="Account navigation"]');
+        if (account) account.innerHTML = `
+          <a class="nav-item" href="devmatch-my-profile.html?role=client"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>Profile</a>
+          <a class="nav-item" href="devmatch-settings.html?role=client"><svg viewBox="0 0 24 24"><path d="M4 21v-7m0-4V3m8 18v-9m0-4V3m8 18v-5m0-4V3M1 14h6m2-6h6m2 8h6"/></svg>Settings</a>`;
+        const intro = document.querySelector('.fav-heading>div>p:last-child');
+        if (intro) intro.textContent = 'Projects and developers you saved for later.';
+        const topSearch = document.querySelector('.topbar .search input');
+        if (topSearch) topSearch.placeholder = 'Search projects, developers, skills...';
+      }
     } catch (e) {}
   }
 

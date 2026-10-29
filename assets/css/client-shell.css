@@ -16,6 +16,7 @@ body.client-shell-page .user-copy b{font-size:13px}
 body.client-shell-page .user-copy small{font-size:12px}
 body.client-shell-page .icon-button svg{width:18px;height:18px}
 body.client-shell-page .sidebar{padding:18px 16px;line-height:normal}
+body.client-shell-page.client-nav-home-layout .sidebar{overflow:visible}
 body.client-shell-page .workspace{gap:11px;margin-bottom:16px;padding:11px;line-height:normal}
 body.client-shell-page .workspace-icon svg{width:16px;height:16px}
 body.client-shell-page .workspace b{font-size:13px}

@@ -8,10 +8,10 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="assets/css/dashboard.css">
-  <link rel="stylesheet" href="assets/css/client-shell.css">
+  <link rel="stylesheet" href="assets/css/client-shell.css?v=20261029-client-sidebar-fit">
   <link rel="stylesheet" href="assets/css/find-developers.css">
 </head>
-<body class="client-shell-page">
+<body class="client-shell-page client-nav-home-layout">
   <!-- Topbar Header -->
   <header class="topbar">
     <a class="brand" href="devmatch-client-dashboard.html"><i>&lt;/&gt;</i><span>DEV-MATCH</span></a>
@@ -53,6 +53,14 @@
         <svg viewBox="0 0 24 24"><path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-6v-7h-4v7H4a1 1 0 0 1-1-1z"/></svg>
         Home
       </a>
+      <a class="nav-item" href="devmatch-chat.html?role=client">
+        <svg viewBox="0 0 24 24"><path d="M21 11.5a8.5 8.5 0 0 1-8.5 8.5H4l1.5-4A8.5 8.5 0 1 1 21 11.5z"/></svg>
+        Messages<span class="nav-count chat-unread-total-badge" style="background:#e7f6ed;color:#15934f;">3</span>
+      </a>
+      <a class="nav-item" href="devmatch-client-dashboard.html#requests">
+        <svg viewBox="0 0 24 24"><path d="M6 3h9l4 4v14H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"/><path d="M14 3v5h5M8 13h8m-8 4h8"/></svg>
+        My Requests
+      </a>
       <a class="nav-item" href="devmatch-discover-projects.html">
         <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="m15.5 8.5-2 5-5 2 2-5z"/></svg>
         Discover Projects
@@ -64,10 +72,6 @@
       <a class="nav-item" href="devmatch-favorites.html?role=client">
         <svg viewBox="0 0 24 24"><path d="m20.8 4.6-1.4-1.4a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8L12 21l8.8-8.6a5.5 5.5 0 0 0 0-7.8z"/></svg>
         Favorites<span class="nav-count" id="favoriteCount">0</span>
-      </a>
-      <a class="nav-item" href="devmatch-client-dashboard.html#requests">
-        <svg viewBox="0 0 24 24"><path d="M6 3h9l4 4v14H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"/><path d="M14 3v5h5M8 13h8m-8 4h8"/></svg>
-        My Requests
       </a>
       <a class="nav-item" href="devmatch-notifications.html">
         <svg viewBox="0 0 24 24"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9m-8 13h4"/></svg>
@@ -85,12 +89,7 @@
       </a>
     </nav>
 
-    <!-- Bottom Promo Box: Are you a developer? -->
-    <div class="sidebar-dev-card">
-      <strong>Are you a developer?</strong>
-      <p>Switch to Developer Mode to showcase your projects.</p>
-      <a href="devmatch-dashboard.html">Switch to Developer Mode &rarr;</a>
-    </div>
+    <div class="sidebar-foot"><span class="online-dot"></span>Demo workspace</div>
   </aside>
 
   <!-- Main Content -->

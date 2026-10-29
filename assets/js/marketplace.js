@@ -5,7 +5,11 @@
   const isRequestsPage = main.dataset.marketplace === 'requests';
   const projects = Array.isArray(window.DEVMATCH_SAMPLE_PROJECTS) ? window.DEVMATCH_SAMPLE_PROJECTS : [];
   const requests = Array.isArray(window.DEVMATCH_SAMPLE_REQUESTS) ? window.DEVMATCH_SAMPLE_REQUESTS : [];
-  const favoritesKey = 'devmatch-client-favorites';
+  const favoritesKey = isRequestsPage ? 'devmatch-developer-project-favorites' : 'devmatch-client-project-favorites';
+  if (localStorage.getItem(favoritesKey) === null) {
+    const legacy = localStorage.getItem('devmatch-client-favorites');
+    if (legacy !== null) localStorage.setItem(favoritesKey, legacy);
+  }
   const searchInput = document.getElementById('marketSearch');
   const topSearchInput = document.getElementById('topSearchInput');
   const grid = document.getElementById('projectGrid');
@@ -148,6 +152,14 @@
     }
   }
 
+  function updateFavoriteCount() {
+    if (window.DEVMATCH_NAV_BADGES) {
+      window.DEVMATCH_NAV_BADGES.updateFavorites();
+    } else {
+      document.getElementById('favoriteCount').textContent = String(favoriteIds.length);
+    }
+  }
+
   function render() {
     const filtered = getItems();
     const shown = filtered.slice(0, visibleCount);
@@ -155,7 +167,7 @@
     grid.innerHTML = shown.map(renderProject).join('');
     emptyState.hidden = filtered.length !== 0;
     summary.textContent = `Menampilkan ${filtered.length} proyek ditemukan`;
-    document.getElementById('favoriteCount').textContent = String(favoriteIds.length);
+    updateFavoriteCount();
     updateNotificationCount();
     const remaining = Math.max(0, filtered.length - shown.length);
     remainingCount.textContent = remaining ? `Menampilkan ${shown.length} dari ${filtered.length} proyek` : '';

@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="assets/css/dashboard.css">
+  <link rel="stylesheet" href="assets/css/dashboard.css?v=20261029-sidebar-workspace">
   <link rel="stylesheet" href="assets/css/find-clients.css">
 </head>
 <body>
@@ -42,7 +42,7 @@
       <span class="workspace-icon">&lt;/&gt;</span>
       <span><b>Developer workspace</b><small>Showcase &amp; find clients</small></span>
     </div>
-    <a class="add-project side-add" href="devmatch-my-projects.html?create=1">
+    <a class="add-project side-add" href="devmatch-my-projects.html?create=1" aria-label="Add Project" title="Add Project">
       <svg viewBox="0 0 24 24"><path d="M12 5v14m-7-7h14"/></svg>Add Project
     </a>
     
@@ -52,9 +52,13 @@
         <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
         Overview
       </a>
+      <a class="nav-item" href="devmatch-chat.html">
+        <svg viewBox="0 0 24 24"><path d="M21 11.5a8.5 8.5 0 0 1-8.5 8.5H4l1.5-4A8.5 8.5 0 1 1 21 11.5z"/></svg>
+        Messages<span class="nav-count chat-unread-total-badge" style="background:#e7f6ed;color:#15934f;">3</span>
+      </a>
       <a class="nav-item" href="devmatch-my-projects.html">
         <svg viewBox="0 0 24 24"><path d="M3 6a2 2 0 0 1 2-2h5l2 2h7a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
-        Projects
+        My Projects
       </a>
       <a class="nav-item" href="devmatch-find-projects.html">
         <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="m15.5 8.5-2 5-5 2 2-5z"/></svg>
@@ -83,13 +87,6 @@
         <svg viewBox="0 0 24 24"><path d="M4 21v-7m0-4V3m8 18v-9m0-4V3m8 18v-5m0-4V3M1 14h6m2-6h6m2 8h6"/></svg>Settings
       </a>
     </nav>
-
-    <!-- Bottom Promo Box: Looking to hire instead? -->
-    <div class="sidebar-hire-card">
-      <strong>Looking to hire instead?</strong>
-      <p>Switch to Client Mode to post requests and discover developers.</p>
-      <a href="devmatch-client-dashboard.html">Switch to Client Mode &rarr;</a>
-    </div>
   </aside>
 
   <!-- Main Content -->

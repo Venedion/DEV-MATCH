@@ -213,9 +213,8 @@
   }
 
   function updateSidebarFavoriteBadge() {
-    if (sidebarFavBadge) {
-      sidebarFavBadge.textContent = String(favoriteIds.length);
-    }
+    if (window.DEVMATCH_NAV_BADGES) window.DEVMATCH_NAV_BADGES.updateFavorites();
+    else if (sidebarFavBadge) sidebarFavBadge.textContent = String(favoriteIds.length);
   }
 
   // Filter & Sort Logic
