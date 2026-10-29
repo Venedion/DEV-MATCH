@@ -1,7 +1,15 @@
+/**
+ * Favorites Page Logic - DEV-MATCH
+ * Fully mode-aware:
+ * - Developer Mode: Saved Projects ('devmatch-client-favorites') & Saved Clients ('devmatch-favorite-clients')
+ * - Client Mode:    Saved Projects ('devmatch-client-favorites') & Saved Developers ('devmatch-client-dev-favorites')
+ * Strictly separated storage per mode.
+ */
+
 (function() {
   'use strict';
 
-  const escapeHtml = value => String(value).replace(/[&<>"']/g, char => ({
+  const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, char => ({
     '&': '&amp;',
     '<': '&lt;',
     '>': '&gt;',
@@ -9,138 +17,144 @@
     "'": '&#39;'
   }[char]));
 
-  const FAVORITES_KEY = 'devmatch-client-favorites';
-  const DEV_FAVORITES_KEY = 'devmatch-client-dev-favorites';
+  // Storage Keys
+  const PROJECTS_KEY = 'devmatch-client-favorites';
+  const CLIENTS_KEY = 'devmatch-favorite-clients';
+  const DEVS_KEY = 'devmatch-client-dev-favorites';
 
-  // Sample developers data
-  const sampleDevelopers = [
-    {
-      id: 'rizkyaditya',
-      name: 'Rizky Aditya',
-      initials: 'RA',
-      handle: '@rizkyaditya',
-      role: 'Full-stack Developer',
-      location: 'Medan',
-      bio: 'Business websites and POS systems for Indonesian SMEs. 5 years shipping Laravel + React.',
-      rating: '4.9',
-      reviews: 24,
-      projectsCount: 18,
-      views: '4.2k',
-      favorites: 312
-    },
-    {
-      id: 'kevintanoto',
-      name: 'Kevin Tanoto',
-      initials: 'KT',
-      handle: '@kevintanoto',
-      role: 'Full-stack Developer',
-      location: 'Bandung',
-      bio: 'Building reliable business tools, point-of-sale systems, and dashboards for growing teams.',
-      rating: '4.8',
-      reviews: 19,
-      projectsCount: 14,
-      views: '3.8k',
-      favorites: 246
-    },
-    {
-      id: 'sarahn',
-      name: 'Sarah Nasution',
-      initials: 'SN',
-      handle: '@sarahn',
-      role: 'Frontend Specialist',
-      location: 'Jakarta',
-      bio: 'I design and build data-rich interfaces that make complex business metrics easy to understand.',
-      rating: '5.0',
-      reviews: 31,
-      projectsCount: 21,
-      views: '5.1k',
-      favorites: 389
-    }
-  ];
+  // Mode detection
+  const urlParams = new URLSearchParams(window.location.search);
+  const isClient = urlParams.get('role') === 'client' || document.body.classList.contains('client-shell-page');
 
-  // Helper to get all projects
+  // Helper getters
   function getAllProjects() {
-    return window.DEVMATCH_SAMPLE_PROJECTS || [];
+    return Array.isArray(window.DEVMATCH_SAMPLE_PROJECTS) ? window.DEVMATCH_SAMPLE_PROJECTS : [];
   }
 
-  // Load favorites from localStorage
-  function loadFavorites() {
+  function getAllClients() {
+    return Array.isArray(window.DEVMATCH_SAMPLE_CLIENTS) ? window.DEVMATCH_SAMPLE_CLIENTS : [];
+  }
+
+  function getAllDevelopers() {
+    return Array.isArray(window.DEVMATCH_SAMPLE_DEVELOPERS) ? window.DEVMATCH_SAMPLE_DEVELOPERS : [];
+  }
+
+  // Load Saved Projects
+  function loadProjectFavorites() {
     try {
       if (typeof localStorage !== 'undefined') {
-        const stored = localStorage.getItem(FAVORITES_KEY);
-        if (stored) {
-          return JSON.parse(stored);
-        }
-        // Seed default favorites if first time so it looks populated
+        const stored = localStorage.getItem(PROJECTS_KEY);
+        if (stored) return JSON.parse(stored);
         const defaultFavorites = ['restaurant', 'pos', 'booking'];
-        localStorage.setItem(FAVORITES_KEY, JSON.stringify(defaultFavorites));
+        localStorage.setItem(PROJECTS_KEY, JSON.stringify(defaultFavorites));
         return defaultFavorites;
       }
     } catch (e) {
-      console.warn('Failed to read favorites from localStorage', e);
+      console.warn('Failed to read project favorites from localStorage', e);
     }
     return ['restaurant', 'pos', 'booking'];
   }
 
-  function saveFavorites(favs) {
+  function saveProjectFavorites(favs) {
     try {
       if (typeof localStorage !== 'undefined') {
-        localStorage.setItem(FAVORITES_KEY, JSON.stringify(favs));
+        localStorage.setItem(PROJECTS_KEY, JSON.stringify(favs));
       }
     } catch (e) {
-      console.warn('Failed to save favorites to localStorage', e);
+      console.warn('Failed to save project favorites to localStorage', e);
     }
   }
 
+  // Load Saved Clients (Developer Mode)
+  function loadClientFavorites() {
+    try {
+      if (typeof localStorage !== 'undefined') {
+        const stored = localStorage.getItem(CLIENTS_KEY);
+        if (stored) return JSON.parse(stored);
+        const defaultClients = ['jessica-sitorus', 'klinik-sehat-bersama'];
+        localStorage.setItem(CLIENTS_KEY, JSON.stringify(defaultClients));
+        return defaultClients;
+      }
+    } catch (e) {
+      console.warn('Failed to read client favorites from localStorage', e);
+    }
+    return ['jessica-sitorus', 'klinik-sehat-bersama'];
+  }
+
+  function saveClientFavorites(clients) {
+    try {
+      if (typeof localStorage !== 'undefined') {
+        localStorage.setItem(CLIENTS_KEY, JSON.stringify(clients));
+      }
+    } catch (e) {
+      console.warn('Failed to save client favorites to localStorage', e);
+    }
+  }
+
+  // Load Saved Developers (Client Mode)
   function loadDevFavorites() {
     try {
       if (typeof localStorage !== 'undefined') {
-        const stored = localStorage.getItem(DEV_FAVORITES_KEY);
-        if (stored) {
-          return JSON.parse(stored);
-        }
-        const defaultDevs = ['rizkyaditya', 'kevintanoto'];
-        localStorage.setItem(DEV_FAVORITES_KEY, JSON.stringify(defaultDevs));
+        const stored = localStorage.getItem(DEVS_KEY);
+        if (stored) return JSON.parse(stored);
+        const defaultDevs = ['rizky-aditya'];
+        localStorage.setItem(DEVS_KEY, JSON.stringify(defaultDevs));
         return defaultDevs;
       }
     } catch (e) {
-      console.warn('Failed to read dev favorites from localStorage', e);
+      console.warn('Failed to read developer favorites from localStorage', e);
     }
-    return ['rizkyaditya', 'kevintanoto'];
+    return ['rizky-aditya'];
   }
 
   function saveDevFavorites(devs) {
     try {
       if (typeof localStorage !== 'undefined') {
-        localStorage.setItem(DEV_FAVORITES_KEY, JSON.stringify(devs));
+        localStorage.setItem(DEVS_KEY, JSON.stringify(devs));
       }
     } catch (e) {
-      console.warn('Failed to save dev favorites to localStorage', e);
+      console.warn('Failed to save developer favorites to localStorage', e);
     }
   }
 
-  let favoriteProjectIds = loadFavorites();
+  // State
+  let favoriteProjectIds = loadProjectFavorites();
+  let favoriteClientIds = loadClientFavorites();
   let favoriteDevIds = loadDevFavorites();
-  let currentTab = 'projects'; // 'projects' or 'developers'
+  let currentTab = 'projects'; // 'projects' or ('clients' in dev mode / 'developers' in client mode)
   let currentCategory = 'all';
   let searchQuery = '';
   let currentSort = 'recent';
   let lastRemovedItem = null;
 
-  // DOM elements
+  // DOM Elements
   const favGridEl = document.getElementById('favGrid');
   const favCountEl = document.getElementById('favCount');
   const tabProjectsBtn = document.getElementById('tabProjects');
-  const tabDevsBtn = document.getElementById('tabDevs');
+  const tabSecondaryBtn = document.getElementById('tabClients') || document.getElementById('tabDevs');
   const countProjectsEl = document.getElementById('countProjects');
-  const countDevsEl = document.getElementById('countDevs');
+  const countSecondaryEl = document.getElementById('countClients') || document.getElementById('countDevs');
   const searchInputEl = document.getElementById('favSearchInput');
   const categorySelectEl = document.getElementById('favCategorySelect');
   const sortSelectEl = document.getElementById('favSortSelect');
+  const favExploreBtn = document.getElementById('favExploreBtn');
+  const favClientDialog = document.getElementById('favClientDialog');
+  const favDialogCloseBtn = document.getElementById('favDialogCloseBtn');
+  const favDialogContent = document.getElementById('favDialogContent');
   const toastEl = document.getElementById('favToast');
   const toastTextEl = document.getElementById('favToastText');
   const toastUndoBtn = document.getElementById('favToastUndo');
   let toastTimer = null;
+
+  // Setup tab label dynamically based on mode
+  if (tabSecondaryBtn) {
+    if (isClient) {
+      tabSecondaryBtn.id = 'tabDevs';
+      tabSecondaryBtn.innerHTML = `Saved Developers <span class="fav-tab-count" id="countDevs">${favoriteDevIds.length}</span>`;
+    } else {
+      tabSecondaryBtn.innerHTML = `Saved Clients <span class="fav-tab-count" id="countClients">${favoriteClientIds.length}</span>`;
+    }
+  }
 
   // Show Toast with undo option
   function showToast(message, undoCallback) {
@@ -164,19 +178,93 @@
     }, 4500);
   }
 
-  // Update counters
+  // Update counters across page and sidebar
   function updateCounters() {
     const projCount = favoriteProjectIds.length;
-    const devCount = favoriteDevIds.length;
+    const secondaryCount = isClient ? favoriteDevIds.length : favoriteClientIds.length;
 
     if (countProjectsEl) countProjectsEl.textContent = String(projCount);
-    if (countDevsEl) countDevsEl.textContent = String(devCount);
-    if (favCountEl) favCountEl.textContent = currentTab === 'projects' ? `${projCount} saved` : `${devCount} saved`;
+    const countBadge = document.getElementById(isClient ? 'countDevs' : 'countClients') || countSecondaryEl;
+    if (countBadge) countBadge.textContent = String(secondaryCount);
 
-    // Update sidebar badges if any
+    if (favCountEl) {
+      favCountEl.textContent = currentTab === 'projects' ? `${projCount} saved` : `${secondaryCount} saved`;
+    }
+
+    // Total favorites in sidebar
     document.querySelectorAll('#favoriteCount, .favorites-count-badge').forEach(badge => {
-      badge.textContent = String(projCount);
+      badge.textContent = String(projCount + secondaryCount);
     });
+  }
+
+  // Update Category Select Options depending on current tab
+  function updateCategoryOptions() {
+    if (!categorySelectEl) return;
+
+    if (currentTab === 'projects') {
+      categorySelectEl.innerHTML = `
+        <option value="all">All Categories</option>
+        <option value="Company Profile">Company Profile</option>
+        <option value="POS">POS</option>
+        <option value="Booking">Booking</option>
+        <option value="Inventory">Inventory</option>
+        <option value="E-Commerce">E-Commerce</option>
+        <option value="Other">Other</option>
+      `;
+    } else if (isClient) {
+      // Client mode: Filter developers by specialization
+      categorySelectEl.innerHTML = `
+        <option value="all">All Specializations</option>
+        <option value="Full-stack">Full-stack</option>
+        <option value="Frontend">Frontend</option>
+        <option value="Backend">Backend</option>
+        <option value="Mobile">Mobile</option>
+        <option value="UI/UX">UI/UX Design</option>
+      `;
+    } else {
+      // Developer mode: Filter clients by business type
+      categorySelectEl.innerHTML = `
+        <option value="all">All Business Types</option>
+        <option value="Café">Café / F&amp;B</option>
+        <option value="Retail">Retail / Fashion</option>
+        <option value="Healthcare">Healthcare Clinic</option>
+        <option value="Building materials">Building Materials</option>
+        <option value="Hospitality">Homestay / Hospitality</option>
+        <option value="Distribution">Distribution &amp; Logistics</option>
+        <option value="Services">Services &amp; Legal</option>
+      `;
+    }
+    categorySelectEl.value = 'all';
+    currentCategory = 'all';
+  }
+
+  // Update Sort Select Options depending on current tab
+  function updateSortOptions() {
+    if (!sortSelectEl) return;
+
+    if (currentTab === 'projects') {
+      sortSelectEl.innerHTML = `
+        <option value="recent">Recently Added</option>
+        <option value="price-low">Price: Low to High</option>
+        <option value="price-high">Price: High to Low</option>
+        <option value="name">Title A–Z</option>
+      `;
+    } else if (isClient) {
+      sortSelectEl.innerHTML = `
+        <option value="recent">Recently Added</option>
+        <option value="name">Name A–Z</option>
+        <option value="projects">Most Projects</option>
+        <option value="views">Most Views</option>
+      `;
+    } else {
+      sortSelectEl.innerHTML = `
+        <option value="recent">Recently Added</option>
+        <option value="name">Name A–Z</option>
+        <option value="requests">Most Open Requests</option>
+      `;
+    }
+    sortSelectEl.value = 'recent';
+    currentSort = 'recent';
   }
 
   // Render Projects Grid
@@ -184,12 +272,10 @@
     const all = getAllProjects();
     let savedProjects = all.filter(p => favoriteProjectIds.includes(p.id));
 
-    // Category filter
     if (currentCategory !== 'all') {
       savedProjects = savedProjects.filter(p => p.category.toLowerCase() === currentCategory.toLowerCase());
     }
 
-    // Search query
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
       savedProjects = savedProjects.filter(p =>
@@ -200,16 +286,16 @@
       );
     }
 
-    // Sort
     if (currentSort === 'price-low') {
       savedProjects.sort((a, b) => parsePrice(a.price) - parsePrice(b.price));
     } else if (currentSort === 'price-high') {
       savedProjects.sort((a, b) => parsePrice(b.price) - parsePrice(a.price));
-    } else if (currentSort === 'title') {
+    } else if (currentSort === 'name') {
       savedProjects.sort((a, b) => a.title.localeCompare(b.title));
     }
 
     if (savedProjects.length === 0) {
+      const exploreUrl = isClient ? 'devmatch-discover-projects.html' : 'devmatch-find-projects.html';
       favGridEl.innerHTML = `
         <div class="fav-empty-state">
           <div class="fav-empty-icon">
@@ -217,9 +303,9 @@
           </div>
           <h3>No saved projects found</h3>
           <p>${favoriteProjectIds.length === 0 ? 'You haven’t saved any projects yet. Browse developer projects and click the heart icon to save your favorites.' : 'No saved projects match your filter or search query.'}</p>
-          <a class="fav-btn primary" href="devmatch-discover-projects.html" style="margin:0 auto;display:inline-flex;">
+          <a class="fav-btn primary" href="${exploreUrl}" style="margin:0 auto;display:inline-flex;">
             <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="m15.5 8.5-2 5-5 2 2-5z"/></svg>
-            Discover Projects
+            Explore Projects
           </a>
         </div>
       `;
@@ -261,7 +347,7 @@
         </div>
 
         <footer class="fav-card-footer">
-          <a class="fav-action-link primary" href="devmatch-chat.html?project=${encodeURIComponent(project.id)}">
+          <a class="fav-action-link primary" href="devmatch-chat.html?project=${encodeURIComponent(project.id)}${isClient ? '&role=client' : ''}">
             <svg viewBox="0 0 24 24"><path d="M21 11.5a8.5 8.5 0 0 1-8.5 8.5H4l1.5-4A8.5 8.5 0 1 1 21 11.5z"/></svg>
             Chat with Dev
           </a>
@@ -272,39 +358,186 @@
       </article>
     `).join('');
 
-    // Attach remove handlers
     favGridEl.querySelectorAll('[data-remove-fav]').forEach(btn => {
       btn.addEventListener('click', (e) => {
         e.stopPropagation();
-        const id = btn.dataset.removeFav;
-        removeFavoriteProject(id);
+        removeFavoriteProject(btn.dataset.removeFav);
       });
     });
   }
 
-  // Render Developers Grid
+  // Render Saved Clients Grid (Developer Mode: from Find Clients tab)
+  function renderClients() {
+    const all = getAllClients();
+    let savedClients = all.filter(c => favoriteClientIds.includes(c.id));
+
+    if (currentCategory !== 'all') {
+      savedClients = savedClients.filter(c =>
+        c.category === currentCategory || c.businessType === currentCategory
+      );
+    }
+
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase();
+      savedClients = savedClients.filter(c =>
+        c.name.toLowerCase().includes(q) ||
+        c.business.toLowerCase().includes(q) ||
+        c.category.toLowerCase().includes(q) ||
+        c.location.toLowerCase().includes(q)
+      );
+    }
+
+    if (currentSort === 'name') {
+      savedClients.sort((a, b) => a.name.localeCompare(b.name));
+    } else if (currentSort === 'requests') {
+      savedClients.sort((a, b) => b.openRequestsCount - a.openRequestsCount);
+    } else {
+      savedClients.sort((a, b) => {
+        const idxA = favoriteClientIds.indexOf(a.id);
+        const idxB = favoriteClientIds.indexOf(b.id);
+        return idxB - idxA;
+      });
+    }
+
+    if (savedClients.length === 0) {
+      favGridEl.innerHTML = `
+        <div class="fav-empty-state">
+          <div class="fav-empty-icon">
+            <svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"/><path d="M3 20a6 6 0 0 1 12 0m2-8a3 3 0 1 0 0-6m1 8a5 5 0 0 1 3 5"/></svg>
+          </div>
+          <h3>No saved clients found</h3>
+          <p>${favoriteClientIds.length === 0 ? 'You haven’t saved any clients yet. Browse businesses looking for developers in Find Clients and click the heart icon to save them.' : 'No saved clients match your filter or search query.'}</p>
+          <a class="fav-btn primary" href="devmatch-find-clients.html" style="margin:0 auto;display:inline-flex;">
+            <svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"/><path d="M3 20a6 6 0 0 1 12 0m2-8a3 3 0 1 0 0-6m1 8a5 5 0 0 1 3 5"/></svg>
+            Find Clients
+          </a>
+        </div>
+      `;
+      return;
+    }
+
+    favGridEl.innerHTML = savedClients.map(client => {
+      const topReq = client.requests && client.requests.length > 0 ? client.requests[0] : null;
+      const previewHtml = topReq ? `
+        <div class="fav-client-req-preview">
+          <small>Latest Project Request</small>
+          <b>${escapeHtml(topReq.title)}</b> · <span style="color:#15934f;font-weight:700;">${escapeHtml(topReq.budget)}</span>
+        </div>
+      ` : `
+        <div class="fav-client-req-preview" style="font-style:italic;color:#9ca3af;">
+          No open project requests at the moment.
+        </div>
+      `;
+
+      return `
+        <article class="fav-client-card" data-client-id="${escapeHtml(client.id)}">
+          <button class="fav-remove-btn" type="button" data-remove-client="${escapeHtml(client.id)}" title="Remove client" aria-label="Remove ${escapeHtml(client.name)} from favorites">
+            <svg viewBox="0 0 24 24"><path d="m20.8 4.6-1.4-1.4a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8L12 21l8.8-8.6a5.5 5.5 0 0 0 0-7.8z"/></svg>
+          </button>
+
+          <div class="fav-client-card-top">
+            <div class="fav-client-card-avatar">${escapeHtml(client.initials)}</div>
+            <div class="fav-client-card-info">
+              <div class="fav-client-badge-row">
+                <span class="fav-client-tag">Client</span>
+                <span class="fav-client-tag active-pill">${escapeHtml(client.activeText)}</span>
+              </div>
+              <h3>${escapeHtml(client.name)}</h3>
+              <p>${escapeHtml(client.business)}</p>
+            </div>
+          </div>
+
+          <div class="fav-client-meta-box">
+            <div class="fav-client-meta-item">
+              <span>Location</span>
+              <strong>${escapeHtml(client.location)}</strong>
+            </div>
+            <div class="fav-client-meta-item">
+              <span>Open Requests</span>
+              <strong class="highlight-green">${client.openRequestsCount} Requests</strong>
+            </div>
+            <div class="fav-client-meta-item">
+              <span>Category</span>
+              <strong>${escapeHtml(client.category)}</strong>
+            </div>
+          </div>
+
+          ${previewHtml}
+
+          <div class="fav-card-footer" style="margin-top:auto;padding:12px 0 0;background:transparent;border-top:1px solid #f0f0f2;">
+            <a class="fav-action-link primary" href="devmatch-chat.html?contact=${encodeURIComponent(client.contactId)}&client=${encodeURIComponent(client.id)}">
+              <svg viewBox="0 0 24 24"><path d="M21 11.5a8.5 8.5 0 0 1-8.5 8.5H4l1.5-4A8.5 8.5 0 1 1 21 11.5z"/></svg>
+              Chat Client
+            </a>
+            <button class="fav-action-link" type="button" data-view-client="${escapeHtml(client.id)}">
+              View Requests
+            </button>
+          </div>
+        </article>
+      `;
+    }).join('');
+
+    favGridEl.querySelectorAll('[data-remove-client]').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        removeFavoriteClient(btn.dataset.removeClient);
+      });
+    });
+
+    favGridEl.querySelectorAll('[data-view-client]').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        openClientModal(btn.dataset.viewClient);
+      });
+    });
+  }
+
+  // Render Saved Developers Grid (Client Mode: from devmatch-find-developers.html)
   function renderDevelopers() {
-    let savedDevs = sampleDevelopers.filter(d => favoriteDevIds.includes(d.id));
+    const all = getAllDevelopers();
+    let savedDevs = all.filter(d => favoriteDevIds.includes(d.id));
+
+    if (currentCategory !== 'all') {
+      savedDevs = savedDevs.filter(d =>
+        d.specialization.toLowerCase() === currentCategory.toLowerCase()
+      );
+    }
 
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
       savedDevs = savedDevs.filter(d =>
         d.name.toLowerCase().includes(q) ||
-        d.role.toLowerCase().includes(q) ||
-        d.location.toLowerCase().includes(q)
+        d.specialization.toLowerCase().includes(q) ||
+        d.location.toLowerCase().includes(q) ||
+        d.skills.some(s => s.toLowerCase().includes(q)) ||
+        d.bio.toLowerCase().includes(q)
       );
+    }
+
+    if (currentSort === 'name') {
+      savedDevs.sort((a, b) => a.name.localeCompare(b.name));
+    } else if (currentSort === 'projects') {
+      savedDevs.sort((a, b) => b.projectsCount - a.projectsCount);
+    } else if (currentSort === 'views') {
+      savedDevs.sort((a, b) => b.viewsCount - a.viewsCount);
+    } else {
+      savedDevs.sort((a, b) => {
+        const idxA = favoriteDevIds.indexOf(a.id);
+        const idxB = favoriteDevIds.indexOf(b.id);
+        return idxB - idxA;
+      });
     }
 
     if (savedDevs.length === 0) {
       favGridEl.innerHTML = `
         <div class="fav-empty-state">
           <div class="fav-empty-icon">
-            <svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"/><path d="M3 20a6 6 0 0 1 12 0m2-8a3 3 0 1 0 0-6m1 8a5 5 0 0 1 3 5"/></svg>
+            <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>
           </div>
           <h3>No saved developers found</h3>
-          <p>Explore developer profiles on DEV-MATCH and bookmark your preferred partners to easily contact them anytime.</p>
-          <a class="fav-btn primary" href="devmatch-landing.html#developers" style="margin:0 auto;display:inline-flex;">
-            <svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"/><path d="M3 20a6 6 0 0 1 12 0"/></svg>
+          <p>${favoriteDevIds.length === 0 ? 'You haven’t saved any developers yet. Browse top independent developers in Discover Developers and click the heart icon to save them.' : 'No saved developers match your filter or search query.'}</p>
+          <a class="fav-btn primary" href="devmatch-find-developers.html" style="margin:0 auto;display:inline-flex;">
+            <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>
             Find Developers
           </a>
         </div>
@@ -321,13 +554,23 @@
         <div class="fav-dev-card-top">
           <div class="fav-dev-card-avatar">${escapeHtml(dev.initials)}</div>
           <div class="fav-dev-card-info">
+            <div style="display:flex;align-items:center;gap:6px;margin-bottom:3px;">
+              <span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:99px;background:#e7f6ed;color:#15934f;">${escapeHtml(dev.status)}</span>
+              <span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:99px;background:#f3f4f6;color:#4b5563;">${escapeHtml(dev.specialization)}</span>
+            </div>
             <h3>${escapeHtml(dev.name)}</h3>
-            <p>${escapeHtml(dev.role)} · ${escapeHtml(dev.location)}</p>
-            <span class="fav-dev-rating">★ ${dev.rating} <small style="color:var(--muted);font-weight:400;">(${dev.reviews} reviews)</small></span>
+            <p style="margin:0;display:flex;align-items:center;gap:3px;font-size:12px;color:#64748b;">
+              <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21c-4.4-4.8-8-9-8-12a8 8 0 1 1 16 0c0 3-3.6 7.2-8 12z"/><circle cx="12" cy="9" r="2.5"/></svg>
+              ${escapeHtml(dev.location)}
+            </p>
           </div>
         </div>
 
         <p class="fav-dev-card-bio">${escapeHtml(dev.bio)}</p>
+
+        <div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:14px;">
+          ${dev.skills.map(skill => `<span style="font-size:11px;font-weight:600;padding:2px 7px;background:#f3f4f6;color:#374151;border-radius:6px;">${escapeHtml(skill)}</span>`).join('')}
+        </div>
 
         <div class="fav-dev-stats-row">
           <div class="fav-dev-stat-box">
@@ -336,21 +579,21 @@
           </div>
           <div class="fav-dev-stat-box">
             <span>Views</span>
-            <strong>${dev.views}</strong>
+            <strong>${escapeHtml(dev.views)}</strong>
           </div>
           <div class="fav-dev-stat-box">
             <span>Favorites</span>
-            <strong>${dev.favorites}</strong>
+            <strong>${dev.favoritesCount}</strong>
           </div>
         </div>
 
-        <div style="display:flex;gap:8px;margin-top:auto;">
-          <a class="fav-action-link primary" href="devmatch-chat.html?contact=${encodeURIComponent(dev.id)}">
+        <div class="fav-card-footer" style="margin-top:auto;padding:12px 0 0;background:transparent;border-top:1px solid #f0f0f2;">
+          <a class="fav-action-link primary" href="devmatch-chat.html?contact=${encodeURIComponent(dev.contactId)}&role=client">
             <svg viewBox="0 0 24 24"><path d="M21 11.5a8.5 8.5 0 0 1-8.5 8.5H4l1.5-4A8.5 8.5 0 1 1 21 11.5z"/></svg>
-            Message
+            Contact
           </a>
-          <a class="fav-action-link" href="devmatch-developer-profile.html?developer=restaurant">
-            Full Profile
+          <a class="fav-action-link" href="${escapeHtml(dev.profileUrl)}">
+            View Profile
           </a>
         </div>
       </article>
@@ -359,10 +602,69 @@
     favGridEl.querySelectorAll('[data-remove-dev]').forEach(btn => {
       btn.addEventListener('click', (e) => {
         e.stopPropagation();
-        const id = btn.dataset.removeDev;
-        removeFavoriteDev(id);
+        removeFavoriteDeveloper(btn.dataset.removeDev);
       });
     });
+  }
+
+  // Open Client Requests Modal inside Favorites
+  function openClientModal(clientId) {
+    const client = getAllClients().find(c => c.id === clientId);
+    if (!client || !favClientDialog || !favDialogContent) return;
+
+    const reqs = client.requests || [];
+    const reqsHtml = reqs.length > 0 ? reqs.map(req => `
+      <div class="dialog-request-item" style="border:1px solid #e5e7eb;border-radius:12px;padding:14px;background:#fbfbfb;margin-bottom:10px;">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px;">
+          <strong style="font-size:14px;color:#111827;">${escapeHtml(req.title)}</strong>
+          <span style="font-size:12px;font-weight:700;color:#15934f;background:#e7f6ed;padding:2px 8px;border-radius:6px;">${escapeHtml(req.budget)}</span>
+        </div>
+        <p style="font-size:13px;color:#64748b;line-height:1.5;margin-bottom:8px;">${escapeHtml(req.description)}</p>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;">
+          <span style="font-size:11px;padding:2px 7px;background:#f1f2f5;border-radius:99px;font-weight:600;">${escapeHtml(req.category)}</span>
+          <span style="font-size:11px;padding:2px 7px;background:#f1f2f5;border-radius:99px;font-weight:600;">${escapeHtml(req.type)}</span>
+          ${(req.tags || []).map(t => `<span style="font-size:11px;padding:2px 7px;background:#f1f2f5;border-radius:99px;font-weight:600;">${escapeHtml(t)}</span>`).join('')}
+        </div>
+      </div>
+    `).join('') : `
+      <div style="padding:24px;text-align:center;color:#6b7280;background:#f9fafb;border-radius:12px;font-size:13px;">
+        Klien ini saat ini belum memiliki permintaan proyek terbuka.
+      </div>
+    `;
+
+    favDialogContent.innerHTML = `
+      <div class="dialog-header">
+        <div class="dialog-avatar" style="width:48px;height:48px;border-radius:50%;background:#e5e7eb;display:grid;place-items:center;font-weight:800;font-size:15px;">${escapeHtml(client.initials)}</div>
+        <div class="dialog-title-group">
+          <h2>${escapeHtml(client.name)}</h2>
+          <p>${escapeHtml(client.business)} · ${escapeHtml(client.location)}</p>
+        </div>
+      </div>
+
+      <div class="dialog-badges" style="display:flex;gap:8px;margin:12px 0 16px;">
+        <span class="dialog-badge green">${escapeHtml(client.activeText)}</span>
+        <span class="dialog-badge">${client.openRequestsCount} Open Requests</span>
+        <span class="dialog-badge">${escapeHtml(client.businessType || client.category)}</span>
+      </div>
+
+      <div class="dialog-section-title" style="font-weight:700;margin:16px 0 10px;">
+        Permintaan Proyek Terbuka (${reqs.length})
+      </div>
+
+      <div class="dialog-requests-list">
+        ${reqsHtml}
+      </div>
+
+      <div class="dialog-footer" style="display:flex;gap:10px;margin-top:20px;padding-top:16px;border-top:1px solid #f3f4f6;">
+        <a class="btn-dialog-contact" href="devmatch-chat.html?contact=${encodeURIComponent(client.contactId)}&client=${encodeURIComponent(client.id)}">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 11.5a8.5 8.5 0 0 1-8.5 8.5H4l1.5-4A8.5 8.5 0 1 1 21 11.5z"/></svg>
+          Chat Klien
+        </a>
+        <button class="btn-dialog-close" type="button" data-close-fav-dialog>Tutup</button>
+      </div>
+    `;
+
+    favClientDialog.showModal();
   }
 
   // Parse price helper: "Rp 3.500.000" -> 3500000
@@ -382,14 +684,14 @@
     setTimeout(() => {
       lastRemovedItem = { type: 'project', id };
       favoriteProjectIds = favoriteProjectIds.filter(item => item !== id);
-      saveFavorites(favoriteProjectIds);
+      saveProjectFavorites(favoriteProjectIds);
       updateCounters();
       renderCurrentTab();
 
       showToast('Project removed from favorites', () => {
         if (lastRemovedItem && lastRemovedItem.type === 'project') {
           favoriteProjectIds.push(lastRemovedItem.id);
-          saveFavorites(favoriteProjectIds);
+          saveProjectFavorites(favoriteProjectIds);
           updateCounters();
           renderCurrentTab();
         }
@@ -397,8 +699,34 @@
     }, 200);
   }
 
-  // Remove a developer favorite
-  function removeFavoriteDev(id) {
+  // Remove a client favorite (syncs back to 'devmatch-favorite-clients')
+  function removeFavoriteClient(id) {
+    const card = document.querySelector(`.fav-client-card[data-client-id="${id}"]`);
+    if (card) {
+      card.style.opacity = '0';
+      card.style.transform = 'scale(0.95)';
+    }
+
+    setTimeout(() => {
+      lastRemovedItem = { type: 'client', id };
+      favoriteClientIds = favoriteClientIds.filter(item => item !== id);
+      saveClientFavorites(favoriteClientIds);
+      updateCounters();
+      renderCurrentTab();
+
+      showToast('Client removed from favorites', () => {
+        if (lastRemovedItem && lastRemovedItem.type === 'client') {
+          favoriteClientIds.push(lastRemovedItem.id);
+          saveClientFavorites(favoriteClientIds);
+          updateCounters();
+          renderCurrentTab();
+        }
+      });
+    }, 200);
+  }
+
+  // Remove a developer favorite (syncs back to 'devmatch-client-dev-favorites')
+  function removeFavoriteDeveloper(id) {
     const card = document.querySelector(`.fav-dev-card[data-dev-id="${id}"]`);
     if (card) {
       card.style.opacity = '0';
@@ -406,14 +734,14 @@
     }
 
     setTimeout(() => {
-      lastRemovedItem = { type: 'dev', id };
+      lastRemovedItem = { type: 'developer', id };
       favoriteDevIds = favoriteDevIds.filter(item => item !== id);
       saveDevFavorites(favoriteDevIds);
       updateCounters();
       renderCurrentTab();
 
       showToast('Developer removed from favorites', () => {
-        if (lastRemovedItem && lastRemovedItem.type === 'dev') {
+        if (lastRemovedItem && lastRemovedItem.type === 'developer') {
           favoriteDevIds.push(lastRemovedItem.id);
           saveDevFavorites(favoriteDevIds);
           updateCounters();
@@ -425,28 +753,50 @@
 
   function renderCurrentTab() {
     if (currentTab === 'projects') {
-      if (categorySelectEl) categorySelectEl.style.display = 'block';
+      if (favExploreBtn) {
+        favExploreBtn.href = isClient ? 'devmatch-discover-projects.html' : 'devmatch-find-projects.html';
+        favExploreBtn.innerHTML = `<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="m15.5 8.5-2 5-5 2 2-5z"/></svg>Explore Projects`;
+      }
       renderProjects();
     } else {
-      if (categorySelectEl) categorySelectEl.style.display = 'none';
-      renderDevelopers();
+      if (isClient) {
+        if (favExploreBtn) {
+          favExploreBtn.href = 'devmatch-find-developers.html';
+          favExploreBtn.innerHTML = `<svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>Find Developers`;
+        }
+        renderDevelopers();
+      } else {
+        if (favExploreBtn) {
+          favExploreBtn.href = 'devmatch-find-clients.html';
+          favExploreBtn.innerHTML = `<svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"/><path d="M3 20a6 6 0 0 1 12 0m2-8a3 3 0 1 0 0-6m1 8a5 5 0 0 1 3 5"/></svg>Find Clients`;
+        }
+        renderClients();
+      }
     }
   }
 
   // Tab switching
-  if (tabProjectsBtn && tabDevsBtn) {
+  if (tabProjectsBtn && tabSecondaryBtn) {
     tabProjectsBtn.addEventListener('click', () => {
       tabProjectsBtn.classList.add('active');
-      tabDevsBtn.classList.remove('active');
+      tabSecondaryBtn.classList.remove('active');
+      tabProjectsBtn.setAttribute('aria-selected', 'true');
+      tabSecondaryBtn.setAttribute('aria-selected', 'false');
       currentTab = 'projects';
+      updateCategoryOptions();
+      updateSortOptions();
       updateCounters();
       renderCurrentTab();
     });
 
-    tabDevsBtn.addEventListener('click', () => {
-      tabDevsBtn.classList.add('active');
+    tabSecondaryBtn.addEventListener('click', () => {
+      tabSecondaryBtn.classList.add('active');
       tabProjectsBtn.classList.remove('active');
-      currentTab = 'developers';
+      tabSecondaryBtn.setAttribute('aria-selected', 'true');
+      tabProjectsBtn.setAttribute('aria-selected', 'false');
+      currentTab = isClient ? 'developers' : 'clients';
+      updateCategoryOptions();
+      updateSortOptions();
       updateCounters();
       renderCurrentTab();
     });
@@ -468,7 +818,7 @@
     });
   }
 
-  // Sort
+  // Sort filter
   if (sortSelectEl) {
     sortSelectEl.addEventListener('change', () => {
       currentSort = sortSelectEl.value;
@@ -484,12 +834,12 @@
         if (favoriteProjectIds.length === 0) return;
         if (confirm('Are you sure you want to clear all saved projects?')) {
           favoriteProjectIds = [];
-          saveFavorites(favoriteProjectIds);
+          saveProjectFavorites(favoriteProjectIds);
           updateCounters();
           renderCurrentTab();
           showToast('All saved projects cleared');
         }
-      } else {
+      } else if (isClient) {
         if (favoriteDevIds.length === 0) return;
         if (confirm('Are you sure you want to clear all saved developers?')) {
           favoriteDevIds = [];
@@ -498,6 +848,30 @@
           renderCurrentTab();
           showToast('All saved developers cleared');
         }
+      } else {
+        if (favoriteClientIds.length === 0) return;
+        if (confirm('Are you sure you want to clear all saved clients?')) {
+          favoriteClientIds = [];
+          saveClientFavorites(favoriteClientIds);
+          updateCounters();
+          renderCurrentTab();
+          showToast('All saved clients cleared');
+        }
+      }
+    });
+  }
+
+  // Modal dialog close
+  if (favDialogCloseBtn && favClientDialog) {
+    favDialogCloseBtn.addEventListener('click', () => {
+      favClientDialog.close();
+    });
+  }
+
+  if (favClientDialog) {
+    favClientDialog.addEventListener('click', (e) => {
+      if (e.target.closest('[data-close-fav-dialog]') || e.target === favClientDialog) {
+        favClientDialog.close();
       }
     });
   }
@@ -505,53 +879,23 @@
   // Load user profile details in topbar
   function loadUserProfile() {
     try {
-      const isClient = new URLSearchParams(window.location.search).get('role') === 'client';
       document.body.classList.toggle('client-shell-page', isClient);
       const key = isClient ? 'devmatch-profile-client' : 'devmatch-profile-dev';
       const profile = JSON.parse(localStorage.getItem(key) || '{}');
-      const name = profile.displayName || (isClient ? 'Client' : 'Developer');
-      const initials = name.trim().split(/\s+/).filter(Boolean).slice(0, 2).map(p => p[0]).join('').toUpperCase() || 'DM';
+      const name = profile.displayName || (isClient ? 'Jessica Sitorus' : 'Developer');
+      const initials = name.trim().split(/\s+/).filter(Boolean).slice(0, 2).map(p => p[0]).join('').toUpperCase() || (isClient ? 'JS' : 'DM');
 
       const userAvatarEl = document.getElementById('userAvatar');
       const topUserNameEl = document.getElementById('topUserName');
       if (userAvatarEl) userAvatarEl.textContent = initials;
       if (topUserNameEl) topUserNameEl.textContent = name;
-
-      if (isClient) {
-        const messagesLink = document.querySelector('.side-nav a[href="devmatch-chat.html"], .side-nav a[href="devmatch-chat.html?role=client"]');
-        if (messagesLink) messagesLink.href = 'devmatch-chat.html?role=client';
-        const notificationsUrl = 'devmatch-notifications.html';
-        document.querySelectorAll('.notification-button, .client-icon-button').forEach(link => {
-          link.href = notificationsUrl;
-        });
-        const notificationsLink = [...document.querySelectorAll('.side-nav a, .client-nav a')]
-          .find(link => link.textContent.trim().startsWith('Notifications'));
-        if (notificationsLink) notificationsLink.href = notificationsUrl;
-        document.querySelectorAll('.mode').forEach(m => m.classList.remove('active'));
-        const clientMode = document.querySelector('.mode-switch a[href*="client"]');
-        if (clientMode) clientMode.classList.add('active');
-
-        const workspaceBadge = document.querySelector('.workspace');
-        if (workspaceBadge) {
-          workspaceBadge.innerHTML = `<span class="workspace-icon"><svg viewBox="0 0 24 24"><rect x="3" y="7" width="18" height="14" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></span><span><b>Client workspace</b><small>Discover &amp; hire</small></span>`;
-        }
-
-        const sideAdd = document.querySelector('.side-add');
-        if (sideAdd) {
-          sideAdd.href = 'devmatch-client-dashboard.html#requests';
-          sideAdd.innerHTML = `<svg viewBox="0 0 24 24"><path d="M12 5v14m-7-7h14"/></svg>Post a Request`;
-        }
-
-        const overviewLink = document.querySelector('.side-nav a[href="devmatch-dashboard.html"]');
-        if (overviewLink) {
-          overviewLink.href = 'devmatch-client-dashboard.html';
-        }
-      }
     } catch (e) {}
   }
 
   // Initialize
   loadUserProfile();
+  updateCategoryOptions();
+  updateSortOptions();
   updateCounters();
   renderCurrentTab();
 

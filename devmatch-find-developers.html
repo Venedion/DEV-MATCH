@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Discover Developers — DEV-MATCH</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/css/dashboard.css">
+  <link rel="stylesheet" href="assets/css/client-shell.css">
+  <link rel="stylesheet" href="assets/css/find-developers.css">
+</head>
+<body class="client-shell-page">
+  <!-- Topbar Header -->
+  <header class="topbar">
+    <a class="brand" href="devmatch-client-dashboard.html"><i>&lt;/&gt;</i><span>DEV-MATCH</span></a>
+    <label class="search top-search">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
+      <input id="topSearchInput" type="search" placeholder="Search projects, developers, skills..." aria-label="Search projects, developers, skills">
+      <kbd>⌘K</kbd>
+    </label>
+    <div class="top-actions">
+      <div class="mode-switch" role="group" aria-label="Workspace mode">
+        <a class="mode" href="devmatch-dashboard.html"><span aria-hidden="true">&lt;/&gt;</span>Developer Mode</a>
+        <a class="mode active" href="devmatch-client-dashboard.html"><svg viewBox="0 0 24 24"><rect x="3" y="7" width="18" height="14" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>Client Mode</a>
+      </div>
+      <a class="icon-button notification-button" href="devmatch-notifications.html" aria-label="Notifications">
+        <svg viewBox="0 0 24 24"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9m-8 13h4"/></svg>
+        <i></i>
+      </a>
+      <a class="user-menu" href="devmatch-my-profile.html?role=client">
+        <span class="user-avatar" id="clientAvatar">JS</span>
+        <span class="user-copy"><b id="clientName">Jessica Sitorus</b><small>Client</small></span>
+        <svg viewBox="0 0 24 24"><path d="m7 10 5 5 5-5"/></svg>
+      </a>
+    </div>
+  </header>
+
+  <!-- Sidebar Navigation -->
+  <aside class="sidebar">
+    <div class="workspace">
+      <span class="workspace-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="7" width="18" height="14" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></span>
+      <span><b>Client workspace</b><small>Discover &amp; hire</small></span>
+    </div>
+    <a class="add-project side-add" href="devmatch-client-dashboard.html#requests">
+      <svg viewBox="0 0 24 24"><path d="M12 5v14m-7-7h14"/></svg>Post a Request
+    </a>
+    
+    <span class="nav-label">Menu</span>
+    <nav class="side-nav" aria-label="Client dashboard navigation">
+      <a class="nav-item" href="devmatch-client-dashboard.html#home">
+        <svg viewBox="0 0 24 24"><path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-6v-7h-4v7H4a1 1 0 0 1-1-1z"/></svg>
+        Home
+      </a>
+      <a class="nav-item" href="devmatch-discover-projects.html">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="m15.5 8.5-2 5-5 2 2-5z"/></svg>
+        Discover Projects
+      </a>
+      <a class="nav-item active" href="devmatch-find-developers.html" aria-current="page">
+        <svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"/><path d="M3 20a6 6 0 0 1 12 0m2-8a3 3 0 1 0 0-6m1 8a5 5 0 0 1 3 5"/></svg>
+        Developers
+      </a>
+      <a class="nav-item" href="devmatch-favorites.html?role=client">
+        <svg viewBox="0 0 24 24"><path d="m20.8 4.6-1.4-1.4a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8L12 21l8.8-8.6a5.5 5.5 0 0 0 0-7.8z"/></svg>
+        Favorites<span class="nav-count" id="favoriteCount">0</span>
+      </a>
+      <a class="nav-item" href="devmatch-client-dashboard.html#requests">
+        <svg viewBox="0 0 24 24"><path d="M6 3h9l4 4v14H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"/><path d="M14 3v5h5M8 13h8m-8 4h8"/></svg>
+        My Requests
+      </a>
+      <a class="nav-item" href="devmatch-notifications.html">
+        <svg viewBox="0 0 24 24"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9m-8 13h4"/></svg>
+        Notifications<span class="nav-count notification-count" id="clientNotificationCount">2</span>
+      </a>
+    </nav>
+
+    <span class="nav-label account-label">Account</span>
+    <nav class="side-nav" aria-label="Account navigation">
+      <a class="nav-item" href="devmatch-my-profile.html?role=client">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>Profile
+      </a>
+      <a class="nav-item" href="devmatch-settings.html?role=client">
+        <svg viewBox="0 0 24 24"><path d="M4 21v-7m0-4V3m8 18v-9m0-4V3m8 18v-5m0-4V3M1 14h6m2-6h6m2 8h6"/></svg>Settings
+      </a>
+    </nav>
+
+    <!-- Bottom Promo Box: Are you a developer? -->
+    <div class="sidebar-dev-card">
+      <strong>Are you a developer?</strong>
+      <p>Switch to Developer Mode to showcase your projects.</p>
+      <a href="devmatch-dashboard.html">Switch to Developer Mode &rarr;</a>
+    </div>
+  </aside>
+
+  <!-- Main Content -->
+  <main class="find-developers-main">
+    <!-- Header -->
+    <header class="devs-header">
+      <div class="devs-header-left">
+        <h1>Find developers</h1>
+        <p>Browse independent developers by specialization, status and popularity.</p>
+      </div>
+
+      <!-- Tab Toggle (Projects 128 | Developers 64) -->
+      <div class="devs-tabs-toggle" role="tablist" aria-label="Browse options">
+        <a class="devs-tab-btn" href="devmatch-discover-projects.html">
+          Projects <span class="devs-tab-count">128</span>
+        </a>
+        <button class="devs-tab-btn active" type="button" aria-selected="true">
+          Developers <span class="devs-tab-count">64</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- Search Box (Row 1) -->
+    <div class="devs-search-box">
+      <div class="search-field-select">
+        <select id="searchScopeSelect" aria-label="Search scope">
+          <option value="all">Developer name</option>
+          <option value="skill">Skills / Tech</option>
+          <option value="specialization">Specialization</option>
+        </select>
+        <svg class="dropdown-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m6 9 6 6 6-6"/></svg>
+      </div>
+
+      <div class="search-divider"></div>
+
+      <div class="search-input-wrap">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
+        <input type="search" id="devSearchInput" placeholder="Search developers by name, title or bio..." aria-label="Search developers">
+      </div>
+
+      <button type="button" id="btnSearchDevs" class="btn-search-devs">Search</button>
+    </div>
+
+    <!-- Secondary Filter Row (Row 2) -->
+    <div class="devs-filter-row">
+      <div class="filter-left-pills">
+        <!-- Specialization Dropdown -->
+        <div class="filter-dropdown-container" id="specDropdown">
+          <button class="filter-pill-btn has-value" type="button" aria-haspopup="listbox" aria-expanded="false">
+            <svg class="icon-filter" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
+            <span class="filter-label-text">Specialization: Full-stack</span>
+            <svg class="icon-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m6 9 6 6 6-6"/></svg>
+          </button>
+          <div class="dropdown-menu" role="listbox">
+            <button class="dropdown-item" type="button" data-value="all">All Specializations</button>
+            <button class="dropdown-item selected" type="button" data-value="Full-stack">Full-stack</button>
+            <button class="dropdown-item" type="button" data-value="Frontend">Frontend</button>
+            <button class="dropdown-item" type="button" data-value="Backend">Backend</button>
+            <button class="dropdown-item" type="button" data-value="Mobile">Mobile (iOS &amp; Android)</button>
+            <button class="dropdown-item" type="button" data-value="UI/UX">UI/UX Design</button>
+          </div>
+        </div>
+
+        <!-- Gender Dropdown -->
+        <div class="filter-dropdown-container" id="genderDropdown">
+          <button class="filter-pill-btn" type="button" aria-haspopup="listbox" aria-expanded="false">
+            <span class="filter-label-text">Gender</span>
+            <svg class="icon-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m6 9 6 6 6-6"/></svg>
+          </button>
+          <div class="dropdown-menu" role="listbox">
+            <button class="dropdown-item selected" type="button" data-value="all">All Genders</button>
+            <button class="dropdown-item" type="button" data-value="Male">Male</button>
+            <button class="dropdown-item" type="button" data-value="Female">Female</button>
+          </div>
+        </div>
+
+        <!-- Status Dropdown -->
+        <div class="filter-dropdown-container" id="statusDropdown">
+          <button class="filter-pill-btn" type="button" aria-haspopup="listbox" aria-expanded="false">
+            <span class="filter-label-text">Status</span>
+            <svg class="icon-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m6 9 6 6 6-6"/></svg>
+          </button>
+          <div class="dropdown-menu" role="listbox">
+            <button class="dropdown-item selected" type="button" data-value="all">All Statuses</button>
+            <button class="dropdown-item" type="button" data-value="Open for hiring">Open for hiring</button>
+            <button class="dropdown-item" type="button" data-value="Freelance">Freelance</button>
+            <button class="dropdown-item" type="button" data-value="Busy">Busy</button>
+            <button class="dropdown-item" type="button" data-value="Not available">Not available</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right Sort Controls -->
+      <div style="display:flex;align-items:center;gap:10px;">
+        <span style="font-size:12px;color:#8e9097;font-weight:600;">Sorted by:</span>
+        <div class="sort-toggle-wrap">
+          <button type="button" class="sort-btn active" data-sort="favorites">Most favorited</button>
+          <button type="button" class="sort-btn" data-sort="views">Most viewed</button>
+          <button type="button" class="sort-btn" data-sort="projects">Most projects</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Sub-header Row (Result Count & Sort Status) -->
+    <div class="devs-sub-row">
+      <h2 class="devs-count-heading" id="devsCountHeading">38 full-stack developers</h2>
+      <span class="devs-sort-label" id="devsSortLabel">Sorted by most favorited</span>
+    </div>
+
+    <!-- Developers Grid -->
+    <section class="devs-grid" id="devsGrid" aria-label="Developer list">
+      <!-- Cards rendered dynamically by assets/js/find-developers.js -->
+    </section>
+
+    <!-- Empty State -->
+    <div class="devs-empty-state" id="devsEmptyState">
+      <div class="devs-empty-icon">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>
+      </div>
+      <h3>Tidak ada developer yang sesuai</h3>
+      <p>Coba sesuaikan kata kunci pencarian atau ubah filter spesialisasi dan status di atas.</p>
+      <button class="btn-search-devs" id="btnResetDevs" type="button" style="margin:0 auto;display:inline-flex;align-items:center;">
+        Reset Filter
+      </button>
+    </div>
+
+    <!-- Pagination -->
+    <nav class="devs-pagination" aria-label="Developers pagination">
+      <button class="page-btn nav-arrow" type="button" aria-label="Previous page">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m15 18-6-6 6-6"/></svg>
+      </button>
+      <button class="page-btn active" type="button" data-page="1">1</button>
+      <button class="page-btn" type="button" data-page="2">2</button>
+      <button class="page-btn" type="button" data-page="3">3</button>
+      <span class="page-ellipsis">...</span>
+      <button class="page-btn" type="button" data-page="12">12</button>
+      <button class="page-btn nav-arrow" type="button" aria-label="Next page">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m9 18 6-6-6-6"/></svg>
+      </button>
+    </nav>
+  </main>
+
+  <!-- Toast Notification -->
+  <div class="fd-toast" id="fdToast" role="status" aria-live="polite">Developer ditambahkan ke Favorites</div>
+
+  <!-- Floating Chat Link -->
+  <a class="floating-chat" href="devmatch-chat.html?role=client" aria-label="Messages &amp; Chat" title="Open Messages &amp; Chat">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5c-5 0-9 3.65-9 8.15 0 2.24 1.04 4.27 2.73 5.74L4.7 21l5.24-1.28c.67.12 1.36.18 2.06.18 5 0 9-3.65 9-8.15S17 3.5 12 3.5Z"/><circle cx="8.5" cy="11.7" r="1" fill="currentColor" stroke="none"/><circle cx="12" cy="11.7" r="1" fill="currentColor" stroke="none"/><circle cx="15.5" cy="11.7" r="1" fill="currentColor" stroke="none"/></svg>
+    <span class="floating-chat-badge">3</span>
+  </a>
+
+  <!-- Scripts -->
+  <script src="assets/js/projects-data.js"></script>
+  <script src="assets/js/find-developers.js"></script>
+  <script src="assets/js/nav-behavior.js"></script>
+</body>
+</html>

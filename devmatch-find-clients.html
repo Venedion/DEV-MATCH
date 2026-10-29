@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Find Clients — DEV-MATCH</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/css/dashboard.css">
+  <link rel="stylesheet" href="assets/css/find-clients.css">
+</head>
+<body>
+  <!-- Topbar Header -->
+  <header class="topbar">
+    <a class="brand" href="devmatch-dashboard.html"><i>&lt;/&gt;</i><span>DEV-MATCH</span></a>
+    <label class="search top-search">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
+      <input id="topSearchInput" type="search" placeholder="Search project requests, clients..." aria-label="Search project requests, clients">
+      <kbd>⌘K</kbd>
+    </label>
+    <div class="top-actions">
+      <div class="mode-switch" role="group" aria-label="Workspace mode">
+        <a class="mode active" href="devmatch-dashboard.html"><span aria-hidden="true">&lt;/&gt;</span>Developer Mode</a>
+        <a class="mode" href="devmatch-client-dashboard.html"><svg viewBox="0 0 24 24"><rect x="3" y="7" width="18" height="14" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>Client Mode</a>
+      </div>
+      <a class="icon-button notification-button" href="devmatch-developer-notifications.html" aria-label="Notifications">
+        <svg viewBox="0 0 24 24"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9m-8 13h4"/></svg>
+        <i></i>
+      </a>
+      <a class="user-menu" href="devmatch-my-profile.html?role=dev">
+        <span class="user-avatar">WL</span>
+        <span class="user-copy"><b>Winson Lim</b><small>Developer</small></span>
+        <svg viewBox="0 0 24 24"><path d="m7 10 5 5 5-5"/></svg>
+      </a>
+    </div>
+  </header>
+
+  <!-- Sidebar Navigation -->
+  <aside class="sidebar">
+    <div class="workspace">
+      <span class="workspace-icon">&lt;/&gt;</span>
+      <span><b>Developer workspace</b><small>Showcase &amp; find clients</small></span>
+    </div>
+    <a class="add-project side-add" href="devmatch-my-projects.html?create=1">
+      <svg viewBox="0 0 24 24"><path d="M12 5v14m-7-7h14"/></svg>Add Project
+    </a>
+    
+    <span class="nav-label">Menu</span>
+    <nav class="side-nav" aria-label="Developer dashboard navigation">
+      <a class="nav-item" href="devmatch-dashboard.html">
+        <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+        Overview
+      </a>
+      <a class="nav-item" href="devmatch-my-projects.html">
+        <svg viewBox="0 0 24 24"><path d="M3 6a2 2 0 0 1 2-2h5l2 2h7a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
+        Projects
+      </a>
+      <a class="nav-item" href="devmatch-find-projects.html">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="m15.5 8.5-2 5-5 2 2-5z"/></svg>
+        Find Projects
+      </a>
+      <a class="nav-item active" href="devmatch-find-clients.html" aria-current="page">
+        <svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"/><path d="M3 20a6 6 0 0 1 12 0m2-8a3 3 0 1 0 0-6m1 8a5 5 0 0 1 3 5"/></svg>
+        Find Clients
+      </a>
+      <a class="nav-item" href="devmatch-favorites.html">
+        <svg viewBox="0 0 24 24"><path d="m20.8 4.6-1.4-1.4a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8L12 21l8.8-8.6a5.5 5.5 0 0 0 0-7.8z"/></svg>
+        Favorites<span class="nav-count" id="favoriteCount">0</span>
+      </a>
+      <a class="nav-item" href="devmatch-developer-notifications.html">
+        <svg viewBox="0 0 24 24"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9m-8 13h4"/></svg>
+        Notifications<span class="nav-count" id="developerNotificationCount">3</span>
+      </a>
+    </nav>
+
+    <span class="nav-label account-label">Account</span>
+    <nav class="side-nav" aria-label="Navigasi akun">
+      <a class="nav-item" href="devmatch-my-profile.html?role=dev">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>Profile
+      </a>
+      <a class="nav-item" href="devmatch-settings.html">
+        <svg viewBox="0 0 24 24"><path d="M4 21v-7m0-4V3m8 18v-9m0-4V3m8 18v-5m0-4V3M1 14h6m2-6h6m2 8h6"/></svg>Settings
+      </a>
+    </nav>
+
+    <!-- Bottom Promo Box: Looking to hire instead? -->
+    <div class="sidebar-hire-card">
+      <strong>Looking to hire instead?</strong>
+      <p>Switch to Client Mode to post requests and discover developers.</p>
+      <a href="devmatch-client-dashboard.html">Switch to Client Mode &rarr;</a>
+    </div>
+  </aside>
+
+  <!-- Main Content -->
+  <main class="find-clients-main">
+    <!-- Header -->
+    <header class="clients-header">
+      <div class="clients-header-left">
+        <h1>Find clients</h1>
+        <p>Businesses actively looking for developers on DEV-MATCH.</p>
+      </div>
+      <div class="clients-tabs-toggle" role="tablist" aria-label="Peluang dan Klien">
+        <a class="clients-tab-btn" href="devmatch-find-projects.html">
+          Project Requests <span class="clients-tab-count">42</span>
+        </a>
+        <button class="clients-tab-btn active" type="button" aria-selected="true">
+          Clients <span class="clients-tab-count">120</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- Search & Filter Controls -->
+    <section class="clients-search-filter-section" aria-label="Pencarian dan Filter Klien">
+      <!-- Row 1: Search Box -->
+      <div class="clients-search-box">
+        <div class="search-field-select">
+          <select id="searchScopeSelect" aria-label="Cari berdasarkan">
+            <option value="name" selected>Client name</option>
+            <option value="business">Business type</option>
+            <option value="location">Location</option>
+            <option value="all">All fields</option>
+          </select>
+          <svg class="dropdown-chevron" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg>
+        </div>
+        <div class="search-divider"></div>
+        <div class="search-input-wrap">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
+          <input id="clientSearchInput" type="search" placeholder="Search clients by name, business or location..." aria-label="Search clients">
+        </div>
+        <button id="btnSearchClients" class="btn-search-clients" type="button">Search</button>
+      </div>
+
+      <!-- Row 2: Secondary Filters & Sort -->
+      <div class="clients-filter-row">
+        <div class="filter-left-pills">
+          <!-- Business Type Dropdown -->
+          <div class="filter-dropdown-container" id="businessTypeDropdown">
+            <button class="filter-pill-btn" type="button" aria-haspopup="true" aria-expanded="false">
+              <svg class="icon-filter" viewBox="0 0 24 24"><path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z"/></svg>
+              <span class="filter-label-text">Business type</span>
+              <svg class="icon-chevron" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg>
+            </button>
+            <div class="dropdown-menu">
+              <button class="dropdown-item selected" type="button" data-value="all">Semua Tipe Bisnis</button>
+              <button class="dropdown-item" type="button" data-value="Café">Café / F&amp;B</button>
+              <button class="dropdown-item" type="button" data-value="Retail">Retail / Fashion</button>
+              <button class="dropdown-item" type="button" data-value="Healthcare">Healthcare Clinic</button>
+              <button class="dropdown-item" type="button" data-value="Building materials">Building Materials</button>
+              <button class="dropdown-item" type="button" data-value="Hospitality">Homestay / Hospitality</button>
+              <button class="dropdown-item" type="button" data-value="Distribution">Distribution &amp; Logistics</button>
+              <button class="dropdown-item" type="button" data-value="Services">Services &amp; Legal</button>
+            </div>
+          </div>
+
+          <!-- Location Dropdown -->
+          <div class="filter-dropdown-container" id="locationDropdown">
+            <button class="filter-pill-btn" type="button" aria-haspopup="true" aria-expanded="false">
+              <span class="filter-label-text">Location</span>
+              <svg class="icon-chevron" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg>
+            </button>
+            <div class="dropdown-menu">
+              <button class="dropdown-item selected" type="button" data-value="all">Semua Lokasi</button>
+              <button class="dropdown-item" type="button" data-value="Medan">Medan</button>
+              <button class="dropdown-item" type="button" data-value="Pematangsiantar">Pematangsiantar</button>
+              <button class="dropdown-item" type="button" data-value="Toba">Toba</button>
+              <button class="dropdown-item" type="button" data-value="Binjai">Binjai</button>
+              <button class="dropdown-item" type="button" data-value="Bandung">Bandung</button>
+              <button class="dropdown-item" type="button" data-value="Jakarta">Jakarta</button>
+              <button class="dropdown-item" type="button" data-value="Surabaya">Surabaya</button>
+              <button class="dropdown-item" type="button" data-value="Yogyakarta">Yogyakarta</button>
+            </div>
+          </div>
+
+          <!-- Has Open Requests Toggle Pill -->
+          <button id="btnToggleOpenRequests" class="toggle-requests-pill" type="button" aria-pressed="true">
+            Has open requests
+          </button>
+        </div>
+
+        <!-- Sort Pill Switcher -->
+        <div class="sort-toggle-wrap" role="group" aria-label="Urutan klien">
+          <button id="sortNewestBtn" class="sort-btn active" type="button">Newest</button>
+          <button id="sortOldestBtn" class="sort-btn" type="button">Oldest</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Results Count -->
+    <h2 class="clients-count-header" id="clientsCountHeading">120 clients</h2>
+
+    <!-- Client Cards Grid -->
+    <div class="clients-grid" id="clientsGrid" aria-live="polite">
+      <!-- Injected dynamically by find-clients.js -->
+    </div>
+
+    <!-- Empty State -->
+    <div class="clients-empty-state" id="clientsEmptyState">
+      <div class="empty-icon-circle">
+        <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
+      </div>
+      <h3>Tidak ada klien yang cocok dengan filter</h3>
+      <p>Coba ubah kata kunci pencarian atau sesuaikan opsi filter Anda.</p>
+      <button class="btn-reset-filters" id="btnResetFilters" type="button">Reset Filter</button>
+    </div>
+  </main>
+
+  <!-- Detailed Modal for View Requests -->
+  <dialog class="client-dialog" id="clientDialog" aria-labelledby="dialogTitle">
+    <button class="dialog-close-btn" id="dialogCloseBtn" type="button" aria-label="Tutup detail">×</button>
+    <div id="dialogContent"></div>
+  </dialog>
+
+  <!-- Toast Notification -->
+  <div class="fc-toast" id="fcToast"></div>
+
+  <script src="assets/js/projects-data.js"></script>
+  <script src="assets/js/nav-behavior.js"></script>
+  <script src="assets/js/find-clients.js"></script>
+</body>
+</html>
