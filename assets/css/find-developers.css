@@ -11,6 +11,8 @@
 
 /* Main Container */
 .find-developers-main {
+  --page-scroll-top: 86px;
+  --page-scroll-mobile-top: 72px;
   max-width: 1560px;
   margin: 0 auto;
   padding: 86px 36px 48px calc(var(--sidebar, 260px) + 36px);

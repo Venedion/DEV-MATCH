@@ -6,16 +6,18 @@
   <title>Developer profile — DEV-MATCH</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="assets/css/developer-profile.css">
-  <link rel="stylesheet" href="assets/css/client-shell.css">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=optional" rel="stylesheet">
+  <link rel="stylesheet" href="assets/css/developer-profile.css?v=20261030-header-profile-sizing">
+  <link rel="stylesheet" href="assets/css/client-shell.css?v=20261030-header-size-match">
+  <link rel="stylesheet" href="assets/css/mode-switch-animation.css?v=20261030-active-indicator">
+  <link rel="stylesheet" href="assets/css/mobile-navigation.css?v=20261031-mobile-left-spacing-fix">
 </head>
-<body class="client-shell-page">
+<body class="client-shell-page page-scroll-shell">
   <header class="profile-topbar">
     <a class="brand" href="devmatch-client-dashboard.html"><i>&lt;/&gt;</i><span>DEV-MATCH</span></a>
     <label class="top-search">
       <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
-      <input id="profileSearch" type="search" placeholder="Search projects, developers, skills...">
+      <input id="profileSearch" type="search" placeholder="Search">
       <kbd>⌘K</kbd>
     </label>
     <div class="top-actions">
@@ -36,7 +38,7 @@
       <a href="devmatch-client-dashboard.html#home"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-6v-7h-4v7H4a1 1 0 0 1-1-1z"/></svg>Home</a>
       <a href="devmatch-discover-projects.html"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="m15.5 8.5-2 5-5 2 2-5z"/></svg>Discover Projects</a>
       <a class="selected" href="devmatch-find-developers.html"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3"/><path d="M3 20a6 6 0 0 1 12 0m2-8a3 3 0 1 0 0-6m1 8a5 5 0 0 1 3 5"/></svg>Developers</a>
-      <a href="devmatch-favorites.html?role=client"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m20.8 4.6-1.4-1.4a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8L12 21l8.8-8.6a5.5 5.5 0 0 0 0-7.8z"/></svg>Favorites</a>
+      <a href="devmatch-favorites.html?role=client"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>Favorites</a>
       <a href="devmatch-client-dashboard.html#requests"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h9l4 4v14H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"/><path d="M14 3v5h5M8 13h8m-8 4h8"/></svg>My Requests</a>
       <a href="devmatch-developer-notifications.html"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9m-8 13h4"/></svg>Notifications<span class="notification-count">2</span></a>
     </nav>
@@ -89,6 +91,6 @@
   </main>
   <script src="assets/js/projects-data.js"></script>
   <script src="assets/js/developer-profile.js"></script>
-  <script src="assets/js/nav-behavior.js"></script>
+  <script src="assets/js/nav-behavior.js?v=20261031-mobile-nav-consistency"></script>
 </body>
 </html>

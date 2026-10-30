@@ -303,7 +303,7 @@
       favGridEl.innerHTML = `
         <div class="fav-empty-state">
           <div class="fav-empty-icon">
-            <svg viewBox="0 0 24 24"><path d="m20.8 4.6-1.4-1.4a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8L12 21l8.8-8.6a5.5 5.5 0 0 0 0-7.8z"/></svg>
+            <svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
           </div>
           <h3>No saved projects found</h3>
           <p>${favoriteProjectIds.length === 0 ? 'You haven’t saved any projects yet. Browse developer projects and click the heart icon to save your favorites.' : 'No saved projects match your filter or search query.'}</p>
@@ -321,7 +321,7 @@
         <div class="fav-card-art ${escapeHtml(project.art || '')}">
           <span class="fav-card-badge">${escapeHtml(project.category)}</span>
           <button class="fav-remove-btn" type="button" data-remove-fav="${escapeHtml(project.id)}" title="Remove from favorites" aria-label="Remove ${escapeHtml(project.title)} from favorites">
-            <svg viewBox="0 0 24 24"><path d="m20.8 4.6-1.4-1.4a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8L12 21l8.8-8.6a5.5 5.5 0 0 0 0-7.8z"/></svg>
+            <svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
           </button>
           <div class="fav-art-window">
             <div class="fav-art-window-bar"><i></i><i></i><i></i></div>
@@ -436,7 +436,7 @@
       return `
         <article class="fav-client-card" data-client-id="${escapeHtml(client.id)}">
           <button class="fav-remove-btn" type="button" data-remove-client="${escapeHtml(client.id)}" title="Remove client" aria-label="Remove ${escapeHtml(client.name)} from favorites">
-            <svg viewBox="0 0 24 24"><path d="m20.8 4.6-1.4-1.4a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8L12 21l8.8-8.6a5.5 5.5 0 0 0 0-7.8z"/></svg>
+            <svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
           </button>
 
           <div class="fav-client-card-top">
@@ -552,7 +552,7 @@
     favGridEl.innerHTML = savedDevs.map(dev => `
       <article class="fav-dev-card" data-dev-id="${escapeHtml(dev.id)}">
         <button class="fav-remove-btn" type="button" data-remove-dev="${escapeHtml(dev.id)}" title="Remove developer" aria-label="Remove ${escapeHtml(dev.name)} from favorites">
-          <svg viewBox="0 0 24 24"><path d="m20.8 4.6-1.4-1.4a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8L12 21l8.8-8.6a5.5 5.5 0 0 0 0-7.8z"/></svg>
+          <svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
         </button>
 
         <div class="fav-dev-card-top">
@@ -886,8 +886,10 @@
       document.body.classList.toggle('client-shell-page', isClient);
       const key = isClient ? 'devmatch-profile-client' : 'devmatch-profile-dev';
       const profile = JSON.parse(localStorage.getItem(key) || '{}');
-      const name = profile.displayName || (isClient ? 'Jessica Sitorus' : 'Developer');
-      const initials = name.trim().split(/\s+/).filter(Boolean).slice(0, 2).map(part => part[0]).join('').toUpperCase() || (isClient ? 'JS' : 'DM');
+      const name = typeof profile.displayName === 'string' && profile.displayName.trim()
+        ? profile.displayName.trim()
+        : (isClient ? 'Jessica Sitorus' : 'Rizky Aditya');
+      const initials = name.trim().split(/\s+/).filter(Boolean).slice(0, 2).map(part => part[0]).join('').toUpperCase() || (isClient ? 'JS' : 'RA');
       const role = isClient ? 'Client' : 'Developer';
       const userAvatarEl = document.getElementById('userAvatar');
       const topUserNameEl = document.getElementById('topUserName');
@@ -915,7 +917,7 @@
           <a class="nav-item" href="devmatch-client-dashboard.html#requests"><svg viewBox="0 0 24 24"><path d="M6 3h9l4 4v14H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"/><path d="M14 3v5h5M8 13h8m-8 4h8"/></svg>My Requests</a>
           <a class="nav-item" href="devmatch-discover-projects.html"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="m15.5 8.5-2 5-5 2 2-5z"/></svg>Discover Projects</a>
           <a class="nav-item" href="devmatch-find-developers.html"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"/><path d="M3 20a6 6 0 0 1 12 0m2-8a3 3 0 1 0 0-6m1 8a5 5 0 0 1 3 5"/></svg>Developers</a>
-          <a class="nav-item active" href="devmatch-favorites.html?role=client" aria-current="page"><svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78L12 21l8.84-8.61a5.5 5.5 0 0 0 0-7.78Z"/></svg>Favorites<span class="nav-count" id="favoriteCount">0</span></a>
+          <a class="nav-item active" href="devmatch-favorites.html?role=client" aria-current="page"><svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>Favorites<span class="nav-count" id="favoriteCount">0</span></a>
           <a class="nav-item" href="devmatch-notifications.html"><svg viewBox="0 0 24 24"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9m-8 13h4"/></svg>Notifications<span class="nav-count notification-count" id="clientNotificationCount">2</span></a>`;
         const account = document.querySelector('.side-nav[aria-label="Account navigation"]');
         if (account) account.innerHTML = `
@@ -923,8 +925,6 @@
           <a class="nav-item" href="devmatch-settings.html?role=client"><svg viewBox="0 0 24 24"><path d="M4 21v-7m0-4V3m8 18v-9m0-4V3m8 18v-5m0-4V3M1 14h6m2-6h6m2 8h6"/></svg>Settings</a>`;
         const intro = document.querySelector('.fav-heading>div>p:last-child');
         if (intro) intro.textContent = 'Projects and developers you saved for later.';
-        const topSearch = document.querySelector('.topbar .search input');
-        if (topSearch) topSearch.placeholder = 'Search projects, developers, skills...';
       }
     } catch (e) {}
   }

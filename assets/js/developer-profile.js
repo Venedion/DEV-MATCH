@@ -73,7 +73,7 @@ document.getElementById('clientInitials').textContent=(client.displayName||'Clie
 const favoriteButton=document.getElementById('favoriteDeveloper');
 function renderFavoriteButton(saved){
   favoriteButton.setAttribute('aria-pressed',String(saved));
-  favoriteButton.innerHTML=`<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78L12 21l8.84-8.61a5.5 5.5 0 0 0 0-7.78Z"/></svg><span>${saved?'Favorited':'Favorite'}</span>`;
+  favoriteButton.innerHTML=`<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg><span>${saved?'Favorited':'Favorite'}</span>`;
 }
 renderFavoriteButton(favorites.includes(favoriteId));
 favoriteButton.addEventListener('click',()=>{
@@ -120,7 +120,7 @@ function renderProjects(){
   const sort=sortSelect.value;
   items.sort((a,b)=>sort==='title'?a.title.localeCompare(b.title):sort==='newest'?portfolio.indexOf(a)-portfolio.indexOf(b):viewCount(b.views)-viewCount(a.views));
   grid.innerHTML=items.map(item=>`<article class="portfolio-card">
-    <div class="portfolio-art ${escapeHtml(item.art)}"><span class="art-tag">${escapeHtml(item.type)}</span><button type="button" class="project-favorite" data-project-favorite="${escapeHtml(item.id)}" aria-label="${savedProjects.includes(item.id)?'Remove':'Add'} ${escapeHtml(item.title)} ${savedProjects.includes(item.id)?'from':'to'} favorites" aria-pressed="${savedProjects.includes(item.id)}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78L12 21l8.84-8.61a5.5 5.5 0 0 0 0-7.78Z"/></svg></button>${artContent(item)}</div>
+    <div class="portfolio-art ${escapeHtml(item.art)}"><span class="art-tag">${escapeHtml(item.type)}</span><button type="button" class="project-favorite" data-project-favorite="${escapeHtml(item.id)}" aria-label="${savedProjects.includes(item.id)?'Remove':'Add'} ${escapeHtml(item.title)} ${savedProjects.includes(item.id)?'from':'to'} favorites" aria-pressed="${savedProjects.includes(item.id)}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></button>${artContent(item)}</div>
     <div class="portfolio-card-body"><div class="project-card-meta"><b>${escapeHtml(item.category)}</b><span>${escapeHtml(item.age)}</span></div><h3>${escapeHtml(item.title)}</h3><p>${escapeHtml(item.description)}</p><div class="portfolio-price"><span><small> ${item.price.includes('—')?'CUSTOM QUOTE':'STARTING FROM'}</small><b>${escapeHtml(item.price)}</b></span><a href="devmatch-discover-projects.html" aria-label="Explore ${escapeHtml(item.title)}">→</a></div><div class="portfolio-by"><span>${escapeHtml(initials)}</span><b>${escapeHtml(profileName)}</b><small>◎ ${escapeHtml(item.views)} &nbsp;♡ ${escapeHtml(item.favorites)}</small></div></div>
   </article>`).join('');
   document.querySelectorAll('[data-project-favorite]').forEach(button=>button.addEventListener('click',()=>{

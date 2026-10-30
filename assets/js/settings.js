@@ -134,8 +134,10 @@
   }
 
   function updateAvatarPreview() {
-    const name = profileData.displayName || (isDeveloper ? 'Developer' : 'Client');
-    const initials = name.trim().split(/\s+/).filter(Boolean).slice(0, 2).map(p => p[0]).join('').toUpperCase() || 'DM';
+    const name = typeof profileData.displayName === 'string' && profileData.displayName.trim()
+      ? profileData.displayName.trim()
+      : (isDeveloper ? 'Rizky Aditya' : 'Client');
+    const initials = name.trim().split(/\s+/).filter(Boolean).slice(0, 2).map(p => p[0]).join('').toUpperCase() || 'RA';
 
     if (userAvatarEl) userAvatarEl.textContent = initials;
     if (topUserNameEl) topUserNameEl.textContent = name;
@@ -339,15 +341,36 @@
   function setupWorkspaceLinks() {
     document.body.classList.toggle('client-shell-page', !isDeveloper);
     if (!isDeveloper) {
-      const messagesLink = document.querySelector('.side-nav a[href="devmatch-chat.html"], .side-nav a[href="devmatch-chat.html?role=client"]');
-      if (messagesLink) messagesLink.href = 'devmatch-chat.html?role=client';
+      const updateNavLink = (label, href, replacementLabel = label) => {
+        const link = [...document.querySelectorAll('.side-nav a')]
+          .find(item => item.textContent.trim().startsWith(label));
+        if (!link) return;
+
+        link.href = href;
+        const textNode = [...link.childNodes]
+          .find(node => node.nodeType === Node.TEXT_NODE && node.textContent.trim());
+        if (textNode) textNode.textContent = ` ${replacementLabel}`;
+      };
+
+      const brand = document.querySelector('.topbar .brand');
+      if (brand) brand.href = 'devmatch-client-dashboard.html';
+      const userLink = document.querySelector('.topbar .user-menu');
+      if (userLink) userLink.href = 'devmatch-my-profile.html?role=client';
+
+      updateNavLink('Overview', 'devmatch-client-dashboard.html#home', 'Home');
+      updateNavLink('Messages', 'devmatch-chat.html?role=client');
+      updateNavLink('My Projects', 'devmatch-client-dashboard.html#requests', 'My Requests');
+      updateNavLink('Find Projects', 'devmatch-discover-projects.html', 'Discover Projects');
+      updateNavLink('Find Clients', 'devmatch-find-developers.html', 'Developers');
+      updateNavLink('Favorites', 'devmatch-favorites.html?role=client');
+      updateNavLink('Notifications', 'devmatch-notifications.html');
+      updateNavLink('Profile', 'devmatch-my-profile.html?role=client');
+      updateNavLink('Settings', 'devmatch-settings.html?role=client');
+
       const notificationsUrl = 'devmatch-notifications.html';
       document.querySelectorAll('.notification-button, .client-icon-button').forEach(link => {
         link.href = notificationsUrl;
       });
-      const notificationsLink = [...document.querySelectorAll('.side-nav a, .client-nav a')]
-        .find(link => link.textContent.trim().startsWith('Notifications'));
-      if (notificationsLink) notificationsLink.href = notificationsUrl;
       document.querySelectorAll('.mode').forEach(m => m.classList.remove('active'));
       const clientMode = document.querySelector('.mode-switch a[href*="client"]');
       if (clientMode) clientMode.classList.add('active');
@@ -363,10 +386,6 @@
         sideAdd.innerHTML = `<svg viewBox="0 0 24 24"><path d="M12 5v14m-7-7h14"/></svg>Post a Request`;
       }
 
-      const overviewLink = document.querySelector('.side-nav a[href="devmatch-dashboard.html"]');
-      if (overviewLink) {
-        overviewLink.href = 'devmatch-client-dashboard.html';
-      }
     }
   }
 

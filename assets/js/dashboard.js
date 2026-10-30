@@ -1,7 +1,9 @@
 const profile=JSON.parse(localStorage.getItem('devmatch-profile-dev')||'{}');
-const displayName=profile.displayName||'Developer';
+const displayName=typeof profile.displayName==='string'&&profile.displayName.trim()
+  ? profile.displayName.trim()
+  : 'Rizky Aditya';
 const nameParts=displayName.trim().split(/\s+/).filter(Boolean);
-document.getElementById('welcomeName').textContent=nameParts[0]||'Developer';
+document.getElementById('welcomeName').textContent=nameParts[0]||'Rizky';
 document.getElementById('topUserName').textContent=displayName;
 document.getElementById('userAvatar').textContent=nameParts.slice(0,2).map(part=>part[0]).join('').toUpperCase()||'DM';
 const notificationReadIds=new Set(JSON.parse(localStorage.getItem('devmatch-dev-notifications-read')||'[]'));

@@ -1,9 +1,11 @@
 const workspace=document.body.dataset.workspace||'client';
 const profile=JSON.parse(localStorage.getItem(`devmatch-profile-${workspace}`)||'{}');
-const clientName=profile.displayName||(workspace==='dev'?'Developer':'Client');
+const clientName=typeof profile.displayName==='string'&&profile.displayName.trim()
+  ? profile.displayName.trim()
+  : (workspace==='dev'?'Rizky Aditya':'Client');
 const clientNameParts=clientName.trim().split(/\s+/).filter(Boolean);
 document.getElementById('topUserName').textContent=clientName;
-document.getElementById('userAvatar').textContent=clientNameParts.slice(0,2).map(part=>part[0]).join('').toUpperCase()||(workspace==='dev'?'DM':'CL');
+document.getElementById('userAvatar').textContent=clientNameParts.slice(0,2).map(part=>part[0]).join('').toUpperCase()||(workspace==='dev'?'RA':'CL');
 
 const readStorageKey=`devmatch-${workspace}-notifications-read`;
 const preferencesStorageKey=`devmatch-${workspace}-notification-preferences`;

@@ -1,9 +1,126 @@
 (function () {
   'use strict';
 
-  const isClientMode = new URLSearchParams(window.location.search).get('role') === 'client'
-    || document.body.classList.contains('client-shell-page')
-    || document.body.dataset.workspace === 'client';
+  const modeSwitchStorageKey = 'devmatch-mode-switch-navigation';
+  const modeSwitchSelector = '.mode-switch a, .client-mode-switch a';
+  const mobileNavigationBreakpoint = window.matchMedia('(max-width: 820px)');
+
+  function getMode(link) {
+    return link.textContent.trim().toLowerCase().includes('client mode')
+      ? 'client'
+      : 'developer';
+  }
+
+  function setModeSwitchDestinations() {
+    document.querySelectorAll(modeSwitchSelector).forEach(link => {
+      const destination = getMode(link) === 'client'
+        ? 'devmatch-client-dashboard.html'
+        : 'devmatch-dashboard.html';
+      link.href = destination;
+    });
+  }
+
+  setModeSwitchDestinations();
+
+  const header = document.querySelector('header.topbar, header.client-topbar, header.profile-topbar');
+  const sidebar = document.querySelector('body > .sidebar, body > .client-sidebar');
+  const modeSwitch = document.querySelector('.mode-switch, .client-mode-switch');
+  const mobileMenuButton = document.createElement('button');
+  const mobileNavigationBackdrop = document.createElement('button');
+
+  function setMobileNavigationOpen(isOpen) {
+    document.body.classList.toggle('mobile-navigation-open', isOpen);
+    mobileMenuButton.setAttribute('aria-expanded', String(isOpen));
+    mobileMenuButton.setAttribute('aria-label', isOpen ? 'Close navigation' : 'Open navigation');
+  }
+
+  function setMobileModeMenuOpen(isOpen) {
+    if (!modeSwitch) return;
+    modeSwitch.classList.toggle('mobile-mode-open', isOpen);
+    modeSwitch.querySelectorAll('a').forEach(link => {
+      link.setAttribute('aria-expanded', String(isOpen && link.classList.contains('active')));
+    });
+  }
+
+  if (header && sidebar) {
+    sidebar.id ||= 'mobileNavigation';
+    mobileMenuButton.className = 'mobile-menu-toggle';
+    mobileMenuButton.type = 'button';
+    mobileMenuButton.setAttribute('aria-label', 'Open navigation');
+    mobileMenuButton.setAttribute('aria-controls', sidebar.id);
+    mobileMenuButton.setAttribute('aria-expanded', 'false');
+    mobileMenuButton.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg>';
+    header.insertBefore(mobileMenuButton, header.firstElementChild);
+
+    mobileNavigationBackdrop.className = 'mobile-navigation-backdrop';
+    mobileNavigationBackdrop.type = 'button';
+    mobileNavigationBackdrop.setAttribute('aria-label', 'Close navigation');
+    mobileNavigationBackdrop.tabIndex = -1;
+    document.body.appendChild(mobileNavigationBackdrop);
+  }
+
+  const activeModeLink = document.querySelector(
+    '.mode-switch a.active, .client-mode-switch a.active'
+  );
+  const isClientMode = activeModeLink
+    ? getMode(activeModeLink) === 'client'
+    : (
+      new URLSearchParams(window.location.search).get('role') === 'client'
+      || document.body.classList.contains('client-shell-page')
+      || document.body.dataset.workspace === 'client'
+    );
+
+  function getWorkspaceProfile(workspace) {
+    const storageKey = `devmatch-profile-${workspace}`;
+
+    try {
+      const storedProfile = localStorage.getItem(storageKey);
+      if (storedProfile === null) return {};
+
+      const profile = JSON.parse(storedProfile);
+      if (profile && typeof profile === 'object' && !Array.isArray(profile)) {
+        return profile;
+      }
+
+      console.warn(`Expected an object in localStorage key "${storageKey}".`);
+    } catch (error) {
+      console.warn(`Could not read profile from localStorage key "${storageKey}".`, error);
+    }
+
+    return {};
+  }
+
+  function updateHeaderProfile() {
+    const workspace = isClientMode ? 'client' : 'dev';
+    const role = isClientMode ? 'Client' : 'Developer';
+    const fallbackName = isClientMode ? 'Client User' : 'Rizky Aditya';
+    const profile = getWorkspaceProfile(workspace);
+    const displayName = typeof profile.displayName === 'string'
+      ? profile.displayName.trim() || fallbackName
+      : fallbackName;
+    const initials = displayName
+      .split(/\s+/)
+      .filter(Boolean)
+      .slice(0, 2)
+      .map(part => part[0])
+      .join('')
+      .toUpperCase();
+    const header = document.querySelector('header');
+    const userLink = header?.querySelector('.user-menu, .client-user, .user-link');
+
+    if (!userLink) return;
+
+    const nameElement = userLink.querySelector('b');
+    const roleElement = userLink.querySelector('small');
+    const avatarElement = userLink.querySelector('.user-avatar, .client-avatar');
+
+    if (nameElement) nameElement.textContent = displayName;
+    if (roleElement) roleElement.textContent = role;
+    if (avatarElement) avatarElement.textContent = initials || (isClientMode ? 'CU' : 'RA');
+    userLink.href = `devmatch-my-profile.html?role=${workspace}`;
+  }
+
+  updateHeaderProfile();
 
   function readStoredArray(key, fallback, legacyKey) {
     try {
@@ -62,34 +179,56 @@
     return ['jessica-comment', 'rizky-message'].filter(id => !readIds.has(id)).length;
   }
 
-  function updateBadge(selector, count) {
-    document.querySelectorAll(selector).forEach(badge => {
+  function updateHeaderNotificationDot(unreadCount) {
+    const notificationLink = document.querySelector(
+      'header .notification-button, header .client-icon-button'
+    );
+    if (!notificationLink) return;
+
+    let dot = notificationLink.querySelector('i');
+    if (!dot) {
+      dot = document.createElement('i');
+      dot.setAttribute('aria-hidden', 'true');
+      notificationLink.appendChild(dot);
+    }
+
+    dot.hidden = unreadCount === 0;
+  }
+
+  function updateLinkBadge(selector, type, count) {
+    document.querySelectorAll(selector).forEach(link => {
+      let badge = link.querySelector('.nav-count, .client-nav-count, .client-notification-count');
+      if (!badge) {
+        badge = document.createElement('span');
+        badge.className = link.classList.contains('client-nav-item') ? 'client-nav-count' : 'nav-count';
+        link.appendChild(badge);
+      }
+
+      badge.classList.remove('nav-count-message', 'nav-count-favorites', 'nav-count-notifications');
+      badge.classList.add(`nav-count-${type}`);
+      badge.style.removeProperty('background');
+      badge.style.removeProperty('color');
       badge.textContent = String(count);
       badge.hidden = count === 0;
+      badge.style.display = count === 0 ? 'none' : '';
     });
   }
 
   function updateNavBadges() {
-    updateBadge(
-      '.chat-unread-total-badge, nav a[href^="devmatch-chat.html"] .nav-count, nav a[href^="devmatch-chat.html"] .client-nav-count',
-      getUnreadMessageCount()
+    const unreadNotificationCount = getUnreadNotificationCount();
+    updateLinkBadge('nav a[href^="devmatch-chat.html"]', 'message', getUnreadMessageCount());
+    updateLinkBadge('nav a[href^="devmatch-favorites.html"]', 'favorites', getFavoriteCount());
+    updateLinkBadge(
+      'nav a[href^="devmatch-developer-notifications.html"], nav a[href^="devmatch-notifications.html"]',
+      'notifications',
+      unreadNotificationCount
     );
-    updateBadge(
-      '.favorites-count-badge, nav a[href^="devmatch-favorites.html"] .nav-count, nav a[href^="devmatch-favorites.html"] .client-nav-count',
-      getFavoriteCount()
-    );
-    updateBadge(
-      '#developerNotificationCount, #clientNotificationCount, #sidebarUnreadCount, nav a[href^="devmatch-developer-notifications.html"] .nav-count, nav a[href^="devmatch-notifications.html"] .nav-count, nav a[href^="devmatch-notifications.html"] .client-nav-count',
-      getUnreadNotificationCount()
-    );
+    updateHeaderNotificationDot(unreadNotificationCount);
   }
 
   window.DEVMATCH_NAV_BADGES = {
     updateFavorites: function () {
-      updateBadge(
-        '.favorites-count-badge, nav a[href^="devmatch-favorites.html"] .nav-count, nav a[href^="devmatch-favorites.html"] .client-nav-count',
-        getFavoriteCount()
-      );
+      updateLinkBadge('nav a[href^="devmatch-favorites.html"]', 'favorites', getFavoriteCount());
     }
   };
   updateNavBadges();
@@ -99,8 +238,41 @@
     if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
     if (!(event.target instanceof Element)) return;
 
+    if (event.target.closest('.mobile-menu-toggle')) {
+      setMobileNavigationOpen(!document.body.classList.contains('mobile-navigation-open'));
+      return;
+    }
+
+    if (event.target.closest('.mobile-navigation-backdrop')) {
+      setMobileNavigationOpen(false);
+      return;
+    }
+
+    const modeLink = event.target.closest(modeSwitchSelector);
+    if (modeLink && mobileNavigationBreakpoint.matches && modeLink.classList.contains('active')) {
+      event.preventDefault();
+      setMobileModeMenuOpen(!modeSwitch.classList.contains('mobile-mode-open'));
+      return;
+    }
+
+    if (modeLink && !modeLink.classList.contains('active') && !modeLink.target) {
+      setMobileModeMenuOpen(false);
+      const activeLink = modeLink.parentElement.querySelector('.active');
+      if (activeLink) {
+        try {
+          sessionStorage.setItem(
+            modeSwitchStorageKey,
+            `${getMode(activeLink)}:${Date.now()}`
+          );
+        } catch (error) {
+          console.warn('Could not save the previous workspace mode.', error);
+        }
+      }
+    }
+
     const link = event.target.closest('nav a.nav-item, nav a.client-nav-item');
     if (!link || link.target || link.hasAttribute('download')) return;
+    setMobileNavigationOpen(false);
 
     const label = link.textContent.trim().toLowerCase();
     if (label === 'home' || label === 'overview') return;
@@ -112,5 +284,11 @@
       && destination.hash === current.hash) {
       event.preventDefault();
     }
+  });
+
+  document.addEventListener('keydown', event => {
+    if (event.key !== 'Escape') return;
+    setMobileNavigationOpen(false);
+    setMobileModeMenuOpen(false);
   });
 })();

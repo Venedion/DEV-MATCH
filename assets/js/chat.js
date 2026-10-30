@@ -363,6 +363,18 @@
   const detailPaneEl = document.getElementById('chatDetailPane');
   const toggleDetailBtn = document.getElementById('toggleDetailBtn');
   const closeDetailBtn = document.getElementById('closeDetailBtn');
+  const mobileChatBreakpoint = window.matchMedia('(max-width: 820px)');
+
+  if (mobileChatBreakpoint.matches && detailPaneEl) {
+    detailPaneEl.classList.add('closed');
+  }
+
+  mobileChatBreakpoint.addEventListener('change', event => {
+    if (detailPaneEl) {
+      detailPaneEl.classList.toggle('closed', event.matches);
+    }
+  });
+
   const totalBadgeEl = document.getElementById('chatTotalBadge');
   const markAllReadBtn = document.getElementById('markAllReadBtn');
 
@@ -993,8 +1005,10 @@
       document.body.classList.toggle('client-shell-page', isClientRole);
       const storageKey = isClientRole ? 'devmatch-profile-client' : 'devmatch-profile-dev';
       const profile = JSON.parse(localStorage.getItem(storageKey) || '{}');
-      const name = profile.displayName || (isClientRole ? 'Client' : 'Developer');
-      const initials = name.trim().split(/\s+/).filter(Boolean).slice(0, 2).map(p => p[0]).join('').toUpperCase() || 'DM';
+      const name = typeof profile.displayName === 'string' && profile.displayName.trim()
+        ? profile.displayName.trim()
+        : (isClientRole ? 'Client' : 'Rizky Aditya');
+      const initials = name.trim().split(/\s+/).filter(Boolean).slice(0, 2).map(p => p[0]).join('').toUpperCase() || 'RA';
       const updateNavLabel = (link, label) => {
         const textNode = link && Array.from(link.childNodes).find(node => node.nodeType === Node.TEXT_NODE && node.textContent.trim());
         if (textNode) textNode.textContent = ` ${label} `;
@@ -1008,8 +1022,14 @@
       if (isClientRole) {
         const devModeLink = document.getElementById('devModeLink');
         const clientModeLink = document.getElementById('clientModeLink');
-        if (devModeLink) devModeLink.classList.remove('active');
-        if (clientModeLink) clientModeLink.classList.add('active');
+        if (devModeLink) {
+          devModeLink.classList.remove('active');
+          devModeLink.href = 'devmatch-dashboard.html';
+        }
+        if (clientModeLink) {
+          clientModeLink.classList.add('active');
+          clientModeLink.href = 'devmatch-client-dashboard.html';
+        }
         const messagesLink = document.querySelector('.side-nav a[href="devmatch-chat.html"], .side-nav a[href="devmatch-chat.html?role=client"]');
         if (messagesLink) messagesLink.href = 'devmatch-chat.html?role=client';
 

@@ -75,7 +75,7 @@ function projectCardMarkup(project,discover=false){
       <div class="project-art ${project.art}">
         <span class="art-label">${escapeHtml(project.type)}</span>
         <button class="favorite-button" type="button" data-favorite="${escapeHtml(project.id)}" aria-pressed="${favorite}" aria-label="${favorite?'Remove from':'Add to'} favorites">
-          <svg viewBox="0 0 24 24"><path d="m20.8 4.6-1.4-1.4a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8L12 21l8.8-8.6a5.5 5.5 0 0 0 0-7.8z"/></svg>
+          <svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
         </button>
         ${artMarkup(project)}
       </div>

@@ -102,8 +102,8 @@
     document.body.classList.toggle('profile-preview-mode',isPreview);
     document.title=`${displayName} — My Profile | DEV-MATCH`;
     document.querySelectorAll('#brandLink,#overviewLink').forEach(link=>link.href=dashboardUrl);
-    setLink('devModeLink',`devmatch-my-profile.html?role=dev`);
-    setLink('clientModeLink',`devmatch-my-profile.html?role=client`);
+    setLink('devModeLink','devmatch-dashboard.html');
+    setLink('clientModeLink','devmatch-client-dashboard.html');
     document.getElementById('devModeLink').classList.toggle('active',isDeveloper);
     document.getElementById('clientModeLink').classList.toggle('active',!isDeveloper);
     setLink('notificationsLink',notificationsUrl);

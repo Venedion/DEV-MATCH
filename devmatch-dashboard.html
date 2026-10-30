@@ -6,15 +6,38 @@
   <title>Developer dashboard — DEV-MATCH</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="assets/css/dashboard.css?v=20261024-project-editor">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=optional" rel="stylesheet">
+  <link rel="stylesheet" href="assets/css/dashboard.css?v=20261030-fixed-profile-width">
+  <link rel="stylesheet" href="assets/css/mode-switch-animation.css?v=20261030-active-indicator">
+  <link rel="stylesheet" href="assets/css/mobile-navigation.css?v=20261031-mobile-left-spacing-fix">
+  <script>
+    (() => {
+      const storageKey = 'devmatch-mode-switch-navigation';
+      try {
+        const stored = sessionStorage.getItem(storageKey);
+        if (!stored) return;
+
+        sessionStorage.removeItem(storageKey);
+        const [previousMode, timestamp] = stored.split(':');
+        const currentMode = location.pathname.endsWith('devmatch-client-dashboard.html')
+          ? 'client'
+          : 'developer';
+        if (Date.now() - Number(timestamp) >= 5000 || previousMode === currentMode) return;
+        if (previousMode === 'client' || previousMode === 'developer') {
+          document.documentElement.classList.add(`mode-switch-arrive-from-${previousMode}`);
+        }
+      } catch (error) {
+        console.warn('Could not restore the previous workspace mode.', error);
+      }
+    })();
+  </script>
 </head>
-<body>
+<body class="page-scroll-shell">
   <header class="topbar">
     <a class="brand" href="devmatch-dashboard.html"><i>&lt;/&gt;</i><span>DEV-MATCH</span></a>
     <label class="search">
       <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
-      <input id="searchInput" type="search" placeholder="Search project requests, clients...">
+      <input id="searchInput" type="search" placeholder="Search">
       <kbd>⌘K</kbd>
     </label>
     <div class="top-actions">
@@ -37,7 +60,7 @@
       <a class="nav-item" href="devmatch-my-projects.html"><svg viewBox="0 0 24 24"><path d="M3 6a2 2 0 0 1 2-2h5l2 2h7a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>My Projects</a>
       <a class="nav-item" href="devmatch-find-projects.html"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="m15.5 8.5-2 5-5 2 2-5z"/></svg>Find Projects</a>
       <a class="nav-item" href="devmatch-find-clients.html"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"/><path d="M3 20a6 6 0 0 1 12 0m2-8a3 3 0 1 0 0-6m1 8a5 5 0 0 1 3 5"/></svg>Find Clients</a>
-      <a class="nav-item" href="devmatch-favorites.html"><svg viewBox="0 0 24 24"><path d="m20.8 4.6-1.4-1.4a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8L12 21l8.8-8.6a5.5 5.5 0 0 0 0-7.8z"/></svg>Favorites</a>
+      <a class="nav-item" href="devmatch-favorites.html"><svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>Favorites</a>
       <a class="nav-item" href="devmatch-developer-notifications.html"><svg viewBox="0 0 24 24"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9m-8 13h4"/></svg>Notifications<span class="nav-count" id="developerNotificationCount">2</span></a>
     </nav>
     <span class="nav-label account-label">Account</span>
@@ -57,7 +80,7 @@
     <section class="stats" aria-label="Project statistics">
       <article class="stat-card"><div class="stat-top"><span>Total Projects</span><span class="stat-icon"><svg viewBox="0 0 24 24"><path d="M3 6a2 2 0 0 1 2-2h5l2 2h7a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg></span></div><strong id="totalProjects">12</strong><p><span class="trend">↗ +2 this month</span><span class="comparison">vs last 30 days</span></p></article>
       <article class="stat-card"><div class="stat-top"><span>Total Views</span><span class="stat-icon"><svg viewBox="0 0 24 24"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg></span></div><strong id="totalViews">12,480</strong><p><span class="trend">↗ +12.4%</span><span class="comparison">vs last 30 days</span></p></article>
-      <article class="stat-card"><div class="stat-top"><span>Total Favorites</span><span class="stat-icon"><svg viewBox="0 0 24 24"><path d="m20.8 4.6-1.4-1.4a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8L12 21l8.8-8.6a5.5 5.5 0 0 0 0-7.8z"/></svg></span></div><strong>864</strong><p><span class="trend">↗ +8.1%</span><span class="comparison">vs last 30 days</span></p></article>
+      <article class="stat-card"><div class="stat-top"><span>Total Favorites</span><span class="stat-icon"><svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></span></div><strong>864</strong><p><span class="trend">↗ +8.1%</span><span class="comparison">vs last 30 days</span></p></article>
       <article class="stat-card"><div class="stat-top"><span>Total Comments</span><span class="stat-icon"><svg viewBox="0 0 24 24"><path d="M21 11.5a8.5 8.5 0 0 1-8.5 8.5H4l1.5-4A8.5 8.5 0 1 1 21 11.5z"/></svg></span></div><strong>156</strong><p><span class="trend">↗ +5.3%</span><span class="comparison">vs last 30 days</span></p></article>
     </section>
 
@@ -94,7 +117,7 @@
       <article class="panel interactions-panel">
         <div class="panel-heading"><h2>Client interactions</h2><a href="#interactions">See all</a></div>
         <div class="interaction-list">
-          <p><span class="interaction-icon"><svg viewBox="0 0 24 24"><path d="m20.8 4.6-1.4-1.4a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8L12 21l8.8-8.6a5.5 5.5 0 0 0 0-7.8z"/></svg></span><span><b>Jessica Sitorus</b> favorited Restaurant Website<small>15 minutes ago</small></span></p>
+          <p><span class="interaction-icon"><svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></span><span><b>Jessica Sitorus</b> favorited Restaurant Website<small>15 minutes ago</small></span></p>
           <p><span class="interaction-icon message"><svg viewBox="0 0 24 24"><path d="M21 11.5a8.5 8.5 0 0 1-8.5 8.5H4l1.5-4A8.5 8.5 0 1 1 21 11.5z"/></svg></span><span><b>Anindya</b> commented on Klinik Booking App<small>1 hour ago</small></span></p>
           <p><span class="interaction-icon view"><svg viewBox="0 0 24 24"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg></span><span><b>8 new clients</b> viewed your projects<small>Today</small></span></p>
         </div>
@@ -108,6 +131,6 @@
     <span class="floating-chat-badge" id="floatingChatBadge">3</span>
   </a>
   <script src="assets/js/dashboard.js?v=20261024-project-editor"></script>
-  <script src="assets/js/nav-behavior.js"></script>
+  <script src="assets/js/nav-behavior.js?v=20261031-mobile-nav-consistency"></script>
 </body>
 </html>

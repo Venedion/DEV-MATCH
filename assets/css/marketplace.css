@@ -10,12 +10,12 @@
 .marketplace-client-page .nav-label{font-size:12px}
 .marketplace-client-page .nav-count.notification-count{background:#fee9e9;color:#d43b3b}
 .marketplace-client-page .nav-count[hidden]{display:none}
-.marketplace-main{max-width:1700px;margin:0 auto;padding:82px 34px 48px calc(var(--sidebar) + 34px)}
+.marketplace-main{--page-scroll-top:82px;--page-scroll-mobile-top:71px;max-width:1700px;margin:0 auto;padding:82px 34px 48px calc(var(--sidebar) + 34px)}
 .market-hero{position:relative;isolation:isolate;overflow:hidden;padding:32px 36px 25px;border:1px solid #e8e8ea;border-radius:20px;background:linear-gradient(115deg,#fff 0%,#fff 65%,#f0f3f1 100%)}
 .market-hero:after{position:absolute;z-index:-1;right:-40px;top:-150px;width:340px;height:340px;border:1px solid #e6e9e7;border-radius:50%;content:"";box-shadow:0 0 0 35px #ffffff76,0 0 0 70px #ffffff4a}
 .market-eyebrow{display:flex;align-items:center;gap:7px;color:#666a73;font-size:11.5px;font-weight:800;letter-spacing:.07em}
 .market-eyebrow>span{width:7px;height:7px;border-radius:50%;background:var(--market-green)}
-.market-hero h1{margin-top:11px;font-size:clamp(28px,3vw,30px);font-weight:800;line-height:1.2;letter-spacing:-.03em}
+.market-hero h1{margin-top:11px;font-size:28px;font-weight:800;line-height:1.2;letter-spacing:-.035em}
 .market-intro{max-width:660px;margin-top:8px;color:var(--market-muted);font-size:14.5px;line-height:1.6}
 .market-search{position:relative;z-index:1;display:flex;align-items:center;gap:11px;width:min(100%,850px);height:50px;margin-top:20px;padding:5px 6px 5px 15px;border:1px solid #dfe0e3;border-radius:12px;background:#fff;box-shadow:0 5px 16px #1717190a}
 .market-search>svg{width:19px;height:19px;color:#717680}

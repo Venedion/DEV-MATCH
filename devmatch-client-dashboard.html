@@ -6,16 +6,39 @@
   <title>Client dashboard — DEV-MATCH</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="assets/css/client-dashboard.css?v=20261028-project-detail-click">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=optional" rel="stylesheet">
+  <link rel="stylesheet" href="assets/css/client-dashboard.css?v=20261030-header-profile-sizing">
   <link rel="stylesheet" href="assets/css/project-detail.css">
+  <link rel="stylesheet" href="assets/css/mode-switch-animation.css?v=20261030-active-indicator">
+  <link rel="stylesheet" href="assets/css/mobile-navigation.css?v=20261031-mobile-left-spacing-fix">
+  <script>
+    (() => {
+      const storageKey = 'devmatch-mode-switch-navigation';
+      try {
+        const stored = sessionStorage.getItem(storageKey);
+        if (!stored) return;
+
+        sessionStorage.removeItem(storageKey);
+        const [previousMode, timestamp] = stored.split(':');
+        const currentMode = location.pathname.endsWith('devmatch-client-dashboard.html')
+          ? 'client'
+          : 'developer';
+        if (Date.now() - Number(timestamp) >= 5000 || previousMode === currentMode) return;
+        if (previousMode === 'client' || previousMode === 'developer') {
+          document.documentElement.classList.add(`mode-switch-arrive-from-${previousMode}`);
+        }
+      } catch (error) {
+        console.warn('Could not restore the previous workspace mode.', error);
+      }
+    })();
+  </script>
 </head>
-<body>
+<body class="page-scroll-shell">
   <header class="client-topbar">
     <a class="client-brand" href="devmatch-client-dashboard.html"><i>&lt;/&gt;</i><span>DEV-MATCH</span></a>
     <label class="client-search">
       <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
-      <input id="searchInput" type="search" placeholder="Search projects, developers, skills...">
+      <input id="searchInput" type="search" placeholder="Search">
       <kbd>⌘K</kbd>
     </label>
     <div class="client-top-actions">
@@ -38,7 +61,7 @@
       <a class="client-nav-item" href="#requests" data-request-nav><svg viewBox="0 0 24 24"><path d="M6 3h9l4 4v14H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"/><path d="M14 3v5h5M8 13h8m-8 4h8"/></svg>My Requests</a>
       <a class="client-nav-item" href="devmatch-discover-projects.html"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="m15.5 8.5-2 5-5 2 2-5z"/></svg>Discover Projects</a>
       <a class="client-nav-item" href="devmatch-find-developers.html"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"/><path d="M3 20a6 6 0 0 1 12 0m2-8a3 3 0 1 0 0-6m1 8a5 5 0 0 1 3 5"/></svg>Developers</a>
-      <a class="client-nav-item" href="devmatch-favorites.html?role=client"><svg viewBox="0 0 24 24"><path d="m20.8 4.6-1.4-1.4a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8L12 21l8.8-8.6a5.5 5.5 0 0 0 0-7.8z"/></svg>Favorites<span class="client-nav-count" id="favoriteCount">0</span></a>
+      <a class="client-nav-item" href="devmatch-favorites.html?role=client"><svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>Favorites<span class="client-nav-count" id="favoriteCount">0</span></a>
       <a class="client-nav-item" href="devmatch-notifications.html"><svg viewBox="0 0 24 24"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9m-8 13h4"/></svg>Notifications<span class="client-notification-count">2</span></a>
     </nav>
     <span class="client-nav-label account-label">Account</span>
@@ -358,6 +381,6 @@
   <script src="assets/js/projects-data.js"></script>
   <script src="assets/js/project-detail.js"></script>
   <script src="assets/js/client-dashboard.js?v=20261028-project-detail-click"></script>
-  <script src="assets/js/nav-behavior.js"></script>
+  <script src="assets/js/nav-behavior.js?v=20261031-mobile-nav-consistency"></script>
 </body>
 </html>

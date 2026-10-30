@@ -97,7 +97,7 @@
     if (art === 'dashboard-art') markup = '<div class="mini-bars"><i></i><i></i><i></i><i></i><i></i><i></i></div>';
     if (art === 'analytics-art') markup = '<div class="analytics-stats"><i></i><i></i><i></i></div><div class="analytics-graph"></div>';
     const favorite = favoriteIds.includes(item.id);
-    const favoriteButton = isRequestsPage || !includeFavorite ? '' : `<button class="favorite-button" type="button" data-favorite="${escapeHtml(item.id)}" aria-pressed="${favorite}" aria-label="${favorite ? 'Hapus dari' : 'Simpan ke'} Favorites"><svg viewBox="0 0 24 24"><path d="m20.8 4.6-1.4-1.4a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8L12 21l8.8-8.6a5.5 5.5 0 0 0 0-7.8z"/></svg></button>`;
+    const favoriteButton = isRequestsPage || !includeFavorite ? '' : `<button class="favorite-button" type="button" data-favorite="${escapeHtml(item.id)}" aria-pressed="${favorite}" aria-label="${favorite ? 'Remove from' : 'Save to'} Favorites"><svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></button>`;
     const artLabel = isRequestsPage ? `${item.category} · ${item.type}` : item.type;
     return `<div class="project-art ${escapeHtml(art)}"><span class="art-label">${escapeHtml(artLabel)}</span>${favoriteButton}<div class="art-window"><div class="art-header"><i></i><i></i><i></i></div><div class="art-layout"><div class="art-sidebar"></div><div class="art-content">${markup}</div></div></div></div>`;
   }
@@ -111,17 +111,17 @@
       <div class="project-by catalog-project-by">
         <span class="developer-avatar">${escapeHtml(item.initials)}</span>
         <span class="developer-info"><b>${escapeHtml(item.developer)}</b></span>
-        <span class="rating" aria-label="Rating 4.9 dari 5"><span>★</span> 4.9</span>
+        <span class="rating" aria-label="Rating 4.9 out of 5"><span>★</span> 4.9</span>
       </div>
-      <div class="catalog-actions"><button class="catalog-detail-link" type="button" data-detail="${escapeHtml(item.id)}">Lihat detail <span aria-hidden="true">→</span></button></div>`;
-    const requestContent = `<div class="project-meta"><span class="project-type-pill">${escapeHtml(item.type)}</span><span class="open-pill">Terbuka · ${escapeHtml(item.days)}</span></div>
+      <div class="catalog-actions"><button class="catalog-detail-link" type="button" data-detail="${escapeHtml(item.id)}">View details <span aria-hidden="true">→</span></button></div>`;
+    const requestContent = `<div class="project-meta"><span class="project-type-pill">${escapeHtml(item.type)}</span><span class="open-pill">Open · ${escapeHtml(item.days)}</span></div>
       <button class="project-title" type="button" data-detail="${escapeHtml(item.id)}">${escapeHtml(item.title)}</button>
       <p class="project-description">${escapeHtml(item.description)}</p>
       <strong class="request-budget">${escapeHtml(item.budgetLabel)}</strong>
       <div class="request-detail-row"><span><svg viewBox="0 0 24 24"><path d="M20 10c0 5-8 12-8 12S4 15 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="2"/></svg>${escapeHtml(item.location)}</span><span>${escapeHtml(item.client)}</span></div>
       <div class="tech-tags">${stack.map(value => `<span>${escapeHtml(value)}</span>`).join('')}</div>
-      <div class="card-actions"><a class="button-primary" href="devmatch-chat.html?role=dev&amp;request=${encodeURIComponent(item.id)}">Kirim Penawaran <span aria-hidden="true">→</span></a></div>`;
-    return `<article class="project-card${isRequestsPage ? '' : ' catalog-card'}" data-card-detail="${escapeHtml(item.id)}" tabindex="0" aria-label="Buka detail ${escapeHtml(item.title)}">
+      <div class="card-actions"><a class="button-primary" href="devmatch-chat.html?role=dev&amp;request=${encodeURIComponent(item.id)}">Submit proposal <span aria-hidden="true">→</span></a></div>`;
+    return `<article class="project-card${isRequestsPage ? '' : ' catalog-card'}" data-card-detail="${escapeHtml(item.id)}" tabindex="0" aria-label="Open details for ${escapeHtml(item.title)}">
       ${artwork(item)}
       <div class="project-body">
         ${isRequestsPage ? requestContent : catalogContent}
@@ -134,7 +134,8 @@
     document.querySelectorAll('[data-category-count]').forEach(label => {
       const category = label.dataset.categoryCount;
       const count = category === 'all' ? source.length : source.filter(item => category === 'Android / iOS' ? item.type === category : item.category === category).length;
-      label.textContent = `${count} proyek`;
+      const countLabel = count === 1 ? 'project' : 'projects';
+      label.textContent = `${count} ${countLabel}`;
     });
     categoryButtons.forEach(button => button.setAttribute('aria-pressed', String(button.dataset.category === activeCategory)));
   }
@@ -166,11 +167,17 @@
     grid.classList.toggle('is-list', view === 'list');
     grid.innerHTML = shown.map(renderProject).join('');
     emptyState.hidden = filtered.length !== 0;
-    summary.textContent = `Menampilkan ${filtered.length} proyek ditemukan`;
+    summary.textContent = isRequestsPage
+      ? `Showing ${filtered.length} ${filtered.length === 1 ? 'project' : 'projects'}`
+      : `Showing ${filtered.length} ${filtered.length === 1 ? 'project' : 'projects'}`;
     updateFavoriteCount();
     updateNotificationCount();
     const remaining = Math.max(0, filtered.length - shown.length);
-    remainingCount.textContent = remaining ? `Menampilkan ${shown.length} dari ${filtered.length} proyek` : '';
+    remainingCount.textContent = remaining
+      ? isRequestsPage
+        ? `Showing ${shown.length} of ${filtered.length} projects`
+        : `Showing ${shown.length} of ${filtered.length} projects`
+      : '';
     loadMoreButton.hidden = remaining === 0;
     updateCategoryCounts();
   }
@@ -192,10 +199,10 @@
     const location = item.location;
     const overview = isRequestsPage ? item.description : item.overview || item.description;
     const sections = isRequestsPage
-      ? `<h3>Kebutuhan utama</h3><ul>${item.features.map(feature => `<li>${escapeHtml(feature)}</li>`).join('')}</ul><h3>Tentang klien</h3><p>${escapeHtml(item.client)} sedang mencari developer untuk membantu operasional bisnisnya di ${escapeHtml(item.location)}.</p>`
-      : `<h3>Gambaran proyek</h3><p>${escapeHtml(overview)}</p><h3>Spesifikasi teknis</h3><p>Dibangun menggunakan ${escapeHtml(item.stack)} dengan tampilan responsif dan pengalaman yang optimal di desktop maupun mobile.</p><h3>Portofolio developer</h3><p>${escapeHtml(item.developerBio || `${item.developer} berpengalaman mengembangkan solusi digital untuk bisnis.`)}</p>`;
+      ? `<h3>Key requirements</h3><ul>${item.features.map(feature => `<li>${escapeHtml(feature)}</li>`).join('')}</ul><h3>About the client</h3><p>${escapeHtml(item.client)} is looking for a developer to support their business in ${escapeHtml(item.location)}.</p>`
+      : `<h3>Project overview</h3><p>${escapeHtml(overview)}</p><h3>Technical details</h3><p>Built with ${escapeHtml(item.stack)} and designed for a responsive, seamless experience on desktop and mobile.</p><h3>Developer portfolio</h3><p>${escapeHtml(item.developerBio || `${item.developer} has experience building digital solutions for businesses.`)}</p>`;
     const chatUrl = `devmatch-chat.html?${isRequestsPage ? 'role=dev&request=' : 'role=client&project='}${encodeURIComponent(item.id)}`;
-    dialogContent.innerHTML = `<span class="project-type-pill">${escapeHtml(item.category)} · ${escapeHtml(item.type)}</span><h2 id="dialogTitle">${escapeHtml(item.title)}</h2><p>${escapeHtml(item.description)}</p><div class="dialog-cover">${artwork(item, false)}</div>${sections}<div class="tech-tags">${stack.map(value => `<span>${escapeHtml(value)}</span>`).join('')}</div><div class="dialog-facts"><div class="dialog-fact"><small>${isRequestsPage ? 'Budget klien' : 'Harga proyek'}</small><b>${escapeHtml(isRequestsPage ? item.budgetLabel : item.price)}</b></div><div class="dialog-fact"><small>${isRequestsPage ? 'Klien' : 'Developer'}</small><b>${escapeHtml(owner)}</b></div><div class="dialog-fact"><small>Lokasi</small><b>${escapeHtml(location)}</b></div><div class="dialog-fact"><small>Status</small><b>${isRequestsPage ? 'Menerima penawaran' : `Dipublikasikan ${escapeHtml(item.created || item.age)}`}</b></div></div><div class="dialog-actions"><a class="button-primary" href="${chatUrl}">${isRequestsPage ? 'Hubungi klien' : 'Chat developer'} <span aria-hidden="true">→</span></a><button class="button-secondary" type="button" data-close-dialog>Tutup detail</button></div>`;
+    dialogContent.innerHTML = `<span class="project-type-pill">${escapeHtml(item.category)} · ${escapeHtml(item.type)}</span><h2 id="dialogTitle">${escapeHtml(item.title)}</h2><p>${escapeHtml(item.description)}</p><div class="dialog-cover">${artwork(item, false)}</div>${sections}<div class="tech-tags">${stack.map(value => `<span>${escapeHtml(value)}</span>`).join('')}</div><div class="dialog-facts"><div class="dialog-fact"><small>${isRequestsPage ? 'Client budget' : 'Project price'}</small><b>${escapeHtml(isRequestsPage ? item.budgetLabel : item.price)}</b></div><div class="dialog-fact"><small>${isRequestsPage ? 'Client' : 'Developer'}</small><b>${escapeHtml(owner)}</b></div><div class="dialog-fact"><small>Location</small><b>${escapeHtml(location)}</b></div><div class="dialog-fact"><small>Status</small><b>${isRequestsPage ? 'Accepting proposals' : `Published ${escapeHtml(item.created || item.age)}`}</b></div></div><div class="dialog-actions"><a class="button-primary" href="${chatUrl}">${isRequestsPage ? 'Contact client' : 'Chat with developer'} <span aria-hidden="true">→</span></a><button class="button-secondary" type="button" data-close-dialog>Close details</button></div>`;
     dialog.showModal();
   }
 

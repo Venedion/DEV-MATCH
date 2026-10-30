@@ -29,9 +29,10 @@
 }
 
 .fav-heading h1 {
-  font-size: 27px;
+  font-size: 28px;
+  font-weight: 800;
   line-height: 1.2;
-  letter-spacing: -0.04em;
+  letter-spacing: -0.035em;
   color: var(--ink);
   display: flex;
   align-items: center;

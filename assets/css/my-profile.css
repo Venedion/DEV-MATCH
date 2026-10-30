@@ -1,7 +1,7 @@
 :root{--profile-green:#15934f;--profile-green-bg:#e7f6ed;--profile-page:#f7f7f8;--profile-line:#e5e5e8;--profile-muted:#777982;--profile-ink:#171719}
 .profile-page{padding-top:82px;padding-bottom:48px}
 .profile-page-heading{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:18px}
-.profile-page-heading h1{font-size:26px;line-height:1.2;letter-spacing:-.05em}
+.profile-page-heading h1{font-size:28px;font-weight:800;line-height:1.2;letter-spacing:-.035em}
 .profile-page-heading .eyebrow{margin-bottom:4px}
 .profile-public-banner{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:15px;padding:12px 15px;border:1px solid var(--profile-line);border-radius:11px;background:#fff;color:#5d5f67;font-size:11px}
 .profile-public-banner a{color:var(--profile-ink);font-weight:700}
@@ -159,7 +159,7 @@ body{font-size:16px;line-height:1.55}
 .profile-page{font-size:15px;line-height:1.55}
 .profile-page-heading{margin-bottom:22px}
 .profile-page-heading .eyebrow{font-size:12px}
-.profile-page-heading h1{font-size:30px;font-weight:800;letter-spacing:-.03em}
+.profile-page-heading h1{font-size:28px;font-weight:800;letter-spacing:-.035em}
 .profile-public-banner{margin-bottom:18px;padding:14px 17px;font-size:13px}
 .edit-profile-button,.button{min-height:40px;padding:0 16px;font-size:14px;font-weight:600}
 .edit-profile-button svg,.button svg{width:17px;height:17px}
@@ -254,7 +254,7 @@ body.my-profile-page .sidebar nav a{line-height:normal}
 .topbar .mode{font-size:13px}
 .topbar .user-copy b{font-size:13px}
 .topbar .user-copy small{font-size:12px}
-.topbar .icon-button svg{width:19px;height:19px}
+.topbar .icon-button svg{width:17px;height:17px}
 @media(max-width:1220px){.topbar .mode{font-size:10px}}
 @media(max-width:1180px){
   .profile-page-heading h1{font-size:29px}

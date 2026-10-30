@@ -1,0 +1,55 @@
+@keyframes mode-indicator-from-client {
+  from {
+    transform: translateX(100%);
+  }
+
+  to {
+    transform: translateX(0);
+  }
+}
+
+@keyframes mode-indicator-from-developer {
+  from {
+    transform: translateX(0);
+  }
+
+  to {
+    transform: translateX(100%);
+  }
+}
+
+html.client-mode-route .mode-switch::before,
+html.client-mode-route .client-mode-switch::before {
+  transform: translateX(100%);
+}
+
+.mode-switch:has(> .mode:nth-child(2).active)::before,
+.client-mode-switch:has(> .client-mode:nth-child(2).active)::before {
+  transform: translateX(100%);
+}
+
+html.mode-switch-arrive-from-client .mode-switch::before,
+html.mode-switch-arrive-from-client .client-mode-switch::before {
+  animation: mode-indicator-from-client 420ms cubic-bezier(.2, .8, .2, 1) both;
+}
+
+html.mode-switch-arrive-from-developer .mode-switch::before,
+html.mode-switch-arrive-from-developer .client-mode-switch::before {
+  animation: mode-indicator-from-developer 420ms cubic-bezier(.2, .8, .2, 1) both;
+}
+
+.mode-switch::before,
+.client-mode-switch::before {
+  box-sizing: border-box;
+  transform-origin: left center;
+  will-change: transform;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html.mode-switch-arrive-from-client .mode-switch::before,
+  html.mode-switch-arrive-from-client .client-mode-switch::before,
+  html.mode-switch-arrive-from-developer .mode-switch::before,
+  html.mode-switch-arrive-from-developer .client-mode-switch::before {
+    animation-duration: 1ms;
+  }
+}
