@@ -1,4 +1,5 @@
 .mobile-menu-toggle,
+.mobile-search-toggle,
 .mobile-navigation-backdrop {
   display: none;
 }
@@ -24,6 +25,55 @@
 
 *::-webkit-scrollbar-thumb:hover {
   background: rgb(23 23 25 / 30%);
+}
+
+.header-account-dropdown {
+  position: absolute;
+  z-index: 100;
+  top: calc(100% + 6px);
+  right: 12px;
+  min-width: 180px;
+  display: grid;
+  gap: 3px;
+  padding: 6px;
+  border: 1px solid #e5e5e8;
+  border-radius: 10px;
+  background: #fff;
+  box-shadow: 0 10px 28px #17171924;
+}
+
+.header-account-dropdown[hidden] {
+  display: none;
+}
+
+.header-account-option {
+  min-height: 38px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 10px;
+  border-radius: 7px;
+  color: #33343a;
+  font-size: 13px;
+  font-weight: 500;
+  text-decoration: none;
+}
+
+.header-account-option:hover,
+.header-account-option:focus-visible {
+  background: #f3f3f5;
+  color: #171719;
+}
+
+.header-account-option svg {
+  width: 17px;
+  height: 17px;
+  flex: 0 0 17px;
+  color: #777982;
+}
+
+.account-return-button {
+  display: none;
 }
 
 @keyframes mobile-mode-panel-drop {
@@ -220,6 +270,12 @@
     color: #171719;
     font-size: 0;
     white-space: nowrap;
+  }
+
+  header.topbar .mode-switch > a,
+  header.profile-topbar .mode-switch > a,
+  header.client-topbar .client-mode-switch > a {
+    font-size: 0;
   }
 
   body.my-profile-page .topbar .mode-switch > .mode {
@@ -604,18 +660,150 @@
   header.client-topbar,
   header.profile-topbar {
     height: 56px;
-    grid-template-columns: 36px minmax(48px, 1fr) auto;
+    grid-template-columns: 32px auto minmax(0, 1fr) auto;
     gap: 6px;
     padding: 0 10px;
+  }
+
+  .mobile-search-toggle {
+    width: 34px;
+    height: 34px;
+    grid-column: 3;
+    grid-row: 1;
+    justify-self: end;
+    display: grid;
+    place-items: center;
+    padding: 0;
+    border: 0;
+    border-radius: 9px;
+    background: transparent;
+    color: #343945;
+    cursor: pointer;
+    opacity: 1;
+    transition: opacity 160ms ease;
+  }
+
+  .mobile-search-toggle svg {
+    width: 18px;
+    height: 18px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.8;
+    stroke-linecap: round;
+  }
+
+  header.mobile-header-search-open .mobile-search-toggle {
+    visibility: hidden;
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  header.topbar > .brand,
+  header.client-topbar > .client-brand,
+  header.profile-topbar > .brand {
+    width: auto;
+    min-width: 0;
+    grid-column: 2;
+    grid-row: 1;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    overflow: visible;
+    white-space: nowrap;
+    text-decoration: none;
+  }
+
+  header.topbar > .brand span,
+  header.client-topbar > .client-brand span,
+  header.profile-topbar > .brand span {
+    display: inline;
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: -.03em;
+  }
+
+  header.topbar > .search.mobile-header-search,
+  header.client-topbar > .client-search.mobile-header-search,
+  header.profile-topbar > .top-search.mobile-header-search {
+    box-sizing: border-box;
+    width: 0 !important;
+    min-width: 0 !important;
+    height: 34px;
+    grid-column: 3;
+    grid-row: 1;
+    justify-self: end;
+    gap: 6px;
+    overflow: hidden;
+    padding: 0 !important;
+    border-color: transparent !important;
+    opacity: 0;
+    pointer-events: none;
+    visibility: hidden;
+    transition: width 220ms ease, opacity 150ms ease, padding 220ms ease, border-color 150ms ease;
+  }
+
+  header.mobile-header-search-open > .search.mobile-header-search,
+  header.mobile-header-search-open > .client-search.mobile-header-search,
+  header.mobile-header-search-open > .top-search.mobile-header-search {
+    position: absolute;
+    left: 48px;
+    right: auto;
+    z-index: 1;
+    grid-area: auto;
+    justify-self: auto;
+    width: min(220px, calc(100vw - 132px)) !important;
+    padding: 0 8px !important;
+    border-color: #e5e5e8 !important;
+    opacity: 1;
+    pointer-events: auto;
+    visibility: visible;
+  }
+
+  header.mobile-header-search-open > .brand,
+  header.mobile-header-search-open > .client-brand {
+    visibility: hidden;
+  }
+
+  header.topbar .mobile-header-search input,
+  header.client-topbar .mobile-header-search input,
+  header.profile-topbar .mobile-header-search input {
+    width: 0;
+    min-width: 0;
+    flex: 1 1 auto;
+    padding: 0;
+    opacity: 0;
+    transition: opacity 150ms ease;
+  }
+
+  header.mobile-header-search-open .mobile-header-search input {
+    width: 100%;
+    opacity: 1;
+  }
+
+  header.topbar .mobile-header-search > svg,
+  header.client-topbar .mobile-header-search > svg,
+  header.profile-topbar .mobile-header-search > svg {
+    width: 16px;
+    height: 16px;
+    flex: 0 0 16px;
+  }
+
+  header.topbar > .top-actions,
+  header.client-topbar > .client-top-actions,
+  header.profile-topbar > .top-actions {
+    grid-column: 4;
+    grid-row: 1;
+  }
+
+  header.mobile-header-search-open > .top-actions > .mode-switch,
+  header.mobile-header-search-open > .client-top-actions > .client-mode-switch {
+    display: none !important;
   }
 
   header.topbar > .search,
   header.client-topbar > .client-search,
   header.profile-topbar > .top-search {
-    width: min(100%, 140px);
-    height: 34px;
-    gap: 5px;
-    padding: 0 8px;
+    max-width: 100%;
   }
 
   header.topbar .search input,
@@ -664,5 +852,40 @@
   .mode-switch.mobile-mode-open::before,
   .client-mode-switch.mobile-mode-open::before {
     animation-duration: 1ms;
+  }
+}
+
+@media (max-width: 820px) {
+  body.account-return-enabled.page-scroll-shell > .topbar ~ main {
+    padding-top: 8px !important;
+  }
+
+  body.account-return-enabled .account-return-button {
+    width: fit-content;
+    min-height: 18px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 2px;
+    margin: -4px 0 0;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    color: #777982;
+    font: inherit;
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+
+  body.account-return-enabled .account-return-button svg {
+    width: 13px;
+    height: 13px;
+    flex: 0 0 13px;
+  }
+
+  body.account-return-enabled .account-return-button:hover {
+    color: #171719;
   }
 }

@@ -8,9 +8,9 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=optional" rel="stylesheet">
   <link rel="stylesheet" href="assets/css/dashboard.css?v=20261030-fixed-profile-width">
-  <link rel="stylesheet" href="assets/css/my-projects.css?v=20261030-scroll-area">
+  <link rel="stylesheet" href="assets/css/my-projects.css?v=20261031-editor-scroll-spacing">
   <link rel="stylesheet" href="assets/css/mode-switch-animation.css?v=20261030-active-indicator">
-  <link rel="stylesheet" href="assets/css/mobile-navigation.css?v=20261031-mobile-left-spacing-fix">
+  <link rel="stylesheet" href="assets/css/mobile-navigation.css?v=20261031-mobile-header-search-area">
 </head>
 <body class="page-scroll-shell">
   <header class="topbar">
@@ -53,6 +53,7 @@
 
   <main class="projects-page">
     <section class="project-editor" id="projectEditor" hidden>
+      <button class="editor-mobile-back" type="button" data-editor-cancel><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 18-6-6 6-6M9 12h12"/></svg>Back to My Projects</button>
       <div class="editor-breadcrumb"><button type="button" data-editor-cancel>Projects</button><span>/</span><span id="editorBreadcrumbCurrent">New</span></div>
       <div class="editor-heading">
         <div><h1 id="editorTitle">Add a new project</h1><p>Showcase a project clients can discover, favorite and hire you for.</p></div>
@@ -123,7 +124,7 @@
           <p class="editor-message" id="projectMessage" role="status"></p>
         </form>
         <aside class="editor-aside">
-          <p class="aside-label">Card preview</p>
+          <div class="aside-label-row"><p class="aside-label">Card preview</p></div>
           <article class="listing-preview">
             <div class="listing-preview-media" id="listingPreviewMedia"><span class="preview-type" id="previewType">Website</span><button type="button" class="preview-favorite" aria-label="Favorite preview">♡</button><div class="preview-art"><strong id="previewHeroTitle">Showcase your project.</strong><span></span><i></i><b></b></div></div>
             <div class="listing-preview-content"><div class="preview-company"><span>Company profile</span><small>Just now</small></div><h3 id="previewTitle">Untitled project</h3><p id="previewDescription">Your project description will appear here.</p><div class="preview-starting"><small id="previewPriceType">Starting from</small><strong id="previewPrice">Rp 0</strong><span>→</span></div><div class="preview-owner"><span class="preview-avatar" id="previewAvatar">DM</span><b id="previewOwner">Developer</b><span>◉ 0 ♡ 0</span></div></div>
@@ -132,6 +133,13 @@
             <li id="checkName"><span>✓</span>Name &amp; description</li><li id="checkMedia"><span>✓</span>At least 1 screenshot</li><li id="checkType"><span>✓</span>Type &amp; category</li><li id="checkPrice"><span>✓</span>Price set</li><li class="recommended" id="checkVideo"><span>×</span>Demo video (recommended)</li>
           </ul></section>
         </aside>
+      </div>
+      <div class="editor-mobile-actions">
+        <button class="editor-mobile-cancel" type="button" data-editor-cancel>Cancel</button>
+        <div class="editor-mobile-actions-end">
+          <button class="editor-button" type="button" data-save-draft>Save draft</button>
+          <button class="add-project primary-add publish-button" type="submit" form="projectForm" name="intent" value="publish">Publish Project <span aria-hidden="true">→</span></button>
+        </div>
       </div>
     </section>
     <section class="project-preview-mode" id="projectPreviewMode" hidden aria-label="Project overview preview">
@@ -210,7 +218,7 @@
     </article>
     <footer class="preview-dialog-footer"><p>This is a preview only. Your project won’t be published until you choose <b>Publish project</b>.</p><button class="add-project primary-add" type="button" data-close-preview>Back to editing</button></footer>
   </dialog>
-  <script src="assets/js/my-projects.js?v=20261028-project-deep-links"></script>
-  <script src="assets/js/nav-behavior.js?v=20261031-mobile-nav-consistency"></script>
+  <script src="assets/js/my-projects.js?v=20261031-preserve-project-form-on-refresh"></script>
+  <script src="assets/js/nav-behavior.js?v=20261031-mobile-header-search"></script>
 </body>
 </html>

@@ -10,6 +10,9 @@ document.getElementById('userAvatar').textContent=nameParts.slice(0,2).map(part=
 const storageKey='devmatch-dashboard-projects';
 const overridesKey='devmatch-my-projects-overrides';
 const removedKey='devmatch-my-projects-removed';
+const unsavedProjectDraftKey='devmatch-my-projects-unsaved-draft';
+const unsavedProjectDraftId='new-project';
+let unsavedProjectDraftDatabasePromise=null;
 const seedProjects=[
   {id:'sample-restaurant',title:'Restaurant Website Development',type:'Website',category:'Company Profile',price:'Rp 3.500.000',priceType:'Starting from',status:'published',views:245,favorites:32,comments:8,art:'food',updated:12},
   {id:'sample-pos',title:'Kasir Kopi POS',type:'Web App',category:'POS',price:'Rp 6.000.000',priceType:'Fixed price',status:'published',views:1920,favorites:128,comments:21,art:'dashboard',updated:11},
@@ -46,12 +49,26 @@ const sortSelect=document.getElementById('projectSort');
 const pagination=document.getElementById('pagination');
 const emptyState=document.getElementById('emptyProjects');
 const tableSummary=document.getElementById('resultSummary');
+const projectScrollContainer=document.querySelector('.projects-page');
+const previewButton=document.querySelector('[data-preview-form]');
+const previewButtonHome=document.querySelector('.editor-heading-actions');
+const mobilePreviewButtonHome=document.querySelector('.aside-label-row');
+const projectEditorActionBreakpoint=window.matchMedia('(max-width: 820px)');
 const perPage=6;
 let currentStatus=new URLSearchParams(location.search).get('status')==='favorites'?'published':'all';
 let currentPage=1;
 let query='';
 let editingId=null;
 let visibleProjects=[];
+
+function movePreviewButtonForViewport(){
+  const destination=projectEditorActionBreakpoint.matches?mobilePreviewButtonHome:previewButtonHome;
+  if(previewButton&&destination&&previewButton.parentElement!==destination){
+    destination.appendChild(previewButton);
+  }
+}
+movePreviewButtonForViewport();
+projectEditorActionBreakpoint.addEventListener('change',movePreviewButtonForViewport);
 
 function escapeHtml(value){
   return String(value).replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
@@ -123,6 +140,90 @@ const selectedMedia=[];
 let previewUrls=[];
 let galleryUrls=[];
 let existingCoverImage='';
+function openUnsavedProjectDraftDatabase(){
+  if(!('indexedDB' in window))return Promise.reject(new Error('This browser does not support saving project media locally.'));
+  if(!unsavedProjectDraftDatabasePromise){
+    unsavedProjectDraftDatabasePromise=new Promise((resolve,reject)=>{
+      const opening=indexedDB.open('devmatch-my-projects-draft',1);
+      opening.onupgradeneeded=()=>{
+        if(!opening.result.objectStoreNames.contains('drafts'))opening.result.createObjectStore('drafts',{keyPath:'id'});
+      };
+      opening.onsuccess=()=>resolve(opening.result);
+      opening.onerror=()=>reject(opening.error||new Error('Could not open local project draft storage.'));
+    });
+  }
+  return unsavedProjectDraftDatabasePromise;
+}
+function saveUnsavedProjectDraftFields(){
+  if(editingId)return;
+  const fields=[...form.elements]
+    .filter(field=>field.name&&field.type!=='file'&&field.type!=='submit'&&field.type!=='button')
+    .map(field=>({name:field.name,type:field.type,value:field.value,checked:field.checked}));
+  try{
+    localStorage.setItem(unsavedProjectDraftKey,JSON.stringify({fields}));
+  }catch(error){
+    document.getElementById('projectMessage').textContent=`Could not save your changes locally: ${error.message}`;
+  }
+}
+function saveUnsavedProjectDraftMedia(){
+  if(editingId)return Promise.resolve();
+  return openUnsavedProjectDraftDatabase().then(database=>new Promise((resolve,reject)=>{
+    const transaction=database.transaction('drafts','readwrite');
+    transaction.objectStore('drafts').put({
+      id:unsavedProjectDraftId,
+      media:selectedMedia.map(file=>({name:file.name,type:file.type,lastModified:file.lastModified,blob:file}))
+    });
+    transaction.oncomplete=resolve;
+    transaction.onerror=()=>reject(transaction.error||new Error('Could not save project media locally.'));
+    transaction.onabort=()=>reject(transaction.error||new Error('Saving project media was interrupted.'));
+  }));
+}
+function readUnsavedProjectDraftMedia(){
+  return openUnsavedProjectDraftDatabase().then(database=>new Promise((resolve,reject)=>{
+    const transaction=database.transaction('drafts','readonly');
+    const request=transaction.objectStore('drafts').get(unsavedProjectDraftId);
+    request.onsuccess=()=>resolve(request.result?.media||[]);
+    request.onerror=()=>reject(request.error||new Error('Could not restore project media.'));
+  }));
+}
+function clearUnsavedProjectDraft(){
+  localStorage.removeItem(unsavedProjectDraftKey);
+  return openUnsavedProjectDraftDatabase().then(database=>new Promise((resolve,reject)=>{
+    const transaction=database.transaction('drafts','readwrite');
+    transaction.objectStore('drafts').delete(unsavedProjectDraftId);
+    transaction.oncomplete=resolve;
+    transaction.onerror=()=>reject(transaction.error||new Error('Could not clear the saved project draft.'));
+    transaction.onabort=()=>reject(transaction.error||new Error('Clearing the saved project draft was interrupted.'));
+  }));
+}
+async function restoreUnsavedProjectDraft(){
+  const serializedDraft=localStorage.getItem(unsavedProjectDraftKey);
+  if(!serializedDraft)return;
+  let draft;
+  try{
+    draft=JSON.parse(serializedDraft);
+  }catch(error){
+    document.getElementById('projectMessage').textContent=`Could not restore your saved form: ${error.message}`;
+    return;
+  }
+  (draft.fields||[]).forEach(savedField=>{
+    const matchingFields=[...form.elements].filter(field=>field.name===savedField.name);
+    if(savedField.type==='radio'||savedField.type==='checkbox'){
+      const field=matchingFields.find(item=>item.value===savedField.value);
+      if(field)field.checked=savedField.checked;
+    }else if(matchingFields[0]){
+      matchingFields[0].value=savedField.value;
+    }
+  });
+  try{
+    const media=await readUnsavedProjectDraftMedia();
+    selectedMedia.push(...media.map(item=>new File([item.blob],item.name,{type:item.type,lastModified:item.lastModified})));
+    renderSelectedMedia();
+  }catch(error){
+    document.getElementById('mediaMessage').textContent=`Could not restore saved project media: ${error.message}`;
+  }
+  updateEditor();
+}
 function showEditor(project=null){
   form.reset();
   selectedMedia.length=0;
@@ -132,6 +233,11 @@ function showEditor(project=null){
   galleryUrls=[];
   editingId=project?.id||null;
   existingCoverImage=project?.coverImage||'';
+  if(!project){
+    const url=new URL(window.location.href);
+    url.searchParams.set('create','1');
+    history.replaceState(null,'',url);
+  }
   document.getElementById('editorTitle').textContent=project?(project.status==='draft'?'Edit draft':'Edit project'):'Add a new project';
   document.getElementById('editorBreadcrumbCurrent').textContent=project?'Edit':'New';
   document.getElementById('projectMessage').textContent='';
@@ -157,7 +263,8 @@ function showEditor(project=null){
   document.getElementById('projectPreviewMode').hidden=true;
   editor.hidden=false;
   updateEditor();
-  editor.scrollIntoView({block:'start'});
+  if(projectEditorActionBreakpoint.matches)projectScrollContainer.scrollTop=0;
+  else editor.scrollIntoView({block:'start'});
   form.elements.title.focus();
 }
 function closeEditor(){
@@ -466,6 +573,9 @@ function renderSelectedMedia(){
       selectedMedia.splice(index,1);
       renderSelectedMedia();
       updateEditor();
+      saveUnsavedProjectDraftMedia().catch(error=>{
+        document.getElementById('mediaMessage').textContent=error.message;
+      });
     });
     item.append(remove);
     list.append(item);
@@ -492,6 +602,9 @@ function addMedia(files){
   selectedMedia.push(...accepted);
   renderSelectedMedia();
   updateEditor();
+  saveUnsavedProjectDraftMedia().catch(error=>{
+    document.getElementById('mediaMessage').textContent=error.message;
+  });
 }
 async function saveProject(status){
   const title=form.elements.title.value.trim();
@@ -562,12 +675,19 @@ async function saveProject(status){
     projects.push(newProject);
     storeSavedProjects();
   }
+  clearUnsavedProjectDraft().catch(error=>window.alert(`Project saved, but the temporary form data could not be fully cleared: ${error.message}`));
   closeEditor();
 }
 
-document.querySelectorAll('[data-open-project]').forEach(button=>button.addEventListener('click',()=>showEditor()));
-document.querySelector('[data-editor-cancel]').addEventListener('click',closeEditor);
-document.querySelector('[data-save-draft]').addEventListener('click',()=>saveProject('draft'));
+document.querySelectorAll('[data-open-project]').forEach(button=>button.addEventListener('click',()=>{
+  showEditor();
+  restoreUnsavedProjectDraft();
+}));
+document.querySelectorAll('[data-editor-cancel]').forEach(button=>button.addEventListener('click',()=>{
+  if(!editingId)clearUnsavedProjectDraft().catch(error=>window.alert(`The temporary form data could not be cleared: ${error.message}`));
+  closeEditor();
+}));
+document.querySelectorAll('[data-save-draft]').forEach(button=>button.addEventListener('click',()=>saveProject('draft')));
 document.querySelector('[data-preview-form]').addEventListener('click',()=>{
   updateEditor();
   showProjectPreview(previewProjectData());
@@ -587,6 +707,7 @@ form.addEventListener('input',event=>{
     input.setSelectionRange(digitsBeforeCaret,digitsBeforeCaret);
   }
   updateEditor();
+  saveUnsavedProjectDraftFields();
 });
 form.addEventListener('change',event=>{
   if(event.target.name==='media'){
@@ -594,6 +715,7 @@ form.addEventListener('change',event=>{
     event.target.value='';
   }
   updateEditor();
+  saveUnsavedProjectDraftFields();
 });
 form.addEventListener('submit',event=>{
   event.preventDefault();
@@ -672,7 +794,10 @@ if(currentStatus==='published'){
 }
 render();
 const pageParams=new URLSearchParams(window.location.search);
-if(pageParams.get('create')==='1')showEditor();
+if(pageParams.get('create')==='1'){
+  showEditor();
+  restoreUnsavedProjectDraft();
+}
 else if(pageParams.has('project')){
   const requestedProject=projects.find(project=>project.id===pageParams.get('project'));
   if(requestedProject)openPreview(requestedProject);

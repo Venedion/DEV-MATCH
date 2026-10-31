@@ -2,6 +2,7 @@
   'use strict';
 
   const modeSwitchStorageKey = 'devmatch-mode-switch-navigation';
+  const accountReturnStorageKey = 'devmatch-account-dropdown-return';
   const modeSwitchSelector = '.mode-switch a, .client-mode-switch a';
   const mobileNavigationBreakpoint = window.matchMedia('(max-width: 820px)');
 
@@ -25,8 +26,40 @@
   const header = document.querySelector('header.topbar, header.client-topbar, header.profile-topbar');
   const sidebar = document.querySelector('body > .sidebar, body > .client-sidebar');
   const modeSwitch = document.querySelector('.mode-switch, .client-mode-switch');
+  const mobileSearchBreakpoint = window.matchMedia('(max-width: 600px)');
+  const mobileSearchField = header?.querySelector('.search, .client-search, .top-search');
+  let mobileSearchToggle;
   const mobileMenuButton = document.createElement('button');
   const mobileNavigationBackdrop = document.createElement('button');
+
+  function setMobileSearchOpen(isOpen, focusInput = false) {
+    if (!header || !mobileSearchField || !mobileSearchToggle) return;
+    header.classList.toggle('mobile-header-search-open', isOpen);
+    mobileSearchToggle.setAttribute('aria-expanded', String(isOpen));
+    mobileSearchToggle.setAttribute('aria-label', isOpen ? 'Close search' : 'Open search');
+    if (isOpen && focusInput) mobileSearchField.querySelector('input')?.focus();
+    else if (!isOpen) mobileSearchField.querySelector('input')?.blur();
+  }
+
+  if (header && mobileSearchField) {
+    mobileSearchField.classList.add('mobile-header-search');
+    const searchInput = mobileSearchField.querySelector('input');
+    if (searchInput) {
+      if (!searchInput.id) searchInput.id = 'mobileHeaderSearchInput';
+      mobileSearchToggle = document.createElement('button');
+      mobileSearchToggle.className = 'mobile-search-toggle';
+      mobileSearchToggle.type = 'button';
+      mobileSearchToggle.setAttribute('aria-label', 'Open search');
+      mobileSearchToggle.setAttribute('aria-controls', searchInput.id);
+      mobileSearchToggle.setAttribute('aria-expanded', 'false');
+      mobileSearchToggle.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>';
+      header.insertBefore(mobileSearchToggle, mobileSearchField);
+    }
+  }
+
+  mobileSearchBreakpoint.addEventListener('change', event => {
+    if (!event.matches) setMobileSearchOpen(false);
+  });
 
   function setMobileNavigationOpen(isOpen) {
     document.body.classList.toggle('mobile-navigation-open', isOpen);
@@ -121,6 +154,142 @@
   }
 
   updateHeaderProfile();
+
+  const headerUserLink = header?.querySelector('.user-menu, .client-user, .user-link');
+  let headerAccountDropdown;
+
+  function setHeaderAccountDropdownOpen(isOpen) {
+    if (!headerAccountDropdown || !headerUserLink) return;
+    headerAccountDropdown.hidden = !isOpen;
+    headerUserLink.setAttribute('aria-expanded', String(isOpen));
+  }
+
+  function updateHeaderAccountOptions() {
+    if (!headerAccountDropdown) return;
+
+    const accountNavigation = document.querySelector(
+      'aside nav[aria-label="Account navigation"], aside nav[aria-label="Navigasi akun"]'
+    );
+    if (!accountNavigation) {
+      console.warn('Could not find the account navigation for the header profile menu.');
+      return;
+    }
+
+    const options = Array.from(accountNavigation.querySelectorAll('a'))
+      .filter(link => ['profile', 'settings'].includes(link.textContent.trim().toLowerCase()));
+    if (options.length === 0) {
+      console.warn('Could not find Profile and Settings links in the account navigation.');
+      return false;
+    }
+
+    headerAccountDropdown.replaceChildren();
+
+    options.forEach(option => {
+      const menuLink = document.createElement('a');
+      const icon = option.querySelector('svg');
+      const label = option.textContent.trim();
+      menuLink.className = 'header-account-option';
+      menuLink.href = option.href;
+      if (icon) {
+        const menuIcon = icon.cloneNode(true);
+        menuIcon.setAttribute('aria-hidden', 'true');
+        menuLink.appendChild(menuIcon);
+      }
+
+      const menuLabel = document.createElement('span');
+      menuLabel.textContent = label;
+      menuLink.appendChild(menuLabel);
+      headerAccountDropdown.appendChild(menuLink);
+    });
+    return true;
+  }
+
+  if (header && headerUserLink) {
+    headerAccountDropdown = document.createElement('div');
+    headerAccountDropdown.className = 'header-account-dropdown';
+    headerAccountDropdown.id = 'headerAccountDropdown';
+    headerAccountDropdown.setAttribute('aria-label', 'Account options');
+    headerAccountDropdown.hidden = true;
+    header.appendChild(headerAccountDropdown);
+    headerUserLink.setAttribute('aria-haspopup', 'menu');
+    headerUserLink.setAttribute('aria-controls', headerAccountDropdown.id);
+    headerUserLink.setAttribute('aria-expanded', 'false');
+  }
+
+  function getAccountReturnUrl() {
+    try {
+      const storedState = sessionStorage.getItem(accountReturnStorageKey);
+      if (!storedState) return null;
+
+      const state = JSON.parse(storedState);
+      if (typeof state.from !== 'string' || typeof state.to !== 'string') {
+        sessionStorage.removeItem(accountReturnStorageKey);
+        return null;
+      }
+
+      const returnUrl = new URL(state.from, window.location.href);
+      const targetUrl = new URL(state.to, window.location.href);
+      const currentUrl = new URL(window.location.href);
+      const isCurrentTarget = targetUrl.pathname === currentUrl.pathname
+        && targetUrl.search === currentUrl.search
+        && (!targetUrl.hash || targetUrl.hash === currentUrl.hash);
+
+      if (returnUrl.origin !== currentUrl.origin || !isCurrentTarget || returnUrl.href === currentUrl.href) {
+        sessionStorage.removeItem(accountReturnStorageKey);
+        return null;
+      }
+
+      return returnUrl.href;
+    } catch (error) {
+      console.warn('Could not read the previous page for the account back button.', error);
+      return null;
+    }
+  }
+
+  function saveAccountReturnDestination(destination) {
+    const currentUrl = new URL(window.location.href);
+    let returnUrl = currentUrl;
+
+    try {
+      const storedState = sessionStorage.getItem(accountReturnStorageKey);
+      if (storedState) {
+        const state = JSON.parse(storedState);
+        if (typeof state.from === 'string' && typeof state.to === 'string') {
+          const previousTarget = new URL(state.to, currentUrl);
+          const previousReturn = new URL(state.from, currentUrl);
+          const isOnPreviousTarget = previousTarget.pathname === currentUrl.pathname
+            && previousTarget.search === currentUrl.search
+            && (!previousTarget.hash || previousTarget.hash === currentUrl.hash);
+
+          if (previousReturn.origin === currentUrl.origin && isOnPreviousTarget) {
+            returnUrl = previousReturn;
+          }
+        }
+      }
+
+      sessionStorage.setItem(accountReturnStorageKey, JSON.stringify({
+        from: returnUrl.href,
+        to: destination
+      }));
+    } catch (error) {
+      console.warn('Could not save the previous page for the account back button.', error);
+    }
+  }
+
+  const accountReturnUrl = getAccountReturnUrl();
+  let accountReturnButton;
+  const accountPageHeading = document.querySelector(
+    'main.settings-page .settings-header, main.profile-page .profile-page-heading > div'
+  );
+  if (accountReturnUrl && accountPageHeading) {
+    accountReturnButton = document.createElement('button');
+    accountReturnButton.className = 'account-return-button';
+    accountReturnButton.type = 'button';
+    accountReturnButton.setAttribute('aria-label', 'Back to previous page');
+    accountReturnButton.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg><span>Back</span>';
+    accountPageHeading.insertBefore(accountReturnButton, accountPageHeading.firstElementChild);
+    document.body.classList.add('account-return-enabled');
+  }
 
   function readStoredArray(key, fallback, legacyKey) {
     try {
@@ -238,8 +407,51 @@
     if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
     if (!(event.target instanceof Element)) return;
 
+    if (header?.classList.contains('mobile-header-search-open')
+      && !event.target.closest('.mobile-header-search, .mobile-search-toggle')) {
+      setMobileSearchOpen(false);
+    }
+
+    if (accountReturnButton && event.target.closest('.account-return-button')) {
+      event.preventDefault();
+      try {
+        sessionStorage.removeItem(accountReturnStorageKey);
+      } catch (error) {
+        console.warn('Could not clear the account back-button destination.', error);
+      }
+      setMobileNavigationOpen(false);
+      window.location.assign(accountReturnUrl);
+      return;
+    }
+
+    const userLink = event.target.closest('header .user-menu, header .client-user, header .user-link');
+    if (userLink && userLink === headerUserLink) {
+      event.preventDefault();
+      const isOpen = headerAccountDropdown && !headerAccountDropdown.hidden;
+      const hasOptions = isOpen || updateHeaderAccountOptions();
+      setHeaderAccountDropdownOpen(!isOpen && hasOptions);
+      return;
+    }
+
+    if (headerAccountDropdown && !headerAccountDropdown.hidden) {
+      if (headerAccountDropdown.contains(event.target)) {
+        const accountOption = event.target.closest('a.header-account-option');
+        if (accountOption) {
+          saveAccountReturnDestination(accountOption.href);
+        }
+        setHeaderAccountDropdownOpen(false);
+        return;
+      }
+      setHeaderAccountDropdownOpen(false);
+    }
+
     if (event.target.closest('.mobile-menu-toggle')) {
       setMobileNavigationOpen(!document.body.classList.contains('mobile-navigation-open'));
+      return;
+    }
+
+    if (event.target.closest('.mobile-search-toggle')) {
+      setMobileSearchOpen(true, true);
       return;
     }
 
@@ -287,8 +499,16 @@
   });
 
   document.addEventListener('keydown', event => {
+    if (event.key === 'Escape' && header?.classList.contains('mobile-header-search-open')) {
+      setMobileSearchOpen(false);
+      mobileSearchToggle?.focus();
+    }
     if (event.key !== 'Escape') return;
     setMobileNavigationOpen(false);
     setMobileModeMenuOpen(false);
+    if (headerAccountDropdown && !headerAccountDropdown.hidden) {
+      setHeaderAccountDropdownOpen(false);
+      headerUserLink?.focus();
+    }
   });
 })();
