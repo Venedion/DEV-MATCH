@@ -330,7 +330,7 @@
 
   // State
   let searchQuery = '';
-  let searchScope = 'all';
+  let searchScope = 'name';
   let selectedBusinessType = 'all';
   let selectedLocation = 'all';
   let hasOpenRequestsOnly = true; // Enabled by default per PDF design (solid dark pill)
@@ -341,6 +341,9 @@
   const searchInput = document.getElementById('clientSearchInput');
   const topSearchInput = document.getElementById('topSearchInput');
   const searchScopeSelect = document.getElementById('searchScopeSelect');
+  const searchScopeDropdown = document.getElementById('searchScopeDropdown');
+  const searchScopeTrigger = document.getElementById('searchScopeTrigger');
+  const searchScopeMenu = document.getElementById('searchScopeMenu');
   const btnSearch = document.getElementById('btnSearchClients');
   const clientsGrid = document.getElementById('clientsGrid');
   const emptyState = document.getElementById('clientsEmptyState');
@@ -464,7 +467,7 @@
               <div class="client-profile-group">
                 <div class="client-avatar-badge">${escapeHtml(client.initials)}</div>
                 <div class="client-name-business">
-                  <h2 class="client-name-title">${escapeHtml(client.name)}</h2>
+                  <h2 class="client-name-title"><a href="devmatch-client-profile.html?client=${encodeURIComponent(client.id)}" aria-label="View ${escapeHtml(client.name)} profile">${escapeHtml(client.name)}</a></h2>
                   <p class="client-business-tag">${escapeHtml(client.business)}</p>
                 </div>
               </div>
@@ -579,9 +582,9 @@
       <div class="dialog-footer">
         <a class="btn-dialog-contact" href="devmatch-chat.html?contact=${encodeURIComponent(client.contactId)}&client=${encodeURIComponent(client.id)}">
           <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 11.5a8.5 8.5 0 0 1-8.5 8.5H4l1.5-4A8.5 8.5 0 1 1 21 11.5z"/></svg>
-          Hubungi Klien via Chat
+          Contact client
         </a>
-        <button class="btn-dialog-close" type="button" data-close-dialog>Tutup</button>
+        <button class="btn-dialog-close" type="button" data-close-dialog>Close</button>
       </div>
     `;
 
@@ -626,6 +629,65 @@
       searchScopeSelect.addEventListener('change', e => {
         searchScope = e.target.value;
         renderClients();
+      });
+    }
+
+    if (searchScopeDropdown && searchScopeSelect && searchScopeTrigger && searchScopeMenu) {
+      const options = Array.from(searchScopeMenu.querySelectorAll('[role="option"]'));
+      const closeScopeMenu = ({focusTrigger = false} = {}) => {
+        searchScopeDropdown.classList.remove('open');
+        searchScopeTrigger.setAttribute('aria-expanded', 'false');
+        searchScopeMenu.setAttribute('aria-hidden', 'true');
+        searchScopeMenu.inert = true;
+        if (focusTrigger) searchScopeTrigger.focus();
+      };
+      const openScopeMenu = () => {
+        searchScopeDropdown.classList.add('open');
+        searchScopeTrigger.setAttribute('aria-expanded', 'true');
+        searchScopeMenu.setAttribute('aria-hidden', 'false');
+        searchScopeMenu.inert = false;
+        options.find(option => option.dataset.value === searchScopeSelect.value)?.focus();
+      };
+      const selectScope = option => {
+        searchScopeSelect.value = option.dataset.value;
+        searchScopeTrigger.querySelector('span').textContent = option.textContent.trim();
+        options.forEach(item => item.setAttribute('aria-selected', String(item === option)));
+        searchScopeSelect.dispatchEvent(new Event('change', {bubbles: true}));
+        closeScopeMenu({focusTrigger: true});
+      };
+
+      searchScopeTrigger.addEventListener('click', () => {
+        if (searchScopeDropdown.classList.contains('open')) closeScopeMenu();
+        else openScopeMenu();
+      });
+      searchScopeTrigger.addEventListener('keydown', event => {
+        if (['ArrowDown', 'ArrowUp', 'Enter', ' '].includes(event.key)) {
+          event.preventDefault();
+          openScopeMenu();
+        }
+      });
+      searchScopeMenu.addEventListener('click', event => {
+        const option = event.target.closest('[role="option"]');
+        if (option) selectScope(option);
+      });
+      searchScopeMenu.addEventListener('keydown', event => {
+        const currentIndex = options.indexOf(document.activeElement);
+        if (event.key === 'Escape') {
+          event.preventDefault();
+          closeScopeMenu({focusTrigger: true});
+        } else if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+          event.preventDefault();
+          const direction = event.key === 'ArrowDown' ? 1 : -1;
+          options[(currentIndex + direction + options.length) % options.length]?.focus();
+        } else if (event.key === 'Home' || event.key === 'End') {
+          event.preventDefault();
+          options[event.key === 'Home' ? 0 : options.length - 1]?.focus();
+        } else if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          document.activeElement?.click();
+        } else if (event.key === 'Tab') {
+          closeScopeMenu();
+        }
       });
     }
 
@@ -694,6 +756,12 @@
 
     // Close dropdowns on outside click
     document.addEventListener('click', e => {
+      if (searchScopeDropdown && !e.target.closest('#searchScopeDropdown')) {
+        searchScopeDropdown.classList.remove('open');
+        searchScopeTrigger?.setAttribute('aria-expanded', 'false');
+        searchScopeMenu?.setAttribute('aria-hidden', 'true');
+        if (searchScopeMenu) searchScopeMenu.inert = true;
+      }
       if (!e.target.closest('.filter-dropdown-container')) {
         if (businessTypeDropdown) businessTypeDropdown.classList.remove('open');
         if (locationDropdown) locationDropdown.classList.remove('open');

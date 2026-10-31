@@ -7,9 +7,9 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=optional" rel="stylesheet">
-  <link rel="stylesheet" href="assets/css/dashboard.css?v=20261030-fixed-profile-width">
+  <link rel="stylesheet" href="assets/css/dashboard.css?v=20261101-overview-hide-empty-activity">
   <link rel="stylesheet" href="assets/css/mode-switch-animation.css?v=20261030-active-indicator">
-  <link rel="stylesheet" href="assets/css/mobile-navigation.css?v=20261031-mobile-header-search-area">
+  <link rel="stylesheet" href="assets/css/mobile-navigation.css?v=20261031-desktop-dropdown-aligned">
   <script>
     (() => {
       const storageKey = 'devmatch-mode-switch-navigation';
@@ -73,8 +73,8 @@
 
   <main class="dashboard" id="overview">
     <section class="welcome">
-      <div><p class="eyebrow">Developer workspace</p><h1>Good morning, <span id="welcomeName">Developer</span></h1><p>Here’s how your projects performed over the last 30 days.</p></div>
-      <div class="welcome-actions"><div class="period-select" id="periodSelect"><span class="period-icon-wrap" aria-hidden="true"><svg class="period-icon" viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="16" rx="2.5"/><path d="M8 3.5v4M16 3.5v4M3.5 10h17M7.5 13h3m3 0h3m-9 4h3"/></svg></span><button class="period-trigger" id="periodTrigger" type="button" aria-label="Dashboard date range" aria-haspopup="listbox" aria-expanded="false" aria-controls="periodOptions"><span id="periodValue">Last 30 days</span><svg class="chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="m7 10 5 5 5-5"/></svg></button><div class="period-options" id="periodOptions" role="listbox" aria-label="Dashboard date range" hidden><button type="button" role="option" aria-selected="true" data-range="30">Last 30 days</button><button type="button" role="option" aria-selected="false" data-range="7">Last 7 days</button><button type="button" role="option" aria-selected="false" data-range="90">Last 90 days</button></div><input id="dateRange" type="hidden" value="30"></div><a class="add-project primary-add" href="devmatch-my-projects.html?create=1"><svg viewBox="0 0 24 24"><path d="M12 5v14m-7-7h14"/></svg>Add Project</a></div>
+      <div><p class="eyebrow">Developer workspace</p><h1>Good morning, <span id="welcomeName">Developer</span></h1><p id="rangeDescription">Here’s how your projects performed over the last 30 days.</p></div>
+      <div class="welcome-actions"><div class="period-select" id="periodSelect"><span class="period-icon-wrap" aria-hidden="true"><svg class="period-icon" viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="16" rx="2.5"/><path d="M8 3.5v4M16 3.5v4M3.5 10h17M7.5 13h3m3 0h3m-9 4h3"/></svg></span><button class="period-trigger" id="periodTrigger" type="button" aria-label="Dashboard date range" aria-haspopup="dialog" aria-expanded="false" aria-controls="periodOptions"><span id="periodValue">Last 30 days</span><svg class="chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="m7 10 5 5 5-5"/></svg></button><div class="period-options" id="periodOptions" role="dialog" aria-label="Dashboard date range" hidden><div class="period-presets" role="group" aria-label="Date range presets"><button type="button" aria-pressed="false" data-range="7">Last 7 days</button><button type="button" aria-pressed="true" data-range="30">Last 30 days</button><button type="button" aria-pressed="false" data-range="90">Last 90 days</button><button type="button" aria-pressed="false" data-range="lifetime">Lifetime</button></div><form class="period-custom-range" id="customRangeForm"><h3>Range Date</h3><div class="period-date-fields"><label>From<input id="rangeStart" name="start" type="date" required></label><label>To<input id="rangeEnd" name="end" type="date" required></label></div><p class="period-error" id="rangeError" role="alert" hidden></p><button class="period-apply" type="submit">Apply range</button></form></div><input id="dateRange" type="hidden" value="30"></div></div>
     </section>
 
     <section class="stats" aria-label="Project statistics">
@@ -86,7 +86,7 @@
 
     <section class="content-grid">
       <article class="panel performance-panel">
-        <div class="panel-heading"><div><h2>Project performance</h2><div class="chart-summary"><strong id="chartViews">12,480</strong><span class="trend">↗ +12.4%</span></div></div><div class="chart-controls" role="group" aria-label="Chart date range"><button type="button" data-chart-range="7">7D</button><button type="button" class="selected" data-chart-range="30">30D</button><button type="button" data-chart-range="90">90D</button></div></div>
+        <div class="panel-heading"><div><h2>Project performance</h2><div class="chart-summary"><strong id="chartViews">12,480</strong><span class="trend">↗ +12.4%</span></div></div><div class="chart-controls" role="group" aria-label="Chart date range"><button type="button" data-chart-range="7">7D</button><button type="button" class="selected" data-chart-range="30">30D</button><button type="button" data-chart-range="90">90D</button><button type="button" data-chart-range="lifetime">Lifetime</button></div></div>
         <div class="chart-legend"><span><i class="legend-views"></i>Views</span><span><i class="legend-favorites"></i>Favorites</span></div>
         <div class="chart-wrap"><div class="y-labels"><span>1.5k</span><span>1k</span><span>500</span><span>250</span><span>0</span></div>
           <svg class="chart" viewBox="0 0 700 230" preserveAspectRatio="none" role="img" aria-label="Views and favorites trend chart">
@@ -130,7 +130,7 @@
     <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5c-5 0-9 3.65-9 8.15 0 2.24 1.04 4.27 2.73 5.74L4.7 21l5.24-1.28c.67.12 1.36.18 2.06.18 5 0 9-3.65 9-8.15S17 3.5 12 3.5Z"/><circle cx="8.5" cy="11.7" r="1" fill="currentColor" stroke="none"/><circle cx="12" cy="11.7" r="1" fill="currentColor" stroke="none"/><circle cx="15.5" cy="11.7" r="1" fill="currentColor" stroke="none"/></svg>
     <span class="floating-chat-badge" id="floatingChatBadge">3</span>
   </a>
-  <script src="assets/js/dashboard.js?v=20261024-project-editor"></script>
-  <script src="assets/js/nav-behavior.js?v=20261031-mobile-header-search"></script>
+  <script src="assets/js/dashboard.js?v=20261101-filter-calendar-hit-area"></script>
+  <script src="assets/js/nav-behavior.js?v=20261031-account-dropdown-ease"></script>
 </body>
 </html>

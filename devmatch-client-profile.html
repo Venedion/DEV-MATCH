@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Client profile — DEV-MATCH</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=optional" rel="stylesheet">
+  <link rel="stylesheet" href="assets/css/client-profile.css?v=20261101-client-profile">
+</head>
+<body>
+  <header class="client-profile-topbar">
+    <a class="brand" href="devmatch-dashboard.html"><i>&lt;/&gt;</i><span>DEV-MATCH</span></a>
+    <a class="back-link" href="devmatch-find-clients.html">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 12H5m7 7-7-7 7-7"/></svg>
+      Find Clients
+    </a>
+  </header>
+
+  <main class="client-profile-main">
+    <nav class="breadcrumbs" aria-label="Breadcrumb">
+      <a href="devmatch-find-clients.html">Find Clients</a>
+      <span aria-hidden="true">/</span>
+      <span id="clientBreadcrumb">Client profile</span>
+    </nav>
+
+    <section class="client-profile-card" id="clientProfile" hidden>
+      <div class="profile-heading">
+        <span class="profile-avatar" id="clientAvatar">CL</span>
+        <div class="profile-title">
+          <span class="profile-eyebrow">CLIENT PROFILE</span>
+          <h1 id="clientName"></h1>
+          <p id="clientBusiness"></p>
+        </div>
+        <a class="contact-button" id="contactClient" href="devmatch-find-clients.html">Contact client</a>
+      </div>
+
+      <div class="profile-facts">
+        <div><span>Location</span><strong id="clientLocation"></strong></div>
+        <div><span>Business type</span><strong id="clientBusinessType"></strong></div>
+        <div><span>Activity</span><strong id="clientActivity"></strong></div>
+        <div><span>Open requests</span><strong id="clientRequestCount"></strong></div>
+      </div>
+    </section>
+
+    <section class="client-requests-section" id="clientRequestsSection" hidden>
+      <div class="section-heading">
+        <div>
+          <span class="profile-eyebrow">OPPORTUNITIES</span>
+          <h2>Open project requests</h2>
+        </div>
+        <span class="request-count" id="requestCount"></span>
+      </div>
+      <div class="client-requests-list" id="clientRequests"></div>
+    </section>
+
+    <section class="profile-unavailable" id="profileUnavailable" role="status" hidden>
+      <h1>Client profile unavailable</h1>
+      <p>This client profile could not be found.</p>
+      <a href="devmatch-find-clients.html">Back to Find Clients</a>
+    </section>
+  </main>
+
+  <script src="assets/js/projects-data.js"></script>
+  <script src="assets/js/client-profile.js?v=20261101-client-profile"></script>
+</body>
+</html>

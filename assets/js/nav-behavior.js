@@ -157,12 +157,100 @@
 
   const headerUserLink = header?.querySelector('.user-menu, .client-user, .user-link');
   let headerAccountDropdown;
+  let headerAccountDropdownCloseTimer;
+  const modeSwitchHome = modeSwitch?.parentElement;
+  const modeSwitchNextSibling = modeSwitch?.nextSibling;
+  const originalModeLinkMarkup = modeSwitch
+    ? [...modeSwitch.querySelectorAll('a')].map(link => ({
+      link,
+      innerHTML: link.innerHTML,
+      ariaLabel: link.getAttribute('aria-label')
+    }))
+    : [];
+
+  function prepareMobileAccountModeSwitch() {
+    if (!modeSwitch || !headerAccountDropdown || !mobileSearchBreakpoint.matches) return;
+    const targetLink = [...modeSwitch.querySelectorAll('a')]
+      .find(link => !link.classList.contains('active'));
+    if (!targetLink) return;
+
+    const targetMode = getMode(targetLink);
+    const icon = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    icon.setAttribute('viewBox', '0 0 24 24');
+    icon.setAttribute('aria-hidden', 'true');
+    icon.innerHTML = '<path d="M17 3l4 4-4 4M3 7h18M7 21l-4-4 4-4m14 4H3"/>';
+
+    const label = document.createElement('span');
+    label.className = 'mobile-account-mode-label';
+    label.textContent = `Switch to ${targetMode} mode`;
+
+    modeSwitch.querySelectorAll('a').forEach(link => {
+      link.classList.toggle('mobile-account-mode-action', link === targetLink);
+      if (link === targetLink) {
+        link.replaceChildren(icon, label);
+        link.setAttribute('aria-label', `Switch to ${targetMode} mode`);
+      }
+    });
+    modeSwitch.classList.remove('mobile-mode-open');
+    modeSwitch.querySelectorAll('a').forEach(link => link.setAttribute('aria-expanded', 'false'));
+    headerAccountDropdown.appendChild(modeSwitch);
+  }
+
+  function restoreModeSwitchPosition() {
+    if (!modeSwitch || !modeSwitchHome) return;
+    originalModeLinkMarkup.forEach(({link, innerHTML, ariaLabel}) => {
+      link.innerHTML = innerHTML;
+      if (ariaLabel === null) link.removeAttribute('aria-label');
+      else link.setAttribute('aria-label', ariaLabel);
+      link.classList.remove('mobile-account-mode-action');
+    });
+    if (modeSwitch.parentElement === modeSwitchHome) return;
+    const nextSibling = modeSwitchNextSibling?.parentNode === modeSwitchHome
+      ? modeSwitchNextSibling
+      : null;
+    modeSwitchHome.insertBefore(modeSwitch, nextSibling);
+    setMobileModeMenuOpen(false);
+  }
 
   function setHeaderAccountDropdownOpen(isOpen) {
     if (!headerAccountDropdown || !headerUserLink) return;
-    headerAccountDropdown.hidden = !isOpen;
+    window.clearTimeout(headerAccountDropdownCloseTimer);
     headerUserLink.setAttribute('aria-expanded', String(isOpen));
+    if (isOpen) {
+      headerAccountDropdown.hidden = false;
+      requestAnimationFrame(() => {
+        if (headerUserLink.getAttribute('aria-expanded') === 'true') {
+          headerAccountDropdown.classList.add('is-open');
+        }
+      });
+    } else {
+      headerAccountDropdown.classList.remove('is-open');
+      if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        headerAccountDropdown.hidden = true;
+      } else {
+        headerAccountDropdownCloseTimer = window.setTimeout(() => {
+          headerAccountDropdown.hidden = true;
+        }, 180);
+      }
+    }
+    if (mobileSearchBreakpoint.matches && modeSwitch) {
+      const identity = headerAccountDropdown.querySelector('.header-account-identity');
+      if (identity?.nextSibling !== modeSwitch) {
+        headerAccountDropdown.insertBefore(modeSwitch, identity?.nextSibling || null);
+      }
+    } else {
+      restoreModeSwitchPosition();
+    }
   }
+
+  mobileSearchBreakpoint.addEventListener('change', event => {
+    if (event.matches) {
+      if (headerAccountDropdown && !headerAccountDropdown.hidden) updateHeaderAccountOptions();
+      else prepareMobileAccountModeSwitch();
+    } else {
+      restoreModeSwitchPosition();
+    }
+  });
 
   function updateHeaderAccountOptions() {
     if (!headerAccountDropdown) return;
@@ -184,6 +272,27 @@
 
     headerAccountDropdown.replaceChildren();
 
+    const identity = document.createElement('div');
+    const avatar = headerUserLink.querySelector('.user-avatar, .client-avatar');
+    const displayName = headerUserLink.querySelector('b')?.textContent.trim();
+    const role = headerUserLink.querySelector('small')?.textContent.trim();
+    identity.className = 'header-account-identity';
+    if (avatar) identity.appendChild(avatar.cloneNode(true));
+
+    const identityCopy = document.createElement('span');
+    identityCopy.className = 'header-account-identity-copy';
+    const identityName = document.createElement('b');
+    identityName.textContent = displayName || 'Account';
+    identityCopy.appendChild(identityName);
+    if (role) {
+      const identityRole = document.createElement('small');
+      identityRole.textContent = role;
+      identityCopy.appendChild(identityRole);
+    }
+    identity.appendChild(identityCopy);
+    headerAccountDropdown.appendChild(identity);
+    if (mobileSearchBreakpoint.matches) prepareMobileAccountModeSwitch();
+
     options.forEach(option => {
       const menuLink = document.createElement('a');
       const icon = option.querySelector('svg');
@@ -201,6 +310,23 @@
       menuLink.appendChild(menuLabel);
       headerAccountDropdown.appendChild(menuLink);
     });
+
+    const activeModeLink = document.querySelector(
+      '.mode-switch a.active, .client-mode-switch a.active'
+    );
+    const logoutLink = document.createElement('a');
+    const logoutIcon = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    logoutIcon.setAttribute('viewBox', '0 0 24 24');
+    logoutIcon.setAttribute('aria-hidden', 'true');
+    logoutIcon.innerHTML = '<path d="M10 17l5-5-5-5M15 12H3"/><path d="M12 3h7v18h-7"/>';
+    logoutLink.className = 'header-account-option header-account-logout';
+    logoutLink.href = `devmatch-auth.html?mode=login&role=${activeModeLink && getMode(activeModeLink) === 'client' ? 'client' : 'dev'}`;
+    logoutLink.appendChild(logoutIcon);
+
+    const logoutLabel = document.createElement('span');
+    logoutLabel.textContent = 'Log out';
+    logoutLink.appendChild(logoutLabel);
+    headerAccountDropdown.appendChild(logoutLink);
     return true;
   }
 
@@ -215,6 +341,7 @@
     headerUserLink.setAttribute('aria-controls', headerAccountDropdown.id);
     headerUserLink.setAttribute('aria-expanded', 'false');
   }
+  if (mobileSearchBreakpoint.matches) prepareMobileAccountModeSwitch();
 
   function getAccountReturnUrl() {
     try {
@@ -435,14 +562,30 @@
 
     if (headerAccountDropdown && !headerAccountDropdown.hidden) {
       if (headerAccountDropdown.contains(event.target)) {
-        const accountOption = event.target.closest('a.header-account-option');
-        if (accountOption) {
-          saveAccountReturnDestination(accountOption.href);
+        const accountModeLink = event.target.closest(modeSwitchSelector);
+        if (accountModeLink && accountModeLink.closest('.header-account-dropdown')) {
+          const isActiveMode = accountModeLink.classList.contains('active');
+          setHeaderAccountDropdownOpen(false);
+          if (isActiveMode) {
+            event.preventDefault();
+            return;
+          }
+        } else {
+          const accountOption = event.target.closest('a.header-account-option');
+          if (accountOption?.classList.contains('header-account-logout')) {
+            try {
+              sessionStorage.removeItem(accountReturnStorageKey);
+            } catch (error) {
+              console.warn('Could not clear the account back-button destination.', error);
+            }
+          } else if (accountOption) {
+            saveAccountReturnDestination(accountOption.href);
+          }
+          setHeaderAccountDropdownOpen(false);
+          return;
         }
-        setHeaderAccountDropdownOpen(false);
-        return;
       }
-      setHeaderAccountDropdownOpen(false);
+      if (!headerAccountDropdown.contains(event.target)) setHeaderAccountDropdownOpen(false);
     }
 
     if (event.target.closest('.mobile-menu-toggle')) {
@@ -451,7 +594,7 @@
     }
 
     if (event.target.closest('.mobile-search-toggle')) {
-      setMobileSearchOpen(true, true);
+      setMobileSearchOpen(!header?.classList.contains('mobile-header-search-open'), true);
       return;
     }
 

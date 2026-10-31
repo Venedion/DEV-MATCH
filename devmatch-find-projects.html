@@ -8,9 +8,9 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=optional" rel="stylesheet">
   <link rel="stylesheet" href="assets/css/dashboard.css?v=20261030-fixed-profile-width">
-  <link rel="stylesheet" href="assets/css/marketplace.css?v=20261030-scroll-area">
+  <link rel="stylesheet" href="assets/css/marketplace.css?v=20261101-desktop-proposal-card-spacing">
   <link rel="stylesheet" href="assets/css/mode-switch-animation.css?v=20261030-active-indicator">
-  <link rel="stylesheet" href="assets/css/mobile-navigation.css?v=20261031-mobile-header-search-area">
+  <link rel="stylesheet" href="assets/css/mobile-navigation.css?v=20261031-desktop-dropdown-aligned">
 </head>
 <body class="page-scroll-shell">
   <header class="topbar">
@@ -78,13 +78,13 @@
     <section class="market-results" aria-labelledby="marketResultsTitle">
       <div class="market-toolbar">
         <div class="filter-controls">
-          <label><span class="filter-label">TYPE</span><select id="typeFilter" aria-label="Filter by project type"><option value="all">All types</option><option>Website</option><option>Web App</option><option>Android / iOS</option></select></label>
-          <label><span class="filter-label">BUDGET</span><select id="budgetFilter" aria-label="Filter by budget range"><option value="all">All budgets</option><option value="under-3">&lt; Rp 3M</option><option value="3-to-6">Rp 3M – Rp 6M</option><option value="over-6">&gt; Rp 6M</option></select></label>
-          <label><span class="filter-label">TECH STACK</span><select id="stackFilter" aria-label="Filter by tech stack"><option value="all">All stacks</option><option>React</option><option>Laravel</option><option>Next.js</option><option>Supabase</option><option>Flutter</option></select></label>
+          <label><span class="filter-label">TYPE</span><span class="market-dropdown"><button class="market-select" id="typeFilterTrigger" type="button" aria-label="Filter by project type" aria-haspopup="menu" aria-expanded="false" aria-controls="typeFilterMenu"><span>All types</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m7 10 5 5 5-5"/></svg></button><span class="market-menu" id="typeFilterMenu" popover="manual" role="menu" aria-label="Filter by project type"></span><select id="typeFilter" hidden aria-hidden="true" tabindex="-1"><option value="all">All types</option><option>Website</option><option>Web App</option><option>Android / iOS</option></select></span></label>
+          <label><span class="filter-label">BUDGET</span><span class="market-dropdown"><button class="market-select" id="budgetFilterTrigger" type="button" aria-label="Filter by budget range" aria-haspopup="dialog" aria-expanded="false" aria-controls="budgetFilterMenu"><span>All budgets</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m7 10 5 5 5-5"/></svg></button><div class="market-menu budget-menu" id="budgetFilterMenu" popover="manual" role="dialog" aria-label="Set budget filter"><div class="budget-menu-options" role="group" aria-label="Budget filter mode"><button type="button" data-budget-mode="all" aria-pressed="true">All budgets</button><button type="button" data-budget-mode="lower-than" aria-pressed="false">Lower than...</button><button type="button" data-budget-mode="higher-than" aria-pressed="false">Higher than...</button><button type="button" data-budget-mode="range" aria-pressed="false">Price Range</button></div><div class="budget-menu-values" id="budgetMenuValues" hidden><label id="budgetSingleValueLabel">Amount<div class="budget-currency-input"><span>Rp</span><input id="budgetSingleValue" type="number" min="0" step="1" inputmode="numeric" placeholder="Enter amount"></div></label><div class="budget-range-values" id="budgetRangeValues" hidden><label>From<div class="budget-currency-input"><span>Rp</span><input id="budgetFromValue" type="number" min="0" step="1" inputmode="numeric" placeholder="Minimum"></div></label><label>To<div class="budget-currency-input"><span>Rp</span><input id="budgetToValue" type="number" min="0" step="1" inputmode="numeric" placeholder="Maximum"></div></label></div><p class="budget-range-hint" id="budgetRangeHint">Enter both amounts to filter projects.</p><p class="budget-range-error" id="budgetRangeError" hidden>“From” must be less than or equal to “To”.</p></div></div><select id="budgetFilter" hidden aria-hidden="true" tabindex="-1"><option value="all">All budgets</option><option value="lower-than">Lower than...</option><option value="higher-than">Higher than...</option><option value="range">Price Range</option></select></span></label>
+          <label><span class="filter-label">TECH STACK</span><span class="market-dropdown"><button class="market-select" id="stackFilterTrigger" type="button" aria-label="Filter by tech stack" aria-haspopup="menu" aria-expanded="false" aria-controls="stackFilterMenu"><span>All stacks</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m7 10 5 5 5-5"/></svg></button><span class="market-menu" id="stackFilterMenu" popover="manual" role="menu" aria-label="Filter by tech stack"></span><select id="stackFilter" hidden aria-hidden="true" tabindex="-1"><option value="all">All stacks</option><option>React</option><option>Laravel</option><option>Next.js</option><option>Supabase</option><option>Flutter</option></select></span></label>
         </div>
         <div class="market-sort">
           <span id="resultsSummary" aria-live="polite">Showing 0 projects</span>
-          <label class="sort-control"><span>Sort by</span><select id="sortFilter" aria-label="Sort project requests"><option value="popular">Most Popular</option><option value="newest">Newest</option><option value="price-low">Budget: Low to High</option><option value="price-high">Budget: High to Low</option></select></label>
+          <div class="sort-control"><span>Sort by</span><span class="market-dropdown"><button class="market-select sort-select" id="sortFilterTrigger" type="button" aria-label="Sort project requests" aria-haspopup="menu" aria-expanded="false" aria-controls="sortFilterMenu"><span>Most Popular</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m7 10 5 5 5-5"/></svg></button><span class="market-menu" id="sortFilterMenu" popover="manual" role="menu" aria-label="Sort project requests"></span><select id="sortFilter" hidden aria-hidden="true" tabindex="-1"><option value="popular">Most Popular</option><option value="newest">Newest</option><option value="price-low">Budget: Low to High</option><option value="price-high">Budget: High to Low</option></select></span></div>
           <div class="view-toggle" role="group" aria-label="Project request view"><button class="selected" type="button" data-view="grid" aria-pressed="true" aria-label="Grid view"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg></button><button type="button" data-view="list" aria-pressed="false" aria-label="List view"><svg viewBox="0 0 24 24"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg></button></div>
         </div>
       </div>
@@ -106,7 +106,7 @@
   </dialog>
 
   <script src="assets/js/projects-data.js"></script>
-  <script src="assets/js/marketplace.js"></script>
-  <script src="assets/js/nav-behavior.js?v=20261031-mobile-header-search"></script>
+  <script src="assets/js/marketplace.js?v=20261101-budget-currency-prefix"></script>
+  <script src="assets/js/nav-behavior.js?v=20261031-account-dropdown-ease"></script>
 </body>
 </html>

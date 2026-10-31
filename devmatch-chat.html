@@ -8,10 +8,10 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=optional" rel="stylesheet">
   <link rel="stylesheet" href="assets/css/dashboard.css?v=20261030-fixed-profile-width">
-  <link rel="stylesheet" href="assets/css/chat.css?v=20261031-mobile-whatsapp-icon-spacing">
+  <link rel="stylesheet" href="assets/css/chat.css?v=20261101-chat-no-default-room">
   <link rel="stylesheet" href="assets/css/client-shell.css?v=20261030-header-size-match">
   <link rel="stylesheet" href="assets/css/mode-switch-animation.css?v=20261030-client-mode-route">
-  <link rel="stylesheet" href="assets/css/mobile-navigation.css?v=20261031-mobile-header-search-area">
+  <link rel="stylesheet" href="assets/css/mobile-navigation.css?v=20261031-desktop-dropdown-aligned">
   <script src="assets/js/mode-switch-state.js?v=20261030-client-mode-indicator"></script>
 </head>
 <body class="chat-body">
@@ -136,6 +136,13 @@
 
     <!-- Column 2: Active Chat Main Window -->
     <main class="chat-main-pane" id="chatMainPane">
+      <div class="chat-empty-state" id="chatEmptyState" role="status">
+        <div class="chat-empty-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24"><path d="M21 11.5a8.5 8.5 0 0 1-8.5 8.5H4l1.5-4A8.5 8.5 0 1 1 21 11.5z"/></svg>
+        </div>
+        <h2>Select a conversation</h2>
+        <p>Choose a message from the list to start chatting.</p>
+      </div>
       <!-- Active Header -->
       <header class="chat-main-header">
         <div class="chat-header-user">
@@ -266,7 +273,7 @@
   </div>
 
   <script src="assets/js/projects-data.js"></script>
-  <script src="assets/js/chat.js?v=20261031-mobile-chat-list-default"></script>
-  <script src="assets/js/nav-behavior.js?v=20261031-mobile-header-search"></script>
+  <script src="assets/js/chat.js?v=20261101-chat-no-default-room"></script>
+  <script src="assets/js/nav-behavior.js?v=20261031-account-dropdown-ease"></script>
 </body>
 </html>

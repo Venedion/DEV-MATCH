@@ -8,9 +8,9 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=optional" rel="stylesheet">
   <link rel="stylesheet" href="assets/css/client-dashboard.css?v=20261030-header-profile-sizing">
-  <link rel="stylesheet" href="assets/css/notifications.css?v=20261030-scroll-area">
+  <link rel="stylesheet" href="assets/css/notifications.css?v=20261101-filter-row-mark-read">
   <link rel="stylesheet" href="assets/css/mode-switch-animation.css?v=20261030-active-indicator">
-  <link rel="stylesheet" href="assets/css/mobile-navigation.css?v=20261031-mobile-header-search-area">
+  <link rel="stylesheet" href="assets/css/mobile-navigation.css?v=20261031-desktop-dropdown-aligned">
 </head>
 <body class="page-scroll-shell" data-workspace="client">
   <header class="client-topbar">
@@ -57,13 +57,17 @@
       <button class="mark-all-read" id="markAllRead" type="button">Mark all as read</button>
     </header>
 
-    <div class="notification-filters" role="group" aria-label="Filter notifications">
-      <button class="notification-filter active" type="button" data-filter="all" aria-pressed="true">All <span data-count="all">6</span></button>
-      <button class="notification-filter" type="button" data-filter="unread" aria-pressed="false">Unread <span data-count="unread">2</span></button>
-      <button class="notification-filter" type="button" data-filter="comments" aria-pressed="false">Comments</button>
-      <button class="notification-filter" type="button" data-filter="messages" aria-pressed="false">Messages</button>
-      <button class="notification-filter" type="button" data-filter="favorites" aria-pressed="false">Favorites</button>
-      <button class="notification-filter" type="button" data-filter="ratings" aria-pressed="false">Ratings</button>
+    <div class="notification-controls">
+      <div class="notification-filter-actions">
+        <div class="notification-filters" role="group" aria-label="Filter notifications">
+          <button class="notification-filter active" type="button" data-filter="all" aria-pressed="true">All <span data-count="all">6</span></button>
+          <button class="notification-filter" type="button" data-filter="unread" aria-pressed="false">Unread <span data-count="unread">2</span></button>
+          <button class="notification-filter" type="button" data-filter="comments" aria-pressed="false">Comments</button>
+          <button class="notification-filter" type="button" data-filter="messages" aria-pressed="false">Messages</button>
+          <button class="notification-filter" type="button" data-filter="favorites" aria-pressed="false">Favorites</button>
+          <button class="notification-filter" type="button" data-filter="ratings" aria-pressed="false">Ratings</button>
+        </div>
+      </div>
     </div>
 
     <div class="notifications-layout">
@@ -142,7 +146,7 @@
     </div>
     <p class="notifications-demo-note">Demo dashboard — notifications shown here are sample data.</p>
   </main>
-  <script src="assets/js/notifications.js"></script>
-  <script src="assets/js/nav-behavior.js?v=20261031-mobile-header-search"></script>
+  <script src="assets/js/notifications.js?v=20261101-desktop-only-mark-all-layout"></script>
+  <script src="assets/js/nav-behavior.js?v=20261031-account-dropdown-ease"></script>
 </body>
 </html>

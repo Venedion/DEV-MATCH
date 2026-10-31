@@ -8,9 +8,9 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=optional" rel="stylesheet">
   <link rel="stylesheet" href="assets/css/dashboard.css?v=20261030-fixed-profile-width">
-  <link rel="stylesheet" href="assets/css/find-clients.css?v=20261030-scroll-area">
+  <link rel="stylesheet" href="assets/css/find-clients.css?v=20261101-client-name-dropdown-ease">
   <link rel="stylesheet" href="assets/css/mode-switch-animation.css?v=20261030-active-indicator">
-  <link rel="stylesheet" href="assets/css/mobile-navigation.css?v=20261031-mobile-header-search-area">
+  <link rel="stylesheet" href="assets/css/mobile-navigation.css?v=20261031-desktop-dropdown-aligned">
 </head>
 <body class="page-scroll-shell">
   <!-- Topbar Header -->
@@ -113,14 +113,23 @@
     <section class="clients-search-filter-section" aria-label="Pencarian dan Filter Klien">
       <!-- Row 1: Search Box -->
       <div class="clients-search-box">
-        <div class="search-field-select">
-          <select id="searchScopeSelect" aria-label="Cari berdasarkan">
+        <div class="search-field-select" id="searchScopeDropdown">
+          <select id="searchScopeSelect" aria-label="Cari berdasarkan" tabindex="-1" aria-hidden="true">
             <option value="name" selected>Client name</option>
             <option value="business">Business type</option>
             <option value="location">Location</option>
             <option value="all">All fields</option>
           </select>
-          <svg class="dropdown-chevron" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg>
+          <button class="search-scope-trigger" id="searchScopeTrigger" type="button" aria-label="Cari berdasarkan" aria-haspopup="listbox" aria-expanded="false" aria-controls="searchScopeMenu">
+            <span>Client name</span>
+            <svg class="dropdown-chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+          </button>
+          <div class="search-scope-menu" id="searchScopeMenu" role="listbox" aria-label="Cari berdasarkan" aria-hidden="true" inert>
+            <button type="button" role="option" aria-selected="true" data-value="name">Client name</button>
+            <button type="button" role="option" aria-selected="false" data-value="business">Business type</button>
+            <button type="button" role="option" aria-selected="false" data-value="location">Location</button>
+            <button type="button" role="option" aria-selected="false" data-value="all">All fields</button>
+          </div>
         </div>
         <div class="search-divider"></div>
         <div class="search-input-wrap">
@@ -214,7 +223,7 @@
   <div class="fc-toast" id="fcToast"></div>
 
   <script src="assets/js/projects-data.js"></script>
-  <script src="assets/js/nav-behavior.js?v=20261031-mobile-header-search"></script>
-  <script src="assets/js/find-clients.js"></script>
+  <script src="assets/js/nav-behavior.js?v=20261031-account-dropdown-ease"></script>
+  <script src="assets/js/find-clients.js?v=20261101-client-name-dropdown-ease"></script>
 </body>
 </html>

@@ -224,8 +224,8 @@
     const availability=profile.availability||'Open for hiring';
     const avatar=initials(displayName);
     setText('profileName',displayName);
-    setText('profileAvatar',avatar);
-    setText('userAvatar',avatar);
+    setAvatar('profileAvatar',profile.avatar,avatar);
+    setAvatar('userAvatar',profile.avatar,avatar);
     setText('topUserName',displayName);
     setText('identityHandle',`@${username}`);
     setText('identityLocation',[city,country].filter(Boolean).join(', '));
@@ -235,6 +235,20 @@
     availabilityBadge.querySelector('span').textContent=availability;
     availabilityBadge.classList.toggle('busy',availability.toLowerCase().includes('busy'));
     availabilityBadge.classList.toggle('unavailable',/not available|closed/i.test(availability));
+  }
+
+  function setAvatar(id,imageUrl,fallback){
+    const element=document.getElementById(id);
+    if(!element)return;
+    if(typeof imageUrl!=='string'||!/^data:image\/(?:jpeg|png);base64,/.test(imageUrl)){
+      element.textContent=fallback;
+      return;
+    }
+    const image=document.createElement('img');
+    image.src=imageUrl;
+    image.alt='';
+    image.setAttribute('aria-hidden','true');
+    element.replaceChildren(image);
   }
 
   function renderRoleInfo(){

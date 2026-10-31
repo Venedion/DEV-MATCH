@@ -345,7 +345,7 @@
   }
 
   let conversations = loadConversations();
-  let activeConvId = conversations[0].id;
+  let activeConvId = null;
   let currentFilter = 'all';
   let searchQuery = '';
 
@@ -359,6 +359,7 @@
   const searchInputEl = document.getElementById('chatSearchInput');
   const filterBtns = document.querySelectorAll('.chat-filter-btn');
   const chatViewportEl = document.getElementById('chatViewport');
+  const chatEmptyStateEl = document.getElementById('chatEmptyState');
   const backBtnEl = document.getElementById('chatBackBtn');
   const detailPaneEl = document.getElementById('chatDetailPane');
   const toggleDetailBtn = document.getElementById('toggleDetailBtn');
@@ -413,7 +414,7 @@
 
   // Get active conversation
   function getActiveConversation() {
-    return conversations.find(c => c.id === activeConvId) || conversations[0];
+    return conversations.find(c => c.id === activeConvId) || null;
   }
 
   // Calculate and update unread badges
@@ -503,7 +504,25 @@
   // Render the message thread of the active conversation
   function renderMessagesThread() {
     const conv = getActiveConversation();
-    if (!conv) return;
+    if (!conv) {
+      if (chatViewportEl) {
+        chatViewportEl.classList.remove('has-active-conversation');
+      }
+      if (detailPaneEl) {
+        detailPaneEl.classList.add('closed');
+      }
+      if (chatEmptyStateEl) {
+        chatEmptyStateEl.hidden = false;
+      }
+      return;
+    }
+
+    if (chatViewportEl) {
+      chatViewportEl.classList.add('has-active-conversation');
+    }
+    if (chatEmptyStateEl) {
+      chatEmptyStateEl.hidden = true;
+    }
 
     // Update active header details
     if (activeAvatarEl) {
@@ -654,8 +673,12 @@
 
   // Select a conversation by ID
   function selectConversation(id) {
+    if (!conversations.some(conversation => conversation.id === id)) return;
     activeConvId = id;
     const conv = getActiveConversation();
+    if (!mobileChatBreakpoint.matches && detailPaneEl) {
+      detailPaneEl.classList.remove('closed');
+    }
     if (conv && conv.unreadCount > 0) {
       conv.unreadCount = 0;
       saveConversations(conversations);
@@ -1097,6 +1120,9 @@
   handleQueryParams();
   loadUserProfile();
   updateUnreadCounts();
+  if (activeConvId) {
+    chatViewportEl?.classList.add('viewing-thread');
+  }
   renderConversationsList();
   renderMessagesThread();
 

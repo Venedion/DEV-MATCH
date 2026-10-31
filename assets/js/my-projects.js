@@ -45,30 +45,72 @@ let projects=[
 const rows=document.getElementById('managedProjectRows');
 const search=document.getElementById('projectSearch');
 const headerSearch=document.getElementById('headerSearch');
+const projectTabs=document.querySelector('.project-tabs');
 const sortSelect=document.getElementById('projectSort');
+const sortTrigger=document.getElementById('projectSortTrigger');
+const sortLabel=document.getElementById('projectSortLabel');
+const sortMenu=document.getElementById('projectSortMenu');
 const pagination=document.getElementById('pagination');
 const emptyState=document.getElementById('emptyProjects');
 const tableSummary=document.getElementById('resultSummary');
 const projectScrollContainer=document.querySelector('.projects-page');
-const previewButton=document.querySelector('[data-preview-form]');
-const previewButtonHome=document.querySelector('.editor-heading-actions');
-const mobilePreviewButtonHome=document.querySelector('.aside-label-row');
 const projectEditorActionBreakpoint=window.matchMedia('(max-width: 820px)');
 const perPage=6;
 let currentStatus=new URLSearchParams(location.search).get('status')==='favorites'?'published':'all';
 let currentPage=1;
 let query='';
 let editingId=null;
+let previewingProject=null;
 let visibleProjects=[];
 
-function movePreviewButtonForViewport(){
-  const destination=projectEditorActionBreakpoint.matches?mobilePreviewButtonHome:previewButtonHome;
-  if(previewButton&&destination&&previewButton.parentElement!==destination){
-    destination.appendChild(previewButton);
-  }
+function updateProjectTabIndicator(){
+  const activeTab=projectTabs?.querySelector('.project-tab.active');
+  if(!activeTab)return;
+  const tabs=[...projectTabs.querySelectorAll('.project-tab')];
+  const activeIndex=tabs.indexOf(activeTab);
+  const tabsBounds=projectTabs.getBoundingClientRect();
+  const activeBounds=activeTab.getBoundingClientRect();
+  const previousBounds=tabs[activeIndex-1]?.getBoundingClientRect();
+  const nextBounds=tabs[activeIndex+1]?.getBoundingClientRect();
+  const previousGap=previousBounds?activeBounds.left-previousBounds.right:nextBounds?nextBounds.left-activeBounds.right:0;
+  const nextGap=nextBounds?nextBounds.left-activeBounds.right:previousBounds?activeBounds.left-previousBounds.right:0;
+  const leftOverhang=previousGap/2;
+  const rightOverhang=nextGap/2;
+  const indicatorX=activeBounds.left-tabsBounds.left-leftOverhang;
+  const indicatorWidth=activeBounds.width+leftOverhang+rightOverhang;
+  projectTabs.style.setProperty('--project-tab-indicator-x',`${indicatorX}px`);
+  projectTabs.style.setProperty('--project-tab-indicator-width',`${indicatorWidth}px`);
+  projectTabs.classList.add('indicator-ready');
 }
-movePreviewButtonForViewport();
-projectEditorActionBreakpoint.addEventListener('change',movePreviewButtonForViewport);
+
+function updateSortMenu(){
+  const selectedOption=sortMenu.querySelector(`[data-sort-value="${sortSelect.value}"]`);
+  if(selectedOption)sortLabel.textContent=selectedOption.textContent;
+  sortMenu.querySelectorAll('[data-sort-value]').forEach(option=>{
+    option.setAttribute('aria-checked',String(option===selectedOption));
+  });
+}
+
+function openSortMenu(){
+  if(sortMenu.matches(':popover-open')){
+    sortMenu.hidePopover();
+    return;
+  }
+  sortMenu.showPopover();
+  const triggerBounds=sortTrigger.getBoundingClientRect();
+  const menuBounds=sortMenu.getBoundingClientRect();
+  const menuWidth=Math.max(triggerBounds.width,160);
+  const left=Math.max(10,Math.min(triggerBounds.right-menuWidth,window.innerWidth-menuWidth-10));
+  const below=window.innerHeight-triggerBounds.bottom-8;
+  const top=below>=menuBounds.height||below>=triggerBounds.top
+    ? triggerBounds.bottom+6
+    : Math.max(10,triggerBounds.top-menuBounds.height-6);
+  sortMenu.style.left=`${left}px`;
+  sortMenu.style.top=`${top}px`;
+  sortMenu.style.minWidth=`${menuWidth}px`;
+  sortTrigger.setAttribute('aria-expanded','true');
+  sortMenu.querySelector(`[data-sort-value="${sortSelect.value}"]`)?.focus();
+}
 
 function escapeHtml(value){
   return String(value).replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
@@ -411,6 +453,7 @@ function showProjectPreview(project){
   document.getElementById('projectPreviewMode').scrollIntoView({block:'start'});
 }
 function openPreview(project){
+  previewingProject=project;
   const previewMedia=document.getElementById('previewThumb');
   const coverSource=project.coverImage||(selectedMedia.some(file=>file.type.startsWith('image/'))?previewUrls[0]:'');
   let cover=previewMedia.querySelector('.full-preview-cover');
@@ -730,6 +773,11 @@ mediaDropzone.addEventListener('drop',event=>{
   addMedia([...event.dataTransfer.files]);
 });
 document.querySelectorAll('[data-close-preview]').forEach(button=>button.addEventListener('click',()=>document.getElementById('projectPreviewDialog').close()));
+document.querySelector('[data-edit-preview]').addEventListener('click',()=>{
+  if(!previewingProject)return;
+  document.getElementById('projectPreviewDialog').close();
+  showEditor(previewingProject);
+});
 document.getElementById('projectPreviewDialog').addEventListener('click',event=>{if(event.target===event.currentTarget)event.currentTarget.close()});
 document.querySelector('[data-status="all"]').parentElement.addEventListener('click',event=>{
   const button=event.target.closest('[data-status]');
@@ -741,6 +789,7 @@ document.querySelector('[data-status="all"]').parentElement.addEventListener('cl
     tab.classList.toggle('active',active);
     tab.setAttribute('aria-selected',String(active));
   });
+  updateProjectTabIndicator();
   render();
 });
 rows.addEventListener('click',event=>{
@@ -779,6 +828,31 @@ function applySearch(value){
 search.addEventListener('input',()=>applySearch(search.value));
 headerSearch.addEventListener('input',()=>applySearch(headerSearch.value));
 sortSelect.addEventListener('change',()=>{currentPage=1;render()});
+sortTrigger.addEventListener('click',openSortMenu);
+sortMenu.addEventListener('toggle',()=>sortTrigger.setAttribute('aria-expanded',String(sortMenu.matches(':popover-open'))));
+sortMenu.querySelectorAll('[data-sort-value]').forEach(option=>{
+  option.addEventListener('click',()=>{
+    sortSelect.value=option.dataset.sortValue;
+    updateSortMenu();
+    sortSelect.dispatchEvent(new Event('change',{bubbles:true}));
+    sortMenu.hidePopover();
+    sortTrigger.focus();
+  });
+});
+sortMenu.addEventListener('keydown',event=>{
+  if(event.key==='Escape'){
+    sortMenu.hidePopover();
+    sortTrigger.focus();
+  }
+});
+document.addEventListener('pointerdown',event=>{
+  if(sortMenu.matches(':popover-open')&&!sortMenu.contains(event.target)&&!sortTrigger.contains(event.target)){
+    sortMenu.hidePopover();
+  }
+});
+window.addEventListener('resize',()=>{if(sortMenu.matches(':popover-open'))sortMenu.hidePopover()});
+window.addEventListener('scroll',()=>{if(sortMenu.matches(':popover-open'))sortMenu.hidePopover()},{capture:true,passive:true});
+updateSortMenu();
 document.addEventListener('keydown',event=>{
   if((event.metaKey||event.ctrlKey)&&event.key.toLowerCase()==='k'){
     event.preventDefault();
@@ -792,6 +866,8 @@ if(currentStatus==='published'){
     tab.setAttribute('aria-selected',String(active));
   });
 }
+updateProjectTabIndicator();
+window.addEventListener('resize',updateProjectTabIndicator);
 render();
 const pageParams=new URLSearchParams(window.location.search);
 if(pageParams.get('create')==='1'){

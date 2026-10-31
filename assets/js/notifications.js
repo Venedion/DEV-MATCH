@@ -9,12 +9,24 @@ document.getElementById('userAvatar').textContent=clientNameParts.slice(0,2).map
 
 const readStorageKey=`devmatch-${workspace}-notifications-read`;
 const preferencesStorageKey=`devmatch-${workspace}-notification-preferences`;
+const markAllReadButton=document.getElementById('markAllRead');
+const notificationsHeading=document.querySelector('.notifications-heading');
+const notificationFilterActions=document.querySelector('.notification-filter-actions');
+const desktopMarkAllLayout=window.matchMedia('(min-width: 601px)');
 const notificationRows=[...document.querySelectorAll('[data-notification]')];
 const readNotifications=new Set(JSON.parse(localStorage.getItem(readStorageKey)||'[]'));
 const preferenceInputs=[...document.querySelectorAll('[data-preference]')];
 const savedPreferences=JSON.parse(localStorage.getItem(preferencesStorageKey)||'{}');
 let activeFilter='all';
 let activeQuery='';
+
+function positionMarkAllReadButton(){
+  if(desktopMarkAllLayout.matches)notificationFilterActions.append(markAllReadButton);
+  else notificationsHeading.append(markAllReadButton);
+}
+
+positionMarkAllReadButton();
+desktopMarkAllLayout.addEventListener('change',positionMarkAllReadButton);
 
 notificationRows.forEach(row=>{
   if(readNotifications.has(row.dataset.notification))row.classList.remove('is-unread');

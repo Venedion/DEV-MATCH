@@ -139,9 +139,57 @@
       : (isDeveloper ? 'Rizky Aditya' : 'Client');
     const initials = name.trim().split(/\s+/).filter(Boolean).slice(0, 2).map(p => p[0]).join('').toUpperCase() || 'RA';
 
-    if (userAvatarEl) userAvatarEl.textContent = initials;
+    setAvatar(userAvatarEl, profileData.avatar, initials);
     if (topUserNameEl) topUserNameEl.textContent = name;
-    if (settingsAvatarPreview) settingsAvatarPreview.textContent = initials;
+    setAvatar(settingsAvatarPreview, profileData.avatar, initials);
+  }
+
+  function setAvatar(element, imageUrl, initials) {
+    if (!element) return;
+    const validImage = typeof imageUrl === 'string' && /^data:image\/(?:jpeg|png);base64,/.test(imageUrl);
+    if (!validImage) {
+      element.textContent = initials;
+      return;
+    }
+
+    const image = document.createElement('img');
+    image.src = imageUrl;
+    image.alt = '';
+    image.setAttribute('aria-hidden', 'true');
+    element.replaceChildren(image);
+  }
+
+  function compressAvatar(file) {
+    return new Promise((resolve, reject) => {
+      const objectUrl = URL.createObjectURL(file);
+      const image = new Image();
+      image.onload = () => {
+        URL.revokeObjectURL(objectUrl);
+        try {
+          const largestSide = Math.max(image.naturalWidth, image.naturalHeight);
+          if (!largestSide || largestSide > 10000 || image.naturalWidth * image.naturalHeight > 40000000) {
+            throw new Error('Choose a valid image with dimensions under 10,000 pixels per side.');
+          }
+
+          const scale = Math.min(1, 512 / largestSide);
+          const canvas = document.createElement('canvas');
+          canvas.width = Math.max(1, Math.round(image.naturalWidth * scale));
+          canvas.height = Math.max(1, Math.round(image.naturalHeight * scale));
+          const context = canvas.getContext('2d');
+          if (!context) throw new Error('Image processing is not available in this browser.');
+
+          context.drawImage(image, 0, 0, canvas.width, canvas.height);
+          resolve(canvas.toDataURL('image/jpeg', 0.82));
+        } catch (error) {
+          reject(error);
+        }
+      };
+      image.onerror = () => {
+        URL.revokeObjectURL(objectUrl);
+        reject(new Error('The selected file could not be opened as an image.'));
+      };
+      image.src = objectUrl;
+    });
   }
 
   // Account Form Submission
@@ -323,16 +371,51 @@
     });
   });
 
-  // Change avatar dummy action
+  // Upload and save profile avatar
   const changeAvatarBtn = document.getElementById('changeAvatarBtn');
-  if (changeAvatarBtn) {
-    changeAvatarBtn.addEventListener('click', function() {
-      const initials = prompt('Enter your initials for avatar (1-2 letters):', settingsAvatarPreview ? settingsAvatarPreview.textContent : 'DM');
-      if (initials && initials.trim()) {
-        const clean = initials.trim().slice(0, 2).toUpperCase();
-        if (settingsAvatarPreview) settingsAvatarPreview.textContent = clean;
-        if (userAvatarEl) userAvatarEl.textContent = clean;
-        showToast('Avatar initials updated!');
+  const avatarUpload = document.getElementById('avatarUpload');
+  if (changeAvatarBtn && avatarUpload) {
+    changeAvatarBtn.addEventListener('click', () => avatarUpload.click());
+    avatarUpload.addEventListener('change', async function() {
+      const file = this.files && this.files[0];
+      if (!file) return;
+
+      if (!['image/png', 'image/jpeg'].includes(file.type)) {
+        showToast('Choose a PNG or JPG image.');
+        this.value = '';
+        return;
+      }
+      if (file.size > 2 * 1024 * 1024) {
+        showToast('Choose an image up to 2 MB.');
+        this.value = '';
+        return;
+      }
+
+      changeAvatarBtn.disabled = true;
+      try {
+        let avatar;
+        try {
+          avatar = await compressAvatar(file);
+        } catch (error) {
+          console.error('Unable to process the uploaded profile photo.', error);
+          showToast(error.message || 'The selected image could not be processed.');
+          return;
+        }
+
+        const updatedProfile = { ...profileData, avatar };
+        try {
+          localStorage.setItem(storageKey, JSON.stringify(updatedProfile));
+        } catch (error) {
+          console.error('Unable to save the uploaded profile photo.', error);
+          showToast('Could not save the photo. Check available browser storage and try again.');
+          return;
+        }
+        profileData = updatedProfile;
+        updateAvatarPreview();
+        showToast('Profile photo updated successfully!');
+      } finally {
+        changeAvatarBtn.disabled = false;
+        this.value = '';
       }
     });
   }

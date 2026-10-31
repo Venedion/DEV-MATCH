@@ -141,6 +141,7 @@
   const searchInputEl = document.getElementById('favSearchInput');
   const categorySelectEl = document.getElementById('favCategorySelect');
   const sortSelectEl = document.getElementById('favSortSelect');
+  const favoriteSelectUIs = [];
   const favExploreBtn = document.getElementById('favExploreBtn');
   const favClientDialog = document.getElementById('favClientDialog');
   const favDialogCloseBtn = document.getElementById('favDialogCloseBtn');
@@ -149,6 +150,121 @@
   const toastTextEl = document.getElementById('favToastText');
   const toastUndoBtn = document.getElementById('favToastUndo');
   let toastTimer = null;
+
+  function updateFavoriteSelect(select) {
+    const wrapper = select.closest('.fav-select-wrap');
+    const trigger = wrapper?.querySelector('.fav-select-trigger');
+    const menu = wrapper?.querySelector('.fav-select-menu');
+    if (!trigger || !menu) return;
+
+    const selectedOption = select.selectedOptions[0];
+    trigger.querySelector('span').textContent = selectedOption?.textContent.trim() || 'Choose an option';
+    menu.replaceChildren(...Array.from(select.options, option => {
+      const item = document.createElement('button');
+      item.type = 'button';
+      item.setAttribute('role', 'option');
+      item.setAttribute('aria-selected', String(option === selectedOption));
+      item.dataset.value = option.value;
+      item.textContent = option.textContent.trim();
+      return item;
+    }));
+  }
+
+  function setupFavoriteSelect(select) {
+    const wrapper = select.closest('.fav-select-wrap');
+    const trigger = wrapper?.querySelector('.fav-select-trigger');
+    const menu = wrapper?.querySelector('.fav-select-menu');
+    if (!wrapper || !trigger || !menu) return;
+
+    const close = ({focusTrigger = false} = {}) => {
+      wrapper.classList.remove('open');
+      trigger.setAttribute('aria-expanded', 'false');
+      menu.setAttribute('aria-hidden', 'true');
+      menu.inert = true;
+      if (focusTrigger) trigger.focus();
+    };
+    const open = () => {
+      favoriteSelectUIs.forEach(ui => {
+        if (ui.wrapper !== wrapper) ui.close();
+      });
+      wrapper.classList.add('open');
+      trigger.setAttribute('aria-expanded', 'true');
+      menu.setAttribute('aria-hidden', 'false');
+      menu.inert = false;
+      menu.querySelector('[aria-selected="true"]')?.focus();
+    };
+    const selectOption = option => {
+      select.value = option.dataset.value;
+      updateFavoriteSelect(select);
+      select.dispatchEvent(new Event('change', {bubbles: true}));
+      close({focusTrigger: true});
+    };
+
+    trigger.addEventListener('click', () => {
+      if (wrapper.classList.contains('open')) close();
+      else open();
+    });
+    trigger.addEventListener('keydown', event => {
+      if (['ArrowDown', 'ArrowUp', 'Enter', ' '].includes(event.key)) {
+        event.preventDefault();
+        open();
+      }
+    });
+    menu.addEventListener('click', event => {
+      const option = event.target.closest('[role="option"]');
+      if (option) selectOption(option);
+    });
+    menu.addEventListener('keydown', event => {
+      const options = Array.from(menu.querySelectorAll('[role="option"]'));
+      const currentIndex = options.indexOf(document.activeElement);
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        close({focusTrigger: true});
+      } else if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+        event.preventDefault();
+        const direction = event.key === 'ArrowDown' ? 1 : -1;
+        options[(currentIndex + direction + options.length) % options.length]?.focus();
+      } else if (event.key === 'Home' || event.key === 'End') {
+        event.preventDefault();
+        options[event.key === 'Home' ? 0 : options.length - 1]?.focus();
+      } else if (event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault();
+        document.activeElement?.click();
+      } else if (event.key === 'Tab') {
+        close();
+      }
+    });
+    select.addEventListener('change', () => updateFavoriteSelect(select));
+    const ui = {wrapper, close};
+    favoriteSelectUIs.push(ui);
+    updateFavoriteSelect(select);
+  }
+
+  function updateFavoriteTabIndicator() {
+    const tabs = document.querySelector('.fav-tabs');
+    const activeTab = tabs?.querySelector('.fav-tab-btn.active');
+    if (!tabs || !activeTab) return;
+    const tabButtons = [...tabs.querySelectorAll('.fav-tab-btn')];
+    const activeIndex = tabButtons.indexOf(activeTab);
+    const tabsBounds = tabs.getBoundingClientRect();
+    const activeBounds = activeTab.getBoundingClientRect();
+    const previousBounds = tabButtons[activeIndex - 1]?.getBoundingClientRect();
+    const nextBounds = tabButtons[activeIndex + 1]?.getBoundingClientRect();
+    const previousGap = previousBounds ? activeBounds.left - previousBounds.right : nextBounds ? nextBounds.left - activeBounds.right : 0;
+    const nextGap = nextBounds ? nextBounds.left - activeBounds.right : previousBounds ? activeBounds.left - previousBounds.right : 0;
+    const indicatorX = activeBounds.left - tabsBounds.left - previousGap / 2;
+    const indicatorWidth = activeBounds.width + previousGap / 2 + nextGap / 2;
+    tabs.style.setProperty('--fav-tab-indicator-x', `${indicatorX}px`);
+    tabs.style.setProperty('--fav-tab-indicator-width', `${indicatorWidth}px`);
+    tabs.classList.add('indicator-ready');
+  }
+
+  [categorySelectEl, sortSelectEl].filter(Boolean).forEach(setupFavoriteSelect);
+  document.addEventListener('click', event => {
+    favoriteSelectUIs.forEach(ui => {
+      if (!event.target.closest('.fav-select-wrap')) ui.close();
+    });
+  });
 
   // Setup tab label dynamically based on mode
   if (tabSecondaryBtn) {
@@ -240,6 +356,7 @@
     }
     categorySelectEl.value = 'all';
     currentCategory = 'all';
+    updateFavoriteSelect(categorySelectEl);
   }
 
   // Update Sort Select Options depending on current tab
@@ -269,6 +386,7 @@
     }
     sortSelectEl.value = 'recent';
     currentSort = 'recent';
+    updateFavoriteSelect(sortSelectEl);
   }
 
   // Render Projects Grid
@@ -691,6 +809,7 @@
       saveProjectFavorites(favoriteProjectIds);
       updateCounters();
       renderCurrentTab();
+      updateFavoriteTabIndicator();
 
       showToast('Project removed from favorites', () => {
         if (lastRemovedItem && lastRemovedItem.type === 'project') {
@@ -698,6 +817,7 @@
           saveProjectFavorites(favoriteProjectIds);
           updateCounters();
           renderCurrentTab();
+          updateFavoriteTabIndicator();
         }
       });
     }, 200);
@@ -787,6 +907,7 @@
       tabProjectsBtn.setAttribute('aria-selected', 'true');
       tabSecondaryBtn.setAttribute('aria-selected', 'false');
       currentTab = 'projects';
+      updateFavoriteTabIndicator();
       updateCategoryOptions();
       updateSortOptions();
       updateCounters();
@@ -799,6 +920,7 @@
       tabSecondaryBtn.setAttribute('aria-selected', 'true');
       tabProjectsBtn.setAttribute('aria-selected', 'false');
       currentTab = isClient ? 'developers' : 'clients';
+      updateFavoriteTabIndicator();
       updateCategoryOptions();
       updateSortOptions();
       updateCounters();
@@ -934,6 +1056,8 @@
   updateCategoryOptions();
   updateSortOptions();
   updateCounters();
+  updateFavoriteTabIndicator();
+  window.addEventListener('resize', updateFavoriteTabIndicator);
   renderCurrentTab();
 
 })();

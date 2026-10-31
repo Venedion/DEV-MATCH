@@ -7,12 +7,12 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=optional" rel="stylesheet">
-  <link rel="stylesheet" href="assets/css/dashboard.css?v=20261030-fixed-profile-width">
-  <link rel="stylesheet" href="assets/css/settings.css?v=20261028-settings">
+  <link rel="stylesheet" href="assets/css/dashboard.css?v=20261101-avatar-image">
+  <link rel="stylesheet" href="assets/css/settings.css?v=20261101-avatar-upload">
   <link rel="stylesheet" href="assets/css/custom-select.css?v=20261028-custom-dropdowns-v4">
   <link rel="stylesheet" href="assets/css/client-shell.css?v=20261030-header-size-match">
   <link rel="stylesheet" href="assets/css/mode-switch-animation.css?v=20261030-client-mode-route">
-  <link rel="stylesheet" href="assets/css/mobile-navigation.css?v=20261031-mobile-header-search-area">
+  <link rel="stylesheet" href="assets/css/mobile-navigation.css?v=20261031-desktop-dropdown-aligned">
   <script src="assets/js/mode-switch-state.js?v=20261030-client-mode-indicator"></script>
 </head>
 <body class="page-scroll-shell">
@@ -129,9 +129,10 @@
               <div class="settings-avatar-preview" id="settingsAvatarPreview">DM</div>
               <div class="settings-avatar-actions">
                 <span class="settings-label">Profile photo</span>
-                <p class="settings-hint">Square format, PNG or JPG under 2MB.</p>
+                <p class="settings-hint">PNG or JPG, up to 2 MB. The image is saved to this device.</p>
                 <div class="settings-avatar-btns">
-                  <button class="settings-btn" id="changeAvatarBtn" type="button">Change Avatar</button>
+                  <button class="settings-btn" id="changeAvatarBtn" type="button" aria-controls="avatarUpload">Change Avatar</button>
+                  <input id="avatarUpload" type="file" accept="image/png,image/jpeg" hidden>
                 </div>
               </div>
             </div>
@@ -672,8 +673,8 @@
     <span class="floating-chat-badge">3</span>
   </a>
 
-  <script src="assets/js/settings.js?v=20261030-client-nav-route-fix"></script>
+  <script src="assets/js/settings.js?v=20261101-avatar-upload"></script>
   <script src="assets/js/custom-select.js?v=20261028-custom-dropdowns-v3"></script>
-  <script src="assets/js/nav-behavior.js?v=20261031-mobile-header-search"></script>
+  <script src="assets/js/nav-behavior.js?v=20261031-account-dropdown-ease"></script>
 </body>
 </html>
