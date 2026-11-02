@@ -374,8 +374,72 @@
   // Upload and save profile avatar
   const changeAvatarBtn = document.getElementById('changeAvatarBtn');
   const avatarUpload = document.getElementById('avatarUpload');
-  if (changeAvatarBtn && avatarUpload) {
-    changeAvatarBtn.addEventListener('click', () => avatarUpload.click());
+  const avatarMenu = document.getElementById('avatarMenu');
+  const avatarMenuOptions = document.getElementById('avatarMenuOptions');
+  const chooseAvatarBtn = document.getElementById('chooseAvatarBtn');
+  const resetAvatarBtn = document.getElementById('resetAvatarBtn');
+  let avatarMenuCloseTimer;
+
+  function setAvatarMenuOpen(open) {
+    if (!changeAvatarBtn || !avatarMenuOptions) return;
+    clearTimeout(avatarMenuCloseTimer);
+    changeAvatarBtn.setAttribute('aria-expanded', String(open));
+    avatarMenuOptions.setAttribute('aria-hidden', String(!open));
+    avatarMenuOptions.inert = !open;
+
+    if (open) {
+      avatarMenuOptions.hidden = false;
+      requestAnimationFrame(() => avatarMenuOptions.classList.add('is-open'));
+      return;
+    }
+
+    avatarMenuOptions.classList.remove('is-open');
+    avatarMenuCloseTimer = setTimeout(() => {
+      if (changeAvatarBtn.getAttribute('aria-expanded') === 'false') {
+        avatarMenuOptions.hidden = true;
+      }
+    }, 180);
+  }
+
+  if (changeAvatarBtn && avatarUpload && avatarMenu && avatarMenuOptions) {
+    changeAvatarBtn.addEventListener('click', () => {
+      setAvatarMenuOpen(changeAvatarBtn.getAttribute('aria-expanded') !== 'true');
+    });
+
+    chooseAvatarBtn.addEventListener('click', () => {
+      setAvatarMenuOpen(false);
+      avatarUpload.click();
+    });
+
+    resetAvatarBtn.addEventListener('click', () => {
+      const updatedProfile = { ...profileData };
+      delete updatedProfile.avatar;
+      try {
+        localStorage.setItem(storageKey, JSON.stringify(updatedProfile));
+      } catch (error) {
+        console.error('Unable to reset the profile photo.', error);
+        showToast('Could not reset the photo. Check available browser storage and try again.');
+        setAvatarMenuOpen(false);
+        return;
+      }
+
+      profileData = updatedProfile;
+      updateAvatarPreview();
+      setAvatarMenuOpen(false);
+      showToast('Profile photo reset to default.');
+    });
+
+    document.addEventListener('click', event => {
+      if (!avatarMenu.contains(event.target)) setAvatarMenuOpen(false);
+    });
+
+    document.addEventListener('keydown', event => {
+      if (event.key === 'Escape' && changeAvatarBtn.getAttribute('aria-expanded') === 'true') {
+        setAvatarMenuOpen(false);
+        changeAvatarBtn.focus();
+      }
+    });
+
     avatarUpload.addEventListener('change', async function() {
       const file = this.files && this.files[0];
       if (!file) return;

@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=optional" rel="stylesheet">
   <link rel="stylesheet" href="assets/css/dashboard.css?v=20261101-avatar-image">
-  <link rel="stylesheet" href="assets/css/settings.css?v=20261101-avatar-upload">
+  <link rel="stylesheet" href="assets/css/settings.css?v=20261102-avatar-reset-icons-motion">
   <link rel="stylesheet" href="assets/css/custom-select.css?v=20261028-custom-dropdowns-v4">
   <link rel="stylesheet" href="assets/css/client-shell.css?v=20261030-header-size-match">
   <link rel="stylesheet" href="assets/css/mode-switch-animation.css?v=20261030-client-mode-route">
@@ -131,7 +131,13 @@
                 <span class="settings-label">Profile photo</span>
                 <p class="settings-hint">PNG or JPG, up to 2 MB. The image is saved to this device.</p>
                 <div class="settings-avatar-btns">
-                  <button class="settings-btn" id="changeAvatarBtn" type="button" aria-controls="avatarUpload">Change Avatar</button>
+                  <div class="avatar-menu" id="avatarMenu">
+                    <button class="settings-btn" id="changeAvatarBtn" type="button" aria-haspopup="menu" aria-expanded="false" aria-controls="avatarMenuOptions">Change Avatar</button>
+                    <div class="avatar-menu-options" id="avatarMenuOptions" role="menu" aria-labelledby="changeAvatarBtn" hidden>
+                      <button class="avatar-menu-option" id="chooseAvatarBtn" type="button" role="menuitem"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="8.5" cy="9" r="1.5"/><path d="m21 15-5-5L5 20"/></svg>Choose from library</button>
+                      <button class="avatar-menu-option reset" id="resetAvatarBtn" type="button" role="menuitem"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18m-2 0-.9 14H5.9L5 6m4 0V4h6v2m-5 4v6m4-6v6"/></svg>Reset to default</button>
+                    </div>
+                  </div>
                   <input id="avatarUpload" type="file" accept="image/png,image/jpeg" hidden>
                 </div>
               </div>
@@ -673,7 +679,7 @@
     <span class="floating-chat-badge">3</span>
   </a>
 
-  <script src="assets/js/settings.js?v=20261101-avatar-upload"></script>
+  <script src="assets/js/settings.js?v=20261102-avatar-reset-icons-motion"></script>
   <script src="assets/js/custom-select.js?v=20261028-custom-dropdowns-v3"></script>
   <script src="assets/js/nav-behavior.js?v=20261031-account-dropdown-ease"></script>
 </body>

@@ -267,6 +267,94 @@
   gap: 8px;
 }
 
+.avatar-menu {
+  position: relative;
+}
+
+.avatar-menu-options {
+  position: absolute;
+  z-index: 5;
+  top: calc(100% + 7px);
+  left: 0;
+  min-width: 180px;
+  padding: 5px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #fff;
+  box-shadow: 0 10px 24px #191a201a;
+  opacity: 0;
+  transform: translateY(-6px) scale(.98);
+  transform-origin: top left;
+  pointer-events: none;
+  transition: opacity .18s ease, transform .18s ease;
+}
+
+.avatar-menu-options.is-open {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  pointer-events: auto;
+}
+
+.avatar-menu-options[hidden] {
+  display: none;
+}
+
+.avatar-menu-option {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 9px 10px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+  transition: background .15s ease, color .15s ease;
+}
+
+.avatar-menu-option:hover,
+.avatar-menu-option:focus-visible {
+  outline: none;
+  background: var(--soft);
+}
+
+.avatar-menu-option svg {
+  width: 16px;
+  height: 16px;
+  flex: none;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.7;
+}
+
+.avatar-menu-option.reset {
+  color: #c62828;
+}
+
+.avatar-menu-option.reset:hover,
+.avatar-menu-option.reset:focus-visible {
+  background: #fff1f1;
+}
+
+.avatar-menu-option:focus-visible,
+#changeAvatarBtn:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+}
+
+@media(prefers-reduced-motion:reduce) {
+  .avatar-menu-options {
+    transition-duration: .01ms;
+  }
+}
+
 /* Button styles */
 .settings-btn {
   height: 38px;
