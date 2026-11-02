@@ -8,12 +8,12 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=optional" rel="stylesheet">
   <link rel="stylesheet" href="assets/css/dashboard.css?v=20261101-avatar-image">
-  <link rel="stylesheet" href="assets/css/my-profile.css?v=20261102-connected-manage-underline">
+  <link rel="stylesheet" href="assets/css/my-profile.css?v=20261103-profile-specialties">
   <link rel="stylesheet" href="assets/css/client-shell.css?v=20261030-header-size-match">
   <link rel="stylesheet" href="assets/css/mode-switch-animation.css?v=20261030-client-mode-route">
   <link rel="stylesheet" href="assets/css/mobile-navigation.css?v=20261031-desktop-dropdown-aligned">
   <script src="assets/js/mode-switch-state.js?v=20261030-client-mode-indicator"></script>
-  <script src="assets/js/i18n.js?v=20261102-english-default"></script>
+  <script src="assets/js/i18n.js?v=20261103-profile-editor-v2"></script>
 </head>
 <body class="my-profile-page page-scroll-shell">
   <header class="topbar">
@@ -91,12 +91,22 @@
           <p class="about-copy" id="aboutCopy"></p>
         </section>
         <section class="profile-card" id="roleInfoCard"></section>
+        <section class="profile-card" id="specializationCard">
+          <div class="card-heading"><h2>Specialization</h2></div>
+          <div class="skill-list" id="specializationList"></div>
+        </section>
         <section class="profile-card">
-          <div class="card-heading"><h2 id="skillsHeading">Skills &amp; Tech Stacks</h2></div>
+          <div class="card-heading">
+            <h2 id="skillsHeading">Skills &amp; Tech Stacks</h2>
+            <a class="profile-card-edit" id="editSkillsLink" href="devmatch-settings.html#profile-details"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L8 18l-4 1 1-4Z"/></svg>Edit</a>
+          </div>
           <div class="skill-list" id="skillList"></div>
         </section>
         <section class="profile-card">
-          <div class="card-heading"><h2>Experience</h2></div>
+          <div class="card-heading">
+            <h2>Experience</h2>
+            <a class="profile-card-edit" id="editExperienceLink" href="devmatch-settings.html#profile-details"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L8 18l-4 1 1-4Z"/></svg>Edit</a>
+          </div>
           <ol class="experience-list" id="experienceList"></ol>
         </section>
         <section class="profile-card">
@@ -141,7 +151,7 @@
     </div>
     <div class="profile-toast" id="profileToast" role="status" aria-live="polite"></div>
   </main>
-  <script src="assets/js/my-profile.js?v=20261102-app-connection-sync"></script>
+  <script src="assets/js/my-profile.js?v=20261103-profile-specialties"></script>
   <script src="assets/js/nav-behavior.js?v=20261031-account-dropdown-ease"></script>
 </body>
 </html>

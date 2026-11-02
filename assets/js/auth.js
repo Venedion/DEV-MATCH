@@ -77,7 +77,21 @@ $('form').addEventListener('submit',e=>{
   $('submit').disabled=true;$('submit').textContent=reg?'Creating account…':'Logging in…';
   setTimeout(()=>{
     $('submit').disabled=false;
-    $('submit').textContent='Log in';alert('Demo: login berhasil. Hubungkan ke backend untuk melanjutkan ke dashboard.');
+    $('submit').textContent='Log in';
+    const activeRole=role==='dev'?'dev':'client';
+    try{
+      localStorage.setItem('devmatch-active-role',activeRole);
+      const savedProfile=localStorage.getItem('devmatch-profile-'+activeRole);
+      if(savedProfile){
+        window.location.href=activeRole==='dev'?'devmatch-dashboard.html':'devmatch-client-dashboard.html';
+        return;
+      }
+    }catch(error){
+      console.error('Unable to restore the saved demo profile.',error);
+      setErr('pass','Unable to restore your saved profile. Please try again.');
+      return;
+    }
+    alert('Demo: login berhasil. Hubungkan ke backend untuk melanjutkan ke dashboard.');
   },700);
 });
 render();

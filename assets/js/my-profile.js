@@ -14,12 +14,13 @@
   const username=String(profile.username|| (isDeveloper?'rizkyaditya':'clientbiz')).replace(/^@/,'');
   const city=profile.city|| (isDeveloper?'Medan':'Jakarta');
   const country=profile.country||'Indonesia';
-  const specialty=(Array.isArray(profile.specialty)?profile.specialty:[profile.specialty||'']).filter(Boolean);
+  const specialty=(Array.isArray(profile.specialty)?profile.specialty:typeof profile.specialty==='string'?[profile.specialty]:Object.prototype.hasOwnProperty.call(profile,'specialty')?[]:['Full-stack']).map(value=>String(value).trim()).filter(Boolean);
   const title=isDeveloper?(specialty.length?`${specialty.slice(0,2).join(' & ')} Developer`:'Full-stack Developer'):'Small Business Owner';
   const bio=profile.bio||(isDeveloper
     ?'I build reliable web experiences for growing businesses, with a focus on practical tools, thoughtful design, and projects that help teams work better.'
     :'Building a business with a focus on great customer experiences. I am looking for thoughtful digital solutions to help the business grow.');
-  const skills=normalizeList(profile.skills,isDeveloper?['React','Next.js','Laravel','Supabase','Figma','Tailwind CSS']:['Small business','Food & Beverage','E-Commerce']);
+  const defaultSkills=isDeveloper?['React','Next.js','Laravel','Supabase','Figma','Tailwind CSS']:['Small business','Food & Beverage','E-Commerce'];
+  const skills=Array.isArray(profile.skills)?profile.skills.map(skill=>String(skill).trim()).filter(Boolean):normalizeList(profile.skills,defaultSkills);
   const experiences=Array.isArray(profile.experiences)?profile.experiences.filter(item=>item&&typeof item==='object'&&(item.title||item.company)):defaultExperiences();
   const projects=isDeveloper?loadDeveloperProjects():loadClientRequests();
   const toast=document.getElementById('profileToast');
@@ -94,6 +95,7 @@
   function configureRole(){
     const profileUrl=`devmatch-my-profile.html?role=${role}`;
     const settingsUrl=`devmatch-settings.html${isDeveloper?'':'?role=client'}#account`;
+    const profileDetailsUrl=`devmatch-settings.html${isDeveloper?'':'?role=client'}#profile-details`;
     const dashboardUrl=isDeveloper?'devmatch-dashboard.html':'devmatch-client-dashboard.html';
     const notificationsUrl=isDeveloper?'devmatch-developer-notifications.html':'devmatch-notifications.html';
     const chatUrl=isDeveloper?'devmatch-chat.html':'devmatch-chat.html?role=client';
@@ -111,6 +113,8 @@
     setLink('userMenu',profileUrl);
     setLink('profileNavLink',profileUrl);
     setLink('settingsLink',settingsUrl.replace('#account',''));
+    setLink('editSkillsLink',profileDetailsUrl);
+    setLink('editExperienceLink',profileDetailsUrl);
     setLink('messagesLink',chatUrl);
     setLink('projectsLink',isDeveloper?'devmatch-my-projects.html':`${dashboardUrl}#requests`);
     setLink('findProjectsLink',isDeveloper?'devmatch-find-projects.html':'devmatch-discover-projects.html');
@@ -262,7 +266,19 @@
   }
 
   function renderSkills(){
-    document.getElementById('skillList').innerHTML=skills.map(skill=>`<span>${escapeHtml(skill)}</span>`).join('');
+    document.getElementById('skillList').innerHTML=skills.length
+      ?skills.map(skill=>`<span class="profile-skill-value">${escapeHtml(skill)}</span>`).join('')
+      :'<span class="empty-state">No skills added yet.</span>';
+  }
+
+  function renderSpecialization(){
+    const card=document.getElementById('specializationCard');
+    const root=document.getElementById('specializationList');
+    if(!card||!root)return;
+    card.hidden=!isDeveloper;
+    root.innerHTML=specialty.length
+      ?specialty.map(item=>`<span class="profile-specialty-value">${escapeHtml(item)}</span>`).join('')
+      :'<span class="empty-state">No specialization added yet.</span>';
   }
 
   function renderExperience(){
@@ -274,7 +290,8 @@
     root.innerHTML=experiences.map(item=>{
       const company=item.company||'Independent';
       const href=safeExternalUrl(item.link);
-      return `<li class="experience-item"><span class="experience-marker" aria-hidden="true"></span><div class="experience-copy"><b>${escapeHtml(item.title||'Experience')}</b><span>${escapeHtml(company)}${item.period?` · ${escapeHtml(item.period)}`:''}</span>${href?`<a href="${escapeHtml(href)}" target="_blank" rel="noopener noreferrer">View proof <span aria-hidden="true">↗</span></a>`:''}</div></li>`;
+      const supportingFiles=Array.isArray(item.files)?item.files.map(String).filter(Boolean):[];
+      return `<li class="experience-item"><span class="experience-marker" aria-hidden="true"></span><div class="experience-copy"><b class="profile-experience-value">${escapeHtml(item.title||'Experience')}</b><span class="profile-experience-value">${escapeHtml(company)}${item.period?` · ${escapeHtml(item.period)}`:''}</span>${href?`<a href="${escapeHtml(href)}" target="_blank" rel="noopener noreferrer">View proof <span aria-hidden="true">↗</span></a>`:''}${supportingFiles.length?`<small class="experience-files profile-experience-value">${escapeHtml(supportingFiles.join(', '))}</small>`:''}</div></li>`;
     }).join('');
   }
 
@@ -425,6 +442,7 @@
   configureRole();
   renderIdentity();
   renderRoleInfo();
+  renderSpecialization();
   renderSkills();
   renderExperience();
   renderConnectedApps();

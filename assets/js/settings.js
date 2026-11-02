@@ -18,15 +18,7 @@
 
   // Load profile from localStorage
   function getProfile() {
-    try {
-      if (typeof localStorage !== 'undefined') {
-        const data = localStorage.getItem(storageKey);
-        if (data) return JSON.parse(data);
-      }
-    } catch (e) {
-      console.warn('Failed to load profile', e);
-    }
-    return {
+    const defaults = {
       displayName: isDeveloper ? 'Rizky Aditya' : 'Client User',
       username: isDeveloper ? 'rizkyaditya' : 'clientbiz',
       email: isDeveloper ? 'rizky.aditya@example.com' : 'client@bistrobiz.com',
@@ -34,6 +26,18 @@
       country: 'Indonesia',
       bio: isDeveloper ? 'Business websites and POS systems for Indonesian SMEs. 5 years shipping Laravel + React.' : 'Looking for high quality developers to build restaurant and commerce web apps.',
       whatsapp: '6281234567890',
+      whatsappConnected: true,
+      googleConnected: true,
+      specialty: isDeveloper ? ['Full-stack'] : [],
+      skills: isDeveloper
+        ? ['React', 'Next.js', 'Laravel', 'Supabase', 'Figma', 'Tailwind CSS']
+        : ['Small business', 'Food & Beverage', 'E-Commerce'],
+      experiences: isDeveloper
+        ? [
+            { title: 'Independent Developer', company: 'Freelance', period: '2022 – Present', link: '', files: [] },
+            { title: 'Web Developer', company: 'Digital projects', period: '2020 – 2022', link: '', files: [] }
+          ]
+        : [{ title: 'Business Owner', company: 'PT Ombak Bistro Mandiri', period: 'Present', link: '', files: [] }],
       availability: 'Open for hiring',
       hourlyRate: 'Rp 150.000',
       minProjectPrice: 'Rp 3.500.000',
@@ -44,9 +48,104 @@
       industry: 'Food & Beverage',
       npwp: '09.254.891.2-121.000'
     };
+    let shouldPersistDefaults = false;
+    try {
+      if (typeof localStorage !== 'undefined') {
+        const data = localStorage.getItem(storageKey);
+        if (data) {
+          const parsed = JSON.parse(data);
+          if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) return parsed;
+          console.warn('Stored profile data is not a valid profile object.');
+          return defaults;
+        }
+        shouldPersistDefaults = true;
+      }
+    } catch (e) {
+      console.warn('Failed to load profile', e);
+      return defaults;
+    }
+    if (shouldPersistDefaults) {
+      try {
+        localStorage.setItem(storageKey, JSON.stringify(defaults));
+      } catch (error) {
+        console.warn('Unable to persist the initial profile data.', error);
+      }
+    }
+    return defaults;
   }
 
   let profileData = getProfile();
+  const connectionDefaults = {
+    whatsappConnected: Boolean(String(profileData.whatsapp || '').replace(/\D/g, '')),
+    githubConnected: Boolean(profileData.githubUsername || profileData.github || profileData.githubUrl),
+    googleConnected: true,
+    linkedinConnected: Boolean(profileData.linkedinUrl || profileData.linkedin)
+  };
+  let connectionDefaultsChanged = false;
+  Object.entries(connectionDefaults).forEach(([field, defaultValue]) => {
+    if (typeof profileData[field] !== 'boolean') {
+      profileData[field] = defaultValue;
+      connectionDefaultsChanged = true;
+    }
+  });
+  if (connectionDefaultsChanged) {
+    try {
+      localStorage.setItem(storageKey, JSON.stringify(profileData));
+    } catch (error) {
+      console.warn('Unable to persist connected app status defaults.', error);
+    }
+  }
+
+  let profileSkills = [];
+  let experienceDraft = [];
+  let nextExperienceId = 0;
+  const skillTags = document.getElementById('settingsSkillTags');
+  const skillInput = document.getElementById('settingsSkills');
+  const experienceEntries = document.getElementById('settingsExperienceEntries');
+
+  function normalizeSkills(value, fallback) {
+    if (Array.isArray(value)) {
+      return [...new Map(value.map(skill => String(skill).trim()).filter(Boolean)
+        .map(skill => [skill.toLowerCase(), skill])).values()];
+    }
+    if (typeof value === 'string') {
+      const skills = value.split(/[,\n]/).map(skill => skill.trim()).filter(Boolean);
+      return skills.length ? [...new Map(skills.map(skill => [skill.toLowerCase(), skill])).values()] : fallback;
+    }
+    return fallback;
+  }
+
+  function renderSkillTags() {
+    if (!skillTags) return;
+    skillTags.innerHTML = profileSkills.map((skill, index) =>
+      `<span class="settings-skill-tag"><span class="settings-skill-value">${escapeHtml(skill)}</span><button type="button" data-remove-skill="${index}" aria-label="Remove skill">×</button></span>`
+    ).join('');
+  }
+
+  function addProfileSkill(value) {
+    const skill = value.trim().replace(/,+$/, '').trim();
+    if (!skill || profileSkills.some(existing => existing.toLowerCase() === skill.toLowerCase())) return;
+    profileSkills.push(skill);
+    renderSkillTags();
+  }
+
+  function renderExperienceEntries() {
+    if (!experienceEntries) return;
+    experienceEntries.innerHTML = experienceDraft.map((entry, index) => `
+      <fieldset class="settings-experience-entry" data-experience-id="${entry.id}">
+        <div class="settings-experience-entry-heading"><b>Experience <span>${index + 1}</span></b>${entry.editing
+          ? `<button class="settings-experience-remove" type="button" data-remove-experience="${entry.id}" aria-label="Remove experience ${index + 1}" title="Remove experience"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18"/><path d="M8 6V4h8v2m3 0-.9 14H5.9L5 6"/><path d="M10 11v5m4-5v5"/></svg></button>`
+          : `<button class="settings-experience-edit" type="button" data-edit-experience="${entry.id}">Edit</button>`}</div>
+        <div class="settings-experience-fields">
+          <label class="settings-field"><span class="settings-label"><span>Job title</span><span class="settings-required-mark" aria-hidden="true">*</span></span><input class="settings-input" data-experience-field="title" aria-describedby="settingsExperienceError" maxlength="80" placeholder="e.g. Frontend Developer" value="${escapeHtml(entry.title)}"${entry.editing ? '' : ' disabled'} required></label>
+          <label class="settings-field"><span class="settings-label"><span>Company</span><span class="settings-required-mark" aria-hidden="true">*</span></span><input class="settings-input" data-experience-field="company" aria-describedby="settingsExperienceError" maxlength="80" placeholder="Company name" value="${escapeHtml(entry.company)}"${entry.editing ? '' : ' disabled'} required></label>
+          <label class="settings-field"><span class="settings-label"><span>Period</span><span class="settings-required-mark" aria-hidden="true">*</span></span><input class="settings-input" data-experience-field="period" aria-describedby="settingsExperienceError" maxlength="60" placeholder="e.g. 2022 – Present" value="${escapeHtml(entry.period)}"${entry.editing ? '' : ' disabled'} required></label>
+          <label class="settings-field"><span class="settings-label">Portfolio link <small>Optional</small></span><input class="settings-input" data-experience-field="link" type="url" placeholder="https://example.com" value="${escapeHtml(entry.link)}"${entry.editing ? '' : ' disabled'}></label>
+          <label class="settings-field span-2"><span class="settings-label">Upload supporting files <small>Optional</small></span><input class="settings-input" data-experience-file type="file" accept=".pdf,.doc,.docx,.png,.jpg,.jpeg" multiple${entry.editing ? '' : ' disabled'}><span class="settings-hint settings-experience-files${entry.files.length?' settings-experience-file-value':''}">${escapeHtml(entry.files.join(', ') || 'PDF, DOC, DOCX, JPG, or PNG')}</span></label>
+        </div>
+      </fieldset>`
+    ).join('');
+  }
 
   // Toast Helper
   const toastEl = document.getElementById('settingsToast');
@@ -109,6 +208,15 @@
       const el = document.getElementById(id);
       if (el && val !== undefined) el.value = val;
     };
+    const defaultSkills = isDeveloper
+      ? ['React', 'Next.js', 'Laravel', 'Supabase', 'Figma', 'Tailwind CSS']
+      : ['Small business', 'Food & Beverage', 'E-Commerce'];
+    const defaultExperiences = isDeveloper
+      ? [
+          { title: 'Independent Developer', company: 'Freelance', period: '2022 – Present', link: '', files: [] },
+          { title: 'Web Developer', company: 'Digital projects', period: '2020 – 2022', link: '', files: [] }
+        ]
+      : [{ title: 'Business Owner', company: profileData.companyName || 'Independent', period: 'Present', link: '', files: [] }];
 
     setVal('settingsDisplayName', profileData.displayName);
     setVal('settingsUsername', profileData.username || 'user');
@@ -116,6 +224,19 @@
     setVal('settingsCity', profileData.city || 'Medan');
     setVal('settingsBio', profileData.bio || '');
     setVal('settingsWhatsapp', profileData.whatsapp || '');
+    profileSkills = normalizeSkills(profileData.skills, defaultSkills);
+    renderSkillTags();
+    experienceDraft = (Array.isArray(profileData.experiences) ? profileData.experiences : defaultExperiences)
+      .filter(item => item && typeof item === 'object')
+      .map(item => ({
+        id: String(++nextExperienceId),
+        title: String(item.title || ''),
+        company: String(item.company || ''),
+        period: String(item.period || ''),
+        link: String(item.link || ''),
+        files: Array.isArray(item.files) ? item.files.map(String) : []
+      }));
+    renderExperienceEntries();
 
     if (isDeveloper) {
       setVal('settingsHourlyRate', profileData.hourlyRate || 'Rp 150.000');
@@ -213,6 +334,132 @@
       } catch (err) {
         showToast('Error saving profile changes');
       }
+    });
+  }
+
+  const profileDetailsForm = document.getElementById('profileDetailsForm');
+  if (profileDetailsForm) {
+    const experienceError = document.getElementById('settingsExperienceError');
+
+    profileDetailsForm.addEventListener('submit', function(e) {
+      e.preventDefault();
+      addProfileSkill(skillInput.value);
+      skillInput.value = '';
+      const incompleteExperience = experienceDraft.find(entry =>
+        !entry.title.trim() || !entry.company.trim() || !entry.period.trim()
+      );
+      if (incompleteExperience) {
+        const entryError = window.devMatchI18n?.getLanguage() === 'id'
+          ? 'Lengkapi jabatan, perusahaan, dan periode untuk setiap pengalaman.'
+          : 'Enter a job title, company, and period for each experience.';
+        experienceError.textContent = entryError;
+        experienceError.hidden = false;
+        if (!incompleteExperience.editing) {
+          incompleteExperience.editing = true;
+          renderExperienceEntries();
+        }
+        const entryElement = experienceEntries.querySelector(`[data-experience-id="${incompleteExperience.id}"]`);
+        const titleInput = entryElement.querySelector('[data-experience-field="title"]');
+        const companyInput = entryElement.querySelector('[data-experience-field="company"]');
+        const periodInput = entryElement.querySelector('[data-experience-field="period"]');
+        titleInput.setAttribute('aria-invalid', String(!incompleteExperience.title.trim()));
+        companyInput.setAttribute('aria-invalid', String(!incompleteExperience.company.trim()));
+        periodInput.setAttribute('aria-invalid', String(!incompleteExperience.period.trim()));
+        [titleInput, companyInput, periodInput].find(input => input.getAttribute('aria-invalid') === 'true').focus();
+        return;
+      }
+
+      experienceError.textContent = '';
+      experienceError.hidden = true;
+      try {
+        profileData.skills = [...profileSkills];
+        const savedExperiences = experienceDraft.map(({ title, company, period, link, files }) => ({
+          title: title.trim(),
+          company: company.trim(),
+          period: period.trim(),
+          link: link.trim(),
+          files: [...files]
+        }));
+        profileData.experiences = savedExperiences;
+        localStorage.setItem(storageKey, JSON.stringify(profileData));
+        experienceDraft = savedExperiences.map((entry, index) => ({
+          ...entry,
+          id: String(index + 1),
+          editing: false
+        }));
+        nextExperienceId = experienceDraft.length;
+        renderExperienceEntries();
+        showToast('Profile details saved successfully!');
+      } catch (error) {
+        console.error('Unable to save profile skills and experience.', error);
+        showToast('Unable to save profile details. Please try again.');
+      }
+    });
+
+    skillInput.addEventListener('keydown', event => {
+      if (event.key === 'Enter' || event.key === ',') {
+        event.preventDefault();
+        addProfileSkill(skillInput.value);
+        skillInput.value = '';
+      } else if (event.key === 'Backspace' && !skillInput.value && profileSkills.length) {
+        profileSkills.pop();
+        renderSkillTags();
+      }
+    });
+
+    skillTags.addEventListener('click', event => {
+      const button = event.target.closest('[data-remove-skill]');
+      if (!button) return;
+      profileSkills.splice(Number(button.dataset.removeSkill), 1);
+      renderSkillTags();
+      skillInput.focus();
+    });
+
+    document.getElementById('addProfileExperience').addEventListener('click', () => {
+      experienceDraft.push({ id: String(++nextExperienceId), title: '', company: '', period: '', link: '', files: [], editing: true });
+      renderExperienceEntries();
+      const lastEntry = experienceEntries.lastElementChild;
+      lastEntry.querySelector('[data-experience-field="title"]').focus();
+    });
+
+    experienceEntries.addEventListener('click', event => {
+      const editButton = event.target.closest('[data-edit-experience]');
+      if (editButton) {
+        const entry = experienceDraft.find(item => item.id === editButton.dataset.editExperience);
+        if (!entry) return;
+        entry.editing = true;
+        renderExperienceEntries();
+        experienceEntries.querySelector(`[data-experience-id="${entry.id}"] [data-experience-field="title"]`).focus();
+        return;
+      }
+
+      const button = event.target.closest('[data-remove-experience]');
+      if (!button) return;
+      experienceDraft = experienceDraft.filter(entry => entry.id !== button.dataset.removeExperience);
+      nextExperienceId = experienceDraft.reduce((max, entry) => Math.max(max, Number(entry.id) || 0), 0);
+      renderExperienceEntries();
+    });
+
+    experienceEntries.addEventListener('input', event => {
+      const input = event.target.closest('[data-experience-field]');
+      if (!input) return;
+      const entry = experienceDraft.find(item => item.id === input.closest('[data-experience-id]').dataset.experienceId);
+      if (entry) entry[input.dataset.experienceField] = input.value;
+      if (input.value.trim()) input.removeAttribute('aria-invalid');
+      if (experienceError.hidden) return;
+      experienceError.textContent = '';
+      experienceError.hidden = true;
+    });
+
+    experienceEntries.addEventListener('change', event => {
+      const input = event.target.closest('[data-experience-file]');
+      if (!input) return;
+      const entry = experienceDraft.find(item => item.id === input.closest('[data-experience-id]').dataset.experienceId);
+      if (!entry) return;
+      entry.files = Array.from(input.files || []).map(file => file.name);
+      const fileNames = input.nextElementSibling;
+      fileNames.textContent = entry.files.join(', ') || 'PDF, DOC, DOCX, JPG, or PNG';
+      fileNames.classList.toggle('settings-experience-file-value', entry.files.length > 0);
     });
   }
 

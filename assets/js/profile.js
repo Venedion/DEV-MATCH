@@ -4,6 +4,7 @@ const isDeveloper=role==='dev';
 const draftKey='devmatch-profile-draft';
 const draft=JSON.parse(sessionStorage.getItem(draftKey)||'{}');
 const profile={
+  username:'',
   displayName:'',
   country:'Indonesia',
   city:'',
@@ -262,9 +263,10 @@ function saveCurrentFields(){
 
 function finish(){
   const age=profile.birthday?Math.max(0,Math.floor((Date.now()-new Date(profile.birthday).getTime())/(365.2425*24*60*60*1000))):null;
-  const saved={...profile,role,ageRange:age===null?'':age<18?'Under 18':age<25?'18–24':age<35?'25–34':age<45?'35–44':'45+'};
+  const saved={...profile,role,whatsappConnected:Boolean(profile.whatsapp),googleConnected:true,ageRange:age===null?'':age<18?'Under 18':age<25?'18–24':age<35?'25–34':age<45?'35–44':'45+'};
   delete saved.birthday;
   localStorage.setItem('devmatch-profile-'+role,JSON.stringify(saved));
+  localStorage.setItem('devmatch-active-role',role);
   sessionStorage.removeItem(draftKey);
   window.location.href='devmatch-complete.html?role='+role;
 }

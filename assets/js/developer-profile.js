@@ -29,10 +29,46 @@ const defaultProfile=(project)=>({
   }))
 });
 const escapeHtml=value=>String(value).replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
+function normalizeProfileList(value,fallback){
+  const values=Array.isArray(value)?value:typeof value==='string'?value.split(/[,\n]/):[];
+  const normalized=values.map(item=>String(item).trim()).filter(Boolean);
+  return normalized.length||Array.isArray(value)?normalized:fallback;
+}
 const params=new URLSearchParams(location.search);
 const requestedProject=projects.find(item=>item.id===params.get('developer'));
 const project=requestedProject||projects[0];
 const profile=profiles[project.handle]||defaultProfile(project);
+let savedDeveloperProfile=null;
+try{
+  const saved=localStorage.getItem('devmatch-profile-dev');
+  const parsed=saved?JSON.parse(saved):null;
+  if(parsed&&typeof parsed==='object'&&!Array.isArray(parsed))savedDeveloperProfile=parsed;
+}catch(error){
+  console.warn('Unable to load the saved developer profile.',error);
+}
+const projectUsername=project.handle.replace(/^@/,'').toLowerCase();
+const savedUsername=String(savedDeveloperProfile?.username||'').replace(/^@/,'').toLowerCase();
+const savedName=String(savedDeveloperProfile?.displayName||'').trim().toLowerCase();
+const accountMatchesProject=Boolean(savedDeveloperProfile&&(
+  (savedUsername&&savedUsername===projectUsername)||
+  (savedName&&savedName===project.developer.toLowerCase())
+));
+const displayedSpecialties=accountMatchesProject
+  ?normalizeProfileList(savedDeveloperProfile.specialty,[project.specialty])
+  :[project.specialty];
+const displayedSkills=accountMatchesProject&&savedDeveloperProfile.skills!==undefined
+  ?normalizeProfileList(savedDeveloperProfile.skills,[])
+  :profile.skills;
+const displayedExperience=accountMatchesProject&&Array.isArray(savedDeveloperProfile.experiences)
+  ?savedDeveloperProfile.experiences
+    .filter(item=>item&&typeof item==='object'&&(item.title||item.company))
+    .map(item=>({
+      title:item.title||'Experience',
+      company:item.company||'Independent',
+      period:item.period||'',
+      files:Array.isArray(item.files)?item.files.map(String).filter(Boolean):[]
+    }))
+  :profile.experienceItems.map(([title,detail])=>({title,company:detail,period:'',files:[]}));
 const developerProjects=projects.filter(item=>item.developer===project.developer);
 const portfolio=profile.portfolio;
 const profileName=project.developer;
@@ -49,7 +85,7 @@ document.getElementById('developerName').textContent=profileName;
 document.getElementById('developerInitials').textContent=initials;
 document.getElementById('developerHandle').textContent=project.handle;
 document.getElementById('developerLocation').textContent=`${project.location}, Indonesia`;
-document.getElementById('developerRole').textContent=`${project.specialty} developer`;
+document.getElementById('developerRole').textContent=`${displayedSpecialties.slice(0,2).join(' & ')||project.specialty} developer`;
 document.getElementById('developerJoined').textContent=profile.joined;
 document.getElementById('statProjects').textContent=project.developerProjects;
 document.getElementById('statProjectFavorites').textContent=profile.projectFavorites;
@@ -63,8 +99,9 @@ document.getElementById('portfolioCount').textContent=project.developerProjects;
 const chatTarget=`devmatch-chat.html?role=client&project=${encodeURIComponent(project.id)}`;
 document.getElementById('contactDeveloper').href=chatTarget;
 document.getElementById('sidebarContactDeveloper').href=chatTarget;
-document.getElementById('developerSkills').innerHTML=profile.skills.map(skill=>`<span>${escapeHtml(skill)}</span>`).join('');
-document.getElementById('developerExperienceList').innerHTML=profile.experienceItems.map(([role,detail])=>`<li><b>${escapeHtml(role)}</b><span>${escapeHtml(detail)}</span></li>`).join('');
+document.getElementById('developerSpecialties').innerHTML=displayedSpecialties.length?displayedSpecialties.map(item=>`<span class="developer-profile-value">${escapeHtml(item)}</span>`).join(''):'<span>No specialization added yet.</span>';
+document.getElementById('developerSkills').innerHTML=displayedSkills.length?displayedSkills.map(skill=>`<span class="developer-profile-value">${escapeHtml(skill)}</span>`).join(''):'<span>No skills added yet.</span>';
+document.getElementById('developerExperienceList').innerHTML=displayedExperience.length?displayedExperience.map(item=>`<li><b class="developer-profile-value">${escapeHtml(item.title)}</b><span class="developer-profile-value">${escapeHtml(item.company)}${item.period?` · ${escapeHtml(item.period)}`:''}</span>${item.files.length?`<small class="developer-profile-value">${escapeHtml(item.files.join(', '))}</small>`:''}</li>`).join(''):'<li>No experience added yet.</li>';
 document.getElementById('developerLinks').innerHTML=profile.links.map(([label,url])=>`<a href="${url.startsWith('http')?'':'https://'}${escapeHtml(url)}" target="_blank" rel="noopener noreferrer"><span class="link-icon">${label==='Code'?'‹ ›':label==='Website'?'◎':'♙'}</span><span>${escapeHtml(url)}</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 4h6v6m-11 5L20 4M18 13v6a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h6"/></svg></a>`).join('');
 
 const client=JSON.parse(localStorage.getItem('devmatch-profile-client')||'{}');

@@ -45,6 +45,9 @@
 .profile-card{min-width:0;padding:17px}
 .card-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:13px}
 .card-heading h2{font-size:13px;letter-spacing:-.025em}
+.profile-card-edit{display:inline-flex;align-items:center;gap:4px;color:#777982;font-size:10px;font-weight:700;text-decoration:underline;text-underline-offset:2px;white-space:nowrap;transition:color .15s ease}
+.profile-card-edit:hover{color:var(--profile-ink)}
+.profile-card-edit svg{width:12px;height:12px;fill:none;stroke:currentColor;stroke-linecap:round;stroke-linejoin:round;stroke-width:1.7}
 .subtle-label{color:var(--profile-muted);font-size:9px}
 .about-copy{color:#5d5f67;font-size:11px;line-height:1.75;white-space:pre-line}
 .role-info-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
@@ -67,6 +70,7 @@
 .experience-copy span{margin-top:4px;color:var(--profile-muted);font-size:9px;line-height:1.5}
 .experience-copy a{display:inline-flex;align-items:center;gap:3px;margin-top:5px;color:#4f5159;font-size:9px;font-weight:700}
 .experience-copy a:hover{text-decoration:underline}
+.experience-copy .experience-files{display:block;margin-top:4px;color:var(--profile-muted);font-size:9px;line-height:1.4;overflow-wrap:anywhere}
 .connected-list{display:grid;gap:10px}
 .connected-app-manage{display:inline-flex;align-items:center;gap:5px;color:#666872;font-size:10px;font-weight:700;text-decoration:underline;text-underline-offset:2px;transition:color .15s ease}
 .connected-app-manage:hover{color:var(--profile-ink)}

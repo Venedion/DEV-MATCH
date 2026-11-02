@@ -237,6 +237,214 @@
   display: none;
 }
 
+#profileDetailsForm .settings-skill-editor {
+  min-height: 42px;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 7px;
+  padding: 7px 10px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: #fafafc;
+  transition: border-color .15s, background .15s;
+}
+
+#profileDetailsForm .settings-skill-editor:focus-within {
+  border-color: var(--ink);
+  background: #fff;
+  box-shadow: 0 0 0 1px var(--ink);
+}
+
+.settings-skill-tags {
+  display: contents;
+}
+
+.settings-skill-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
+  padding: 4px 7px 4px 9px;
+  border-radius: 99px;
+  background: #ededf0;
+  color: #34353b;
+  font-size: 11px;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.settings-skill-tag button {
+  width: 17px;
+  height: 17px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: #dedee2;
+  color: #555761;
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+  flex: none;
+}
+
+.settings-skill-tag button:hover {
+  background: #d0d0d5;
+  color: var(--ink);
+}
+
+.settings-skill-input {
+  width: min(100%, 220px);
+  min-width: 140px;
+  height: 26px;
+  flex: 1 1 160px;
+  padding: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--ink);
+  font-size: 12px;
+}
+
+.settings-skill-input:focus {
+  box-shadow: none;
+}
+
+.settings-experience-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.settings-experience-heading .settings-label {
+  margin-bottom: 0;
+}
+
+.settings-add-experience,
+.settings-experience-edit {
+  padding: 2px 0;
+  border: 0;
+  background: transparent;
+  color: #777982;
+  font-size: 11px;
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.settings-add-experience:hover,
+.settings-experience-edit:hover {
+  color: var(--ink);
+}
+
+.settings-experience-list {
+  display: grid;
+  gap: 12px;
+  margin-top: 10px;
+}
+
+.settings-experience-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.settings-experience-fields > .settings-field:not(.span-2) {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 6px;
+}
+
+.settings-experience-fields > .settings-field:not(.span-2) .settings-label {
+  margin: 0;
+  justify-content: flex-start;
+  white-space: normal;
+}
+
+.settings-experience-fields > .settings-field:not(.span-2) .settings-input {
+  width: 100%;
+  min-width: 0;
+}
+
+.settings-required-mark {
+  margin-left: 3px;
+  color: #dc2626;
+  font-size: 15px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.settings-experience-entry {
+  min-width: 0;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #fafafc;
+}
+
+.settings-experience-entry-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.settings-experience-entry-heading b {
+  font-size: 12px;
+}
+
+.settings-experience-remove {
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: #b91c1c;
+  cursor: pointer;
+}
+
+.settings-experience-remove:hover {
+  background: #fee2e2;
+}
+
+.settings-experience-remove svg {
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.8;
+}
+
+
+
+.settings-experience-entry .settings-input:disabled {
+  background: #f3f3f5;
+  color: #5d5f67;
+  opacity: 1;
+}
+
+.settings-experience-entry .settings-input[type="file"] {
+  height: auto;
+  min-height: 38px;
+  padding: 7px 9px;
+  font-size: 11px;
+}
+
+.settings-experience-files {
+  overflow-wrap: anywhere;
+}
+
 .password-strength {
   display: grid;
   gap: 6px;
@@ -884,5 +1092,14 @@
   }
   .settings-field.span-2 {
     grid-column: span 1;
+  }
+  .settings-experience-fields {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 520px) {
+  .settings-experience-fields {
+    grid-template-columns: 1fr;
   }
 }
