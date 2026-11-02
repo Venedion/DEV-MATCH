@@ -132,6 +132,12 @@
   padding: 24px;
 }
 
+#panel-security:not([hidden]) {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
 .settings-card-header {
   border-bottom: 1px solid #f0f0f2;
   padding-bottom: 16px;
@@ -219,6 +225,96 @@
   font-size: 11px;
   color: var(--muted);
   line-height: 1.4;
+}
+
+.settings-field-error {
+  color: #b91c1c;
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.settings-field-error[hidden] {
+  display: none;
+}
+
+.password-strength {
+  display: grid;
+  gap: 6px;
+}
+
+.password-strength-meter {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+}
+
+.password-strength-meter i {
+  height: 4px;
+  border-radius: 9px;
+  background: var(--line);
+  transition: background .2s ease;
+}
+
+.password-strength-meter.weak i.on {
+  background: #dc2626;
+}
+
+.password-strength-meter.fair i.on {
+  background: #d97706;
+}
+
+.password-strength-meter.good i.on,
+.password-strength-meter.strong i.on {
+  background: #15803d;
+}
+
+.password-strength-text {
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.password-strength-text.weak {
+  color: #b91c1c;
+}
+
+.password-strength-text.fair {
+  color: #b45309;
+}
+
+.password-strength-text.good,
+.password-strength-text.strong {
+  color: #15803d;
+}
+
+.password-requirements {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.password-requirements li {
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1.4;
+}
+
+.password-requirements li::before {
+  display: none;
+}
+
+.password-requirements li.met {
+  color: #15803d;
+}
+
+.password-requirements li.met::before {
+  content: none;
+}
+
+.settings-input[aria-invalid="true"] {
+  border-color: #dc2626;
 }
 
 /* Avatar edit row */

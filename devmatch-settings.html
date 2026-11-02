@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=optional" rel="stylesheet">
   <link rel="stylesheet" href="assets/css/dashboard.css?v=20261101-avatar-image">
-  <link rel="stylesheet" href="assets/css/settings.css?v=20261102-centered-connection-dialogs">
+  <link rel="stylesheet" href="assets/css/settings.css?v=20261102-password-requirement-lines">
   <link rel="stylesheet" href="assets/css/custom-select.css?v=20261028-custom-dropdowns-v4">
   <link rel="stylesheet" href="assets/css/client-shell.css?v=20261030-header-size-match">
   <link rel="stylesheet" href="assets/css/mode-switch-animation.css?v=20261030-client-mode-route">
@@ -191,7 +191,7 @@
         <!-- PANEL 2: Login & Security -->
         <section class="settings-panel" id="panel-security" hidden>
           <!-- Password Card -->
-          <form class="settings-card" id="passwordForm">
+          <form class="settings-card" id="passwordForm" novalidate>
             <header class="settings-card-header">
               <h2>Change Password</h2>
               <p>Keep your account secure with a strong and unique password.</p>
@@ -200,17 +200,31 @@
             <div class="settings-form-grid full-width" style="max-width:500px;">
               <div class="settings-field">
                 <label class="settings-label" for="currentPassword">Current Password</label>
-                <input class="settings-input" id="currentPassword" type="password" placeholder="••••••••" required>
+                <input class="settings-input" id="currentPassword" type="password" placeholder="••••••••" aria-describedby="currentPasswordError" required>
+                <span class="settings-field-error" id="currentPasswordError" role="alert" hidden></span>
               </div>
 
               <div class="settings-field">
                 <label class="settings-label" for="newPassword">New Password</label>
-                <input class="settings-input" id="newPassword" type="password" minlength="8" placeholder="At least 8 characters" required>
+                <input class="settings-input" id="newPassword" type="password" minlength="8" placeholder="Enter your new password" aria-describedby="newPasswordStrengthText newPasswordRequirements newPasswordError" required>
+                <div class="password-strength">
+                  <div class="password-strength-meter" id="newPasswordMeter" aria-hidden="true">
+                    <i></i><i></i><i></i><i></i>
+                  </div>
+                  <p class="password-strength-text" id="newPasswordStrengthText" aria-live="polite">Password strength will appear as you type.</p>
+                  <ul class="password-requirements" id="newPasswordRequirements" aria-label="Password requirements">
+                    <li data-password-requirement="length">At least 8 characters</li>
+                    <li data-password-requirement="uppercase">At least 1 uppercase letter</li>
+                    <li data-password-requirement="special">At least 1 special character</li>
+                  </ul>
+                </div>
+                <span class="settings-field-error" id="newPasswordError" hidden></span>
               </div>
 
               <div class="settings-field">
                 <label class="settings-label" for="confirmPassword">Confirm New Password</label>
-                <input class="settings-input" id="confirmPassword" type="password" minlength="8" placeholder="Repeat new password" required>
+                <input class="settings-input" id="confirmPassword" type="password" minlength="8" placeholder="Repeat new password" aria-describedby="confirmPasswordError" required>
+                <span class="settings-field-error" id="confirmPasswordError" hidden></span>
               </div>
             </div>
 
@@ -721,7 +735,7 @@
     <span class="floating-chat-badge">3</span>
   </a>
 
-  <script src="assets/js/settings.js?v=20261102-centered-connection-dialogs"></script>
+  <script src="assets/js/settings.js?v=20261102-password-rejection-ui"></script>
   <script src="assets/js/custom-select.js?v=20261028-custom-dropdowns-v3"></script>
   <script src="assets/js/nav-behavior.js?v=20261031-account-dropdown-ease"></script>
 </body>

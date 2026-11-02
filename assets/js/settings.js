@@ -294,27 +294,124 @@
   // Password Change Simulation
   const passwordForm = document.getElementById('passwordForm');
   if (passwordForm) {
+    const newPasswordInput = document.getElementById('newPassword');
+    const passwordMeter = document.getElementById('newPasswordMeter');
+    const passwordStrengthText = document.getElementById('newPasswordStrengthText');
+    const passwordRequirementItems = Array.from(document.querySelectorAll('[data-password-requirement]'));
+    const newPasswordRequirements = [
+      {
+        id: 'length',
+        passes: value => value.length >= 8,
+        message: 'Password needs at least 8 characters.'
+      },
+      {
+        id: 'uppercase',
+        passes: value => /[A-Z]/.test(value),
+        message: 'Password needs at least one uppercase letter.'
+      },
+      {
+        id: 'special',
+        passes: value => /[^A-Za-z0-9]/.test(value),
+        message: 'Password needs at least one special character, such as ! or #.'
+      }
+    ];
+
+    function updatePasswordStrength(value) {
+      const score = value
+        ? Math.max(1, [
+            value.length >= 8,
+            /[a-z]/.test(value) && /[A-Z]/.test(value),
+            /\d/.test(value),
+            /[^A-Za-z0-9]/.test(value) || value.length >= 14
+          ].filter(Boolean).length)
+        : 0;
+      const strength = ['', 'weak', 'fair', 'good', 'strong'][score];
+      const labels = ['', 'Weak password', 'Fair password', 'Good password', 'Strong password'];
+
+      passwordMeter.className = `password-strength-meter${strength ? ` ${strength}` : ''}`;
+      Array.from(passwordMeter.children).forEach((bar, index) => {
+        bar.classList.toggle('on', index < score);
+      });
+      passwordStrengthText.textContent = labels[score] || 'Password strength will appear as you type.';
+      passwordStrengthText.className = `password-strength-text${strength ? ` ${strength}` : ''}`;
+
+      passwordRequirementItems.forEach(item => {
+        const requirement = newPasswordRequirements.find(rule => rule.id === item.dataset.passwordRequirement);
+        item.classList.toggle('met', requirement.passes(value));
+      });
+    }
+
+    const passwordFields = [
+      {
+        input: document.getElementById('currentPassword'),
+        error: document.getElementById('currentPasswordError'),
+        validate: value => value ? '' : 'Please enter your current password.'
+      },
+      {
+        input: newPasswordInput,
+        error: document.getElementById('newPasswordError'),
+        validate: value => {
+          if (!value) return 'Please enter a new password.';
+          const unmetRequirement = newPasswordRequirements.find(rule => !rule.passes(value));
+          if (unmetRequirement) return unmetRequirement.message;
+          return '';
+        }
+      },
+      {
+        input: document.getElementById('confirmPassword'),
+        error: document.getElementById('confirmPasswordError'),
+        validate: value => {
+          if (!value) return 'Please confirm your new password.';
+          if (value !== document.getElementById('newPassword').value) return 'The passwords do not match.';
+          return '';
+        }
+      }
+    ];
+
+    function validatePasswordField(field) {
+      const message = field.validate(field.input.value);
+      field.error.textContent = message;
+      field.error.hidden = !message;
+      field.input.setAttribute('aria-invalid', String(Boolean(message)));
+      return !message;
+    }
+
+    passwordFields.forEach(field => {
+      field.input.addEventListener('input', () => {
+        if (field.input === newPasswordInput) updatePasswordStrength(field.input.value);
+        if (!field.error.hidden) validatePasswordField(field);
+        if (field.input.id === 'newPassword') {
+          const confirmField = passwordFields[2];
+          if (!confirmField.error.hidden) validatePasswordField(confirmField);
+        }
+      });
+    });
+
+    passwordForm.addEventListener('passwordchange:rejected', () => {
+      const currentPasswordField = passwordFields[0];
+      currentPasswordField.error.textContent = 'Current password is incorrect.';
+      currentPasswordField.error.hidden = false;
+      currentPasswordField.input.setAttribute('aria-invalid', 'true');
+      currentPasswordField.input.focus();
+    });
+
     passwordForm.addEventListener('submit', function(e) {
       e.preventDefault();
-      const current = document.getElementById('currentPassword').value;
-      const nextPass = document.getElementById('newPassword').value;
-      const confirmPass = document.getElementById('confirmPassword').value;
-
-      if (!current) {
-        alert('Please enter your current password.');
-        return;
-      }
-      if (nextPass.length < 8) {
-        alert('New password must be at least 8 characters.');
-        return;
-      }
-      if (nextPass !== confirmPass) {
-        alert('New passwords do not match.');
+      const isValid = passwordFields.map(validatePasswordField).every(Boolean);
+      if (!isValid) {
+        const firstInvalidField = passwordFields.find(field => field.input.getAttribute('aria-invalid') === 'true');
+        firstInvalidField.input.focus();
         return;
       }
 
       showToast('Password updated successfully!');
       passwordForm.reset();
+      updatePasswordStrength('');
+      passwordFields.forEach(field => {
+        field.error.hidden = true;
+        field.error.textContent = '';
+        field.input.removeAttribute('aria-invalid');
+      });
     });
   }
 
