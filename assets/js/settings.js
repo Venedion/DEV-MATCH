@@ -458,9 +458,23 @@
 
   // General Platform Preferences Form
   const preferencesForm = document.getElementById('preferencesForm');
+  const interfaceLanguageSelect = document.getElementById('settingLanguage');
+  if (interfaceLanguageSelect && window.devMatchI18n) {
+    interfaceLanguageSelect.value = window.devMatchI18n.getLanguage();
+  }
+
   if (preferencesForm) {
     preferencesForm.addEventListener('submit', function(e) {
       e.preventDefault();
+      if (interfaceLanguageSelect && window.devMatchI18n) {
+        try {
+          window.devMatchI18n.setLanguage(interfaceLanguageSelect.value);
+        } catch (error) {
+          console.error('Unable to save interface language preference.', error);
+          showToast('Unable to save language preference. Please try again.');
+          return;
+        }
+      }
       showToast('Platform locale and preferences saved!');
     });
   }
