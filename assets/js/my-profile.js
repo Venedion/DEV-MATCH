@@ -279,11 +279,12 @@
   }
 
   function renderConnectedApps(){
+    const isConnected=(field,defaultValue)=>typeof profile[field]==='boolean'?profile[field]:defaultValue;
     const apps=[
-      {name:'WhatsApp Business',icon:'WA',connected:Boolean(String(profile.whatsapp||'').replace(/\D/g,'')),verified:Boolean(profile.whatsappVerified)},
-      {name:'GitHub',icon:'GH',connected:Boolean(profile.github||profile.githubUrl),verified:Boolean(profile.githubVerified)},
-      {name:'Google',icon:'G',connected:Boolean(profile.googleConnected),verified:Boolean(profile.googleVerified)},
-      {name:'LinkedIn',icon:'in',connected:Boolean(profile.linkedin||profile.linkedinUrl),verified:Boolean(profile.linkedinVerified)}
+      {name:'WhatsApp Business',icon:'WA',connected:isConnected('whatsappConnected',Boolean(String(profile.whatsapp||'').replace(/\D/g,''))),verified:Boolean(profile.whatsappVerified)},
+      {name:'GitHub',icon:'GH',connected:isConnected('githubConnected',Boolean(profile.github||profile.githubUrl)),verified:Boolean(profile.githubVerified)},
+      {name:'Google',icon:'G',connected:isConnected('googleConnected',true),verified:Boolean(profile.googleVerified)},
+      {name:'LinkedIn',icon:'in',connected:isConnected('linkedinConnected',Boolean(profile.linkedin||profile.linkedinUrl)),verified:Boolean(profile.linkedinVerified)}
     ];
     document.getElementById('connectedList').innerHTML=apps.map(app=>{
       const status=app.verified?'Verified':app.connected?'Connected':'Not connected';
@@ -407,7 +408,18 @@
       panel.hidden=!active;
       panel.classList.toggle('active',active);
     });
+    updateTabIndicator(button);
     if(focus)button.focus();
+  }
+
+  function updateTabIndicator(button=document.querySelector('.profile-tab.active')){
+    const tabs=document.querySelector('.profile-tabs');
+    if(!tabs||!button)return;
+    const tabBounds=button.getBoundingClientRect();
+    const tabsBounds=tabs.getBoundingClientRect();
+    const left=tabBounds.left-tabsBounds.left-tabs.clientLeft+tabs.scrollLeft;
+    tabs.style.setProperty('--profile-tab-indicator-left',`${left}px`);
+    tabs.style.setProperty('--profile-tab-indicator-width',`${tabBounds.width}px`);
   }
 
   configureRole();
@@ -430,4 +442,8 @@
       activateTab(tabs[(index+offset+tabs.length)%tabs.length],true);
     });
   });
+  requestAnimationFrame(()=>updateTabIndicator());
+  window.addEventListener('resize',()=>updateTabIndicator());
+  document.querySelector('.profile-tabs').addEventListener('scroll',()=>updateTabIndicator(),{passive:true});
+  if(document.fonts&&document.fonts.ready)document.fonts.ready.then(()=>updateTabIndicator());
 })();

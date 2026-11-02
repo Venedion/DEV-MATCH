@@ -208,6 +208,8 @@
         localStorage.setItem(storageKey, JSON.stringify(profileData));
         showToast('Profile and account details saved successfully!');
         updateAvatarPreview();
+        renderAppConnection('WhatsApp', profileData.whatsappConnected ?? Boolean(profileData.whatsapp));
+        renderAppConnection('Google', profileData.googleConnected ?? true);
       } catch (err) {
         showToast('Error saving profile changes');
       }
@@ -240,6 +242,54 @@
       }
     });
   }
+
+  const appConnectionFields = {
+    WhatsApp: 'whatsappConnected',
+    GitHub: 'githubConnected',
+    Google: 'googleConnected',
+    LinkedIn: 'linkedinConnected'
+  };
+
+  const appDetailText = {
+    WhatsApp: profile => formatWhatsapp(profile.whatsapp || ''),
+    GitHub: profile => profile.githubUsername || 'GitHub account connected',
+    Google: profile => profile.googleEmail || profile.email || 'Google account connected',
+    LinkedIn: profile => profile.linkedinUrl || 'LinkedIn profile connected'
+  };
+
+  function formatWhatsapp(value) {
+    const digits = String(value).replace(/\D/g, '');
+    if (!digits) return '';
+    if (!digits.startsWith('62')) return value;
+    const localNumber = digits.slice(2);
+    const formatted = localNumber.replace(/^(\d{3})(\d{4})(\d+)$/, '$1-$2-$3');
+    return `+62 ${formatted}`;
+  }
+
+  function renderAppConnection(app, connected) {
+    const detail = document.querySelector(`[data-app-detail="${app}"]`);
+    const editButton = document.querySelector(`[data-app-edit="${app}"]`);
+    const toggleButton = document.querySelector(`[data-app-toggle="${app}"]`);
+    if (detail) {
+      detail.textContent = connected
+        ? appDetailText[app](profileData)
+        : detail.dataset.disconnectedText;
+    }
+    if (editButton) editButton.hidden = !connected;
+    if (toggleButton) {
+      toggleButton.dataset.connected = String(connected);
+      toggleButton.textContent = connected ? 'Connected' : 'Connect';
+      toggleButton.classList.toggle('primary', connected);
+    }
+  }
+
+  document.querySelectorAll('[data-app-toggle]').forEach(btn => {
+    const field = appConnectionFields[btn.dataset.appToggle];
+    const connected = field && typeof profileData[field] === 'boolean'
+      ? profileData[field]
+      : btn.dataset.connected === 'true';
+    renderAppConnection(btn.dataset.appToggle, connected);
+  });
 
   // Password Change Simulation
   const passwordForm = document.getElementById('passwordForm');
@@ -349,27 +399,197 @@
     });
   }
 
+  let pendingDisconnect = null;
+  const appDisconnectDialog = document.getElementById('appDisconnectDialog');
+  const appDisconnectTitle = document.getElementById('appDisconnectTitle');
+  const appDisconnectDescription = document.getElementById('appDisconnectDescription');
+  const confirmAppDisconnect = document.getElementById('confirmAppDisconnect');
+
   // Connected Apps toggle
   document.querySelectorAll('[data-app-toggle]').forEach(btn => {
     btn.addEventListener('click', function() {
       const app = this.dataset.appToggle;
+      const field = appConnectionFields[app];
       const isConnected = this.dataset.connected === 'true';
 
       if (isConnected) {
-        if (confirm(`Disconnect ${app} from your DEV-MATCH account?`)) {
-          this.dataset.connected = 'false';
-          this.textContent = 'Connect';
-          this.classList.remove('primary');
-          showToast(`Disconnected ${app}`);
-        }
+        pendingDisconnect = { button: this, field, app };
+        appDisconnectTitle.textContent = `Disconnect ${app}?`;
+        appDisconnectDescription.textContent = `This will disconnect ${app} from your DEV-MATCH account.`;
+        appDisconnectDialog.showModal();
       } else {
-        this.dataset.connected = 'true';
-        this.textContent = 'Connected';
-        this.classList.add('primary');
-        showToast(`Connected ${app} successfully`);
+        updateAppConnection(this, field, true, app);
       }
     });
   });
+
+  confirmAppDisconnect.addEventListener('click', () => {
+    if (!pendingDisconnect) return;
+    const { button, field, app } = pendingDisconnect;
+    if (updateAppConnection(button, field, false, app)) {
+      pendingDisconnect = null;
+      appDisconnectDialog.close();
+    }
+  });
+
+  document.getElementById('cancelAppDisconnect').addEventListener('click', () => {
+    pendingDisconnect = null;
+    appDisconnectDialog.close();
+  });
+
+  appDisconnectDialog.addEventListener('click', event => {
+    if (event.target === appDisconnectDialog) {
+      pendingDisconnect = null;
+      appDisconnectDialog.close();
+    }
+  });
+
+  appDisconnectDialog.addEventListener('close', () => {
+    pendingDisconnect = null;
+  });
+
+  function updateAppConnection(button, field, connected, app) {
+    if (!field) {
+      console.error(`No profile connection field is configured for ${app}.`);
+      showToast(`Could not update ${app} connection.`);
+      return false;
+    }
+
+    const updatedProfile = { ...profileData, [field]: connected };
+    try {
+      localStorage.setItem(storageKey, JSON.stringify(updatedProfile));
+    } catch (error) {
+      console.error(`Unable to save ${app} connection status.`, error);
+      showToast(`Could not save ${app} connection status.`);
+      return false;
+    }
+
+    profileData = updatedProfile;
+    renderAppConnection(app, connected);
+    showToast(connected ? `Connected ${app} successfully` : `Disconnected ${app}`);
+    return true;
+  }
+
+  const appEditDialog = document.getElementById('appEditDialog');
+  const appEditForm = document.getElementById('appEditForm');
+  const appEditTitle = document.getElementById('appEditTitle');
+  const appEditDescription = document.getElementById('appEditDescription');
+  const appEditLabel = document.getElementById('appEditLabel');
+  const appEditValue = document.getElementById('appEditValue');
+  appEditValue.addEventListener('input', () => appEditValue.setCustomValidity(''));
+  let editingApp = '';
+  const appEditConfig = {
+    WhatsApp: {
+      title: 'Edit WhatsApp number',
+      description: 'Update the phone number connected to WhatsApp Business.',
+      label: 'WhatsApp number',
+      type: 'tel',
+      placeholder: '+62 812-3456-7890',
+      getValue: profile => profile.whatsapp || '',
+      save: value => ({ whatsapp: value.replace(/\D/g, ''), whatsappConnected: true }),
+      validate: value => {
+        const digits = value.replace(/\D/g, '');
+        return digits.length >= 8 && digits.length <= 15
+          ? ''
+          : 'Enter a valid phone number with 8 to 15 digits.';
+      }
+    },
+    Google: {
+      title: 'Edit Google account',
+      description: 'Update the email address connected to your Google account.',
+      label: 'Google account email',
+      type: 'email',
+      placeholder: 'name@example.com',
+      getValue: profile => profile.googleEmail || profile.email || '',
+      save: value => ({ googleEmail: value.trim(), googleConnected: true }),
+      validate: () => ''
+    },
+    GitHub: {
+      title: 'Edit GitHub account',
+      description: 'Update the username connected to your GitHub account.',
+      label: 'GitHub username',
+      type: 'text',
+      placeholder: 'username',
+      getValue: profile => profile.githubUsername || '',
+      save: value => ({ githubUsername: value.trim().replace(/^@/, ''), githubConnected: true }),
+      validate: value => /^[A-Za-z0-9-]{1,39}$/.test(value.trim().replace(/^@/, ''))
+        ? ''
+        : 'Enter a valid GitHub username.'
+    },
+    LinkedIn: {
+      title: 'Edit LinkedIn profile',
+      description: 'Update the profile URL connected to LinkedIn.',
+      label: 'LinkedIn profile URL',
+      type: 'url',
+      placeholder: 'https://www.linkedin.com/in/username',
+      getValue: profile => profile.linkedinUrl || '',
+      save: value => ({ linkedinUrl: value.trim(), linkedinConnected: true }),
+      validate: value => {
+        try {
+          const url = new URL(value.trim());
+          return url.protocol === 'https:' && /(^|\.)linkedin\.com$/i.test(url.hostname)
+            ? ''
+            : 'Enter an HTTPS LinkedIn profile URL.';
+        } catch (error) {
+          return 'Enter a valid LinkedIn profile URL.';
+        }
+      }
+    }
+  };
+
+  document.querySelectorAll('[data-app-edit]').forEach(button => {
+    button.addEventListener('click', () => {
+      editingApp = button.dataset.appEdit;
+      const config = appEditConfig[editingApp];
+      if (!config || !appEditDialog || !appEditValue) return;
+      appEditTitle.textContent = config.title;
+      appEditDescription.textContent = config.description;
+      appEditLabel.textContent = config.label;
+      appEditValue.type = config.type;
+      appEditValue.placeholder = config.placeholder;
+      appEditValue.value = config.getValue(profileData);
+      appEditValue.setCustomValidity('');
+      appEditDialog.showModal();
+      appEditValue.focus();
+    });
+  });
+
+  if (appEditForm) {
+    appEditForm.addEventListener('submit', event => {
+      event.preventDefault();
+      const config = appEditConfig[editingApp];
+      if (!config || !appEditValue) return;
+      const value = appEditValue.value.trim();
+      const validationMessage = config.validate(value);
+      appEditValue.setCustomValidity(validationMessage);
+      if (!appEditForm.reportValidity()) return;
+
+      const updatedProfile = { ...profileData, ...config.save(value) };
+      try {
+        localStorage.setItem(storageKey, JSON.stringify(updatedProfile));
+      } catch (error) {
+        console.error(`Unable to save ${editingApp} account details.`, error);
+        showToast(`Could not save ${editingApp} account details.`);
+        return;
+      }
+
+      profileData = updatedProfile;
+      renderAppConnection(editingApp, true);
+      if (editingApp === 'WhatsApp') {
+        const whatsappField = document.getElementById('settingsWhatsapp');
+        if (whatsappField) whatsappField.value = profileData.whatsapp;
+      }
+      appEditDialog.close();
+      showToast(`${editingApp} account details updated.`);
+    });
+  }
+
+  if (appEditDialog) {
+    appEditDialog.addEventListener('click', event => {
+      if (event.target === appEditDialog) appEditDialog.close();
+    });
+    document.getElementById('cancelAppEdit').addEventListener('click', () => appEditDialog.close());
+  }
 
   // Upload and save profile avatar
   const changeAvatarBtn = document.getElementById('changeAvatarBtn');

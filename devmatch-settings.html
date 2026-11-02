@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=optional" rel="stylesheet">
   <link rel="stylesheet" href="assets/css/dashboard.css?v=20261101-avatar-image">
-  <link rel="stylesheet" href="assets/css/settings.css?v=20261102-avatar-reset-icons-motion">
+  <link rel="stylesheet" href="assets/css/settings.css?v=20261102-centered-connection-dialogs">
   <link rel="stylesheet" href="assets/css/custom-select.css?v=20261028-custom-dropdowns-v4">
   <link rel="stylesheet" href="assets/css/client-shell.css?v=20261030-header-size-match">
   <link rel="stylesheet" href="assets/css/mode-switch-animation.css?v=20261030-client-mode-route">
@@ -561,10 +561,13 @@
                   </div>
                   <div class="settings-app-copy">
                     <b>WhatsApp Business</b>
-                    <small>Connected as +62 812-3456-7890 · Direct inquiry bridge active</small>
+                    <small data-app-detail="WhatsApp" data-disconnected-text="Direct inquiry bridge active"></small>
                   </div>
                 </div>
-                <button class="settings-btn primary" type="button" data-app-toggle="WhatsApp" data-connected="true">Connected</button>
+                <div class="settings-app-actions">
+                  <button class="settings-btn settings-app-edit" type="button" data-app-edit="WhatsApp" aria-label="Edit connected WhatsApp number" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 5 4 4M4 20l4-.8L19.2 8a2.8 2.8 0 0 0-4-4L4 15.2 4 20Z"/></svg>Edit</button>
+                  <button class="settings-btn primary" type="button" data-app-toggle="WhatsApp" data-connected="true">Connected</button>
+                </div>
               </div>
 
               <!-- GitHub -->
@@ -575,10 +578,13 @@
                   </div>
                   <div class="settings-app-copy">
                     <b>GitHub</b>
-                    <small>Sync repositories, showcase live project code commits</small>
+                    <small data-app-detail="GitHub" data-disconnected-text="Sync repositories, showcase live project code commits"></small>
                   </div>
                 </div>
-                <button class="settings-btn" type="button" data-app-toggle="GitHub" data-connected="false">Connect</button>
+                <div class="settings-app-actions">
+                  <button class="settings-btn settings-app-edit" type="button" data-app-edit="GitHub" aria-label="Edit connected GitHub account" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 5 4 4M4 20l4-.8L19.2 8a2.8 2.8 0 0 0-4-4L4 15.2 4 20Z"/></svg>Edit</button>
+                  <button class="settings-btn" type="button" data-app-toggle="GitHub" data-connected="false">Connect</button>
+                </div>
               </div>
 
               <!-- Google -->
@@ -589,10 +595,13 @@
                   </div>
                   <div class="settings-app-copy">
                     <b>Google Account</b>
-                    <small>Single sign-on &amp; Google Meet calendar scheduling</small>
+                    <small data-app-detail="Google" data-disconnected-text="Single sign-on &amp; Google Meet calendar scheduling"></small>
                   </div>
                 </div>
-                <button class="settings-btn primary" type="button" data-app-toggle="Google" data-connected="true">Connected</button>
+                <div class="settings-app-actions">
+                  <button class="settings-btn settings-app-edit" type="button" data-app-edit="Google" aria-label="Edit connected Google account" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 5 4 4M4 20l4-.8L19.2 8a2.8 2.8 0 0 0-4-4L4 15.2 4 20Z"/></svg>Edit</button>
+                  <button class="settings-btn primary" type="button" data-app-toggle="Google" data-connected="true">Connected</button>
+                </div>
               </div>
 
               <!-- LinkedIn -->
@@ -603,14 +612,47 @@
                   </div>
                   <div class="settings-app-copy">
                     <b>LinkedIn</b>
-                    <small>Display verified professional employment credential</small>
+                    <small data-app-detail="LinkedIn" data-disconnected-text="Display verified professional employment credential"></small>
                   </div>
                 </div>
-                <button class="settings-btn" type="button" data-app-toggle="LinkedIn" data-connected="false">Connect</button>
+                <div class="settings-app-actions">
+                  <button class="settings-btn settings-app-edit" type="button" data-app-edit="LinkedIn" aria-label="Edit connected LinkedIn profile" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 5 4 4M4 20l4-.8L19.2 8a2.8 2.8 0 0 0-4-4L4 15.2 4 20Z"/></svg>Edit</button>
+                  <button class="settings-btn" type="button" data-app-toggle="LinkedIn" data-connected="false">Connect</button>
+                </div>
               </div>
             </div>
           </div>
         </section>
+
+        <dialog class="app-edit-dialog" id="appEditDialog" aria-labelledby="appEditTitle">
+          <form id="appEditForm">
+            <header class="app-edit-header">
+              <h2 id="appEditTitle">Edit connected account</h2>
+              <p id="appEditDescription"></p>
+            </header>
+            <label class="settings-field" for="appEditValue">
+              <span class="settings-label" id="appEditLabel">Account detail</span>
+              <input class="settings-input" id="appEditValue" required>
+            </label>
+            <footer class="app-edit-actions">
+              <button class="settings-btn" id="cancelAppEdit" type="button">Cancel</button>
+              <button class="settings-btn primary" type="submit">Save changes</button>
+            </footer>
+          </form>
+        </dialog>
+
+        <dialog class="app-edit-dialog app-confirm-dialog" id="appDisconnectDialog" aria-labelledby="appDisconnectTitle">
+          <div class="app-confirm-content">
+            <header class="app-edit-header">
+              <h2 id="appDisconnectTitle">Disconnect account?</h2>
+              <p id="appDisconnectDescription"></p>
+            </header>
+            <footer class="app-edit-actions">
+              <button class="settings-btn" id="cancelAppDisconnect" type="button">Cancel</button>
+              <button class="settings-btn danger" id="confirmAppDisconnect" type="button">Disconnect</button>
+            </footer>
+          </div>
+        </dialog>
 
         <!-- PANEL 7: Platform Preferences -->
         <section class="settings-panel" id="panel-preferences" hidden>
@@ -679,7 +721,7 @@
     <span class="floating-chat-badge">3</span>
   </a>
 
-  <script src="assets/js/settings.js?v=20261102-avatar-reset-icons-motion"></script>
+  <script src="assets/js/settings.js?v=20261102-centered-connection-dialogs"></script>
   <script src="assets/js/custom-select.js?v=20261028-custom-dropdowns-v3"></script>
   <script src="assets/js/nav-behavior.js?v=20261031-account-dropdown-ease"></script>
 </body>

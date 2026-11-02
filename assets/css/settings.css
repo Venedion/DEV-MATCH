@@ -587,6 +587,8 @@
   display: flex;
   align-items: center;
   gap: 12px;
+  flex: 1;
+  min-width: 0;
 }
 
 .settings-app-icon {
@@ -612,6 +614,102 @@
 .settings-app-copy small {
   color: var(--muted);
   font-size: 11px;
+  overflow-wrap: anywhere;
+}
+
+.settings-app-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 7px;
+  flex: none;
+}
+
+.settings-app-edit {
+  padding: 0 11px;
+  border-color: transparent;
+  background: transparent;
+  color: #777982;
+}
+
+.settings-app-edit:hover {
+  border-color: transparent;
+  background: transparent;
+  color: #454750;
+}
+
+.settings-app-edit[hidden] {
+  display: none;
+}
+
+.settings-app-edit svg {
+  width: 14px;
+  height: 14px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.7;
+}
+
+.app-edit-dialog {
+  position: fixed;
+  inset: 0;
+  margin: auto;
+  width: min(440px, calc(100vw - 32px));
+  max-height: calc(100% - 32px);
+  overflow: auto;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: #fff;
+  color: var(--ink);
+  box-shadow: 0 20px 60px #191a2030;
+}
+
+.app-edit-dialog::backdrop {
+  background: #15161b70;
+  backdrop-filter: blur(2px);
+}
+
+.app-edit-dialog form {
+  display: grid;
+  gap: 20px;
+  padding: 24px;
+}
+
+.app-confirm-content {
+  display: grid;
+  gap: 20px;
+  padding: 24px;
+}
+
+.app-confirm-dialog .app-edit-actions {
+  padding-top: 16px;
+  border-top: 1px solid #f0f0f2;
+}
+
+.app-edit-header {
+  padding-bottom: 15px;
+  border-bottom: 1px solid #f0f0f2;
+}
+
+.app-edit-header h2 {
+  font-size: 17px;
+  font-weight: 800;
+}
+
+.app-edit-header p {
+  margin-top: 5px;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.app-edit-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
 }
 
 /* Payout & Billing bank card */
@@ -654,6 +752,18 @@
   .settings-layout {
     grid-template-columns: 1fr;
     gap: 20px;
+  }
+
+  @media (max-width: 520px) {
+    .settings-app-card {
+      align-items: flex-start;
+      flex-wrap: wrap;
+    }
+    .settings-app-actions {
+      width: 100%;
+      padding-left: 52px;
+      justify-content: flex-start;
+    }
   }
   .settings-nav {
     grid-column: 1;
