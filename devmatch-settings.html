@@ -8,13 +8,13 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=optional" rel="stylesheet">
   <link rel="stylesheet" href="assets/css/dashboard.css?v=20261101-avatar-image">
-  <link rel="stylesheet" href="assets/css/settings.css?v=20261103-profile-editor">
+  <link rel="stylesheet" href="assets/css/settings.css?v=20261103-separate-profile-cards">
   <link rel="stylesheet" href="assets/css/custom-select.css?v=20261028-custom-dropdowns-v4">
   <link rel="stylesheet" href="assets/css/client-shell.css?v=20261030-header-size-match">
   <link rel="stylesheet" href="assets/css/mode-switch-animation.css?v=20261030-client-mode-route">
   <link rel="stylesheet" href="assets/css/mobile-navigation.css?v=20261031-desktop-dropdown-aligned">
   <script src="assets/js/mode-switch-state.js?v=20261030-client-mode-indicator"></script>
-  <script src="assets/js/i18n.js?v=20261103-profile-editor-v2"></script>
+  <script src="assets/js/i18n.js?v=20261103-skill-edit-v2"></script>
 </head>
 <body class="page-scroll-shell">
   <!-- Topbar -->
@@ -196,37 +196,44 @@
 
         <!-- PROFILE DETAILS -->
         <section class="settings-panel" id="panel-profile-details" hidden>
-          <form class="settings-card" id="profileDetailsForm" novalidate>
-            <header class="settings-card-header">
-              <h2>Skills, Tech Stacks &amp; Experience</h2>
-              <p>Update the skills and work history shown on your public profile.</p>
-            </header>
-
-            <div class="settings-form-grid full-width">
-              <div class="settings-field">
-                <label class="settings-label" for="settingsSkills">Skills &amp; Tech Stacks</label>
+          <form class="settings-profile-details-form" id="profileDetailsForm" novalidate>
+            <section class="settings-card settings-profile-detail-card" aria-labelledby="settingsSkillsHeading">
+              <header class="settings-card-header settings-profile-detail-header">
+                <h2 id="settingsSkillsHeading">Skills &amp; Tech Stacks</h2>
+                <button class="settings-inline-edit" id="editProfileSkills" type="button" aria-label="Edit Skills &amp; Tech Stacks">
+                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L8 18l-4 1 1-4Z"/></svg>
+                  <span>Edit</span>
+                </button>
+                <p>Update the skills shown on your public profile.</p>
+              </header>
+              <section class="settings-field settings-skill-section">
                 <div class="settings-skill-editor" id="settingsSkillEditor">
                   <div class="settings-skill-tags" id="settingsSkillTags"></div>
-                  <input class="settings-skill-input" id="settingsSkills" type="text" maxlength="60" autocomplete="off" placeholder="Type a skill and press Enter" aria-label="Type a skill and press Enter">
+                  <input class="settings-skill-input" id="settingsSkills" type="text" maxlength="60" autocomplete="off" placeholder="Type a skill and press Enter" aria-label="Type a skill and press Enter" hidden>
                 </div>
-                <span class="settings-hint">Type a skill and press Enter to add it. Select × to remove a skill.</span>
-              </div>
+                <footer class="settings-card-footer settings-skill-footer" id="settingsSkillsActions" hidden>
+                  <span class="settings-hint" id="settingsSkillsHint" hidden>Type a skill and press Enter to add it. Select × to remove a skill.</span>
+                  <button class="settings-btn primary" id="saveProfileSkills" type="button">Save Skills &amp; Tech Stacks</button>
+                </footer>
+              </section>
+            </section>
 
-              <div class="settings-field">
-                <div class="settings-experience-heading">
-                  <span class="settings-label">Experience</span>
-                  <button class="settings-add-experience" id="addProfileExperience" type="button">+ Add experience</button>
-                </div>
+            <section class="settings-card settings-profile-detail-card" aria-labelledby="settingsExperienceHeading">
+              <header class="settings-card-header settings-profile-detail-header">
+                <h2 id="settingsExperienceHeading">Experience</h2>
+                <button class="settings-add-experience" id="addProfileExperience" type="button">+ Add experience</button>
+                <p>Update the work history shown on your public profile.</p>
+              </header>
+              <section class="settings-field settings-experience-section">
                 <div class="settings-experience-list" id="settingsExperienceEntries" aria-describedby="settingsExperienceError"></div>
                 <span class="settings-hint">Add your job title, company, period and optional supporting files.</span>
                 <span class="settings-hint">In this demo, selected file names are saved; file contents are not uploaded.</span>
                 <span class="settings-field-error" id="settingsExperienceError" role="alert" hidden></span>
-              </div>
-            </div>
-
-            <footer class="settings-card-footer">
-              <button class="settings-btn primary" type="submit">Save Profile Details</button>
-            </footer>
+                <footer class="settings-card-footer settings-experience-footer">
+                  <button class="settings-btn primary" id="saveProfileExperience" type="button">Save Experience</button>
+                </footer>
+              </section>
+            </section>
           </form>
         </section>
 
@@ -777,7 +784,7 @@
     <span class="floating-chat-badge">3</span>
   </a>
 
-  <script src="assets/js/settings.js?v=20261103-profile-editor"></script>
+  <script src="assets/js/settings.js?v=20261103-skill-edit-v2"></script>
   <script src="assets/js/custom-select.js?v=20261028-custom-dropdowns-v3"></script>
   <script src="assets/js/nav-behavior.js?v=20261031-account-dropdown-ease"></script>
 </body>

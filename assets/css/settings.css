@@ -132,6 +132,24 @@
   padding: 24px;
 }
 
+.settings-profile-details-form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.settings-profile-detail-header {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 4px 12px;
+}
+
+.settings-profile-detail-header p {
+  grid-column: 1 / -1;
+  margin-top: 0;
+}
+
 #panel-security:not([hidden]) {
   display: flex;
   flex-direction: column;
@@ -312,6 +330,85 @@
   box-shadow: none;
 }
 
+.settings-skill-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.settings-skill-heading .settings-label {
+  margin: 0;
+}
+
+.settings-inline-edit {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 0;
+  border: 0;
+  background: transparent;
+  color: #777982;
+  font-size: 11px;
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+  flex: none;
+}
+
+.settings-inline-edit:hover {
+  color: var(--ink);
+}
+
+.settings-inline-edit svg {
+  width: 13px;
+  height: 13px;
+}
+
+.settings-inline-edit svg[hidden] {
+  display: none;
+}
+
+.settings-skill-empty {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.settings-skill-editor:not(.is-editing) {
+  min-height: 0;
+  padding: 0;
+  border-color: transparent;
+  background: transparent;
+}
+
+.settings-skill-editor:not(.is-editing):focus-within {
+  box-shadow: none;
+}
+
+.settings-skill-footer,
+.settings-experience-footer {
+  justify-content: flex-end;
+  margin-top: 12px;
+  padding-top: 12px;
+}
+
+.settings-card-footer.settings-skill-footer {
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 8px;
+  padding-top: 0;
+  border-top: 0;
+}
+
+.settings-skill-footer .settings-hint {
+  flex: 1 1 auto;
+}
+
+.settings-skill-footer[hidden] {
+  display: none;
+}
+
 .settings-experience-heading {
   display: flex;
   align-items: center;
@@ -364,6 +461,15 @@
   margin: 0;
   justify-content: flex-start;
   white-space: normal;
+}
+
+.settings-experience-fields .settings-label small {
+  margin-left: 5px;
+  white-space: nowrap;
+}
+
+.settings-experience-fields > .settings-field.span-2 .settings-label {
+  justify-content: flex-start;
 }
 
 .settings-experience-fields > .settings-field:not(.span-2) .settings-input {

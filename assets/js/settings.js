@@ -97,10 +97,15 @@
   }
 
   let profileSkills = [];
+  let isEditingSkills = false;
   let experienceDraft = [];
   let nextExperienceId = 0;
   const skillTags = document.getElementById('settingsSkillTags');
   const skillInput = document.getElementById('settingsSkills');
+  const skillEditor = document.getElementById('settingsSkillEditor');
+  const skillHint = document.getElementById('settingsSkillsHint');
+  const skillActions = document.getElementById('settingsSkillsActions');
+  const editSkillsButton = document.getElementById('editProfileSkills');
   const experienceEntries = document.getElementById('settingsExperienceEntries');
 
   function normalizeSkills(value, fallback) {
@@ -118,8 +123,23 @@
   function renderSkillTags() {
     if (!skillTags) return;
     skillTags.innerHTML = profileSkills.map((skill, index) =>
-      `<span class="settings-skill-tag"><span class="settings-skill-value">${escapeHtml(skill)}</span><button type="button" data-remove-skill="${index}" aria-label="Remove skill">×</button></span>`
+      `<span class="settings-skill-tag"><span class="settings-skill-value">${escapeHtml(skill)}</span>${isEditingSkills ? `<button type="button" data-remove-skill="${index}" aria-label="Remove skill">×</button>` : ''}</span>`
     ).join('');
+    if (!profileSkills.length && !isEditingSkills) {
+      skillTags.innerHTML = '<span class="settings-skill-empty">No skills added yet.</span>';
+    }
+  }
+
+  function setSkillsEditing(editing) {
+    isEditingSkills = editing;
+    skillInput.hidden = !editing;
+    skillHint.hidden = !editing;
+    skillActions.hidden = !editing;
+    skillEditor.classList.toggle('is-editing', editing);
+    editSkillsButton.querySelector('span').textContent = editing ? 'Cancel' : 'Edit';
+    editSkillsButton.querySelector('svg').hidden = editing;
+    renderSkillTags();
+    if (editing) skillInput.focus();
   }
 
   function addProfileSkill(value) {
@@ -140,8 +160,8 @@
           <label class="settings-field"><span class="settings-label"><span>Job title</span><span class="settings-required-mark" aria-hidden="true">*</span></span><input class="settings-input" data-experience-field="title" aria-describedby="settingsExperienceError" maxlength="80" placeholder="e.g. Frontend Developer" value="${escapeHtml(entry.title)}"${entry.editing ? '' : ' disabled'} required></label>
           <label class="settings-field"><span class="settings-label"><span>Company</span><span class="settings-required-mark" aria-hidden="true">*</span></span><input class="settings-input" data-experience-field="company" aria-describedby="settingsExperienceError" maxlength="80" placeholder="Company name" value="${escapeHtml(entry.company)}"${entry.editing ? '' : ' disabled'} required></label>
           <label class="settings-field"><span class="settings-label"><span>Period</span><span class="settings-required-mark" aria-hidden="true">*</span></span><input class="settings-input" data-experience-field="period" aria-describedby="settingsExperienceError" maxlength="60" placeholder="e.g. 2022 – Present" value="${escapeHtml(entry.period)}"${entry.editing ? '' : ' disabled'} required></label>
-          <label class="settings-field"><span class="settings-label">Portfolio link <small>Optional</small></span><input class="settings-input" data-experience-field="link" type="url" placeholder="https://example.com" value="${escapeHtml(entry.link)}"${entry.editing ? '' : ' disabled'}></label>
-          <label class="settings-field span-2"><span class="settings-label">Upload supporting files <small>Optional</small></span><input class="settings-input" data-experience-file type="file" accept=".pdf,.doc,.docx,.png,.jpg,.jpeg" multiple${entry.editing ? '' : ' disabled'}><span class="settings-hint settings-experience-files${entry.files.length?' settings-experience-file-value':''}">${escapeHtml(entry.files.join(', ') || 'PDF, DOC, DOCX, JPG, or PNG')}</span></label>
+          <label class="settings-field"><span class="settings-label"><span>Portfolio link</span><small>(Optional)</small></span><input class="settings-input" data-experience-field="link" type="url" placeholder="https://example.com" value="${escapeHtml(entry.link)}"${entry.editing ? '' : ' disabled'}></label>
+          <label class="settings-field span-2"><span class="settings-label"><span>Upload supporting files</span><small>(Optional)</small></span><input class="settings-input" data-experience-file type="file" accept=".pdf,.doc,.docx,.png,.jpg,.jpeg" multiple${entry.editing ? '' : ' disabled'}><span class="settings-hint settings-experience-files${entry.files.length?' settings-experience-file-value':''}">${escapeHtml(entry.files.join(', ') || 'PDF, DOC, DOCX, JPG, or PNG')}</span></label>
         </div>
       </fieldset>`
     ).join('');
@@ -340,11 +360,33 @@
   const profileDetailsForm = document.getElementById('profileDetailsForm');
   if (profileDetailsForm) {
     const experienceError = document.getElementById('settingsExperienceError');
+    profileDetailsForm.addEventListener('submit', event => event.preventDefault());
 
-    profileDetailsForm.addEventListener('submit', function(e) {
-      e.preventDefault();
+    editSkillsButton.addEventListener('click', () => {
+      if (isEditingSkills) {
+        profileSkills = normalizeSkills(profileData.skills, []);
+        skillInput.value = '';
+        setSkillsEditing(false);
+        return;
+      }
+      setSkillsEditing(true);
+    });
+
+    document.getElementById('saveProfileSkills').addEventListener('click', () => {
       addProfileSkill(skillInput.value);
       skillInput.value = '';
+      try {
+        profileData.skills = [...profileSkills];
+        localStorage.setItem(storageKey, JSON.stringify(profileData));
+        setSkillsEditing(false);
+        showToast('Skills & Tech Stacks saved successfully!');
+      } catch (error) {
+        console.error('Unable to save profile skills.', error);
+        showToast('Unable to save skills. Please try again.');
+      }
+    });
+
+    document.getElementById('saveProfileExperience').addEventListener('click', () => {
       const incompleteExperience = experienceDraft.find(entry =>
         !entry.title.trim() || !entry.company.trim() || !entry.period.trim()
       );
@@ -372,7 +414,6 @@
       experienceError.textContent = '';
       experienceError.hidden = true;
       try {
-        profileData.skills = [...profileSkills];
         const savedExperiences = experienceDraft.map(({ title, company, period, link, files }) => ({
           title: title.trim(),
           company: company.trim(),
@@ -389,10 +430,10 @@
         }));
         nextExperienceId = experienceDraft.length;
         renderExperienceEntries();
-        showToast('Profile details saved successfully!');
+        showToast('Experience saved successfully!');
       } catch (error) {
-        console.error('Unable to save profile skills and experience.', error);
-        showToast('Unable to save profile details. Please try again.');
+        console.error('Unable to save profile experience.', error);
+        showToast('Unable to save experience. Please try again.');
       }
     });
 
@@ -409,7 +450,7 @@
 
     skillTags.addEventListener('click', event => {
       const button = event.target.closest('[data-remove-skill]');
-      if (!button) return;
+      if (!button || !isEditingSkills) return;
       profileSkills.splice(Number(button.dataset.removeSkill), 1);
       renderSkillTags();
       skillInput.focus();
