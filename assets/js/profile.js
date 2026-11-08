@@ -261,14 +261,24 @@ function saveCurrentFields(){
   updatePreview();
 }
 
-function finish(){
+async function finish(){
+  if(finish.pending)return;
+  finish.pending=true;
+  try{
   const age=profile.birthday?Math.max(0,Math.floor((Date.now()-new Date(profile.birthday).getTime())/(365.2425*24*60*60*1000))):null;
-  const saved={...profile,role,whatsappConnected:Boolean(profile.whatsapp),googleConnected:true,ageRange:age===null?'':age<18?'Under 18':age<25?'18–24':age<35?'25–34':age<45?'35–44':'45+'};
+  const saved={...profile,role,whatsappConnected:Boolean(profile.whatsapp),googleConnected:false,ageRange:age===null?'':age<18?'Under 18':age<25?'18–24':age<35?'25–34':age<45?'35–44':'45+'};
   delete saved.birthday;
-  localStorage.setItem('devmatch-profile-'+role,JSON.stringify(saved));
+  const backend=window.devMatchBackend;
+  const user=await backend.ready;
+  if(!user)throw new Error('Please log in to save your profile.');
+  const {data:row,error:saveError}=await backend.client.from('profiles').update({display_name:saved.displayName,profile_data:saved,onboarding_complete:true}).eq('id',user.id).select().single();
+  if(saveError)throw saveError;
+  backend.cache(row,user);
   localStorage.setItem('devmatch-active-role',role);
   sessionStorage.removeItem(draftKey);
   window.location.href='devmatch-complete.html?role='+role;
+  }catch(cause){error.textContent=cause.message||'Unable to save your profile. Please try again.';}
+  finally{finish.pending=false;}
 }
 
 document.getElementById('stepFields').addEventListener('input',event=>{
