@@ -16,6 +16,7 @@ let mode=params.get('mode')==='login'?'log':'reg';
 const emailRe=/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 function render(){
   const c=copy[role],reg=mode==='reg';
+  document.getElementById('emailOtpLink').hidden=reg||window.DEVMATCH_AUTH_CONFIG?.emailOtpReady!==true;
   document.querySelectorAll('.reg').forEach(e=>e.classList.toggle('hide',!reg));
   document.querySelectorAll('.log').forEach(e=>e.classList.toggle('hide',reg));
   $('sideBadge').innerHTML=c.badge;$('sideTitle').innerHTML=reg?c.side:'Welcome back.';
