@@ -333,10 +333,19 @@
     });
   }
 
+  async function persistProfile(value){
+    await window.devMatchBackend.saveProfile(value);
+  }
+  // Identity changes require a separate verified flow, not a profile save.
+  ['settingsEmail','settingsUsername'].forEach(id=>{
+    const input=document.getElementById(id);
+    if(input){input.readOnly=true;input.title='This account identifier cannot be changed here.';}
+  });
+
   // Account Form Submission
   const accountForm = document.getElementById('accountForm');
   if (accountForm) {
-    accountForm.addEventListener('submit', function(e) {
+    accountForm.addEventListener('submit', async function(e) {
       e.preventDefault();
       profileData.displayName = document.getElementById('settingsDisplayName').value.trim();
       profileData.username = document.getElementById('settingsUsername').value.trim();
@@ -346,7 +355,7 @@
       profileData.whatsapp = document.getElementById('settingsWhatsapp').value.trim().replace(/\D/g, '');
 
       try {
-        localStorage.setItem(storageKey, JSON.stringify(profileData));
+        await persistProfile(profileData);
         showToast('Profile and account details saved successfully!');
         updateAvatarPreview();
         renderAppConnection('WhatsApp', profileData.whatsappConnected ?? Boolean(profileData.whatsapp));
@@ -372,12 +381,12 @@
       setSkillsEditing(true);
     });
 
-    document.getElementById('saveProfileSkills').addEventListener('click', () => {
+    document.getElementById('saveProfileSkills').addEventListener('click', async () => {
       addProfileSkill(skillInput.value);
       skillInput.value = '';
       try {
         profileData.skills = [...profileSkills];
-        localStorage.setItem(storageKey, JSON.stringify(profileData));
+        await persistProfile(profileData);
         setSkillsEditing(false);
         showToast('Skills & Tech Stacks saved successfully!');
       } catch (error) {
@@ -386,7 +395,7 @@
       }
     });
 
-    document.getElementById('saveProfileExperience').addEventListener('click', () => {
+    document.getElementById('saveProfileExperience').addEventListener('click', async () => {
       const incompleteExperience = experienceDraft.find(entry =>
         !entry.title.trim() || !entry.company.trim() || !entry.period.trim()
       );
@@ -422,7 +431,7 @@
           files: [...files]
         }));
         profileData.experiences = savedExperiences;
-        localStorage.setItem(storageKey, JSON.stringify(profileData));
+        await persistProfile(profileData);
         experienceDraft = savedExperiences.map((entry, index) => ({
           ...entry,
           id: String(index + 1),
@@ -507,7 +516,7 @@
   // Role Specific Form Submission (Dev rates/payouts OR Client company/billing)
   const roleForm = document.getElementById('roleSpecificForm');
   if (roleForm) {
-    roleForm.addEventListener('submit', function(e) {
+    roleForm.addEventListener('submit', async function(e) {
       e.preventDefault();
       if (isDeveloper) {
         profileData.hourlyRate = document.getElementById('settingsHourlyRate').value.trim();
@@ -523,7 +532,7 @@
       }
 
       try {
-        localStorage.setItem(storageKey, JSON.stringify(profileData));
+        await persistProfile(profileData);
         showToast(isDeveloper ? 'Developer rates & payout settings updated!' : 'Company & billing details saved!');
       } catch (err) {
         showToast('Error saving settings');
@@ -683,7 +692,7 @@
       currentPasswordField.input.focus();
     });
 
-    passwordForm.addEventListener('submit', function(e) {
+    passwordForm.addEventListener('submit', async function(e) {
       e.preventDefault();
       const isValid = passwordFields.map(validatePasswordField).every(Boolean);
       if (!isValid) {
@@ -692,6 +701,16 @@
         return;
       }
 
+      const button=passwordForm.querySelector('[type="submit"]');
+      if(button?.disabled)return;
+      if(button)button.disabled=true;
+      try{
+        await window.devMatchBackend.changePassword(passwordFields[0].input.value,newPasswordInput.value);
+      }catch(error){
+        if(error.code==='invalid_credentials'||error.code==='invalid_login_credentials')passwordForm.dispatchEvent(new Event('passwordchange:rejected'));
+        else showToast(error.message||'Unable to update password. Please try again.');
+        return;
+      }finally{if(button)button.disabled=false;}
       showToast('Password updated successfully!');
       passwordForm.reset();
       updatePasswordStrength('');
@@ -703,35 +722,35 @@
     });
   }
 
-  // 2FA Switch toggle simulation
-  const twoFactorToggle = document.getElementById('twoFactorToggle');
-  if (twoFactorToggle) {
-    twoFactorToggle.addEventListener('change', function() {
-      if (this.checked) {
-        showToast('Two-Factor Authentication (2FA) enabled with authenticator app.');
-      } else {
-        showToast('Two-Factor Authentication (2FA) disabled.');
-      }
-    });
-  }
-
-  // Log out other sessions
-  const logoutSessionsBtn = document.getElementById('logoutSessionsBtn');
-  if (logoutSessionsBtn) {
-    logoutSessionsBtn.addEventListener('click', function() {
-      if (confirm('Are you sure you want to log out of all other active sessions?')) {
-        document.querySelectorAll('.settings-session-item:not(.current-session)').forEach(el => el.remove());
-        showToast('Logged out of all other devices.');
-      }
-    });
-  }
+  const twoFactorToggle=document.getElementById('twoFactorToggle');
+  if(twoFactorToggle){twoFactorToggle.disabled=true;twoFactorToggle.checked=false;}
+  document.querySelectorAll('.settings-session-item:not(.current-session)').forEach(item=>{
+    if(item.parentElement.querySelector('.current-session'))item.remove();
+  });
+  const logoutSessionsBtn=document.getElementById('logoutSessionsBtn');
+  if(logoutSessionsBtn)logoutSessionsBtn.addEventListener('click',async()=>{
+    if(logoutSessionsBtn.disabled||!confirm('Log out all other sessions?'))return;
+    logoutSessionsBtn.disabled=true;
+    try{
+      const {error}=await window.devMatchBackend.client.auth.signOut({scope:'others'});
+      if(error)throw error;
+      showToast('Other sessions signed out. Existing access tokens expire according to the session policy.');
+    }catch(error){showToast(error.message||'Unable to sign out other sessions.');}
+    finally{logoutSessionsBtn.disabled=false;}
+  });
 
   // Notification Preferences Form
+  async function savePreferences(form){
+    const values=Object.fromEntries([...form.querySelectorAll('input,select,textarea')].map((field,index)=>[field.id||String(index),field.type==='checkbox'?field.checked:field.value]));
+    const updated={...profileData,preferences:{...profileData.preferences,[form.id]:values}};
+    await persistProfile(updated);profileData=updated;
+  }
   const notifForm = document.getElementById('notificationsForm');
   if (notifForm) {
-    notifForm.addEventListener('submit', function(e) {
+    notifForm.addEventListener('submit', async function(e) {
       e.preventDefault();
-      showToast('Notification preferences updated!');
+      try{await savePreferences(notifForm);showToast('Notification preferences saved.');}
+      catch(error){showToast('Unable to save notification preferences. Please try again.');}
     });
   }
 
@@ -740,7 +759,7 @@
   if (privacyForm) {
     privacyForm.addEventListener('submit', function(e) {
       e.preventDefault();
-      showToast('Privacy & visibility settings updated!');
+      showToast('Privacy controls are not available yet. Your account data remains private.');
     });
   }
 
@@ -752,7 +771,7 @@
   }
 
   if (preferencesForm) {
-    preferencesForm.addEventListener('submit', function(e) {
+    preferencesForm.addEventListener('submit', async function(e) {
       e.preventDefault();
       if (interfaceLanguageSelect && window.devMatchI18n) {
         try {
@@ -763,40 +782,28 @@
           return;
         }
       }
-      showToast('Platform locale and preferences saved!');
+      try{await savePreferences(preferencesForm);showToast('Platform preferences saved.');}
+      catch(error){showToast('Unable to save preferences. Please try again.');}
     });
   }
 
-  // Danger Zone - Deactivate & Delete
-  const deactivateBtn = document.getElementById('deactivateAccountBtn');
-  if (deactivateBtn) {
-    deactivateBtn.addEventListener('click', function() {
-      const confirmed = prompt('To confirm deactivation, please type "DEACTIVATE":');
-      if (confirmed === 'DEACTIVATE') {
-        showToast('Account scheduled for deactivation.');
-      } else if (confirmed) {
-        alert('Confirmation text did not match. Action cancelled.');
+  // Account removal requires a server operation; do not imitate it in browser storage.
+  [notifForm,preferencesForm].filter(Boolean).forEach(form=>{
+    const saved=profileData.preferences?.[form.id]||{};
+    form.querySelectorAll('input,select,textarea').forEach((field,index)=>{
+      const key=field.id||String(index);
+      if(Object.hasOwn(saved,key)){
+        if(field.type==='checkbox')field.checked=Boolean(saved[key]);
+        else{field.value=saved[key];field.dispatchEvent(new Event('change',{bubbles:true}));}
+      }
+      if(field.type==='checkbox'&&!field.getAttribute('aria-label')){
+        const label=field.closest('.settings-toggle-row')?.querySelector('h3')?.textContent;
+        if(label)field.setAttribute('aria-label',label.trim());
       }
     });
-  }
-
-  const deleteAccountBtn = document.getElementById('deleteAccountBtn');
-  if (deleteAccountBtn) {
-    deleteAccountBtn.addEventListener('click', function() {
-      const confirmed = prompt('WARNING: This will permanently delete your projects, chats, and profile. Type "DELETE PERMANENTLY" to confirm:');
-      if (confirmed === 'DELETE PERMANENTLY') {
-        try {
-          localStorage.removeItem(storageKey);
-          alert('Your account data has been wiped. Returning to landing page.');
-          window.location.href = 'devmatch-landing.html';
-        } catch (e) {
-          window.location.href = 'devmatch-landing.html';
-        }
-      } else if (confirmed) {
-        alert('Confirmation phrase did not match. Account was not deleted.');
-      }
-    });
-  }
+  });
+  privacyForm?.querySelectorAll('select,button[type="submit"]').forEach(field=>{field.disabled=true;});
+  ['deactivateAccountBtn','deleteAccountBtn'].forEach(id=>{const button=document.getElementById(id);if(button){button.disabled=true;button.title='Account removal is not available yet.';}});
 
   let pendingDisconnect = null;
   const appDisconnectDialog = document.getElementById('appDisconnectDialog');
@@ -806,7 +813,7 @@
 
   // Connected Apps toggle
   document.querySelectorAll('[data-app-toggle]').forEach(btn => {
-    btn.addEventListener('click', function() {
+    btn.addEventListener('click', async function() {
       const app = this.dataset.appToggle;
       const field = appConnectionFields[app];
       const isConnected = this.dataset.connected === 'true';
@@ -817,15 +824,15 @@
         appDisconnectDescription.textContent = `This will disconnect ${app} from your DEV-MATCH account.`;
         appDisconnectDialog.showModal();
       } else {
-        updateAppConnection(this, field, true, app);
+        await updateAppConnection(this, field, true, app);
       }
     });
   });
 
-  confirmAppDisconnect.addEventListener('click', () => {
+  confirmAppDisconnect.addEventListener('click', async () => {
     if (!pendingDisconnect) return;
     const { button, field, app } = pendingDisconnect;
-    if (updateAppConnection(button, field, false, app)) {
+    if (await updateAppConnection(button, field, false, app)) {
       pendingDisconnect = null;
       appDisconnectDialog.close();
     }
@@ -847,7 +854,7 @@
     pendingDisconnect = null;
   });
 
-  function updateAppConnection(button, field, connected, app) {
+  async function updateAppConnection(button, field, connected, app) {
     if (!field) {
       console.error(`No profile connection field is configured for ${app}.`);
       showToast(`Could not update ${app} connection.`);
@@ -856,7 +863,7 @@
 
     const updatedProfile = { ...profileData, [field]: connected };
     try {
-      localStorage.setItem(storageKey, JSON.stringify(updatedProfile));
+      await persistProfile(updatedProfile);
     } catch (error) {
       console.error(`Unable to save ${app} connection status.`, error);
       showToast(`Could not save ${app} connection status.`);
@@ -954,7 +961,7 @@
   });
 
   if (appEditForm) {
-    appEditForm.addEventListener('submit', event => {
+    appEditForm.addEventListener('submit', async event => {
       event.preventDefault();
       const config = appEditConfig[editingApp];
       if (!config || !appEditValue) return;
@@ -965,7 +972,7 @@
 
       const updatedProfile = { ...profileData, ...config.save(value) };
       try {
-        localStorage.setItem(storageKey, JSON.stringify(updatedProfile));
+        await persistProfile(updatedProfile);
       } catch (error) {
         console.error(`Unable to save ${editingApp} account details.`, error);
         showToast(`Could not save ${editingApp} account details.`);
@@ -1030,11 +1037,11 @@
       avatarUpload.click();
     });
 
-    resetAvatarBtn.addEventListener('click', () => {
+    resetAvatarBtn.addEventListener('click', async () => {
       const updatedProfile = { ...profileData };
       delete updatedProfile.avatar;
       try {
-        localStorage.setItem(storageKey, JSON.stringify(updatedProfile));
+        await persistProfile(updatedProfile);
       } catch (error) {
         console.error('Unable to reset the profile photo.', error);
         showToast('Could not reset the photo. Check available browser storage and try again.');
@@ -1087,7 +1094,7 @@
 
         const updatedProfile = { ...profileData, avatar };
         try {
-          localStorage.setItem(storageKey, JSON.stringify(updatedProfile));
+          await persistProfile(updatedProfile);
         } catch (error) {
           console.error('Unable to save the uploaded profile photo.', error);
           showToast('Could not save the photo. Check available browser storage and try again.');

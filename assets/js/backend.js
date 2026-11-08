@@ -64,6 +64,10 @@
     if (!protectedPage) return user;
     const row = await loadProfile(user);
     if(!row.account_verified){location.replace('devmatch-verify.html');return null;}
+    if(['devmatch-settings.html','devmatch-my-profile.html'].includes(page)){
+      const query=new URLSearchParams(location.search);
+      if(query.get('role')!==row.account_role){query.set('role',row.account_role);location.replace(page+'?'+query);return null;}
+    }
     const changed = cache(row, user);
     if (page === 'devmatch-profile.html' && new URLSearchParams(location.search).get('role') !== row.account_role) {
       location.replace('devmatch-profile.html?role=' + row.account_role);
@@ -92,5 +96,26 @@
     if(!response.ok)throw new Error('Tidak dapat memeriksa layanan verifikasi. Coba lagi.');
     return response.json();
   }
-  window.devMatchBackend = {client, ready, clearCache, cache, loadProfile, destination, authCapabilities};
+  async function currentAccount(){
+    const initial=await ready;
+    const {data:{user},error}=await client.auth.getUser();
+    if(error||!initial||!user||initial.id!==user.id)throw new Error('Your session changed. Reload the page and log in again.');
+    return user;
+  }
+  async function saveProfile(value){
+    const user=await currentAccount();
+    const {email,phone,username,role,...details}=value;
+    const {data,error}=await client.from('profiles').update({display_name:String(details.displayName||''),profile_data:details}).eq('id',user.id).select().single();
+    if(error)throw error;
+    cache(data,user);return data;
+  }
+  async function changePassword(currentPassword,password){
+    const user=await currentAccount();
+    const {data,error}=await client.auth.signInWithPassword({email:user.email,password:currentPassword});
+    if(error)throw error;
+    if(data.user?.id!==user.id)throw new Error('Your session changed. Please log in again.');
+    const changed=await client.auth.updateUser({password});
+    if(changed.error)throw changed.error;
+  }
+  window.devMatchBackend = {client, ready, clearCache, cache, loadProfile, destination, authCapabilities,saveProfile,changePassword};
 })();

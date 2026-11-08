@@ -8,7 +8,7 @@
   function tick(){
     const seconds=Math.max(0,Math.ceil((cooldownUntil-Date.now())/1000));
     $('otpResend').disabled=busy||seconds>0;
-    $('otpResend').textContent=seconds?`Kirim ulang (${seconds}d)`: 'Kirim ulang';
+    $('otpResend').textContent=seconds?`Kirim ulang (${seconds} detik)`: 'Kirim ulang';
   }
   function lock(value){busy=value;$('otpSend').disabled=value||!ready;$('otpVerify').disabled=value;tick();}
   async function send(){

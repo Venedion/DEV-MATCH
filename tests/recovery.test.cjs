@@ -43,11 +43,29 @@ test('Network failure does not claim the reset link was sent',async()=>{
   });
   await submit({preventDefault(){}});assert.match(elements.forgotStatus.textContent,/Unable to request/);
 });
+test('An email quota rejection clearly reports that no reset email was sent',async()=>{
+  let submit;
+  const elements={forgotForm:{addEventListener:(_,fn)=>submit=fn},forgotEmail:{value:'test@example.invalid'},forgotSubmit:{},forgotStatus:{}};
+  vm.runInNewContext(source('forgot-password.js'),{
+    document:{getElementById:id=>elements[id]},setInterval:()=>{},location:{origin:'https://example.invalid'},
+    window:{devMatchBackend:{client:{auth:{resetPasswordForEmail:async()=>({error:{status:429,code:'over_email_send_rate_limit',message:'email rate limit exceeded'}})}}}}
+  });
+  await submit({preventDefault(){}});assert.match(elements.forgotStatus.textContent,/Email delivery limit reached/);assert.match(elements.forgotStatus.textContent,/No new reset email was sent/);assert.equal(elements.forgotSubmit.disabled,true);
+});
 test('A normal session cannot open the password reset form without a recovery link',async()=>{
-  const elements={resetForm:{hidden:true,addEventListener(){}},resetStatus:{}};
+  const elements={resetForm:{hidden:true,addEventListener(){}},resetStatus:{},requestResetLink:{hidden:true}};
   vm.runInNewContext(source('reset-password.js'),{
     document:{getElementById:id=>elements[id]},sessionStorage:storage({}),
     window:{devMatchBackend:{ready:Promise.resolve({id:'fixture'})}}
   });
   await new Promise(setImmediate);assert.equal(elements.resetForm.hidden,true);assert.match(elements.resetStatus.textContent,/reset link/);
+});
+test('An invalid recovery session clears stale state so a new link can be requested',async()=>{
+  const state={'devmatch-recovery':'1'};
+  const elements={resetForm:{hidden:true,addEventListener(){}},resetStatus:{},requestResetLink:{hidden:true}};
+  vm.runInNewContext(source('reset-password.js'),{
+    document:{getElementById:id=>elements[id]},sessionStorage:storage(state),
+    window:{devMatchBackend:{ready:Promise.resolve(null)}}
+  });
+  await new Promise(setImmediate);assert.equal(state['devmatch-recovery'],undefined);assert.equal(elements.requestResetLink.hidden,false);
 });
