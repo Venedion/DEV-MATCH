@@ -2,6 +2,11 @@
 (() => {
   const recovery = location.hash.includes('type=recovery');
   if(recovery)sessionStorage.setItem('devmatch-recovery','1');
+  const callbackError=new URLSearchParams(location.hash.slice(1)).get('error');
+  if(callbackError){
+    sessionStorage.removeItem('devmatch-recovery');
+    sessionStorage.setItem('devmatch-recovery-error','This email link is invalid or expired. Request a new reset link.');
+  }
   const client = window.supabase.createClient(
     'https://yxwktllqbmhustmhdaqi.supabase.co',
     'sb_publishable_9JeJarcXaZgNRiawz81gjw_PTaXtKli'
@@ -36,6 +41,7 @@
     return data;
   }
   function destination(row) {
+    if(!row.account_verified)return 'devmatch-verify.html';
     return row.onboarding_complete
       ? (row.account_role === 'client' ? 'devmatch-client-dashboard.html' : 'devmatch-dashboard.html')
       : 'devmatch-profile.html?role=' + row.account_role;
@@ -43,6 +49,9 @@
   const ready = (async () => {
     const {data: {user}, error} = await client.auth.getUser();
     if (!user || error) {
+      if(sessionStorage.getItem('devmatch-recovery')==='1' && page!=='devmatch-reset-password.html'){
+        location.replace('devmatch-reset-password.html');return null;
+      }
       if (protectedPage) {
         clearCache();
         location.replace('devmatch-auth.html?mode=login');
@@ -54,6 +63,7 @@
     }
     if (!protectedPage) return user;
     const row = await loadProfile(user);
+    if(!row.account_verified){location.replace('devmatch-verify.html');return null;}
     const changed = cache(row, user);
     if (page === 'devmatch-profile.html' && new URLSearchParams(location.search).get('role') !== row.account_role) {
       location.replace('devmatch-profile.html?role=' + row.account_role);
@@ -75,5 +85,12 @@
     clearCache();
     location.assign('devmatch-auth.html?mode=login');
   }, true);
-  window.devMatchBackend = {client, ready, clearCache, cache, loadProfile, destination};
+  async function authCapabilities(){
+    const response=await fetch('https://yxwktllqbmhustmhdaqi.supabase.co/auth/v1/settings',{
+      headers:{apikey:'sb_publishable_9JeJarcXaZgNRiawz81gjw_PTaXtKli'}
+    });
+    if(!response.ok)throw new Error('Tidak dapat memeriksa layanan verifikasi. Coba lagi.');
+    return response.json();
+  }
+  window.devMatchBackend = {client, ready, clearCache, cache, loadProfile, destination, authCapabilities};
 })();

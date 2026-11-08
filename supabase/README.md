@@ -37,3 +37,22 @@ no findings. Real inbox delivery was not tested.
 
 Existing project listings, chat, notification content, and settings actions
 outside registration/onboarding remain demo features.
+
+Contact verification: `contact-verification.sql` has also been applied. Its Auth
+trigger mirrors trusted confirmation timestamps into read-only profile columns;
+`account_verified` is generated from verified email and a matching verified phone.
+The local frontend routes incomplete accounts to `devmatch-verify.html`. Pending
+accounts may read their own profile and change their contact phone, but cannot
+complete onboarding. Existing onboarding data is preserved; it does not confer
+verified status. Changing the contact phone invalidates the combined status.
+The phone provider is not yet active, so pending users cannot reach the dashboard
+until SMS is configured and verification succeeds. The UI reports this honestly.
+
+Password recovery: `devmatch-forgot-password.html` requests a reset email without
+requiring a password. It uses an explicit return URL, while the root callback
+also supports Supabase's fallback Site URL. Configure allowed redirects for the
+deployed origin and `/devmatch-reset-password.html`. Recovery routes bypass the
+phone-verification gate. Invalid/expired links show a way to request a new link;
+password confirmation and a successful-update login message are included.
+Recovery tests use mocked SDK calls; real inbox delivery/new-password submission
+still require a user-controlled inbox and manual password entry.

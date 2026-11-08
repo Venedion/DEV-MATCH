@@ -80,7 +80,8 @@ $('form').addEventListener('submit',async e=>{
       if(error)throw error;
       $('pass').value='';
       if(!data.session){
-        $('authStatus').textContent='Check your email to confirm your account, then log in. If this email is already registered, log in or reset your password.';
+        sessionStorage.setItem('devmatch-verification-email',em);
+        location.assign('devmatch-verify.html');
         return;
       }
     }else{
@@ -104,12 +105,6 @@ $('form').addEventListener('submit',async e=>{
 render();
 const status=document.createElement('p');
 status.id='authStatus';status.setAttribute('role','status');status.style.marginTop='16px';$('form').append(status);
-document.querySelector('.forgot').addEventListener('click',async e=>{
-  e.preventDefault();
-  const email=$('email').value.trim();
-  if(!emailRe.test(email)){setErr('email','Enter your email first.');return;}
-  const {error}=await window.devMatchBackend.client.auth.resetPasswordForEmail(email);
-  status.textContent=error?error.message:'If this account exists, a password reset email has been sent.';
-});
+if(params.get('reset')==='success')status.textContent='Password updated. Log in with your new password.';
 if(params.get('error')==='connection')status.textContent='Unable to connect. Please try logging in again.';
 })();
