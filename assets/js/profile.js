@@ -40,7 +40,7 @@ const content=[
         <div><label class="field-label" for="city">City / Region</label><input class="control" id="city" name="city" maxlength="80" placeholder="Medan, Sumatera Utara" value="${escapeHtml(profile.city)}"></div>
       </div>
       <div class="field"><span class="field-label">Gender</span><div class="gender-options">${['Male','Female','Prefer not to say'].map(value=>`<button class="choice" type="button" data-gender="${value}" aria-pressed="${profile.gender===value}">${value}</button>`).join('')}</div></div>
-      <div class="field"><label class="field-label" for="birthdayTrigger">Birthday</label><div class="birthday-picker" id="birthdayPicker"><input id="birthday" name="birthday" type="hidden" value="${escapeHtml(profile.birthday)}"><button class="control birthday-trigger" id="birthdayTrigger" type="button" aria-haspopup="dialog" aria-expanded="false" aria-controls="birthdayCalendar"><span id="birthdayValue">${formatBirthday(profile.birthday)||'Select your birthday'}</span><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/></svg></button><div class="birthday-calendar" id="birthdayCalendar" role="dialog" aria-label="Choose your birthday" hidden><header class="calendar-heading"><button class="calendar-month" type="button" data-calendar-month aria-live="polite"></button><div class="calendar-navigation"><button type="button" data-calendar-nav="-1" aria-label="Previous month">‹</button><button type="button" data-calendar-nav="1" aria-label="Next month">›</button></div></header><div class="calendar-weekdays" aria-hidden="true"><span>Su</span><span>Mo</span><span>Tu</span><span>We</span><span>Th</span><span>Fr</span><span>Sa</span></div><div class="calendar-days" id="birthdayDays" role="group" aria-label="Dates"></div><footer class="calendar-footer"><button type="button" data-calendar-clear>Clear</button><button type="button" data-calendar-today>Today</button></footer></div></div><p class="field-hint">Only your age range is shown publicly.</p></div>`
+      <div class="field"><label class="field-label" for="birthdayTrigger">Birthday</label><div class="birthday-picker" id="birthdayPicker"><input id="birthday" name="birthday" type="hidden" value="${escapeHtml(profile.birthday)}"><button class="control birthday-trigger" id="birthdayTrigger" type="button" aria-haspopup="dialog" aria-expanded="false" aria-controls="birthdayCalendar"><span id="birthdayValue">${formatBirthday(profile.birthday)||'Select your birthday'}</span><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/></svg></button><div class="birthday-calendar" id="birthdayCalendar" role="dialog" aria-label="Choose your birthday" hidden><header class="calendar-heading"><div class="calendar-selects"><select class="calendar-select" id="birthdayMonth" data-custom-select="native" data-calendar-month aria-label="Birth month"></select><select class="calendar-select" id="birthdayYear" data-custom-select="native" data-calendar-year aria-label="Birth year"></select></div><div class="calendar-navigation"><button type="button" data-calendar-nav="-1" aria-label="Previous month">‹</button><button type="button" data-calendar-nav="1" aria-label="Next month">›</button></div></header><div class="calendar-weekdays" aria-hidden="true"><span>Su</span><span>Mo</span><span>Tu</span><span>We</span><span>Th</span><span>Fr</span><span>Sa</span></div><div class="calendar-days" id="birthdayDays" role="group" aria-label="Dates"></div><footer class="calendar-footer"><button type="button" data-calendar-clear>Clear</button><button type="button" data-calendar-today>Today</button></footer></div></div><p class="field-hint">Only your age range is shown publicly.</p></div>`
   },
   {
     title:isDeveloper?'What do you specialize in?':'What kind of work do you need?',
@@ -124,7 +124,13 @@ function renderBirthdayCalendar(){
   const firstWeekday=new Date(year,month,1).getDay();
   const daysInMonth=new Date(year,month+1,0).getDate();
   const daysInPreviousMonth=new Date(year,month,0).getDate();
-  document.querySelector('[data-calendar-month]').textContent=calendarMonth.toLocaleDateString('en-US',{month:'long',year:'numeric'});
+  const monthSelect=document.querySelector('[data-calendar-month]');
+  const yearSelect=document.querySelector('[data-calendar-year]');
+  if(!monthSelect.options.length)monthSelect.innerHTML=Array.from({length:12},(_,index)=>`<option value="${index}">${new Date(2000,index,1).toLocaleDateString('en-US',{month:'long'})}</option>`).join('');
+  if(!yearSelect.options.length)yearSelect.innerHTML=Array.from({length:today.getFullYear()-1900+1},(_,index)=>{const value=today.getFullYear()-index;return `<option value="${value}">${value}</option>`;}).join('');
+  monthSelect.value=String(month);
+  yearSelect.value=String(year);
+  [...monthSelect.options].forEach(option=>{option.disabled=year===today.getFullYear()&&Number(option.value)>today.getMonth();});
   const buttons=[];
   for(let index=0;index<42;index++){
     const dayOffset=index-firstWeekday+1;
@@ -147,9 +153,10 @@ function renderBirthdayCalendar(){
     const selected=selectedValue===value;
     const isToday=value===birthdayDateValue(today);
     const classes=`calendar-day${outside}${selected?' selected':''}${isToday?' today':''}`;
-    buttons.push(`<button class="${classes}" type="button" data-calendar-date="${value}" aria-label="${date.toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'})}"${selected?' aria-pressed="true"':''}${isFuture?' disabled':''}>${day}</button>`);
+    buttons.push(`<button class="${classes}" type="button" data-calendar-date="${value}" aria-label="${date.toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'})}"${selected?' aria-pressed="true"':''}${isFuture||date.getFullYear()<1900?' disabled':''}>${day}</button>`);
   }
   days.innerHTML=buttons.join('');
+  document.querySelector('[data-calendar-nav="-1"]').disabled=year===1900&&month===0;
   const nextMonth=new Date(year,month+1,1);
   document.querySelector('[data-calendar-nav="1"]').disabled=nextMonth>new Date(today.getFullYear(),today.getMonth(),1);
 }
@@ -261,14 +268,24 @@ function saveCurrentFields(){
   updatePreview();
 }
 
-function finish(){
+async function finish(){
+  if(finish.pending)return;
+  finish.pending=true;
+  try{
   const age=profile.birthday?Math.max(0,Math.floor((Date.now()-new Date(profile.birthday).getTime())/(365.2425*24*60*60*1000))):null;
-  const saved={...profile,role,whatsappConnected:Boolean(profile.whatsapp),googleConnected:true,ageRange:age===null?'':age<18?'Under 18':age<25?'18–24':age<35?'25–34':age<45?'35–44':'45+'};
+  const saved={...profile,role,whatsappConnected:Boolean(profile.whatsapp),googleConnected:false,ageRange:age===null?'':age<18?'Under 18':age<25?'18–24':age<35?'25–34':age<45?'35–44':'45+'};
   delete saved.birthday;
-  localStorage.setItem('devmatch-profile-'+role,JSON.stringify(saved));
+  const backend=window.devMatchBackend;
+  const user=await backend.ready;
+  if(!user)throw new Error('Please log in to save your profile.');
+  const {data:row,error:saveError}=await backend.client.from('profiles').update({display_name:saved.displayName,profile_data:saved,onboarding_complete:true}).eq('id',user.id).select().single();
+  if(saveError)throw saveError;
+  backend.cache(row,user);
   localStorage.setItem('devmatch-active-role',role);
   sessionStorage.removeItem(draftKey);
   window.location.href='devmatch-complete.html?role='+role;
+  }catch(cause){error.textContent=cause.message||'Unable to save your profile. Please try again.';}
+  finally{finish.pending=false;}
 }
 
 document.getElementById('stepFields').addEventListener('input',event=>{
@@ -293,6 +310,15 @@ document.getElementById('stepFields').addEventListener('input',event=>{
 });
 document.getElementById('stepFields').addEventListener('change',event=>{
   const target=event.target;
+  if(target.matches('[data-calendar-month], [data-calendar-year]')){
+    const today=new Date();
+    const year=Number(document.getElementById('birthdayYear').value);
+    let month=Number(document.getElementById('birthdayMonth').value);
+    if(year===today.getFullYear())month=Math.min(month,today.getMonth());
+    calendarMonth=new Date(year,month,1);
+    renderBirthdayCalendar();
+    return;
+  }
   const entryElement=target.closest('[data-experience-id]');
   if(entryElement&&target.matches('[data-experience-file]')){
     const entry=profile.experiences.find(item=>item.id===entryElement.dataset.experienceId);
@@ -315,6 +341,7 @@ document.getElementById('stepFields').addEventListener('change',event=>{
   updatePreview();
 });
 document.getElementById('stepFields').addEventListener('click',event=>{
+  if(event.target.closest('.calendar-select')){event.stopPropagation();return;}
   const gender=event.target.closest('[data-gender]');
   const availability=event.target.closest('[data-availability]');
   const specialty=event.target.closest('[data-specialty]');

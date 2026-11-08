@@ -25,8 +25,8 @@ function render(){
   $('sw').onclick=()=>{role=role==='dev'?'cli':'dev';clearErr();render()};
   $('title').textContent=reg?c.title:'Log in to DEV-MATCH';
   $('sub').textContent=reg?c.sub:'Welcome back. Enter your details to continue.';
-  $('emailLabel').textContent=reg?'Email':'Email or phone number';
-  $('email').type=reg?'email':'text';$('email').placeholder=reg?'you@example.com':'you@example.com or 812 3456 7890';
+  $('emailLabel').textContent='Email';
+  $('email').type='email';$('email').placeholder='you@example.com';
   $('pass').autocomplete=reg?'new-password':'current-password';
   $('pass').placeholder=reg?'8+ chars, 1 uppercase, 1 special character':'Your password';
   $('submit').textContent=reg?'Create account':'Log in';
@@ -49,7 +49,7 @@ $('pass').addEventListener('input',()=>{
 $('user').addEventListener('input',userHint);
 $('phone').addEventListener('input',e=>{e.target.value=e.target.value.replace(/\D/g,'').replace(/^0+/,'')});
 $('eye').onclick=()=>{const s=$('pass').type==='password';$('pass').type=s?'text':'password';$('eye').setAttribute('aria-label',s?'Hide password':'Show password')};
-$('form').addEventListener('submit',e=>{
+$('form').addEventListener('submit',async e=>{
   e.preventDefault();clearErr();let bad=false;const reg=mode==='reg';
   const u=$('user').value.trim(),em=$('email').value.trim(),ph=$('phone').value,pw=$('pass').value;
   if(reg){
@@ -65,34 +65,45 @@ $('form').addEventListener('submit',e=>{
     if(!pw){setErr('pass','Enter your password.');bad=true}
   }
   if(bad){const f=document.querySelector('.in.err input');if(f)f.focus();return}
-  // TODO: ganti dengan request ke backend (register / login)
-  if(reg){
-    sessionStorage.setItem('devmatch-profile-draft',JSON.stringify({
-      role:role==='dev'?'dev':'client',
-      username:u
-    }));
-    window.location.href='devmatch-profile.html?role='+(role==='dev'?'dev':'client');
-    return;
-  }
-  $('submit').disabled=true;$('submit').textContent=reg?'Creating account…':'Logging in…';
-  setTimeout(()=>{
-    $('submit').disabled=false;
-    $('submit').textContent='Log in';
+  $('submit').disabled=true;
+  $('submit').textContent=reg?'Creating account…':'Logging in…';
+  try {
+    const backend=window.devMatchBackend;
+    await backend.ready;
     const activeRole=role==='dev'?'dev':'client';
-    try{
-      localStorage.setItem('devmatch-active-role',activeRole);
-      const savedProfile=localStorage.getItem('devmatch-profile-'+activeRole);
-      if(savedProfile){
-        window.location.href=activeRole==='dev'?'devmatch-dashboard.html':'devmatch-client-dashboard.html';
+    if(reg){
+      const {data,error}=await backend.client.auth.signUp({
+        email:em,password:pw,
+        options:{data:{username:u,phone:'+62'+ph,account_role:activeRole}}
+      });
+      if(error)throw error;
+      $('pass').value='';
+      if(!data.session){
+        sessionStorage.setItem('devmatch-verification-email',em);
+        location.assign('devmatch-verify-email.html');
         return;
       }
-    }catch(error){
-      console.error('Unable to restore the saved demo profile.',error);
-      setErr('pass','Unable to restore your saved profile. Please try again.');
-      return;
+    }else{
+      const {error}=await backend.client.auth.signInWithPassword({email:em,password:pw});
+      if(error)throw error;
     }
-    alert('Demo: login berhasil. Hubungkan ke backend untuk melanjutkan ke dashboard.');
-  },700);
+    const {data:{user},error}=await backend.client.auth.getUser();
+    if(error||!user)throw error||new Error('Unable to verify your session.');
+    const row=await backend.loadProfile(user);
+    backend.clearCache();
+    backend.cache(row,user);
+    sessionStorage.setItem('devmatch-profile-draft',JSON.stringify({...row.profile_data,username:row.username||'',role:row.account_role}));
+    location.assign(backend.destination(row,user));
+  }catch(error){
+    setErr('pass',error.message||'Unable to connect. Please try again.');
+  }finally{
+    $('submit').disabled=false;
+    $('submit').textContent=reg?'Create account':'Log in';
+  }
 });
 render();
+const status=document.createElement('p');
+status.id='authStatus';status.setAttribute('role','status');status.style.marginTop='16px';$('form').append(status);
+if(params.get('reset')==='success')status.textContent='Password updated. Log in with your new password.';
+if(params.get('error')==='connection')status.textContent='Unable to connect. Please try logging in again.';
 })();
