@@ -2,6 +2,30 @@ const heart='<svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L
 const eye='<svg viewBox="0 0 24 24"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>';
 const wa='<svg viewBox="0 0 24 24"><path d="M21 11.5a8.4 8.4 0 0 1-12.4 7.4L3 20l1.2-5.4A8.4 8.4 0 1 1 21 11.5z"/></svg>';
 const pin='<svg viewBox="0 0 24 24"><path d="M20 10c0 6-8 12-8 12S4 16 4 10a8 8 0 0 1 16 0z"/><circle cx="12" cy="10" r="3"/></svg>';
+const themeToggle=document.getElementById('themeToggle');
+function isDarkTheme(){
+  return document.documentElement.dataset.theme
+    ? document.documentElement.dataset.theme==='dark'
+    : window.matchMedia('(prefers-color-scheme: dark)').matches;
+}
+function updateThemeToggle(){
+  const dark=isDarkTheme();
+  themeToggle.setAttribute('aria-pressed',String(dark));
+  const label=dark?'Switch to light mode':'Switch to dark mode';
+  themeToggle.setAttribute('aria-label',label);
+  themeToggle.title=label;
+}
+themeToggle.addEventListener('click',()=>{
+  const theme=isDarkTheme()?'light':'dark';
+  document.documentElement.dataset.theme=theme;
+  try {
+    localStorage.setItem('devmatch-landing-theme',theme);
+  } catch (error) {
+    console.warn('Unable to save the landing page theme preference.',error);
+  }
+  updateThemeToggle();
+});
+updateThemeToggle();
 const P=[
  {t:'Website',c:'COMPANY PROFILE',ago:'1h ago',n:'Restaurant Website Development',d:'Modern responsive website for a restaurant business — menu, reservations and maps.',pl:'Starting from',p:'Rp 3.500.000',by:'Rizky Aditya',i:'RA',v:'245',f:'32',bg:'#f3e6d6'},
  {t:'Web App',c:'POS',ago:'3h ago',n:'Kasir Pintar — Café POS',d:'Cloud POS with multi-branch stock, shift reports and QRIS-ready checkout.',pl:'Fixed price',p:'Rp 6.000.000',by:'Kevin Tanoto',i:'KT',v:'1.9k',f:'128',bg:'#e4e6fb'},
@@ -25,14 +49,9 @@ document.getElementById('devGrid').innerHTML=D.map(d=>`<article class="card dcar
 document.getElementById('devGrid').addEventListener('click',e=>{const h=e.target.closest('.heart');if(h)h.setAttribute('aria-pressed',h.getAttribute('aria-pressed')!=='true')});
 function setMode(m){
   const dev=m==='dev';
-  document.getElementById('m-dev').setAttribute('aria-pressed',dev);document.getElementById('m-cli').setAttribute('aria-pressed',!dev);
-  document.getElementById('p-dev').classList.toggle('on',dev);document.getElementById('p-cli').classList.toggle('on',!dev);
-  document.getElementById('h-dev').classList.toggle('dim',!dev);document.getElementById('h-cli').classList.toggle('dim',dev);
   document.getElementById('loginLink').href='devmatch-auth.html?mode=login&role='+(dev?'dev':'client');
   document.getElementById('startLink').href='devmatch-role.html?role='+(dev?'dev':'client');
 }
-document.getElementById('m-dev').onclick=()=>setMode('dev');
-document.getElementById('m-cli').onclick=()=>setMode('cli');
 document.getElementById('p-dev').onmouseenter=()=>setMode('dev');
 document.getElementById('p-cli').onmouseenter=()=>setMode('cli');
 renderProjects();

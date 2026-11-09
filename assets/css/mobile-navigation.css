@@ -753,12 +753,12 @@
     line-height: 22px;
   }
 
-  header.topbar > .brand i,
-  header.client-topbar > .client-brand i,
-  header.profile-topbar > .brand i {
-    width: 22px;
-    height: 22px;
-    flex: 0 0 22px;
+  header.topbar > .brand .brand-mark,
+  header.client-topbar > .client-brand .brand-mark,
+  header.profile-topbar > .brand .brand-mark {
+    width: 30px;
+    height: 30px;
+    flex: 0 0 30px;
     border-radius: 6px;
     font-size: 10px;
   }

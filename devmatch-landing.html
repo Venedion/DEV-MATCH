@@ -7,18 +7,30 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=optional" rel="stylesheet">
-<link rel="stylesheet" href="assets/css/landing.css">
+<script>
+  try {
+    const savedTheme = localStorage.getItem('devmatch-landing-theme');
+    if (savedTheme === 'light' || savedTheme === 'dark') document.documentElement.dataset.theme = savedTheme;
+  } catch (error) {
+    console.warn('Unable to restore the landing page theme preference.', error);
+  }
+</script>
+<link rel="stylesheet" href="assets/css/landing.css?v=20261106-arrow-icon-tuned">
 <script src="assets/js/i18n.js?v=20261102-profile-details"></script>
 </head>
 <body>
 <nav><div class="wrap">
-  <a class="logo" href="#top"><i>&lt;/&gt;</i><span>DEV-MATCH</span></a>
+  <a class="logo" href="#top"><img class="brand-mark" src="assets/images/devmatch-logo.png" width="40" height="40" alt="" aria-hidden="true"><span>DEV-MATCH</span></a>
   <div class="links"><a href="#how">How it works</a><a href="#projects">Explore</a></div>
-  <div class="toggle" role="group" aria-label="Choose mode">
-    <button id="m-dev" aria-pressed="true"><svg viewBox="0 0 24 24"><path d="m16 18 6-6-6-6M8 6l-6 6 6 6"/></svg>Developer Mode</button>
-    <button id="m-cli" aria-pressed="false"><svg viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>Client Mode</button>
+  <div class="right">
+    <button class="theme-toggle" id="themeToggle" type="button" aria-label="Switch to dark mode" aria-pressed="false" title="Switch to dark mode">
+      <svg class="theme-icon-sun" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M4.93 4.93l1.42 1.42m11.3 11.3 1.42 1.42M2 12h2m16 0h2M4.93 19.07l1.42-1.42m11.3-11.3 1.42-1.42"/></svg>
+      <svg class="theme-icon-moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20.9 13A9 9 0 0 1 11 3.1 9 9 0 1 0 20.9 13Z"/></svg>
+      <span class="theme-toggle-indicator" aria-hidden="true"></span>
+    </button>
+    <a class="login-link" id="loginLink" href="devmatch-auth.html?mode=login&amp;role=dev">Log in</a>
+    <a class="btn sm2 btn-hover-lift" id="startLink" href="devmatch-role.html?role=dev">Get started</a>
   </div>
-  <div class="right"><a id="loginLink" href="devmatch-auth.html?mode=login&amp;role=dev">Log in</a><a class="btn sm2" id="startLink" href="devmatch-role.html?role=dev">Get started</a></div>
 </div></nav>
 
 <main id="top">
@@ -27,11 +39,11 @@
   <h1>Where Developers and Clients Connect</h1>
   <p class="lead">DEV-MATCH is where independent developers showcase real, ready-to-build projects — and where businesses discover the right developer, compare prices, and reach out directly on WhatsApp or in chat.</p>
   <div class="paths">
-    <article class="path on" id="p-dev">
+    <article class="path" id="p-dev">
       <div class="top"><div class="ico"><svg viewBox="0 0 24 24"><path d="m16 18 6-6-6-6M8 6l-6 6 6 6"/></svg></div><span class="tag">FOR BUILDERS</span></div>
       <div><h2>I am a developer</h2><p style="margin-top:10px">Showcase your best work, discover meaningful projects, and connect with your next client.</p></div>
       <div class="stage"><div class="shot a">Building<br>better futures.<div style="margin-top:8px;height:8px;width:40px;border-radius:9px;background:#6366f1"></div></div><div class="shot b"><small>Sales today</small><div class="bar"><i style="height:30%"></i><i style="height:50%"></i><i style="height:40%"></i><i style="height:80%"></i><i style="height:60%"></i><i style="height:95%"></i></div><b style="font-size:12px">Rp 3.500.000</b></div><div class="shot c">Savor every<br>moment.<div style="margin:8px 0;height:8px;width:50px;border-radius:9px;background:#e0622b"></div></div></div>
-      <div class="cta-row"><a class="btn" href="devmatch-auth.html?mode=register&amp;role=dev">Start showcasing <svg viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg></a><small>Free for developers</small></div>
+      <div class="cta-row"><a class="btn btn-arrow btn-hover-lift" href="devmatch-auth.html?mode=register&amp;role=dev">Start showcasing <svg viewBox="0 0 24 24"><path d="M2 12h20M15 5l7 7-7 7"/></svg></a><small>Free for developers</small></div>
     </article>
     <article class="path" id="p-cli">
       <div class="top"><div class="ico"><svg viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg></div><span class="tag">FOR VISIONARIES</span></div>
@@ -41,7 +53,7 @@
         <div class="row"><div class="av">SN</div><div>Sarah Nasution<span>UI/UX developer</span></div><em class="status s-free" style="font-style:normal">● Freelance</em></div>
         <div class="row"><div class="av">DK</div><div>Daniel Kurniawan<span>Mobile developer</span></div><em class="status s-ok" style="font-style:normal">● Open for hiring</em></div>
       </div></div>
-      <div class="cta-row"><a class="btn" href="devmatch-auth.html?mode=register&amp;role=client">Find your developer <svg viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg></a><small>No signup fees</small></div>
+      <div class="cta-row"><a class="btn btn-arrow btn-hover-lift" href="devmatch-auth.html?mode=register&amp;role=client">Find your developer <svg viewBox="0 0 24 24"><path d="M2 12h20M15 5l7 7-7 7"/></svg></a><small>No signup fees</small></div>
     </article>
   </div>
   <div class="stats"><div><b>2,400+</b><span>independent developers</span></div><div><b>850+</b><span>projects to explore</span></div><div><b>1,200+</b><span>connections made</span></div></div>
@@ -54,7 +66,7 @@
       <div class="step"><em>1</em><div><b>Build your profile</b><p>Add your specialization, skills, experience and WhatsApp number in a guided 4-step setup.</p></div></div>
       <div class="step"><em>2</em><div><b>Showcase projects with pricing</b><p>Upload screenshots or a demo video, set a fixed, starting-from, negotiable or custom-quote price.</p></div></div>
       <div class="step"><em>3</em><div><b>Get discovered &amp; hired</b><p>Clients favorite, comment and chat with you directly. Browse client requests to find your next job.</p></div></div></div>
-    <div class="panel dim" id="h-cli"><h3><svg viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>For clients</h3>
+    <div class="panel" id="h-cli"><h3><svg viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>For clients</h3>
       <div class="step"><em>1</em><div><b>Tell us you’re hiring</b><p>Create a free client account in under a minute — no fees, no bidding wars.</p></div></div>
       <div class="step"><em>2</em><div><b>Discover projects &amp; developers</b><p>Search ready-to-build projects by category, type, price or specialization.</p></div></div>
       <div class="step"><em>3</em><div><b>Connect and rate</b><p>Compare, favorite, ask in comments — then chat or contact the developer on WhatsApp. Rate each other after you work together.</p></div></div></div>
@@ -62,13 +74,13 @@
 </div></section>
 
 <section class="alt" id="projects"><div class="wrap">
-  <div class="head"><div><span class="sm">Featured projects</span><h2>Ready-to-build projects, priced upfront</h2><p>Every listing shows what’s included and what it costs — no guessing.</p></div><a class="btn ghost" href="#">Explore all projects <svg viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg></a></div>
+  <div class="head"><div><span class="sm">Featured projects</span><h2>Ready-to-build projects, priced upfront</h2><p>Every listing shows what’s included and what it costs — no guessing.</p></div><a class="btn btn-arrow btn-hover-color" href="#">Explore all projects <svg viewBox="0 0 24 24"><path d="M2 12h20M15 5l7 7-7 7"/></svg></a></div>
   <div class="chips" id="chips"></div>
   <div class="grid4" id="projGrid"></div>
 </div></section>
 
 <section id="developers"><div class="wrap">
-  <div class="head"><div><span class="sm">Featured developers</span><h2>Meet developers clients trust</h2></div><a class="btn ghost" href="#">Browse developers <svg viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg></a></div>
+  <div class="head"><div><span class="sm">Featured developers</span><h2>Meet developers clients trust</h2></div><a class="btn btn-arrow btn-hover-color" href="#">Browse developers <svg viewBox="0 0 24 24"><path d="M2 12h20M15 5l7 7-7 7"/></svg></a></div>
   <div class="grid4" id="devGrid"></div>
 </div></section>
 
@@ -88,27 +100,27 @@
   <div class="two">
     <div class="bcard"><span class="badge">&lt;&gt; Developer Mode</span><h3>Turn your portfolio into a storefront</h3>
       <ul><li><svg viewBox="0 0 24 24"><path d="m5 12 5 5 9-10"/></svg>List projects with prices and included services</li><li><svg viewBox="0 0 24 24"><path d="m5 12 5 5 9-10"/></svg>Track views, favorites and comments per project</li><li><svg viewBox="0 0 24 24"><path d="m5 12 5 5 9-10"/></svg>Discover client project requests that match your skills</li><li><svg viewBox="0 0 24 24"><path d="m5 12 5 5 9-10"/></svg>Get notified when clients favorite, comment or message</li><li><svg viewBox="0 0 24 24"><path d="m5 12 5 5 9-10"/></svg>Build your reputation with client ratings</li></ul>
-      <a class="btn" href="devmatch-auth.html?mode=register&amp;role=dev">Create developer account <svg viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg></a></div>
+      <a class="btn btn-arrow btn-hover-color" href="devmatch-auth.html?mode=register&amp;role=dev">Create developer account <svg viewBox="0 0 24 24"><path d="M2 12h20M15 5l7 7-7 7"/></svg></a></div>
     <div class="bcard"><span class="badge">Client Mode</span><h3>Hire with confidence, not guesswork</h3>
       <ul><li><svg viewBox="0 0 24 24"><path d="m5 12 5 5 9-10"/></svg>Browse real projects with transparent prices</li><li><svg viewBox="0 0 24 24"><path d="m5 12 5 5 9-10"/></svg>Filter developers by specialization, price and popularity</li><li><svg viewBox="0 0 24 24"><path d="m5 12 5 5 9-10"/></svg>Post a project request and let developers come to you</li><li><svg viewBox="0 0 24 24"><path d="m5 12 5 5 9-10"/></svg>Save favorites, chat in-app or contact on WhatsApp</li><li><svg viewBox="0 0 24 24"><path d="m5 12 5 5 9-10"/></svg>Check ratings and reviews from other clients</li></ul>
-      <a class="btn" href="devmatch-auth.html?mode=register&amp;role=client">Create client account <svg viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg></a></div>
+      <a class="btn btn-arrow btn-hover-color" href="devmatch-auth.html?mode=register&amp;role=client">Create client account <svg viewBox="0 0 24 24"><path d="M2 12h20M15 5l7 7-7 7"/></svg></a></div>
   </div>
 </div></section>
 
 <section id="join"><div class="wrap"><div class="final">
   <div><h2>Ready to make your next great connection?</h2><p>Join 2,400+ developers and the businesses who hire them.</p></div>
-  <div style="display:flex;gap:12px;flex-wrap:wrap"><a class="btn" href="devmatch-auth.html?mode=register&amp;role=dev">&lt;&gt; I’m a developer</a><a class="btn o" href="devmatch-auth.html?mode=register&amp;role=client">I need a developer</a></div>
+  <div style="display:flex;gap:12px;flex-wrap:wrap"><a class="btn btn-hover-color" href="devmatch-auth.html?mode=register&amp;role=dev">&lt;&gt; I’m a developer</a><a class="btn o btn-hover-color" href="devmatch-auth.html?mode=register&amp;role=client">I need a developer</a></div>
 </div></div></section>
 </main>
 
 <footer><div class="wrap">
-  <div><a class="logo" href="#top"><i>&lt;/&gt;</i>DEV-MATCH</a><p>Where developers and clients connect. Made for independent builders and the businesses that need them.</p></div>
+  <div><a class="logo" href="#top"><img class="brand-mark" src="assets/images/devmatch-logo.png" width="40" height="40" alt="" aria-hidden="true">DEV-MATCH</a><p>Where developers and clients connect. Made for independent builders and the businesses that need them.</p></div>
   <div><h4>Product</h4><a href="#how">How it works</a><a href="#projects">Explore projects</a><a href="#developers">Find developers</a><a href="devmatch-auth.html?mode=register&amp;role=client">Post a request</a></div>
   <div><h4>For developers</h4><a href="devmatch-auth.html?mode=register&amp;role=dev">Create profile</a><a href="devmatch-auth.html?mode=login&amp;role=dev">Add a project</a><a href="devmatch-auth.html?mode=login&amp;role=dev">Find clients</a><a href="devmatch-auth.html?mode=login&amp;role=dev">Dashboard</a></div>
   <div><h4>Company</h4><a href="#">About</a><a href="#">Contact</a><a href="#">Privacy</a><a href="#">Terms</a></div>
   <div class="copy">© 2026 DEV-MATCH. All rights reserved.</div>
 </div></footer>
 
-<script src="assets/js/landing.js"></script>
+<script src="assets/js/landing.js?v=20261105-how-panels-consistent"></script>
 </body>
 </html>

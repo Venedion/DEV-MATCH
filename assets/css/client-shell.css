@@ -106,20 +106,20 @@ body.client-shell-page .sidebar-foot a{display:none}
 }
 @media(max-width:600px){
   body.client-shell-page .topbar,
-  body.client-shell-page .profile-topbar{grid-template-columns:34px minmax(80px,1fr) auto}
-  body.client-shell-page .brand{width:28px;overflow:hidden}
+  body.client-shell-page .profile-topbar{grid-template-columns:42px minmax(80px,1fr) auto}
+  body.client-shell-page .brand{width:36px;overflow:hidden}
   body.client-shell-page .brand span{display:none}
 }
 @media(max-width:600px){
   body.client-shell-page .topbar,
   body.client-shell-page .profile-topbar{
     height:56px;
-    grid-template-columns:34px minmax(80px,1fr) auto;
+    grid-template-columns:42px minmax(80px,1fr) auto;
     gap:7px;
     padding:0 10px;
   }
-  body.client-shell-page .brand{width:28px;overflow:hidden}
-  body.client-shell-page .brand i{flex:none}
+  body.client-shell-page .brand{width:36px;overflow:hidden}
+  body.client-shell-page .brand .brand-mark{flex:none}
   body.client-shell-page .search,
   body.client-shell-page .top-search{height:34px;gap:5px;padding:0 8px}
   body.client-shell-page .profile-topbar .top-search{display:flex}
