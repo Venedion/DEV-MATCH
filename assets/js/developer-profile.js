@@ -92,17 +92,17 @@ document.getElementById('statProjectFavorites').textContent=profile.projectFavor
 document.getElementById('statDeveloperFavorites').textContent=project.developerFavorites;
 document.getElementById('statViews').textContent=profile.views;
 document.getElementById('developerAbout').textContent=profile.about;
-document.getElementById('developerGender').textContent=profile.gender;
+document.getElementById('developerAboutCard').textContent=profile.about;
 document.getElementById('developerExperience').textContent=profile.experience;
-document.getElementById('developerAge').textContent=profile.age;
+document.getElementById('developerLocationCard').textContent=`${project.location}, Indonesia`;
 document.getElementById('portfolioCount').textContent=project.developerProjects;
 const chatTarget=`devmatch-chat.html?role=client&project=${encodeURIComponent(project.id)}`;
 document.getElementById('contactDeveloper').href=chatTarget;
 document.getElementById('sidebarContactDeveloper').href=chatTarget;
-document.getElementById('developerSpecialties').innerHTML=displayedSpecialties.length?displayedSpecialties.map(item=>`<span class="developer-profile-value">${escapeHtml(item)}</span>`).join(''):'<span>No specialization added yet.</span>';
-document.getElementById('developerSkills').innerHTML=displayedSkills.length?displayedSkills.map(skill=>`<span class="developer-profile-value">${escapeHtml(skill)}</span>`).join(''):'<span>No skills added yet.</span>';
-document.getElementById('developerExperienceList').innerHTML=displayedExperience.length?displayedExperience.map(item=>`<li><b class="developer-profile-value">${escapeHtml(item.title)}</b><span class="developer-profile-value">${escapeHtml(item.company)}${item.period?` · ${escapeHtml(item.period)}`:''}</span>${item.files.length?`<small class="developer-profile-value">${escapeHtml(item.files.join(', '))}</small>`:''}</li>`).join(''):'<li>No experience added yet.</li>';
-document.getElementById('developerLinks').innerHTML=profile.links.map(([label,url])=>`<a href="${url.startsWith('http')?'':'https://'}${escapeHtml(url)}" target="_blank" rel="noopener noreferrer"><span class="link-icon">${label==='Code'?'‹ ›':label==='Website'?'◎':'♙'}</span><span>${escapeHtml(url)}</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 4h6v6m-11 5L20 4M18 13v6a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h6"/></svg></a>`).join('');
+document.getElementById('developerSpecialties').innerHTML=displayedSpecialties.length?displayedSpecialties.map(item=>`<div class="profile-specialty-card"><b>${escapeHtml(item)}</b></div>`).join(''):'<span>No specialization added yet.</span>';
+document.getElementById('developerSkills').innerHTML=displayedSkills.length?displayedSkills.map(skill=>`<span>${escapeHtml(skill)}</span>`).join(''):'<span>No skills added yet.</span>';
+document.getElementById('developerExperienceList').innerHTML=displayedExperience.length?displayedExperience.map(item=>`<li class="experience-item"><span class="experience-marker" aria-hidden="true"></span><div class="experience-copy"><b>${escapeHtml(item.title)}</b><span>${escapeHtml(item.company)}${item.period?` · ${escapeHtml(item.period)}`:''}</span>${item.files.length?`<small class="experience-files">${escapeHtml(item.files.join(', '))}</small>`:''}</div></li>`).join(''):'<li class="empty-state">No experience added yet.</li>';
+document.getElementById('developerLinks').innerHTML=profile.links.map(([label,url])=>`<a href="${url.startsWith('http')?'':'https://'}${escapeHtml(url)}" target="_blank" rel="noopener noreferrer"><span class="public-link-icon">${label==='Code'?'‹ ›':label==='Website'?'◎':'♙'}</span><span><b>${escapeHtml(label)}</b><small>${escapeHtml(url)}</small></span><span aria-hidden="true">↗</span></a>`).join('');
 
 const client=JSON.parse(localStorage.getItem('devmatch-profile-client')||'{}');
 document.getElementById('clientName').textContent=client.displayName||'Client';
@@ -141,12 +141,6 @@ const empty=document.getElementById('portfolioEmpty');
 const commentsPanel=document.getElementById('commentsPanel');
 const sortSelect=document.getElementById('sortProjects');
 filtersRoot.innerHTML=filters.map(filter=>`<button type="button" class="${filter==='All'?'active':''}" data-filter="${escapeHtml(filter)}">${escapeHtml(filter)} <small>${filter==='All'?portfolio.length:portfolio.filter(item=>item.type===filter).length}</small></button>`).join('');
-function artContent(item){
-  if(item.art==='dashboard-art')return '<div class="mock-dashboard"><i></i><i></i><i></i><i></i><i></i><i></i></div>';
-  if(item.art==='northwind-art')return '<div class="mock-northwind"><b>Building<br>better futures.</b><i></i></div>';
-  if(item.art==='inventory-art')return '<div class="mock-inventory"><b>Inventory</b><i></i><i></i><i></i><i></i></div>';
-  return '<div class="mock-food"><b>Savor every<br>moment.</b><i></i></div>';
-}
 function viewCount(value){
   const count=parseFloat(value.replace(/[^\d.]/g,''))||0;
   return value.toLowerCase().includes('k')?count*1000:count;
@@ -156,10 +150,13 @@ function renderProjects(){
   const items=portfolio.filter(item=>(activeFilter==='All'||item.type===activeFilter)&&(!activeQuery||`${item.title} ${item.description} ${item.type}`.toLowerCase().includes(activeQuery)));
   const sort=sortSelect.value;
   items.sort((a,b)=>sort==='title'?a.title.localeCompare(b.title):sort==='newest'?portfolio.indexOf(a)-portfolio.indexOf(b):viewCount(b.views)-viewCount(a.views));
-  grid.innerHTML=items.map(item=>`<article class="portfolio-card">
-    <div class="portfolio-art ${escapeHtml(item.art)}"><span class="art-tag">${escapeHtml(item.type)}</span><button type="button" class="project-favorite" data-project-favorite="${escapeHtml(item.id)}" aria-label="${savedProjects.includes(item.id)?'Remove':'Add'} ${escapeHtml(item.title)} ${savedProjects.includes(item.id)?'from':'to'} favorites" aria-pressed="${savedProjects.includes(item.id)}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></button>${artContent(item)}</div>
-    <div class="portfolio-card-body"><div class="project-card-meta"><b>${escapeHtml(item.category)}</b><span>${escapeHtml(item.age)}</span></div><h3>${escapeHtml(item.title)}</h3><p>${escapeHtml(item.description)}</p><div class="portfolio-price"><span><small> ${item.price.includes('—')?'CUSTOM QUOTE':'STARTING FROM'}</small><b>${escapeHtml(item.price)}</b></span><a href="devmatch-discover-projects.html" aria-label="Explore ${escapeHtml(item.title)}">→</a></div><div class="portfolio-by"><span>${escapeHtml(initials)}</span><b>${escapeHtml(profileName)}</b><small>◎ ${escapeHtml(item.views)} &nbsp;♡ ${escapeHtml(item.favorites)}</small></div></div>
-  </article>`).join('');
+  grid.innerHTML=items.map(item=>{
+    const art=item.art==='dashboard-art'?'dashboard':item.art==='store-art'?'store':'website';
+    return `<article class="showcase-project">
+      <div class="project-art art-${art}"><div class="project-browser" aria-hidden="true"><div class="browser-bar"><i></i><i></i><i></i></div><div class="browser-content"><span class="art-accent"></span></div></div><button type="button" class="public-project-favorite" data-project-favorite="${escapeHtml(item.id)}" aria-label="${savedProjects.includes(item.id)?'Remove':'Add'} ${escapeHtml(item.title)} ${savedProjects.includes(item.id)?'from':'to'} favorites" aria-pressed="${savedProjects.includes(item.id)}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></button></div>
+      <div class="project-copy"><span class="project-category">${escapeHtml(item.category)}</span><h3>${escapeHtml(item.title)}</h3><p>${escapeHtml(item.description)}</p><footer class="project-footer"><strong>${escapeHtml(item.price)}</strong><span class="project-metric">◉ <b>${escapeHtml(item.views)}</b> &nbsp;♡ <b>${escapeHtml(item.favorites)}</b></span></footer></div>
+    </article>`;
+  }).join('');
   document.querySelectorAll('[data-project-favorite]').forEach(button=>button.addEventListener('click',()=>{
     const id=button.dataset.projectFavorite;
     const saved=JSON.parse(localStorage.getItem('devmatch-client-project-favorites')||'[]');
@@ -171,7 +168,7 @@ function renderProjects(){
 }
 function renderComments(){
   const comments=developerProjects.flatMap(item=>JSON.parse(localStorage.getItem(`devmatch-project-comments-${item.id}`)||'[]').map(comment=>({...comment,project:item.title})));
-  commentsPanel.innerHTML=comments.length?comments.map(comment=>`<article><span>${escapeHtml(comment.initials||'CL')}</span><div><b>${escapeHtml(comment.name)}</b><small>on ${escapeHtml(comment.project)}</small><p>${escapeHtml(comment.text)}</p></div></article>`).join(''):'<p>No comments yet. Comments from project discussions will appear here.</p>';
+  commentsPanel.innerHTML=comments.length?comments.map(comment=>`<article class="review-item"><span class="review-avatar">${escapeHtml(comment.initials||'CL')}</span><div class="review-copy"><h3>${escapeHtml(comment.name)}</h3><small>on ${escapeHtml(comment.project)}</small><p>${escapeHtml(comment.text)}</p></div></article>`).join(''):'<p class="empty-state">No comments yet. Comments from project discussions will appear here.</p>';
 }
 filtersRoot.addEventListener('click',event=>{
   const button=event.target.closest('[data-filter]');

@@ -15,7 +15,6 @@
   const grid = document.getElementById('projectGrid');
   const emptyState = document.getElementById('emptyState');
   const dialog = document.getElementById('projectDialog');
-  const dialogContent = document.getElementById('dialogContent');
   const summary = document.getElementById('resultsSummary');
   const categoryButtons = [...document.querySelectorAll('[data-category]')];
   const loadMoreButton = document.getElementById('loadMore');
@@ -411,17 +410,11 @@
       console.error(`DEV-MATCH project details not found for "${id}".`);
       return;
     }
-
-    const stack = isRequestsPage ? item.stack : String(item.stack).split(/\s+(?:and|,)\s+/);
-    const owner = isRequestsPage ? item.client : item.developer;
-    const location = item.location;
-    const overview = isRequestsPage ? item.description : item.overview || item.description;
-    const sections = isRequestsPage
-      ? `<h3>Key requirements</h3><ul>${item.features.map(feature => `<li>${escapeHtml(feature)}</li>`).join('')}</ul><h3>About the client</h3><p>${escapeHtml(item.client)} is looking for a developer to support their business in ${escapeHtml(item.location)}.</p>`
-      : `<h3>Project overview</h3><p>${escapeHtml(overview)}</p><h3>Technical details</h3><p>Built with ${escapeHtml(item.stack)} and designed for a responsive, seamless experience on desktop and mobile.</p><h3>Developer portfolio</h3><p>${escapeHtml(item.developerBio || `${item.developer} has experience building digital solutions for businesses.`)}</p>`;
-    const chatUrl = `devmatch-chat.html?${isRequestsPage ? 'role=dev&request=' : 'role=client&project='}${encodeURIComponent(item.id)}`;
-    dialogContent.innerHTML = `<span class="project-type-pill">${escapeHtml(item.category)} · ${escapeHtml(item.type)}</span><h2 id="dialogTitle">${escapeHtml(item.title)}</h2><p>${escapeHtml(item.description)}</p><div class="dialog-cover">${artwork(item, false)}</div>${sections}<div class="tech-tags">${stack.map(value => `<span>${escapeHtml(value)}</span>`).join('')}</div><div class="dialog-facts"><div class="dialog-fact"><small>${isRequestsPage ? 'Client budget' : 'Project price'}</small><b>${escapeHtml(isRequestsPage ? item.budgetLabel : item.price)}</b></div><div class="dialog-fact"><small>${isRequestsPage ? 'Client' : 'Developer'}</small><b>${escapeHtml(owner)}</b></div><div class="dialog-fact"><small>Location</small><b>${escapeHtml(location)}</b></div><div class="dialog-fact"><small>Status</small><b>${isRequestsPage ? 'Accepting proposals' : `Published ${escapeHtml(item.created || item.age)}`}</b></div></div><div class="dialog-actions"><a class="button-primary" href="${chatUrl}">${isRequestsPage ? 'Contact client' : 'Chat with developer'} <span aria-hidden="true">→</span></a><button class="button-secondary" type="button" data-close-dialog>Close details</button></div>`;
-    dialog.showModal();
+    if (isRequestsPage) {
+      window.location.href = `devmatch-find-project-detail.html?request=${encodeURIComponent(item.id)}`;
+    } else {
+      window.location.href = `devmatch-discover-project-detail.html?project=${encodeURIComponent(item.id)}`;
+    }
   }
 
   initializeDropdowns();

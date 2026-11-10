@@ -33,7 +33,7 @@
           favoritesCount: 312,
           rating: '4.9',
           reviews: 24,
-          profileUrl: 'devmatch-developer-profile.html?developer=restaurant'
+          profileUrl: 'devmatch-developer-profile.html?developer=restaurant&view=public-profile-20261109'
         },
         {
           id: 'winson-lim',
@@ -55,7 +55,7 @@
           favoritesCount: 276,
           rating: '4.8',
           reviews: 19,
-          profileUrl: 'devmatch-developer-profile.html?developer=pos'
+          profileUrl: 'devmatch-developer-profile.html?developer=pos&view=public-profile-20261109'
         },
         {
           id: 'putri-ayu-lestari',
@@ -77,7 +77,7 @@
           favoritesCount: 241,
           rating: '4.9',
           reviews: 18,
-          profileUrl: 'devmatch-developer-profile.html?developer=booking'
+          profileUrl: 'devmatch-developer-profile.html?developer=booking&view=public-profile-20261109'
         },
         {
           id: 'fajar-ramadhan',
@@ -99,7 +99,7 @@
           favoritesCount: 230,
           rating: '4.8',
           reviews: 27,
-          profileUrl: 'devmatch-developer-profile.html?developer=inventory'
+          profileUrl: 'devmatch-developer-profile.html?developer=inventory&view=public-profile-20261109'
         },
         {
           id: 'michelle-gunawan',
@@ -121,7 +121,7 @@
           favoritesCount: 198,
           rating: '4.7',
           reviews: 14,
-          profileUrl: 'devmatch-developer-profile.html?developer=store'
+          profileUrl: 'devmatch-developer-profile.html?developer=store&view=public-profile-20261109'
         },
         {
           id: 'yosua-simanjuntak',
@@ -143,7 +143,7 @@
           favoritesCount: 143,
           rating: '4.6',
           reviews: 11,
-          profileUrl: 'devmatch-developer-profile.html?developer=analytics'
+          profileUrl: 'devmatch-developer-profile.html?developer=analytics&view=public-profile-20261109'
         }
       ];
 
@@ -275,6 +275,8 @@
       emptyState.classList.remove('show');
       devsGrid.innerHTML = devs.map(dev => {
         const isFav = favoriteIds.includes(dev.id);
+        const profileUrl = new URL(dev.profileUrl, location.href);
+        profileUrl.searchParams.set('view', 'client-public-profile-20261109');
 
         return `
           <article class="dev-card" data-dev-id="${escapeHtml(dev.id)}">
@@ -323,7 +325,7 @@
             </div>
 
             <div class="dev-actions-row">
-              <a class="btn-view-profile" href="${escapeHtml(dev.profileUrl)}">
+              <a class="btn-view-profile" href="${escapeHtml(profileUrl.href)}">
                 View Profile
               </a>
               <a class="btn-contact-dev" href="devmatch-chat.html?contact=${encodeURIComponent(dev.contactId)}&role=client">

@@ -14,7 +14,16 @@
   const username=String(profile.username|| (isDeveloper?'rizkyaditya':'clientbiz')).replace(/^@/,'');
   const city=profile.city|| (isDeveloper?'Medan':'Jakarta');
   const country=profile.country||'Indonesia';
-  const specialty=(Array.isArray(profile.specialty)?profile.specialty:typeof profile.specialty==='string'?[profile.specialty]:Object.prototype.hasOwnProperty.call(profile,'specialty')?[]:['Full-stack']).map(value=>String(value).trim()).filter(Boolean);
+  const specialty=(Array.isArray(profile.specialty)?profile.specialty:typeof profile.specialty==='string'?[profile.specialty]:Object.prototype.hasOwnProperty.call(profile,'specialty')?[]:['Full-stack']).map(value=>String(value).trim()).filter(Boolean).map(value=>value==='Other'&&typeof profile.specialtyOther==='string'&&profile.specialtyOther.trim()?profile.specialtyOther.trim():value);
+  const specialtyDetails={
+    'Full-stack':{description:'Front + back end',icon:'<path d="m16 18 6-6-6-6M8 6l-6 6 6 6"/>'},
+    Frontend:{description:'Web interfaces',icon:'<rect x="4" y="4" width="6" height="6" rx="1"/><rect x="14" y="4" width="6" height="6" rx="1"/><rect x="4" y="14" width="6" height="6" rx="1"/><rect x="14" y="14" width="6" height="6" rx="1"/>'},
+    Backend:{description:'APIs & databases',icon:'<path d="M6 3v6m0 4v8M12 3v3m0 4v11M18 3v9m0 4v5M3 9h6m0 1h6m0 2h6m-6 4h6"/>'},
+    'UI/UX':{description:'Design & research',icon:'<path d="m15 5 4 4M4 20l4-.8L19.2 8a2.8 2.8 0 0 0-4-4L4 15.2 4 20z"/>'},
+    Mobile:{description:'Android & iOS',icon:'<rect x="5" y="2" width="14" height="20" rx="2"/><path d="M11 18h2"/>'},
+    'Game Dev':{description:'Unity, Roblox...',icon:'<path d="m7 7 10 0a4 4 0 0 1 3.8 5.2l-1.2 4a2 2 0 0 1-3.3.9L14 15H10l-2.3 2.1a2 2 0 0 1-3.3-.9l-1.2-4A4 4 0 0 1 7 7z"/><path d="M7 10v4m-2-2h4m7-1h.01M17 13h.01"/>'},
+    Other:{description:'Tell us more',icon:'<path d="M12 5v14m-7-7h14"/>'}
+  };
   const title=isDeveloper?(specialty.length?`${specialty.slice(0,2).join(' & ')} Developer`:'Full-stack Developer'):'Small Business Owner';
   const bio=profile.bio||(isDeveloper
     ?'I build reliable web experiences for growing businesses, with a focus on practical tools, thoughtful design, and projects that help teams work better.'
@@ -118,8 +127,9 @@
     setLink('messagesLink',chatUrl);
     setLink('projectsLink',isDeveloper?'devmatch-my-projects.html':`${dashboardUrl}#requests`);
     setLink('findProjectsLink',isDeveloper?'devmatch-find-projects.html':'devmatch-discover-projects.html');
-    setLink('findClientsLink','devmatch-landing.html#developers');
+    setLink('findClientsLink',isDeveloper?'devmatch-find-clients.html':'devmatch-find-developers.html');
     setLink('favoritesLink',`devmatch-favorites.html${isDeveloper?'':'?role=client'}`);
+    setLink('editSpecializationLink',profileDetailsUrl);
     setLink('createAction',isDeveloper?'devmatch-my-projects.html?create=1':`${dashboardUrl}#requests`);
     setLink('allProjectsLink',isDeveloper?'devmatch-my-projects.html':`${dashboardUrl}#requests`);
     setText('overviewLinkLabel',isDeveloper?'Overview':'Home');
@@ -277,7 +287,11 @@
     if(!card||!root)return;
     card.hidden=!isDeveloper;
     root.innerHTML=specialty.length
-      ?specialty.map(item=>`<span class="profile-specialty-value">${escapeHtml(item)}</span>`).join('')
+      ?specialty.map(item=>{
+        const details=specialtyDetails[item]||Object.entries(specialtyDetails)
+          .find(([name])=>name.toLowerCase()===item.toLowerCase())?.[1]||specialtyDetails.Other;
+        return `<div class="profile-specialty-card"><svg viewBox="0 0 24 24" aria-hidden="true">${details.icon}</svg><b>${escapeHtml(item)}</b><small>${escapeHtml(details.description)}</small></div>`;
+      }).join('')
       :'<span class="empty-state">No specialization added yet.</span>';
   }
 

@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Project details — DEV-MATCH</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=optional" rel="stylesheet">
+  <link rel="stylesheet" href="assets/css/dashboard.css?v=20261030-fixed-profile-width">
+  <link rel="stylesheet" href="assets/css/marketplace.css?v=20261030-scroll-area">
+  <link rel="stylesheet" href="assets/css/client-shell.css?v=20261030-header-size-match">
+  <link rel="stylesheet" href="assets/css/mode-switch-animation.css?v=20261030-active-indicator">
+  <link rel="stylesheet" href="assets/css/mobile-navigation.css?v=20261031-desktop-dropdown-aligned">
+  <link rel="stylesheet" href="assets/css/discover-project-detail.css?v=20261109-reference-layout">
+  <script src="assets/js/i18n.js?v=20261102-profile-details"></script>
+</head>
+<body class="marketplace-client-page client-shell-page page-scroll-shell">
+  <header class="topbar">
+    <a class="brand" href="devmatch-dashboard.html"><img class="brand-mark" src="assets/images/devmatch-logo.png" width="34" height="34" alt="" aria-hidden="true"><span>DEV-MATCH</span></a>
+    <label class="search top-search">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
+      <input type="search" placeholder="Search project requests, clients..." aria-label="Search projects and developers">
+      <kbd>⌘K</kbd>
+    </label>
+    <div class="top-actions">
+      <div class="mode-switch" role="group" aria-label="Workspace mode">
+        <a class="mode" href="devmatch-dashboard.html"><span aria-hidden="true">&lt;/&gt;</span>Developer Mode</a>
+        <a class="mode active" href="devmatch-client-dashboard.html"><svg viewBox="0 0 24 24"><rect x="3" y="7" width="18" height="14" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>Client Mode</a>
+      </div>
+      <a class="icon-button notification-button" href="devmatch-notifications.html" aria-label="Notifications"><svg viewBox="0 0 24 24"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9m-8 13h4"/></svg></a>
+      <a class="user-menu" href="devmatch-my-profile.html?role=client"><span class="user-avatar">CL</span><span class="user-copy"><b>Client</b><small>Client</small></span><svg viewBox="0 0 24 24"><path d="m7 10 5 5 5-5"/></svg></a>
+    </div>
+  </header>
+
+  <aside class="sidebar">
+    <div class="workspace"><span class="workspace-icon"><svg viewBox="0 0 24 24"><rect x="3" y="7" width="18" height="14" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></span><span><b>Client workspace</b><small>Discover &amp; hire</small></span></div>
+    <a class="add-project side-add" href="devmatch-client-dashboard.html#requests"><svg viewBox="0 0 24 24"><path d="M12 5v14m-7-7h14"/></svg>Post a Request</a>
+    <span class="nav-label">Menu</span>
+    <nav class="side-nav" aria-label="Client navigation">
+      <a class="nav-item" href="devmatch-client-dashboard.html"><svg viewBox="0 0 24 24"><path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-6v-7h-4v7H4a1 1 0 0 1-1-1z"/></svg>Home</a>
+      <a class="nav-item" href="devmatch-chat.html?role=client"><svg viewBox="0 0 24 24"><path d="M21 11.5a8.5 8.5 0 0 1-8.5 8.5H4l1.5-4A8.5 8.5 0 1 1 21 11.5z"/></svg>Messages<span class="nav-count" style="background:#e7f6ed;color:#15934f;">3</span></a>
+      <a class="nav-item" href="devmatch-client-dashboard.html#requests"><svg viewBox="0 0 24 24"><path d="M6 3h9l4 4v14H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"/><path d="M14 3v5h5M8 13h8m-8 4h8"/></svg>My Requests</a>
+      <a class="nav-item active" href="devmatch-discover-projects.html" aria-current="page"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="m15.5 8.5-2 5-5 2 2-5z"/></svg>Discover Projects</a>
+      <a class="nav-item" href="devmatch-find-developers.html"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"/><path d="M3 20a6 6 0 0 1 12 0m2-8a3 3 0 1 0 0-6m1 8a5 5 0 0 1 3 5"/></svg>Developers</a>
+      <a class="nav-item" href="devmatch-favorites.html?role=client"><svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>Favorites<span class="nav-count" id="favoriteCount">0</span></a>
+      <a class="nav-item" href="devmatch-notifications.html"><svg viewBox="0 0 24 24"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9m-8 13h4"/></svg>Notifications<span class="nav-count notification-count" id="clientNotificationCount">2</span></a>
+    </nav>
+    <span class="nav-label account-label">Account</span>
+    <nav class="side-nav" aria-label="Account navigation">
+      <a class="nav-item" href="devmatch-my-profile.html?role=client"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>Profile</a>
+      <a class="nav-item" href="devmatch-settings.html?role=client"><svg viewBox="0 0 24 24"><path d="M4 21v-7m0-4V3m8 18v-9m0-4V3m8 18v-5m0-4V3M1 14h6m2-6h6m2 8h6"/></svg>Settings</a>
+    </nav>
+    <div class="sidebar-foot"><span class="online-dot"></span>Demo workspace</div>
+  </aside>
+
+  <main class="marketplace-main discover-detail-main">
+    <nav class="discover-detail-breadcrumb" aria-label="Breadcrumb">
+      <a href="devmatch-discover-projects.html">Discover Projects</a><span aria-hidden="true">›</span><span id="detailBreadcrumbCategory"></span><span aria-hidden="true">›</span><span id="detailBreadcrumbTitle">Project details</span>
+    </nav>
+    <div id="projectNotFound" class="discover-detail-error" role="alert" hidden>
+      <h1>Project not found</h1>
+      <p>This project may no longer be available.</p>
+      <a href="devmatch-discover-projects.html">Back to Discover Projects</a>
+    </div>
+    <div class="discover-detail-layout" id="projectDetailLayout" hidden>
+      <div class="discover-detail-main-column">
+        <article class="discover-project-content">
+          <section class="discover-gallery" aria-label="Project preview">
+            <div class="discover-project-preview" id="projectPreview" aria-label="Illustrative project preview">
+              <div class="preview-browser"><div class="preview-browser-bar"><i></i><i></i><i></i><span></span></div><div class="preview-content"><small id="previewCategory"></small><strong id="previewHeading"></strong><span id="previewDescription"></span><div class="preview-art-shape"></div></div></div>
+              <span class="preview-count">Illustrative preview</span>
+              <a class="discover-live-demo" id="detailLiveDemo" href="#" target="_blank" rel="noopener noreferrer" hidden><span aria-hidden="true">↗</span> Live demo</a>
+            </div>
+            <div class="discover-preview-thumbnails">
+              <div class="discover-preview-thumbnail is-active" aria-hidden="true"><span class="thumbnail-browser"><i></i><i></i><i></i><b id="thumbnailTitle"></b></span></div>
+              <span>1 / 1 · Illustrative preview</span>
+            </div>
+          </section>
+          <div class="discover-project-meta"><span id="detailMetaType"></span><span id="detailMetaCategory"></span><span>Published <b id="detailMetaCreated"></b></span></div>
+          <h1 class="discover-project-title" id="detailTitle"></h1>
+          <div class="discover-project-stats"><span id="projectCommentsStat">0 comments</span></div>
+          <nav class="discover-project-tabs" aria-label="Project details">
+            <button type="button" class="is-active" data-project-tab="overview" aria-selected="true">Overview</button>
+            <button type="button" data-project-tab="details" aria-selected="false">Project details</button>
+            <button type="button" data-project-tab="comments" aria-selected="false">Comments <span id="detailCommentCount">0</span></button>
+          </nav>
+          <section class="discover-detail-section" id="detailOverviewSection">
+            <h2>About this project</h2>
+            <p id="detailOverview"></p>
+            <p class="discover-stack-copy">Technology: <span id="detailStack"></span></p>
+          </section>
+          <section class="discover-detail-section" id="detailFactsSection">
+            <h2>Project details</h2>
+            <dl class="discover-project-facts">
+              <div><dt>Project type</dt><dd id="detailTypeFull"></dd></div>
+              <div><dt>Category</dt><dd id="detailCategory"></dd></div>
+              <div><dt>Pricing type</dt><dd>Starting from</dd></div>
+              <div><dt>Project link</dt><dd><a id="detailLiveLink" target="_blank" rel="noopener noreferrer" hidden></a></dd></div>
+              <div><dt>Created</dt><dd id="detailCreatedFull"></dd></div>
+            </dl>
+          </section>
+          <section class="discover-detail-section discover-comments" id="commentsSection" aria-labelledby="commentsHeading">
+            <header class="discover-comments-heading">
+              <h2 id="commentsHeading">Comments <span id="commentsHeadingCount">0</span></h2>
+              <label>Sort comments
+                <select id="commentSort" aria-label="Sort comments"><option value="newest">Newest</option><option value="oldest">Oldest</option></select>
+              </label>
+            </header>
+            <form class="discover-comment-form" id="commentForm">
+              <span class="discover-detail-avatar" id="clientCommentAvatar">CL</span>
+              <div><textarea id="commentInput" maxlength="1000" placeholder="Ask the developer a question about this project..." aria-label="Your comment"></textarea><button type="submit">Post comment</button></div>
+            </form>
+            <div class="discover-comment-list" id="commentList" aria-live="polite"></div>
+            <p class="discover-comments-empty" id="commentsEmpty">No comments yet. Start the conversation.</p>
+          </section>
+        </article>
+      </div>
+
+      <aside class="discover-detail-aside">
+        <section class="discover-detail-card discover-purchase-card">
+          <p class="discover-detail-aside-label">STARTING FROM</p>
+          <strong class="discover-purchase-price" id="detailPrice"></strong>
+          <p class="discover-purchase-note">Final price depends on project requirements and add-ons.</p>
+          <a class="discover-detail-contact" id="contactDeveloper" href="#">Contact developer</a>
+          <button class="discover-detail-save-button" type="button" id="detailFavoriteAction" aria-pressed="false"><svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg><span>Add to Favorites</span></button>
+        </section>
+        <section class="discover-detail-card discover-developer-card">
+          <p class="discover-detail-aside-label">ABOUT THE DEVELOPER</p>
+          <div class="discover-aside-owner"><span class="discover-detail-avatar" id="asideDeveloperAvatar"></span><div><strong id="asideDeveloperName"></strong><small id="asideDeveloperHandle"></small></div></div>
+          <p class="discover-developer-bio" id="detailDeveloperBio"></p>
+          <div class="discover-developer-location"><svg viewBox="0 0 24 24"><path d="M20 10c0 5-8 12-8 12S4 15 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="2"/></svg><span id="asideDeveloperLocation"></span><span>Specialty: <b id="asideDeveloperSpecialty"></b></span></div>
+          <div class="discover-developer-stats"><div><strong id="detailDeveloperProjects"></strong><small>Projects</small></div><div><strong id="detailDeveloperViews"></strong><small>Views</small></div><div><strong id="detailDeveloperFavorites"></strong><small>Favorites</small></div></div>
+          <a class="discover-developer-profile" id="developerProfileLink" href="#">View developer profile <span aria-hidden="true">→</span></a>
+        </section>
+        <p class="discover-detail-disclaimer">Agree on scope, timeline, and payment terms in writing before you start. DEV-MATCH never asks for payment.</p>
+      </aside>
+    </div>
+  </main>
+  <script src="assets/js/projects-data.js"></script>
+  <script src="assets/js/discover-project-detail.js?v=20261109-reference-layout"></script>
+  <script src="assets/js/nav-behavior.js?v=20261031-account-dropdown-ease"></script>
+</body>
+</html>

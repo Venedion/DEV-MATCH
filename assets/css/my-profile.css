@@ -59,6 +59,11 @@
 .contract-list span,.skill-list span{padding:5px 8px;border:1px solid #ededf0;border-radius:99px;background:#fff;color:#5a5c64;font-size:9px;font-weight:600}
 .skill-list{display:flex;flex-wrap:wrap;gap:7px}
 .skill-list span{background:#f7f7f8}
+.profile-specialty-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.profile-specialty-card{min-width:0;min-height:78px;padding:10px;display:flex;flex-direction:column;align-items:flex-start;gap:4px;border:1px solid var(--profile-line);border-radius:11px;background:#fff}
+.profile-specialty-card svg{width:15px;height:15px;color:#555862}
+.profile-specialty-card b{font-size:11px;line-height:1.35}
+.profile-specialty-card small{color:var(--profile-muted);font-size:9px;line-height:1.4}
 .experience-list{position:relative;display:grid;gap:0;padding:0;list-style:none}
 .experience-item{position:relative;display:grid;grid-template-columns:15px 1fr;gap:9px;padding-bottom:16px}
 .experience-item:last-child{padding-bottom:0}

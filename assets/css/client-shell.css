@@ -24,6 +24,9 @@ body.client-shell-page .workspace b{font-size:13px}
 body.client-shell-page .workspace small{margin-top:2px;font-size:12px}
 body.client-shell-page .side-add,
 body.client-shell-page .post-request{height:42px;min-height:42px;flex:0 0 42px;font-size:14px;line-height:normal}
+body.client-shell-page .post-request{display:flex;align-items:center;justify-content:center;gap:9px;padding:0 12px;border:0;border-radius:9px;background:#171719;color:#fff;font-size:14px;font-weight:600;text-decoration:none;cursor:pointer}
+body.client-shell-page .sidebar>.post-request{margin-bottom:22px}
+body.client-shell-page .post-request:hover{background:#333}
 body.client-shell-page .side-add svg,
 body.client-shell-page .post-request svg{width:16px;height:16px}
 body.client-shell-page .sidebar nav{gap:4px;line-height:normal}

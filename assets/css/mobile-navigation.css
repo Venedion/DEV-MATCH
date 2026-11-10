@@ -570,6 +570,7 @@
   }
 
   body > .sidebar .side-add,
+  body > .sidebar .post-request,
   body > .client-sidebar .post-request {
     width: 100%;
     height: 42px;

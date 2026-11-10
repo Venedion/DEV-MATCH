@@ -1222,6 +1222,8 @@
     'Job title': 'Jabatan',
     'Company name': 'Nama perusahaan',
     'Period': 'Periode',
+    'Start year': 'Tahun mulai',
+    'End year': 'Tahun selesai',
     'Required': 'Wajib',
     'Portfolio link': 'Tautan portofolio',
     'Upload supporting files': 'Unggah file pendukung',

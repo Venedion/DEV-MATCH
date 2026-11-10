@@ -91,6 +91,9 @@ textarea.control{height:120px;padding:12px 15px;resize:vertical}
 .specialty-card svg{width:16px;height:16px;color:#555862}
 .specialty-card b{font-size:14px;line-height:1.35}
 .specialty-card small{color:var(--muted);font-size:13px;line-height:1.4}
+.specialty-other-field[hidden]{display:none}
+.specialty-other-error{margin:6px 0 0;color:var(--danger);font-size:13px}
+.specialty-other-error[hidden]{display:none}
 .optional-hint{margin-left:5px;color:var(--muted);font-size:12px;font-weight:400}
 .status-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px}
 .status-card{min-height:48px;padding:8px 11px;display:flex;align-items:center;gap:9px;border:1px solid var(--line);border-radius:10px;background:var(--surface);text-align:left;cursor:pointer}

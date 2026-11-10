@@ -149,7 +149,7 @@ section{padding:96px 0}
 .bcard li svg{margin-top:3px;color:#fff}
 .bcard .btn{background:#222;border-color:#222;color:#fff}
 .final{background:linear-gradient(180deg,#171717,#050505);color:#fff;border-radius:32px;padding:56px;display:flex;justify-content:space-between;align-items:center;gap:32px;flex-wrap:wrap}
-.final h2{font-size:clamp(32px,4.5vw,50px);max-width:12em}
+.final h2{font-size:clamp(26px,3.8vw,42px);max-width:12em}
 .final p{color:#a3a3a3;margin-top:14px;font-size:17px}
 .final .btn{background:#fff;color:#111;border-color:#fff}.final .btn.o{background:transparent;color:#fff;border-color:#444}
 .btn.btn-arrow{padding:7px 0;background:transparent;border-color:transparent;border-radius:0;color:var(--ink);font-size:13px;gap:6px;align-items:center;text-align:center;line-height:1.5}

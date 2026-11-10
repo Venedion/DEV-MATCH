@@ -11,6 +11,7 @@ const profile={
   gender:'',
   birthday:'',
   specialty:['Full-stack'],
+  specialtyOther:'',
   availability:'Open for hiring',
   experience:'3 years',
   experiences:[],
@@ -56,6 +57,11 @@ const content=[
           <button class="specialty-card" type="button" data-specialty="Mobile" aria-pressed="${profile.specialty.includes('Mobile')}"><svg viewBox="0 0 24 24"><rect x="5" y="2" width="14" height="20" rx="2"/><path d="M11 18h2"/></svg><b>Mobile</b><small>Android &amp; iOS</small></button>
           <button class="specialty-card" type="button" data-specialty="Game Dev" aria-pressed="${profile.specialty.includes('Game Dev')}"><svg viewBox="0 0 24 24"><path d="m7 7 10 0a4 4 0 0 1 3.8 5.2l-1.2 4a2 2 0 0 1-3.3.9L14 15H10l-2.3 2.1a2 2 0 0 1-3.3-.9l-1.2-4A4 4 0 0 1 7 7z"/><path d="M7 10v4m-2-2h4m7-1h.01M17 13h.01"/></svg><b>Game Dev</b><small>Unity, Roblox...</small></button>
           <button class="specialty-card" type="button" data-specialty="Other" aria-pressed="${profile.specialty.includes('Other')}"><svg viewBox="0 0 24 24"><path d="M12 5v14m-7-7h14"/></svg><b>Other</b><small>Tell us more</small></button>
+        </div>
+        <div class="field specialty-other-field"${profile.specialty.includes('Other')?'':' hidden'}>
+          <label class="field-label" for="specialtyOther">What is your specialization?</label>
+          <input class="control" id="specialtyOther" aria-describedby="specialtyOtherError" maxlength="60" placeholder="Enter your specialization" value="${escapeHtml(profile.specialtyOther)}">
+          <p class="specialty-other-error" id="specialtyOtherError" role="alert" hidden>Please enter your other specialization.</p>
         </div>
       </div>
       <div class="field">
@@ -200,7 +206,8 @@ function updatePreview(){
   document.getElementById('previewHandle').textContent='@'+username+' · '+location;
   const tags=document.getElementById('previewTags');
   tags.innerHTML='';
-  const previewLabels=isDeveloper?[...profile.specialty.slice(0,2),...(profile.specialty.length>2?['+'+(profile.specialty.length-2)]:[]),profile.availability]:[profile.industry,'Client'];
+  const displaySpecialties=profile.specialty.map(item=>item==='Other'?(profile.specialtyOther.trim()||'Other'):item);
+  const previewLabels=isDeveloper?[...displaySpecialties.slice(0,2),...(displaySpecialties.length>2?['+'+(displaySpecialties.length-2)]:[]),profile.availability]:[profile.industry,'Client'];
   previewLabels.filter(Boolean).slice(0,2).forEach((tag,index)=>{
     const pill=document.createElement('i');
     pill.textContent=tag;
@@ -261,6 +268,18 @@ function saveCurrentFields(){
   updatePreview();
 }
 
+function validateOtherSpecialty(showError){
+  if(!isDeveloper||step!==1)return true;
+  const input=document.getElementById('specialtyOther');
+  if(!input||!profile.specialty.includes('Other'))return true;
+  const errorMessage=document.getElementById('specialtyOtherError');
+  const isValid=Boolean(input.value.trim());
+  if(showError)input.dataset.validationAttempted='true';
+  input.setAttribute('aria-invalid',String(!isValid));
+  errorMessage.hidden=isValid||!showError;
+  return isValid;
+}
+
 function finish(){
   const age=profile.birthday?Math.max(0,Math.floor((Date.now()-new Date(profile.birthday).getTime())/(365.2425*24*60*60*1000))):null;
   const saved={...profile,role,whatsappConnected:Boolean(profile.whatsapp),googleConnected:true,ageRange:age===null?'':age<18?'Under 18':age<25?'18–24':age<35?'25–34':age<45?'35–44':'45+'};
@@ -289,7 +308,8 @@ document.getElementById('stepFields').addEventListener('input',event=>{
     return;
   }
   if(target.id&&Object.prototype.hasOwnProperty.call(profile,target.id))profile[target.id]=target.value;
-  if(target.id==='displayName'||target.id==='city'||target.id==='country')updatePreview();
+  if(target.id==='specialtyOther'&&target.dataset.validationAttempted)validateOtherSpecialty(true);
+  if(target.id==='displayName'||target.id==='city'||target.id==='country'||target.id==='specialtyOther')updatePreview();
 });
 document.getElementById('stepFields').addEventListener('change',event=>{
   const target=event.target;
@@ -371,10 +391,24 @@ document.getElementById('stepFields').addEventListener('click',event=>{
   }
   if(specialty){
     const value=specialty.dataset.specialty;
-    profile.specialty=profile.specialty.includes(value)
+    const wasSelected=profile.specialty.includes(value);
+    profile.specialty=wasSelected
       ?profile.specialty.filter(item=>item!==value)
       :[...profile.specialty,value];
     specialty.setAttribute('aria-pressed',String(profile.specialty.includes(value)));
+    if(value==='Other'){
+      const otherField=document.querySelector('.specialty-other-field');
+      otherField.hidden=!profile.specialty.includes('Other');
+      if(wasSelected){
+        profile.specialtyOther='';
+        const otherInput=document.getElementById('specialtyOther');
+        otherInput.removeAttribute('aria-invalid');
+        delete otherInput.dataset.validationAttempted;
+        document.getElementById('specialtyOtherError').hidden=true;
+      }
+      if(!otherField.hidden)document.getElementById('specialtyOther').focus();
+    }
+    sessionStorage.setItem(draftKey,JSON.stringify({...draft,...profile,role}));
     updatePreview();
   }
   if(availability){
@@ -417,6 +451,10 @@ form.addEventListener('submit',event=>{
     document.getElementById('displayName').focus();
     return;
   }
+  if(step===1&&!validateOtherSpecialty(true)){
+    document.getElementById('specialtyOther').focus();
+    return;
+  }
   if(step<content.length-1){
     step++;
     render();
@@ -424,6 +462,10 @@ form.addEventListener('submit',event=>{
 });
 document.getElementById('skipButton').addEventListener('click',()=>{
   saveCurrentFields();
+  if(step===1&&!validateOtherSpecialty(true)){
+    document.getElementById('specialtyOther').focus();
+    return;
+  }
   if(step<content.length-1){
     step++;
     render();

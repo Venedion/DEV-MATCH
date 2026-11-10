@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=optional" rel="stylesheet">
   <link rel="stylesheet" href="assets/css/dashboard.css?v=20261101-avatar-image">
-  <link rel="stylesheet" href="assets/css/settings.css?v=20261103-separate-profile-cards">
+  <link rel="stylesheet" href="assets/css/settings.css?v=20261109-specialty-other-validation">
   <link rel="stylesheet" href="assets/css/custom-select.css?v=20261028-custom-dropdowns-v4">
   <link rel="stylesheet" href="assets/css/client-shell.css?v=20261030-header-size-match">
   <link rel="stylesheet" href="assets/css/mode-switch-animation.css?v=20261030-client-mode-route">
@@ -197,6 +197,29 @@
         <!-- PROFILE DETAILS -->
         <section class="settings-panel" id="panel-profile-details" hidden>
           <form class="settings-profile-details-form" id="profileDetailsForm" novalidate>
+            <section class="settings-card settings-profile-detail-card settings-specialty-card" id="settingsSpecialtyCard" aria-labelledby="settingsSpecialtyHeading">
+              <header class="settings-card-header settings-profile-detail-header">
+                <h2 id="settingsSpecialtyHeading">Specialization</h2>
+                <button class="settings-inline-edit" id="editProfileSpecialties" type="button" aria-label="Edit Specialization">
+                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L8 18l-4 1 1-4Z"/></svg>
+                  <span>Edit</span>
+                </button>
+                <p>Select all specializations that apply to your work.</p>
+              </header>
+              <section class="settings-field settings-specialty-section">
+                <div class="specialty-grid settings-specialty-grid" id="settingsSpecialtyGrid" role="group" aria-label="Choose one or more specializations"></div>
+                <div class="settings-field settings-specialty-other" id="settingsSpecialtyOtherField" hidden>
+                  <label class="settings-label" for="settingsSpecialtyOther">What is your specialization?</label>
+                  <input class="settings-input" id="settingsSpecialtyOther" aria-describedby="settingsSpecialtyOtherError" maxlength="60" placeholder="Enter your specialization">
+                  <p class="settings-specialty-error" id="settingsSpecialtyOtherError" role="alert" hidden>Please enter your other specialization.</p>
+                </div>
+                <footer class="settings-card-footer settings-specialty-footer" id="settingsSpecialtyActions" hidden>
+                  <span class="settings-hint">Select all that apply.</span>
+                  <button class="settings-btn primary" id="saveProfileSpecialties" type="button">Save Specialization</button>
+                </footer>
+              </section>
+            </section>
+
             <section class="settings-card settings-profile-detail-card" aria-labelledby="settingsSkillsHeading">
               <header class="settings-card-header settings-profile-detail-header">
                 <h2 id="settingsSkillsHeading">Skills &amp; Tech Stacks</h2>
@@ -225,13 +248,9 @@
                 <p>Update the work history shown on your public profile.</p>
               </header>
               <section class="settings-field settings-experience-section">
-                <div class="settings-experience-list" id="settingsExperienceEntries" aria-describedby="settingsExperienceError"></div>
+                <div class="settings-experience-list" id="settingsExperienceEntries"></div>
                 <span class="settings-hint">Add your job title, company, period and optional supporting files.</span>
                 <span class="settings-hint">In this demo, selected file names are saved; file contents are not uploaded.</span>
-                <span class="settings-field-error" id="settingsExperienceError" role="alert" hidden></span>
-                <footer class="settings-card-footer settings-experience-footer">
-                  <button class="settings-btn primary" id="saveProfileExperience" type="button">Save Experience</button>
-                </footer>
               </section>
             </section>
           </form>
@@ -717,6 +736,19 @@
           </div>
         </dialog>
 
+        <dialog class="app-edit-dialog app-confirm-dialog" id="experienceDeleteDialog" aria-labelledby="experienceDeleteTitle">
+          <div class="app-confirm-content">
+            <header class="app-edit-header">
+              <h2 id="experienceDeleteTitle">Delete experience?</h2>
+              <p id="experienceDeleteDescription"></p>
+            </header>
+            <footer class="app-edit-actions">
+              <button class="settings-btn" id="cancelExperienceDelete" type="button">Cancel</button>
+              <button class="settings-btn danger" id="confirmExperienceDelete" type="button">Delete</button>
+            </footer>
+          </div>
+        </dialog>
+
         <!-- PANEL 7: Platform Preferences -->
         <section class="settings-panel" id="panel-preferences" hidden>
           <form class="settings-card" id="preferencesForm">
@@ -784,7 +816,7 @@
     <span class="floating-chat-badge">3</span>
   </a>
 
-  <script src="assets/js/settings.js?v=20261103-skill-edit-v2"></script>
+  <script src="assets/js/settings.js?v=20261109-specialty-other-validation"></script>
   <script src="assets/js/custom-select.js?v=20261028-custom-dropdowns-v3"></script>
   <script src="assets/js/nav-behavior.js?v=20261031-account-dropdown-ease"></script>
 </body>

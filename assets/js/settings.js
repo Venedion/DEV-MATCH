@@ -107,6 +107,23 @@
   const skillActions = document.getElementById('settingsSkillsActions');
   const editSkillsButton = document.getElementById('editProfileSkills');
   const experienceEntries = document.getElementById('settingsExperienceEntries');
+  const specialtyGrid = document.getElementById('settingsSpecialtyGrid');
+  const editSpecialtiesButton = document.getElementById('editProfileSpecialties');
+  const specialtyActions = document.getElementById('settingsSpecialtyActions');
+  const specialtyChoices = [
+    { name: 'Full-stack', description: 'Front + back end', icon: '<path d="m16 18 6-6-6-6M8 6l-6 6 6 6"/>' },
+    { name: 'Frontend', description: 'Web interfaces', icon: '<rect x="4" y="4" width="6" height="6" rx="1"/><rect x="14" y="4" width="6" height="6" rx="1"/><rect x="4" y="14" width="6" height="6" rx="1"/><rect x="14" y="14" width="6" height="6" rx="1"/>' },
+    { name: 'Backend', description: 'APIs & databases', icon: '<path d="M6 3v6m0 4v8M12 3v3m0 4v11M18 3v9m0 4v5M3 9h6m0 1h6m0 2h6m-6 4h6"/>' },
+    { name: 'UI/UX', description: 'Design & research', icon: '<path d="m15 5 4 4M4 20l4-.8L19.2 8a2.8 2.8 0 0 0-4-4L4 15.2 4 20z"/>' },
+    { name: 'Mobile', description: 'Android & iOS', icon: '<rect x="5" y="2" width="14" height="20" rx="2"/><path d="M11 18h2"/>' },
+    { name: 'Game Dev', description: 'Unity, Roblox...', icon: '<path d="m7 7 10 0a4 4 0 0 1 3.8 5.2l-1.2 4a2 2 0 0 1-3.3.9L14 15H10l-2.3 2.1a2 2 0 0 1-3.3-.9l-1.2-4A4 4 0 0 1 7 7z"/><path d="M7 10v4m-2-2h4m7-1h.01M17 13h.01"/>' },
+    { name: 'Other', description: 'Tell us more', icon: '<path d="M12 5v14m-7-7h14"/>' }
+  ];
+  let profileSpecialties = [];
+  let specialtyDraft = [];
+  let profileSpecialtyOther = '';
+  let specialtyOtherDraft = '';
+  let isEditingSpecialties = false;
 
   function normalizeSkills(value, fallback) {
     if (Array.isArray(value)) {
@@ -118,6 +135,47 @@
       return skills.length ? [...new Map(skills.map(skill => [skill.toLowerCase(), skill])).values()] : fallback;
     }
     return fallback;
+  }
+
+  function normalizeSpecialties(value) {
+    const specialties = Array.isArray(value) ? value : typeof value === 'string' ? value.split(/[,\n]/) : [];
+    return [...new Map(specialties.map(item => String(item).trim()).filter(Boolean)
+      .map(item => [item.toLowerCase(), item])).values()];
+  }
+
+  function renderSpecialties() {
+    if (!specialtyGrid) return;
+    const additionalChoices = specialtyDraft
+      .filter(name => !specialtyChoices.some(choice => choice.name.toLowerCase() === name.toLowerCase()))
+      .map(name => ({ name, description: 'Specialization', icon: specialtyChoices[specialtyChoices.length - 1].icon }));
+    const choices = isEditingSpecialties
+      ? [...specialtyChoices, ...additionalChoices]
+      : profileSpecialties.map(name => specialtyChoices.find(choice => choice.name.toLowerCase() === name.toLowerCase())
+        || { name, description: 'Specialization', icon: specialtyChoices[specialtyChoices.length - 1].icon });
+    specialtyGrid.classList.toggle('is-editing', isEditingSpecialties);
+    specialtyGrid.innerHTML = choices.map(choice => `
+      <button class="specialty-card" type="button" data-profile-specialty="${escapeHtml(choice.name)}" aria-pressed="${isEditingSpecialties ? specialtyDraft.some(item => item.toLowerCase() === choice.name.toLowerCase()) : profileSpecialties.some(item => item.toLowerCase() === choice.name.toLowerCase())}"${isEditingSpecialties ? '' : ' disabled'}>
+        <svg viewBox="0 0 24 24" aria-hidden="true">${choice.icon}</svg>
+        <b>${escapeHtml(!isEditingSpecialties && choice.name === 'Other' && profileSpecialtyOther ? profileSpecialtyOther : choice.name)}</b>
+        <small>${escapeHtml(!isEditingSpecialties && choice.name === 'Other' && profileSpecialtyOther ? 'Custom specialization' : choice.description)}</small>
+      </button>`).join('');
+    const otherField = document.getElementById('settingsSpecialtyOtherField');
+    const otherInput = document.getElementById('settingsSpecialtyOther');
+    const otherError = document.getElementById('settingsSpecialtyOtherError');
+    otherField.hidden = !isEditingSpecialties || !specialtyDraft.some(item => item.toLowerCase() === 'other');
+    otherInput.value = specialtyOtherDraft;
+    otherInput.removeAttribute('aria-invalid');
+    otherError.hidden = true;
+  }
+
+  function setSpecialtiesEditing(editing) {
+    isEditingSpecialties = editing;
+    specialtyDraft = [...profileSpecialties];
+    specialtyOtherDraft = profileSpecialtyOther;
+    specialtyActions.hidden = !editing;
+    editSpecialtiesButton.querySelector('span').textContent = editing ? 'Cancel' : 'Edit';
+    editSpecialtiesButton.querySelector('svg').hidden = editing;
+    renderSpecialties();
   }
 
   function renderSkillTags() {
@@ -149,6 +207,20 @@
     renderSkillTags();
   }
 
+  function parseExperiencePeriod(period) {
+    const value = String(period || '').trim();
+    const range = value.match(/^(\d{4})\s*(?:-|–|—|to)\s*(\d{4}|present|sekarang)$/i);
+    if (range) {
+      return {
+        startYear: range[1],
+        endYear: /^(present|sekarang)$/i.test(range[2]) ? 'Present' : range[2]
+      };
+    }
+    if (/^(present|sekarang)$/i.test(value)) return { startYear: '', endYear: 'Present' };
+    const year = value.match(/\b\d{4}\b/);
+    return { startYear: year ? year[0] : '', endYear: '' };
+  }
+
   function renderExperienceEntries() {
     if (!experienceEntries) return;
     experienceEntries.innerHTML = experienceDraft.map((entry, index) => `
@@ -157,12 +229,13 @@
           ? `<button class="settings-experience-remove" type="button" data-remove-experience="${entry.id}" aria-label="Remove experience ${index + 1}" title="Remove experience"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18"/><path d="M8 6V4h8v2m3 0-.9 14H5.9L5 6"/><path d="M10 11v5m4-5v5"/></svg></button>`
           : `<button class="settings-experience-edit" type="button" data-edit-experience="${entry.id}">Edit</button>`}</div>
         <div class="settings-experience-fields">
-          <label class="settings-field"><span class="settings-label"><span>Job title</span><span class="settings-required-mark" aria-hidden="true">*</span></span><input class="settings-input" data-experience-field="title" aria-describedby="settingsExperienceError" maxlength="80" placeholder="e.g. Frontend Developer" value="${escapeHtml(entry.title)}"${entry.editing ? '' : ' disabled'} required></label>
-          <label class="settings-field"><span class="settings-label"><span>Company</span><span class="settings-required-mark" aria-hidden="true">*</span></span><input class="settings-input" data-experience-field="company" aria-describedby="settingsExperienceError" maxlength="80" placeholder="Company name" value="${escapeHtml(entry.company)}"${entry.editing ? '' : ' disabled'} required></label>
-          <label class="settings-field"><span class="settings-label"><span>Period</span><span class="settings-required-mark" aria-hidden="true">*</span></span><input class="settings-input" data-experience-field="period" aria-describedby="settingsExperienceError" maxlength="60" placeholder="e.g. 2022 – Present" value="${escapeHtml(entry.period)}"${entry.editing ? '' : ' disabled'} required></label>
+          <label class="settings-field"><span class="settings-label"><span>Job title</span><span class="settings-required-mark" aria-hidden="true">*</span></span><input class="settings-input" data-experience-field="title" aria-describedby="settingsExperience-${entry.id}-title-error" maxlength="80" placeholder="e.g. Frontend Developer" value="${escapeHtml(entry.title)}"${entry.editing ? '' : ' disabled'} required><span class="settings-field-error" id="settingsExperience-${entry.id}-title-error" data-experience-error="title" role="alert" hidden></span></label>
+          <label class="settings-field"><span class="settings-label"><span>Company</span><span class="settings-required-mark" aria-hidden="true">*</span></span><input class="settings-input" data-experience-field="company" aria-describedby="settingsExperience-${entry.id}-company-error" maxlength="80" placeholder="Company name" value="${escapeHtml(entry.company)}"${entry.editing ? '' : ' disabled'} required><span class="settings-field-error" id="settingsExperience-${entry.id}-company-error" data-experience-error="company" role="alert" hidden></span></label>
+          <div class="settings-field"><span class="settings-label"><span>Period</span><span class="settings-required-mark" aria-hidden="true">*</span></span><div class="settings-experience-period-control"><div class="settings-experience-year-field"><input class="settings-input" data-experience-year="startYear" aria-label="Start year" aria-describedby="settingsExperience-${entry.id}-startYear-error" inputmode="numeric" pattern="[0-9]{4}" placeholder="YYYY" value="${escapeHtml(entry.startYear)}"${entry.editing ? '' : ' disabled'} required><span class="settings-field-error" id="settingsExperience-${entry.id}-startYear-error" data-experience-error="startYear" role="alert" hidden></span></div><span class="settings-experience-period-separator" aria-hidden="true">–</span><div class="settings-experience-year-field"><input class="settings-input" data-experience-year="endYear" aria-label="End year" aria-describedby="settingsExperience-${entry.id}-endYear-error" inputmode="numeric" pattern="[0-9]{4}" placeholder="YYYY" value="${escapeHtml(entry.endYear)}"${entry.editing ? '' : ' disabled'} required></div><span class="settings-field-error settings-experience-period-error" id="settingsExperience-${entry.id}-endYear-error" data-experience-error="endYear" role="alert" hidden></span></div></div>
           <label class="settings-field"><span class="settings-label"><span>Portfolio link</span><small>(Optional)</small></span><input class="settings-input" data-experience-field="link" type="url" placeholder="https://example.com" value="${escapeHtml(entry.link)}"${entry.editing ? '' : ' disabled'}></label>
           <label class="settings-field span-2"><span class="settings-label"><span>Upload supporting files</span><small>(Optional)</small></span><input class="settings-input" data-experience-file type="file" accept=".pdf,.doc,.docx,.png,.jpg,.jpeg" multiple${entry.editing ? '' : ' disabled'}><span class="settings-hint settings-experience-files${entry.files.length?' settings-experience-file-value':''}">${escapeHtml(entry.files.join(', ') || 'PDF, DOC, DOCX, JPG, or PNG')}</span></label>
         </div>
+        ${entry.editing ? `<footer class="settings-card-footer settings-experience-entry-footer"><button class="settings-btn primary" type="button" data-save-experience="${entry.id}">Save Experience</button></footer>` : ''}
       </fieldset>`
     ).join('');
   }
@@ -246,16 +319,33 @@
     setVal('settingsWhatsapp', profileData.whatsapp || '');
     profileSkills = normalizeSkills(profileData.skills, defaultSkills);
     renderSkillTags();
-    experienceDraft = (Array.isArray(profileData.experiences) ? profileData.experiences : defaultExperiences)
-      .filter(item => item && typeof item === 'object')
-      .map(item => ({
-        id: String(++nextExperienceId),
-        title: String(item.title || ''),
-        company: String(item.company || ''),
-        period: String(item.period || ''),
-        link: String(item.link || ''),
-        files: Array.isArray(item.files) ? item.files.map(String) : []
-      }));
+    profileSpecialties = normalizeSpecialties(profileData.specialty === undefined && isDeveloper
+      ? ['Full-stack']
+      : profileData.specialty);
+    profileSpecialtyOther = typeof profileData.specialtyOther === 'string' ? profileData.specialtyOther : '';
+    if (profileSpecialtyOther && !profileSpecialties.some(item => item.toLowerCase() === 'other')) {
+      profileSpecialties.push('Other');
+    }
+    specialtyDraft = [...profileSpecialties];
+    specialtyOtherDraft = profileSpecialtyOther;
+    document.getElementById('settingsSpecialtyCard').hidden = !isDeveloper;
+    renderSpecialties();
+    const savedExperiences = Array.isArray(profileData.experiences)
+      ? profileData.experiences
+      : defaultExperiences;
+    profileData.experiences = savedExperiences;
+    experienceDraft = savedExperiences
+      .map((item, index) => ({ item, index }))
+      .filter(({ item }) => item && typeof item === 'object')
+      .map(({ item, index }) => ({
+          id: String(++nextExperienceId),
+          persistedIndex: index,
+          title: String(item.title || ''),
+          company: String(item.company || ''),
+          ...parseExperiencePeriod(item.period),
+          link: String(item.link || ''),
+          files: Array.isArray(item.files) ? item.files.map(String) : []
+        }));
     renderExperienceEntries();
 
     if (isDeveloper) {
@@ -359,7 +449,6 @@
 
   const profileDetailsForm = document.getElementById('profileDetailsForm');
   if (profileDetailsForm) {
-    const experienceError = document.getElementById('settingsExperienceError');
     profileDetailsForm.addEventListener('submit', event => event.preventDefault());
 
     editSkillsButton.addEventListener('click', () => {
@@ -370,6 +459,59 @@
         return;
       }
       setSkillsEditing(true);
+    });
+
+    editSpecialtiesButton.addEventListener('click', () => {
+      setSpecialtiesEditing(!isEditingSpecialties);
+    });
+
+    specialtyGrid.addEventListener('click', event => {
+      const button = event.target.closest('[data-profile-specialty]');
+      if (!button || !isEditingSpecialties) return;
+      const specialty = button.dataset.profileSpecialty;
+      const selected = specialtyDraft.some(item => item.toLowerCase() === specialty.toLowerCase());
+      specialtyDraft = selected
+        ? specialtyDraft.filter(item => item.toLowerCase() !== specialty.toLowerCase())
+        : [...specialtyDraft, specialty];
+      if (selected && specialty.toLowerCase() === 'other') specialtyOtherDraft = '';
+      renderSpecialties();
+      [...specialtyGrid.querySelectorAll('[data-profile-specialty]')]
+        .find(item => item.dataset.profileSpecialty === specialty)
+        ?.focus();
+    });
+
+    document.getElementById('settingsSpecialtyOther').addEventListener('input', event => {
+      specialtyOtherDraft = event.target.value;
+      if (event.target.dataset.validationAttempted === 'true') {
+        const isValid = Boolean(specialtyOtherDraft.trim());
+        event.target.setAttribute('aria-invalid', String(!isValid));
+        document.getElementById('settingsSpecialtyOtherError').hidden = isValid;
+      }
+    });
+
+    document.getElementById('saveProfileSpecialties').addEventListener('click', () => {
+      if (specialtyDraft.some(item => item.toLowerCase() === 'other') && !specialtyOtherDraft.trim()) {
+        const otherInput = document.getElementById('settingsSpecialtyOther');
+        otherInput.dataset.validationAttempted = 'true';
+        otherInput.setAttribute('aria-invalid', 'true');
+        document.getElementById('settingsSpecialtyOtherError').hidden = false;
+        otherInput.focus();
+        return;
+      }
+      try {
+        profileData.specialty = [...specialtyDraft];
+        profileData.specialtyOther = specialtyDraft.some(item => item.toLowerCase() === 'other')
+          ? specialtyOtherDraft.trim()
+          : '';
+        localStorage.setItem(storageKey, JSON.stringify(profileData));
+        profileSpecialties = [...specialtyDraft];
+        profileSpecialtyOther = profileData.specialtyOther;
+        setSpecialtiesEditing(false);
+        showToast('Specialization saved successfully!');
+      } catch (error) {
+        console.error('Unable to save profile specialization.', error);
+        showToast('Unable to save specialization. Please try again.');
+      }
     });
 
     document.getElementById('saveProfileSkills').addEventListener('click', () => {
@@ -386,56 +528,115 @@
       }
     });
 
-    document.getElementById('saveProfileExperience').addEventListener('click', () => {
-      const incompleteExperience = experienceDraft.find(entry =>
-        !entry.title.trim() || !entry.company.trim() || !entry.period.trim()
-      );
-      if (incompleteExperience) {
-        const entryError = window.devMatchI18n?.getLanguage() === 'id'
-          ? 'Lengkapi jabatan, perusahaan, dan periode untuk setiap pengalaman.'
-          : 'Enter a job title, company, and period for each experience.';
-        experienceError.textContent = entryError;
-        experienceError.hidden = false;
-        if (!incompleteExperience.editing) {
-          incompleteExperience.editing = true;
-          renderExperienceEntries();
+    function validateExperienceEntry(entry) {
+      const entryElement = experienceEntries.querySelector(`[data-experience-id="${entry.id}"]`);
+      const currentYear = new Date().getFullYear();
+      const hasStartYear = /^\d{4}$/.test(entry.startYear);
+      const hasNumericEndYear = /^\d{4}$/.test(entry.endYear);
+      const startYearIsFuture = hasStartYear && Number(entry.startYear) > currentYear;
+      const endYearIsFuture = hasNumericEndYear && Number(entry.endYear) > currentYear;
+      const yearsOutOfOrder = hasStartYear && hasNumericEndYear
+        && Number(entry.startYear) > Number(entry.endYear);
+      const validStartYear = hasStartYear && !startYearIsFuture;
+      const validEndYear = (/^(?:\d{4}|Present)$/.test(entry.endYear))
+        && !startYearIsFuture && !endYearIsFuture && !yearsOutOfOrder;
+      const isIndonesian = window.devMatchI18n?.getLanguage() === 'id';
+      const startYearError = !hasStartYear
+        ? isIndonesian ? 'Masukkan tahun mulai dengan 4 digit.' : 'Enter a 4-digit start year.'
+        : '';
+      const endYearErrors = [];
+      if (!/^(?:\d{4}|Present)$/.test(entry.endYear)) {
+        endYearErrors.push(isIndonesian
+          ? 'Masukkan tahun selesai 4 digit atau kosongkan untuk Present.'
+          : 'Enter a 4-digit end year, or leave blank for Present.');
+      } else {
+        if (startYearIsFuture || endYearIsFuture) {
+          endYearErrors.push(isIndonesian
+          ? 'Tahun tidak boleh melebihi tahun ini.'
+            : 'Year cannot be later than current year.');
         }
-        const entryElement = experienceEntries.querySelector(`[data-experience-id="${incompleteExperience.id}"]`);
-        const titleInput = entryElement.querySelector('[data-experience-field="title"]');
-        const companyInput = entryElement.querySelector('[data-experience-field="company"]');
-        const periodInput = entryElement.querySelector('[data-experience-field="period"]');
-        titleInput.setAttribute('aria-invalid', String(!incompleteExperience.title.trim()));
-        companyInput.setAttribute('aria-invalid', String(!incompleteExperience.company.trim()));
-        periodInput.setAttribute('aria-invalid', String(!incompleteExperience.period.trim()));
-        [titleInput, companyInput, periodInput].find(input => input.getAttribute('aria-invalid') === 'true').focus();
+        if (yearsOutOfOrder) {
+          endYearErrors.push(isIndonesian
+            ? 'Tahun selesai tidak boleh lebih kecil dari tahun mulai.'
+            : 'End year cannot be earlier than start year.');
+        }
+      }
+      const endYearError = endYearErrors.join('\n');
+      const valid = {
+        title: Boolean(entry.title.trim()),
+        company: Boolean(entry.company.trim()),
+        startYear: validStartYear,
+        endYear: validEndYear && !yearsOutOfOrder
+      };
+      const messages = {
+        title: isIndonesian ? 'Jabatan wajib diisi.' : 'Job title is required.',
+        company: isIndonesian ? 'Nama perusahaan wajib diisi.' : 'Company name is required.',
+        startYear: startYearError,
+        endYear: endYearError
+      };
+      const fields = ['title', 'company', 'startYear', 'endYear'];
+      let firstInvalidInput = null;
+      fields.forEach(field => {
+        const input = field === 'startYear' || field === 'endYear'
+          ? entryElement.querySelector(`[data-experience-year="${field}"]`)
+          : entryElement.querySelector(`[data-experience-field="${field}"]`);
+        const error = entryElement.querySelector(`[data-experience-error="${field}"]`);
+        input.setAttribute('aria-invalid', String(!valid[field]));
+        error.textContent = valid[field] ? '' : messages[field];
+        error.hidden = valid[field] || !messages[field];
+        if (!valid[field] && !firstInvalidInput) firstInvalidInput = input;
+      });
+      return firstInvalidInput;
+    }
+
+    function saveExperience(entry) {
+      const firstInvalidInput = validateExperienceEntry(entry);
+      if (firstInvalidInput) {
+        entry.showValidationErrors = true;
+        firstInvalidInput.focus();
         return;
       }
 
-      experienceError.textContent = '';
-      experienceError.hidden = true;
+      entry.showValidationErrors = false;
       try {
-        const savedExperiences = experienceDraft.map(({ title, company, period, link, files }) => ({
-          title: title.trim(),
-          company: company.trim(),
-          period: period.trim(),
-          link: link.trim(),
-          files: [...files]
-        }));
+        const savedExperience = {
+          title: entry.title.trim(),
+          company: entry.company.trim(),
+          period: `${entry.startYear.trim()} – ${entry.endYear.trim()}`,
+          link: entry.link.trim(),
+          files: [...entry.files]
+        };
+        const savedExperiences = Array.isArray(profileData.experiences)
+          ? [...profileData.experiences]
+          : [];
+        const isNewExperience = !Number.isInteger(entry.persistedIndex);
+        const nextSavedEntry = isNewExperience
+          ? experienceDraft.slice(experienceDraft.indexOf(entry) + 1)
+            .find(item => Number.isInteger(item.persistedIndex))
+          : null;
+        const experienceIndex = isNewExperience
+          ? nextSavedEntry?.persistedIndex ?? savedExperiences.length
+          : entry.persistedIndex;
+        if (isNewExperience) savedExperiences.splice(experienceIndex, 0, savedExperience);
+        else savedExperiences[experienceIndex] = savedExperience;
+        localStorage.setItem(storageKey, JSON.stringify({ ...profileData, experiences: savedExperiences }));
         profileData.experiences = savedExperiences;
-        localStorage.setItem(storageKey, JSON.stringify(profileData));
-        experienceDraft = savedExperiences.map((entry, index) => ({
-          ...entry,
-          id: String(index + 1),
-          editing: false
-        }));
-        nextExperienceId = experienceDraft.length;
+        if (isNewExperience) {
+          experienceDraft.forEach(item => {
+            if (item !== entry && Number.isInteger(item.persistedIndex) && item.persistedIndex >= experienceIndex) {
+              item.persistedIndex += 1;
+            }
+          });
+        }
+        entry.persistedIndex = experienceIndex;
+        entry.editing = false;
         renderExperienceEntries();
         showToast('Experience saved successfully!');
       } catch (error) {
         console.error('Unable to save profile experience.', error);
         showToast('Unable to save experience. Please try again.');
       }
-    });
+    }
 
     skillInput.addEventListener('keydown', event => {
       if (event.key === 'Enter' || event.key === ',') {
@@ -457,10 +658,65 @@
     });
 
     document.getElementById('addProfileExperience').addEventListener('click', () => {
-      experienceDraft.push({ id: String(++nextExperienceId), title: '', company: '', period: '', link: '', files: [], editing: true });
+      experienceDraft.push({ id: String(++nextExperienceId), persistedIndex: null, title: '', company: '', startYear: '', endYear: 'Present', link: '', files: [], editing: true });
       renderExperienceEntries();
       const lastEntry = experienceEntries.lastElementChild;
       lastEntry.querySelector('[data-experience-field="title"]').focus();
+    });
+
+    experienceEntries.addEventListener('focusin', event => {
+      const input = event.target.closest('[data-experience-year="endYear"]');
+      if (input?.value === 'Present') input.select();
+    });
+
+    let pendingExperienceDeleteId = null;
+    const experienceDeleteDialog = document.getElementById('experienceDeleteDialog');
+    const experienceDeleteTitle = document.getElementById('experienceDeleteTitle');
+    const experienceDeleteDescription = document.getElementById('experienceDeleteDescription');
+
+    function removeExperience(entryId) {
+      const entryIndex = experienceDraft.findIndex(entry => entry.id === entryId);
+      if (entryIndex < 0) return;
+      const entry = experienceDraft[entryIndex];
+      if (Number.isInteger(entry.persistedIndex)) {
+        const savedExperiences = Array.isArray(profileData.experiences)
+          ? [...profileData.experiences]
+          : [];
+        savedExperiences.splice(entry.persistedIndex, 1);
+        try {
+          localStorage.setItem(storageKey, JSON.stringify({ ...profileData, experiences: savedExperiences }));
+          profileData.experiences = savedExperiences;
+          experienceDraft.forEach(item => {
+            if (Number.isInteger(item.persistedIndex) && item.persistedIndex > entry.persistedIndex) {
+              item.persistedIndex -= 1;
+            }
+          });
+        } catch (error) {
+          console.error('Unable to remove profile experience.', error);
+          showToast('Unable to remove experience. Please try again.');
+          return;
+        }
+      }
+      experienceDraft.splice(entryIndex, 1);
+      nextExperienceId = experienceDraft.reduce((max, entry) => Math.max(max, Number(entry.id) || 0), 0);
+      renderExperienceEntries();
+    }
+
+    document.getElementById('confirmExperienceDelete').addEventListener('click', () => {
+      if (pendingExperienceDeleteId) removeExperience(pendingExperienceDeleteId);
+      experienceDeleteDialog.close();
+    });
+
+    document.getElementById('cancelExperienceDelete').addEventListener('click', () => {
+      experienceDeleteDialog.close();
+    });
+
+    experienceDeleteDialog.addEventListener('click', event => {
+      if (event.target === experienceDeleteDialog) experienceDeleteDialog.close();
+    });
+
+    experienceDeleteDialog.addEventListener('close', () => {
+      pendingExperienceDeleteId = null;
     });
 
     experienceEntries.addEventListener('click', event => {
@@ -474,22 +730,53 @@
         return;
       }
 
+      const saveButton = event.target.closest('[data-save-experience]');
+      if (saveButton) {
+        const entry = experienceDraft.find(item => item.id === saveButton.dataset.saveExperience);
+        if (entry) saveExperience(entry);
+        return;
+      }
+
       const button = event.target.closest('[data-remove-experience]');
       if (!button) return;
-      experienceDraft = experienceDraft.filter(entry => entry.id !== button.dataset.removeExperience);
-      nextExperienceId = experienceDraft.reduce((max, entry) => Math.max(max, Number(entry.id) || 0), 0);
-      renderExperienceEntries();
+      const entryIndex = experienceDraft.findIndex(entry => entry.id === button.dataset.removeExperience);
+      if (entryIndex < 0) return;
+      pendingExperienceDeleteId = experienceDraft[entryIndex].id;
+      const isIndonesian = window.devMatchI18n?.getLanguage() === 'id';
+      experienceDeleteTitle.textContent = isIndonesian ? 'Hapus pengalaman?' : 'Delete experience?';
+      experienceDeleteDescription.textContent = isIndonesian
+        ? `Apakah Anda yakin ingin menghapus pengalaman nomor ${entryIndex + 1}? Tindakan ini tidak dapat dibatalkan.`
+        : `Are you sure you want to delete experience ${entryIndex + 1}? This cannot be undone.`;
+      experienceDeleteDialog.showModal();
     });
 
     experienceEntries.addEventListener('input', event => {
+      const yearInput = event.target.closest('[data-experience-year]');
+      if (yearInput) {
+        const entry = experienceDraft.find(item => item.id === yearInput.closest('[data-experience-id]').dataset.experienceId);
+        if (!entry) return;
+        const year = yearInput.value.replace(/\D/g, '').slice(0, 4);
+        if (yearInput.value !== year) yearInput.value = year;
+        entry[yearInput.dataset.experienceYear] = year;
+        if (entry.showValidationErrors) validateExperienceEntry(entry);
+        return;
+      }
+
       const input = event.target.closest('[data-experience-field]');
       if (!input) return;
       const entry = experienceDraft.find(item => item.id === input.closest('[data-experience-id]').dataset.experienceId);
       if (entry) entry[input.dataset.experienceField] = input.value;
-      if (input.value.trim()) input.removeAttribute('aria-invalid');
-      if (experienceError.hidden) return;
-      experienceError.textContent = '';
-      experienceError.hidden = true;
+      if (entry?.showValidationErrors) validateExperienceEntry(entry);
+    });
+
+    experienceEntries.addEventListener('focusout', event => {
+      const yearInput = event.target.closest('[data-experience-year="endYear"]');
+      if (!yearInput || yearInput.value) return;
+      const entry = experienceDraft.find(item => item.id === yearInput.closest('[data-experience-id]').dataset.experienceId);
+      if (!entry) return;
+      yearInput.value = 'Present';
+      entry.endYear = 'Present';
+      if (entry.showValidationErrors) validateExperienceEntry(entry);
     });
 
     experienceEntries.addEventListener('change', event => {
