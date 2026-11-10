@@ -3,15 +3,20 @@
 Branch: codex/ready-auth. Project: yxwktllqbmhustmhdaqi (Singapore).
 
 Included: email/password registration, confirmation links and resend screen,
-email-confirmed login, profile onboarding/storage, profile settings persistence,
+email-confirmed login, login by email code, profile onboarding/storage, profile settings persistence,
 password recovery and change, session logout, recovery styling, and direct
 birthday month/year selection. Existing marketplace, chat, and project content
 remain prototype/demo features, not a completed backend.
 
 Phone numbers are stored as contact data only. This release does not prove phone
-ownership and does not require SMS verification to complete onboarding. No email
-code OTP, SMS OTP, sender-branding templates, or unconfigured OTP screens are
-included. Email ownership is checked using trusted Supabase Auth confirmation.
+ownership and does not require SMS verification to complete onboarding.
+Email ownership is checked using trusted Supabase Auth confirmation.
+
+Email-code login is for existing accounts. In Supabase Auth, set the Magic link
+or OTP subject to `Kode login DEV-MATCH` and use `email-otp.html` for its body.
+The form accepts the configured email OTP length from six to ten digits.
+Use the configured custom SMTP relay.
+Registration and password recovery use their separate link templates.
 
 The private profiles table uses RLS. Password hashes are managed by Supabase Auth;
 no password or privileged service key belongs in application profile data.
