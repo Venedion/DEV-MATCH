@@ -60,7 +60,10 @@ svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2;stroke-l
 .birthday-calendar{width:min(320px,100%);position:absolute;top:calc(100% + 8px);left:0;z-index:6;padding:15px;border:1px solid var(--line);border-radius:14px;background:var(--surface);box-shadow:0 14px 36px rgba(23,23,25,.14)}
 .birthday-calendar[hidden]{display:none}
 .calendar-heading{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px}
-.calendar-month{padding:6px 8px;border:0;border-radius:8px;background:transparent;color:var(--ink);font-size:14px;font-weight:700;cursor:default}
+.calendar-selects{display:flex;gap:6px;min-width:0;flex:1}
+.calendar-select{min-width:0;max-width:100%;padding:6px 3px;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--ink);font:inherit;font-size:13px;font-weight:700;cursor:pointer}
+.calendar-select:first-child{flex:1}
+.calendar-select:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
 .calendar-navigation{display:flex;gap:5px}
 .calendar-navigation button{width:32px;height:32px;display:grid;place-items:center;border:1px solid var(--line);border-radius:8px;background:#fff;color:#555862;font-size:21px;line-height:1;cursor:pointer}
 .calendar-navigation button:hover:not(:disabled){background:var(--soft);color:var(--ink)}

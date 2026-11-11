@@ -15,6 +15,8 @@
   <link rel="stylesheet" href="assets/css/mobile-navigation.css?v=20261031-desktop-dropdown-aligned">
   <script src="assets/js/mode-switch-state.js?v=20261030-client-mode-indicator"></script>
   <script src="assets/js/i18n.js?v=20261103-skill-edit-v2"></script>
+<script src="assets/vendor/supabase-2.119.0.js"></script>
+<script src="assets/js/backend.js"></script>
 </head>
 <body class="page-scroll-shell">
   <!-- Topbar -->
@@ -312,10 +314,10 @@
               <div class="settings-toggle-row">
                 <div class="settings-toggle-info">
                   <h3>Authenticator App (TOTP)</h3>
-                  <p>Use Google Authenticator or 1Password to generate one-time login codes.</p>
+                  <p>Authenticator enrollment is not available yet. This control does not enable two-factor authentication.</p>
                 </div>
                 <label class="settings-switch" aria-label="Toggle Two Factor Authentication">
-                  <input type="checkbox" id="twoFactorToggle" checked>
+                  <input type="checkbox" id="twoFactorToggle" disabled>
                   <span class="settings-slider"></span>
                 </label>
               </div>
@@ -330,8 +332,8 @@
                     <svg viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
                   </div>
                   <div class="settings-session-info">
-                    <b>Chrome on Windows <span class="settings-badge-active">Active now</span></b>
-                    <span>Medan, Indonesia · IP 180.244.xxx.xxx</span>
+                    <b>Current browser <span class="settings-badge-active">This session</span></b>
+                    <span>Device locations and a full session list are not available here.</span>
                   </div>
                 </div>
               </div>
@@ -365,7 +367,7 @@
               <div class="settings-toggle-row">
                 <div class="settings-toggle-info">
                   <h3>Deactivate Account</h3>
-                  <p>Temporarily hide your profile, projects, and active availability.</p>
+                  <p>Account deactivation is not available yet.</p>
                 </div>
                 <button class="settings-btn" id="deactivateAccountBtn" type="button">Deactivate</button>
               </div>
@@ -373,7 +375,7 @@
               <div class="settings-toggle-row">
                 <div class="settings-toggle-info">
                   <h3 style="color:#b91c1c;">Delete Account Permanently</h3>
-                  <p>Permanently remove your account, projects, reviews, and conversation threads.</p>
+                  <p>Account deletion is not available yet. Clearing browser data does not delete an account.</p>
                 </div>
                 <button class="settings-btn danger" id="deleteAccountBtn" type="button">Delete Account</button>
               </div>

@@ -1,0 +1,29 @@
+body{display:block;background:var(--chip);color:var(--ink)}
+.verification{width:min(100% - 32px,560px);margin:48px auto;padding:36px;background:var(--bg);border:1px solid var(--line);border-radius:20px;box-shadow:0 12px 40px rgb(0 0 0 / 4%)}
+.verification .logo i{background:var(--btn);color:var(--btn-ink)}
+.verification h1{font-size:clamp(26px,5vw,32px);letter-spacing:-1px;line-height:1.2;margin:12px 0}
+.verification .eyebrow{margin-top:32px;font-size:11px;font-weight:700;letter-spacing:1.5px;color:var(--muted)}
+.verification .intro,.verification section>p{line-height:1.7;color:var(--muted);font-size:14px}
+.verification .intro{margin-bottom:24px}
+.verification section{padding:22px 0;border-top:1px solid var(--line)}
+.verification h2{font-size:16px;display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.verification-badge{font-size:11px;font-weight:600;padding:5px 8px;border-radius:20px;background:var(--chip);color:var(--muted)}
+.verification-badge.verified{background:#e9f7ee;color:#247643}
+.verification label{display:block;margin:18px 0 8px;font-size:13px;font-weight:600}
+.verification .in{margin-bottom:16px}
+.verification input{width:100%;min-width:0}
+.verification .field-note{font-size:12px;line-height:1.7;color:var(--muted);margin:0 0 20px}
+.verification .submit{cursor:pointer}
+.verification .submit:disabled{cursor:not-allowed;opacity:.5}
+.verification [role=status]{font-size:13px;line-height:1.7;margin:20px 0;overflow-wrap:anywhere;color:var(--muted)}
+.verification [role=status]:empty{display:none}
+.verification .login-link{display:block;margin-top:24px;text-align:center;color:var(--muted);font-size:13px;text-underline-offset:3px}
+.continue-link{display:flex;align-items:center;justify-content:center;text-align:center;text-decoration:none;padding:0 16px}
+.recovery-icon{display:grid;place-items:center;width:48px;height:48px;border:1px solid var(--line);border-radius:14px;margin-top:32px;background:var(--field)}
+.recovery-icon svg{width:22px;height:22px}
+.recovery-card .eyebrow{margin-top:20px}
+.recovery-card [role=status]{padding:14px 16px;border:1px solid var(--line);border-radius:12px;background:var(--field)}
+.recovery-actions{margin-top:24px;border-top:1px solid var(--line);padding-top:4px}
+.verification [hidden]{display:none!important}
+@media(prefers-color-scheme:dark){.verification-badge.verified{background:#163725;color:#8de2ab}}
+@media(max-width:480px){.verification{padding:28px 20px;margin:20px auto;border-radius:16px}}
