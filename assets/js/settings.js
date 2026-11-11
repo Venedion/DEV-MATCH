@@ -27,7 +27,7 @@
       bio: isDeveloper ? 'Business websites and POS systems for Indonesian SMEs. 5 years shipping Laravel + React.' : 'Looking for high quality developers to build restaurant and commerce web apps.',
       whatsapp: '6281234567890',
       whatsappConnected: true,
-      googleConnected: true,
+      googleConnected: false,
       specialty: isDeveloper ? ['Full-stack'] : [],
       skills: isDeveloper
         ? ['React', 'Next.js', 'Laravel', 'Supabase', 'Figma', 'Tailwind CSS']
@@ -78,23 +78,14 @@
   const connectionDefaults = {
     whatsappConnected: Boolean(String(profileData.whatsapp || '').replace(/\D/g, '')),
     githubConnected: Boolean(profileData.githubUsername || profileData.github || profileData.githubUrl),
-    googleConnected: true,
+    googleConnected: false,
     linkedinConnected: Boolean(profileData.linkedinUrl || profileData.linkedin)
   };
-  let connectionDefaultsChanged = false;
   Object.entries(connectionDefaults).forEach(([field, defaultValue]) => {
     if (typeof profileData[field] !== 'boolean') {
       profileData[field] = defaultValue;
-      connectionDefaultsChanged = true;
     }
   });
-  if (connectionDefaultsChanged) {
-    try {
-      localStorage.setItem(storageKey, JSON.stringify(profileData));
-    } catch (error) {
-      console.warn('Unable to persist connected app status defaults.', error);
-    }
-  }
 
   let profileSkills = [];
   let isEditingSkills = false;
@@ -470,7 +461,6 @@
       setSkillsEditing(true);
     });
 
-<<<<<<< HEAD
     editSpecialtiesButton.addEventListener('click', () => {
       setSpecialtiesEditing(!isEditingSpecialties);
     });
@@ -524,10 +514,7 @@
       }
     });
 
-    document.getElementById('saveProfileSkills').addEventListener('click', () => {
-=======
     document.getElementById('saveProfileSkills').addEventListener('click', async () => {
->>>>>>> codex/ready-auth
       addProfileSkill(skillInput.value);
       skillInput.value = '';
       try {
@@ -541,7 +528,6 @@
       }
     });
 
-<<<<<<< HEAD
     function validateExperienceEntry(entry) {
       const entryElement = experienceEntries.querySelector(`[data-experience-id="${entry.id}"]`);
       const currentYear = new Date().getFullYear();
@@ -552,13 +538,14 @@
       const yearsOutOfOrder = hasStartYear && hasNumericEndYear
         && Number(entry.startYear) > Number(entry.endYear);
       const validStartYear = hasStartYear && !startYearIsFuture;
-      const validEndYear = (/^(?:\d{4}|Present)$/.test(entry.endYear))
+      const validEndYear = /^(?:\d{4}|Present)$/.test(entry.endYear)
         && !startYearIsFuture && !endYearIsFuture && !yearsOutOfOrder;
       const isIndonesian = window.devMatchI18n?.getLanguage() === 'id';
       const startYearError = !hasStartYear
         ? isIndonesian ? 'Masukkan tahun mulai dengan 4 digit.' : 'Enter a 4-digit start year.'
         : '';
       const endYearErrors = [];
+
       if (!/^(?:\d{4}|Present)$/.test(entry.endYear)) {
         endYearErrors.push(isIndonesian
           ? 'Masukkan tahun selesai 4 digit atau kosongkan untuk Present.'
@@ -566,23 +553,8 @@
       } else {
         if (startYearIsFuture || endYearIsFuture) {
           endYearErrors.push(isIndonesian
-          ? 'Tahun tidak boleh melebihi tahun ini.'
+            ? 'Tahun tidak boleh melebihi tahun ini.'
             : 'Year cannot be later than current year.');
-=======
-    document.getElementById('saveProfileExperience').addEventListener('click', async () => {
-      const incompleteExperience = experienceDraft.find(entry =>
-        !entry.title.trim() || !entry.company.trim() || !entry.period.trim()
-      );
-      if (incompleteExperience) {
-        const entryError = window.devMatchI18n?.getLanguage() === 'id'
-          ? 'Lengkapi jabatan, perusahaan, dan periode untuk setiap pengalaman.'
-          : 'Enter a job title, company, and period for each experience.';
-        experienceError.textContent = entryError;
-        experienceError.hidden = false;
-        if (!incompleteExperience.editing) {
-          incompleteExperience.editing = true;
-          renderExperienceEntries();
->>>>>>> codex/ready-auth
         }
         if (yearsOutOfOrder) {
           endYearErrors.push(isIndonesian
@@ -590,21 +562,22 @@
             : 'End year cannot be earlier than start year.');
         }
       }
-      const endYearError = endYearErrors.join('\n');
+
       const valid = {
         title: Boolean(entry.title.trim()),
         company: Boolean(entry.company.trim()),
         startYear: validStartYear,
-        endYear: validEndYear && !yearsOutOfOrder
+        endYear: validEndYear
       };
       const messages = {
         title: isIndonesian ? 'Jabatan wajib diisi.' : 'Job title is required.',
         company: isIndonesian ? 'Nama perusahaan wajib diisi.' : 'Company name is required.',
         startYear: startYearError,
-        endYear: endYearError
+        endYear: endYearErrors.join('\n')
       };
       const fields = ['title', 'company', 'startYear', 'endYear'];
       let firstInvalidInput = null;
+
       fields.forEach(field => {
         const input = field === 'startYear' || field === 'endYear'
           ? entryElement.querySelector(`[data-experience-year="${field}"]`)
@@ -615,10 +588,11 @@
         error.hidden = valid[field] || !messages[field];
         if (!valid[field] && !firstInvalidInput) firstInvalidInput = input;
       });
+
       return firstInvalidInput;
     }
 
-    function saveExperience(entry) {
+    async function saveExperience(entry) {
       const firstInvalidInput = validateExperienceEntry(entry);
       if (firstInvalidInput) {
         entry.showValidationErrors = true;
@@ -650,25 +624,18 @@
         else savedExperiences[experienceIndex] = savedExperience;
         localStorage.setItem(storageKey, JSON.stringify({ ...profileData, experiences: savedExperiences }));
         profileData.experiences = savedExperiences;
-<<<<<<< HEAD
-        if (isNewExperience) {
-          experienceDraft.forEach(item => {
-            if (item !== entry && Number.isInteger(item.persistedIndex) && item.persistedIndex >= experienceIndex) {
-              item.persistedIndex += 1;
-            }
-          });
-        }
-        entry.persistedIndex = experienceIndex;
-        entry.editing = false;
-=======
         await persistProfile(profileData);
-        experienceDraft = savedExperiences.map((entry, index) => ({
-          ...entry,
+        experienceDraft = savedExperiences.map((savedEntry, index) => ({
           id: String(index + 1),
+          persistedIndex: index,
+          title: String(savedEntry.title || ''),
+          company: String(savedEntry.company || ''),
+          ...parseExperiencePeriod(savedEntry.period),
+          link: String(savedEntry.link || ''),
+          files: Array.isArray(savedEntry.files) ? savedEntry.files.map(String) : [],
           editing: false
         }));
         nextExperienceId = experienceDraft.length;
->>>>>>> codex/ready-auth
         renderExperienceEntries();
         showToast('Experience saved successfully!');
       } catch (error) {
