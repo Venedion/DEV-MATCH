@@ -171,6 +171,20 @@
   const sortBtns = document.querySelectorAll('.sort-btn');
   const toastEl = document.getElementById('fdToast');
   const sidebarFavBadge = document.getElementById('favoriteCount');
+  const favoriteStateReady = window.devMatchBackend.ready.then(user => user
+    ? window.devMatchBackend.loadFavorites()
+    : null
+  ).then(records => {
+    if (!records) return false;
+    favoriteIds = records.filter(item => item.type === 'developer').map(item => item.id);
+    localStorage.setItem(FAVORITES_KEY, JSON.stringify(favoriteIds));
+    renderDevelopers();
+    return true;
+  }).catch(error => {
+    console.error('Unable to load developer favorites from Supabase.', error);
+    window.alert('Unable to load favorites. Check your connection and try again.');
+    return null;
+  });
 
   // Load favorites from localStorage
   function loadFavorites() {
@@ -516,16 +530,27 @@
 
     // Favorite click delegate (Separate storage: 'devmatch-client-dev-favorites')
     if (devsGrid) {
-      devsGrid.addEventListener('click', e => {
+      devsGrid.addEventListener('click', async e => {
         const favBtn = e.target.closest('.btn-dev-favorite');
         if (favBtn) {
+          const authenticated = await favoriteStateReady;
+          if (authenticated === null) return;
           const id = favBtn.dataset.favoriteId;
-          const idx = favoriteIds.indexOf(id);
-          if (idx > -1) {
-            favoriteIds.splice(idx, 1);
+          const saved = favoriteIds.includes(id);
+          if (authenticated) {
+            try {
+              await window.devMatchBackend.setFavorite('developer', id, !saved);
+            } catch (error) {
+              console.error('Unable to update developer favorite in Supabase.', error);
+              window.alert('Unable to save this favorite. Please try again.');
+              return;
+            }
+          }
+          if (saved) {
+            favoriteIds = favoriteIds.filter(item => item !== id);
             showToast('Developer dihapus dari Favorites');
           } else {
-            favoriteIds.push(id);
+            favoriteIds = [...favoriteIds, id];
             showToast('Developer ditambahkan ke Favorites');
           }
           saveFavorites(favoriteIds);

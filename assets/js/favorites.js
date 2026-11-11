@@ -6,7 +6,7 @@
  * Strictly separated storage per mode.
  */
 
-(function() {
+(async function() {
   'use strict';
 
   const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, char => ({
@@ -25,9 +25,23 @@
   const PROJECTS_KEY = isClient ? 'devmatch-client-project-favorites' : 'devmatch-developer-project-favorites';
   const CLIENTS_KEY = 'devmatch-favorite-clients';
   const DEVS_KEY = 'devmatch-client-dev-favorites';
+  if (!await window.devMatchBackend.ready) return;
   if (localStorage.getItem(PROJECTS_KEY) === null) {
     const legacyProjects = localStorage.getItem('devmatch-client-favorites');
     if (legacyProjects !== null) localStorage.setItem(PROJECTS_KEY, legacyProjects);
+  }
+  let initialFavoriteRows = null;
+  try {
+    initialFavoriteRows = await window.devMatchBackend.loadFavorites();
+  } catch (error) {
+    console.error('Unable to load favorites from Supabase.', error);
+    window.alert('Unable to load favorites. Check your connection and try again.');
+  }
+  if (initialFavoriteRows) {
+    const idsFor = type => initialFavoriteRows.filter(item => item.type === type).map(item => item.id);
+    localStorage.setItem(PROJECTS_KEY, JSON.stringify(idsFor('project')));
+    localStorage.setItem(CLIENTS_KEY, JSON.stringify(idsFor('client')));
+    localStorage.setItem(DEVS_KEY, JSON.stringify(idsFor('developer')));
   }
 
   // Helper getters
@@ -59,16 +73,6 @@
     return ['restaurant', 'pos', 'booking'];
   }
 
-  function saveProjectFavorites(favs) {
-    try {
-      if (typeof localStorage !== 'undefined') {
-        localStorage.setItem(PROJECTS_KEY, JSON.stringify(favs));
-      }
-    } catch (e) {
-      console.warn('Failed to save project favorites to localStorage', e);
-    }
-  }
-
   // Load Saved Clients (Developer Mode)
   function loadClientFavorites() {
     try {
@@ -83,16 +87,6 @@
       console.warn('Failed to read client favorites from localStorage', e);
     }
     return ['jessica-sitorus', 'klinik-sehat-bersama'];
-  }
-
-  function saveClientFavorites(clients) {
-    try {
-      if (typeof localStorage !== 'undefined') {
-        localStorage.setItem(CLIENTS_KEY, JSON.stringify(clients));
-      }
-    } catch (e) {
-      console.warn('Failed to save client favorites to localStorage', e);
-    }
   }
 
   // Load Saved Developers (Client Mode)
@@ -111,14 +105,20 @@
     return ['rizky-aditya'];
   }
 
-  function saveDevFavorites(devs) {
-    try {
-      if (typeof localStorage !== 'undefined') {
-        localStorage.setItem(DEVS_KEY, JSON.stringify(devs));
-      }
-    } catch (e) {
-      console.warn('Failed to save developer favorites to localStorage', e);
-    }
+  async function persistFavorite(type, id, saved, storageKey) {
+    await window.devMatchBackend.setFavorite(type, id, saved);
+    const stored = JSON.parse(localStorage.getItem(storageKey) || '[]');
+    const ids = Array.isArray(stored) ? stored : [];
+    const updated = saved
+      ? [...new Set([...ids, id])]
+      : ids.filter(item => item !== id);
+    localStorage.setItem(storageKey, JSON.stringify(updated));
+    return updated;
+  }
+
+  async function clearFavoriteCollection(type, storageKey) {
+    await window.devMatchBackend.clearFavorites(type);
+    localStorage.setItem(storageKey, '[]');
   }
 
   // State
@@ -803,18 +803,29 @@
       card.style.transform = 'scale(0.95)';
     }
 
-    setTimeout(() => {
+    setTimeout(async () => {
+      try {
+        favoriteProjectIds = await persistFavorite('project', id, false, PROJECTS_KEY);
+      } catch (error) {
+        console.error('Unable to remove project favorite from Supabase.', error);
+        window.alert('Unable to update favorites. Please try again.');
+        renderCurrentTab();
+        return;
+      }
       lastRemovedItem = { type: 'project', id };
-      favoriteProjectIds = favoriteProjectIds.filter(item => item !== id);
-      saveProjectFavorites(favoriteProjectIds);
       updateCounters();
       renderCurrentTab();
       updateFavoriteTabIndicator();
 
-      showToast('Project removed from favorites', () => {
+      showToast('Project removed from favorites', async () => {
         if (lastRemovedItem && lastRemovedItem.type === 'project') {
-          favoriteProjectIds.push(lastRemovedItem.id);
-          saveProjectFavorites(favoriteProjectIds);
+          try {
+            favoriteProjectIds = await persistFavorite('project', lastRemovedItem.id, true, PROJECTS_KEY);
+          } catch (error) {
+            console.error('Unable to restore project favorite in Supabase.', error);
+            window.alert('Unable to restore this favorite. Please try again.');
+            return;
+          }
           updateCounters();
           renderCurrentTab();
           updateFavoriteTabIndicator();
@@ -831,17 +842,28 @@
       card.style.transform = 'scale(0.95)';
     }
 
-    setTimeout(() => {
+    setTimeout(async () => {
+      try {
+        favoriteClientIds = await persistFavorite('client', id, false, CLIENTS_KEY);
+      } catch (error) {
+        console.error('Unable to remove client favorite from Supabase.', error);
+        window.alert('Unable to update favorites. Please try again.');
+        renderCurrentTab();
+        return;
+      }
       lastRemovedItem = { type: 'client', id };
-      favoriteClientIds = favoriteClientIds.filter(item => item !== id);
-      saveClientFavorites(favoriteClientIds);
       updateCounters();
       renderCurrentTab();
 
-      showToast('Client removed from favorites', () => {
+      showToast('Client removed from favorites', async () => {
         if (lastRemovedItem && lastRemovedItem.type === 'client') {
-          favoriteClientIds.push(lastRemovedItem.id);
-          saveClientFavorites(favoriteClientIds);
+          try {
+            favoriteClientIds = await persistFavorite('client', lastRemovedItem.id, true, CLIENTS_KEY);
+          } catch (error) {
+            console.error('Unable to restore client favorite in Supabase.', error);
+            window.alert('Unable to restore this favorite. Please try again.');
+            return;
+          }
           updateCounters();
           renderCurrentTab();
         }
@@ -857,17 +879,28 @@
       card.style.transform = 'scale(0.95)';
     }
 
-    setTimeout(() => {
+    setTimeout(async () => {
+      try {
+        favoriteDevIds = await persistFavorite('developer', id, false, DEVS_KEY);
+      } catch (error) {
+        console.error('Unable to remove developer favorite from Supabase.', error);
+        window.alert('Unable to update favorites. Please try again.');
+        renderCurrentTab();
+        return;
+      }
       lastRemovedItem = { type: 'developer', id };
-      favoriteDevIds = favoriteDevIds.filter(item => item !== id);
-      saveDevFavorites(favoriteDevIds);
       updateCounters();
       renderCurrentTab();
 
-      showToast('Developer removed from favorites', () => {
+      showToast('Developer removed from favorites', async () => {
         if (lastRemovedItem && lastRemovedItem.type === 'developer') {
-          favoriteDevIds.push(lastRemovedItem.id);
-          saveDevFavorites(favoriteDevIds);
+          try {
+            favoriteDevIds = await persistFavorite('developer', lastRemovedItem.id, true, DEVS_KEY);
+          } catch (error) {
+            console.error('Unable to restore developer favorite in Supabase.', error);
+            window.alert('Unable to restore this favorite. Please try again.');
+            return;
+          }
           updateCounters();
           renderCurrentTab();
         }
@@ -955,12 +988,18 @@
   // Clear all button
   const clearAllBtn = document.getElementById('favClearAllBtn');
   if (clearAllBtn) {
-    clearAllBtn.addEventListener('click', () => {
+    clearAllBtn.addEventListener('click', async () => {
       if (currentTab === 'projects') {
         if (favoriteProjectIds.length === 0) return;
         if (confirm('Are you sure you want to clear all saved projects?')) {
-          favoriteProjectIds = [];
-          saveProjectFavorites(favoriteProjectIds);
+          try {
+            await clearFavoriteCollection('project', PROJECTS_KEY);
+            favoriteProjectIds = [];
+          } catch (error) {
+            console.error('Unable to clear project favorites in Supabase.', error);
+            window.alert('Unable to clear favorites. Please try again.');
+            return;
+          }
           updateCounters();
           renderCurrentTab();
           showToast('All saved projects cleared');
@@ -968,8 +1007,14 @@
       } else if (isClient) {
         if (favoriteDevIds.length === 0) return;
         if (confirm('Are you sure you want to clear all saved developers?')) {
-          favoriteDevIds = [];
-          saveDevFavorites(favoriteDevIds);
+          try {
+            await clearFavoriteCollection('developer', DEVS_KEY);
+            favoriteDevIds = [];
+          } catch (error) {
+            console.error('Unable to clear developer favorites in Supabase.', error);
+            window.alert('Unable to clear favorites. Please try again.');
+            return;
+          }
           updateCounters();
           renderCurrentTab();
           showToast('All saved developers cleared');
@@ -977,8 +1022,14 @@
       } else {
         if (favoriteClientIds.length === 0) return;
         if (confirm('Are you sure you want to clear all saved clients?')) {
-          favoriteClientIds = [];
-          saveClientFavorites(favoriteClientIds);
+          try {
+            await clearFavoriteCollection('client', CLIENTS_KEY);
+            favoriteClientIds = [];
+          } catch (error) {
+            console.error('Unable to clear client favorites in Supabase.', error);
+            window.alert('Unable to clear favorites. Please try again.');
+            return;
+          }
           updateCounters();
           renderCurrentTab();
           showToast('All saved clients cleared');

@@ -16,7 +16,7 @@ function renderComments(){
   commentList.innerHTML=ordered.map(comment=>`<article class="comment-item"><span class="comment-avatar">${escapeHtml(comment.initials)}</span><div><p class="comment-author">${escapeHtml(comment.name)} <small>Client · just now</small></p><p class="comment-text">${escapeHtml(comment.text)}</p><a class="reply-link" href="${chatUrl(activeProject.id)}">Reply</a></div></article>`).join('');
 }
 
-window.openProjectDetails=function(projectId){
+window.openProjectDetails=async function(projectId){
   const project=window.DEVMATCH_SAMPLE_PROJECTS.find(item=>item.id===projectId);
   const detailError=document.getElementById('detailError');
   if(!project){
@@ -55,8 +55,13 @@ window.openProjectDetails=function(projectId){
 
   const clientName=JSON.parse(localStorage.getItem('devmatch-profile-client')||'{}').displayName||'Client';
   document.getElementById('clientInitials').textContent=clientName.trim().split(/\s+/).filter(Boolean).slice(0,2).map(part=>part[0]).join('').toUpperCase()||'CL';
-  const storedComments=JSON.parse(localStorage.getItem(`devmatch-project-comments-${project.id}`)||'[]');
-  comments=storedComments;
+  try{
+    comments=await window.devMatchBackend.loadProjectComments(project.id);
+  }catch(error){
+    console.error('Unable to load project comments from Supabase.',error);
+    window.alert('Unable to load project comments. Check your connection and try again.');
+    comments=[];
+  }
   commentOrder=document.querySelector('.sort-comments select').value;
   renderComments();
 
@@ -71,7 +76,7 @@ document.querySelector('.sort-comments select').addEventListener('change',event=
   commentOrder=event.target.value;
   renderComments();
 });
-document.getElementById('commentForm').addEventListener('submit',event=>{
+document.getElementById('commentForm').addEventListener('submit',async event=>{
   event.preventDefault();
   const input=document.getElementById('commentInput');
   const text=input.value.trim();
@@ -81,10 +86,13 @@ document.getElementById('commentForm').addEventListener('submit',event=>{
     return;
   }
   input.setCustomValidity('');
-  const name=JSON.parse(localStorage.getItem('devmatch-profile-client')||'{}').displayName||'Client';
-  const initials=name.trim().split(/\s+/).filter(Boolean).slice(0,2).map(part=>part[0]).join('').toUpperCase()||'CL';
-  comments.unshift({name,initials,text});
-  localStorage.setItem(`devmatch-project-comments-${activeProject.id}`,JSON.stringify(comments));
+  try{
+    comments.push(await window.devMatchBackend.addProjectComment(activeProject.id,text));
+  }catch(error){
+    console.error('Unable to save the project comment to Supabase.',error);
+    window.alert('Unable to post your comment. Please log in and try again.');
+    return;
+  }
   input.value='';
   renderComments();
 });

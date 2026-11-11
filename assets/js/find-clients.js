@@ -358,6 +358,20 @@
   const dialogCloseBtn = document.getElementById('dialogCloseBtn');
   const toastEl = document.getElementById('fcToast');
   const favoriteCountEl = document.getElementById('favoriteCount');
+  const favoriteStateReady = window.devMatchBackend.ready.then(user => user
+    ? window.devMatchBackend.loadFavorites()
+    : null
+  ).then(records => {
+    if (!records) return false;
+    favoriteIds = records.filter(item => item.type === 'client').map(item => item.id);
+    localStorage.setItem(FAVORITES_KEY, JSON.stringify(favoriteIds));
+    renderClients();
+    return true;
+  }).catch(error => {
+    console.error('Unable to load client favorites from Supabase.', error);
+    window.alert('Unable to load favorites. Check your connection and try again.');
+    return null;
+  });
 
   // Helpers
   function getSavedFavorites() {
@@ -795,17 +809,28 @@
 
     // Delegate Card Actions (Favorite, View Requests)
     if (clientsGrid) {
-      clientsGrid.addEventListener('click', e => {
+      clientsGrid.addEventListener('click', async e => {
         // Favorite button
         const favBtn = e.target.closest('.btn-card-favorite');
         if (favBtn) {
+          const authenticated = await favoriteStateReady;
+          if (authenticated === null) return;
           const id = favBtn.dataset.favoriteId;
-          const idx = favoriteIds.indexOf(id);
-          if (idx > -1) {
-            favoriteIds.splice(idx, 1);
+          const saved = favoriteIds.includes(id);
+          if (authenticated) {
+            try {
+              await window.devMatchBackend.setFavorite('client', id, !saved);
+            } catch (error) {
+              console.error('Unable to update client favorite in Supabase.', error);
+              window.alert('Unable to save this favorite. Please try again.');
+              return;
+            }
+          }
+          if (saved) {
+            favoriteIds = favoriteIds.filter(item => item !== id);
             showToast('Dihapus dari Favorites');
           } else {
-            favoriteIds.push(id);
+            favoriteIds = [...favoriteIds, id];
             showToast('Ditambahkan ke Favorites');
           }
           saveFavorites(favoriteIds);

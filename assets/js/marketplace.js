@@ -20,6 +20,20 @@
   const loadMoreButton = document.getElementById('loadMore');
   const remainingCount = document.getElementById('remainingCount');
   let favoriteIds = readFavorites();
+  const favoriteStateReady = window.devMatchBackend.ready.then(user => user
+    ? window.devMatchBackend.loadFavorites()
+    : null
+  ).then(records => {
+    if (!records) return false;
+    favoriteIds = records.filter(item => item.type === 'project').map(item => item.id);
+    localStorage.setItem(favoritesKey, JSON.stringify(favoriteIds));
+    render();
+    return true;
+  }).catch(error => {
+    console.error('Unable to load project favorites from Supabase.', error);
+    window.alert('Unable to load favorites. Check your connection and try again.');
+    return null;
+  });
   let activeCategory = 'all';
   let query = '';
   let view = 'grid';
@@ -370,6 +384,18 @@
     }
   }
 
+  window.devMatchBackend.ready.then(user => user
+    ? window.devMatchBackend.loadNotificationReads()
+    : null
+  ).then(readIds => {
+    if (!readIds) return;
+    localStorage.setItem('devmatch-client-notifications-read', JSON.stringify(readIds));
+    updateNotificationCount();
+  }).catch(error => {
+    console.error('Unable to load notification status from Supabase.', error);
+    window.alert('Unable to load notification status. Check your connection and try again.');
+  });
+
   function updateFavoriteCount() {
     if (window.DEVMATCH_NAV_BADGES) {
       window.DEVMATCH_NAV_BADGES.updateFavorites();
@@ -495,11 +521,23 @@
     visibleCount = 3;
     render();
   });
-  grid.addEventListener('click', event => {
+  grid.addEventListener('click', async event => {
     const favoriteButton = event.target.closest('[data-favorite]');
     if (favoriteButton) {
+      const authenticated = await favoriteStateReady;
+      if (authenticated === null) return;
       const id = favoriteButton.dataset.favorite;
-      favoriteIds = favoriteIds.includes(id) ? favoriteIds.filter(value => value !== id) : [...favoriteIds, id];
+      const saved = favoriteIds.includes(id);
+      if (authenticated) {
+        try {
+          await window.devMatchBackend.setFavorite('project', id, !saved);
+        } catch (error) {
+          console.error('Unable to update project favorite in Supabase.', error);
+          window.alert('Unable to save this favorite. Please try again.');
+          return;
+        }
+      }
+      favoriteIds = saved ? favoriteIds.filter(value => value !== id) : [...favoriteIds, id];
       saveFavorites();
       render();
       return;

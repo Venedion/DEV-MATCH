@@ -29,6 +29,25 @@ already applied to the hosted project. Do not reapply them there. On a fresh
 project, run those files in that order. The email-onboarding guard replaces the
 experimental phone-required guard without marking a phone as verified.
 
+The user favorites and notification state migration
+(`migrations/202611110001_user_preferences_and_favorites.sql`) must also be
+applied to the hosted project before deploying the matching frontend changes.
+On a fresh project, run it after the three account/profile SQL files. It creates
+RLS-protected favorites and notification-read tables; notification preferences
+are stored in `profiles.profile_data`. On the first authenticated load, legacy
+favorites and read-state values are imported once for that account if its new
+database table is empty; browser storage then serves only as a local cache.
+
+The projects/comments migration
+(`migrations/202611110002_projects_and_comments.sql`) is required for the
+client request composer, developer portfolio manager, and shared project
+comments. Apply it after the favorites/notification migration. It creates one
+owner-scoped projects table for portfolio items and client requests plus
+publicly readable comments with authenticated, profile-derived author names.
+On the first authenticated load, a user's own legacy requests and portfolio
+items are imported once only when that account has no matching rows. Legacy
+comments are not imported because their original authors cannot be verified.
+
 Local callback origin is http://localhost:3000. Set Site URL and allowed redirect
 URLs for the real deployment, including /devmatch-reset-password.html. Supabase
 may fall back to Site URL, so index.html waits for Auth before routing callbacks.

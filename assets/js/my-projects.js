@@ -27,7 +27,7 @@ const seedProjects=[
   {id:'sample-catalog',title:'Product Catalog App',type:'Android / iOS',category:'E-Commerce',price:'Rp 6.500.000',priceType:'Fixed price',status:'draft',views:null,favorites:null,comments:null,art:'loyalty',updated:2},
   {id:'sample-invoice',title:'Invoice Management Tool',type:'Web App',category:'Business',price:'Rp 3.800.000',priceType:'Starting from',status:'published',views:215,favorites:12,comments:2,art:'analytics',updated:1}
 ];
-const savedProjects=JSON.parse(localStorage.getItem(storageKey)||'[]');
+let savedProjects=JSON.parse(localStorage.getItem(storageKey)||'[]');
 let migratedSavedProjects=false;
 savedProjects.forEach((project,index)=>{
   if(!project.id){
@@ -42,6 +42,24 @@ let projects=[
   ...seedProjects.filter(project=>!removed.has(project.id)).map(project=>({...project,...overrides[project.id]})),
   ...savedProjects.map((project,index)=>({...project,id:project.id||`saved-${index}`,category:project.category||project.type,priceType:project.priceType||'Starting from',status:project.status||'published',views:Number(project.views)||0,favorites:Number(project.favorites)||0,comments:Number(project.comments)||0,art:project.art||'dashboard',updated:project.updated||0}))
 ];
+const ownedProjectsReady=window.devMatchBackend.ready.then(user=>user
+  ?window.devMatchBackend.loadOwnedProjects('portfolio',savedProjects)
+  :null
+).then(records=>{
+  if(!records)return false;
+  savedProjects=records;
+  localStorage.setItem(storageKey,JSON.stringify(savedProjects));
+  projects=[
+    ...seedProjects.filter(project=>!removed.has(project.id)).map(project=>({...project,...overrides[project.id]})),
+    ...savedProjects.map(project=>({...project,category:project.category||project.type,priceType:project.priceType||'Starting from',status:project.status||'published',views:Number(project.views)||0,favorites:Number(project.favorites)||0,comments:Number(project.comments)||0,art:project.art||'dashboard',updated:project.updated||0}))
+  ];
+  render();
+  return true;
+}).catch(error=>{
+  console.error('Unable to load your portfolio projects from Supabase.',error);
+  document.getElementById('projectMessage').textContent='Unable to load your projects. Check your connection and try again.';
+  return false;
+});
 const rows=document.getElementById('managedProjectRows');
 const search=document.getElementById('projectSearch');
 const headerSearch=document.getElementById('headerSearch');
@@ -650,6 +668,10 @@ function addMedia(files){
   });
 }
 async function saveProject(status){
+  if(!await ownedProjectsReady){
+    document.getElementById('projectMessage').textContent='Your account projects are not ready to save. Reload the page and try again.';
+    return;
+  }
   const title=form.elements.title.value.trim();
   const description=form.elements.description.value.trim();
   const priceType=form.elements.priceType.value;
@@ -705,15 +727,35 @@ async function saveProject(status){
   if(editingId){
     const existing=projects.find(item=>item.id===editingId);
     if(existing){
-      Object.assign(existing,projectData);
-      if(editingId.startsWith('sample-'))persistSeedChange(existing);
-      else{
+      if(editingId.startsWith('sample-')){
+        Object.assign(existing,projectData);
+        persistSeedChange(existing);
+      }else{
         const savedIndex=savedProjects.findIndex(item=>item.id===editingId);
-        if(savedIndex>=0){savedProjects[savedIndex]={...savedProjects[savedIndex],...projectData};storeSavedProjects()}
+        if(savedIndex>=0){
+          const updatedProject={...savedProjects[savedIndex],...projectData,id:editingId};
+          try{
+            await window.devMatchBackend.saveOwnedProject('portfolio',updatedProject);
+          }catch(error){
+            console.error('Unable to save your portfolio project to Supabase.',error);
+            projectMessage.textContent='Unable to save this project. Check your connection and try again.';
+            return;
+          }
+          savedProjects[savedIndex]=updatedProject;
+          Object.assign(existing,projectData);
+          storeSavedProjects();
+        }
       }
     }
   }else{
-    const newProject={...projectData,id:`project-${Date.now()}`,views:0,favorites:0,comments:0,art:'dashboard'};
+    const newProject={...projectData,views:0,favorites:0,comments:0,art:'dashboard'};
+    try{
+      newProject.id=await window.devMatchBackend.saveOwnedProject('portfolio',newProject);
+    }catch(error){
+      console.error('Unable to create your portfolio project in Supabase.',error);
+      projectMessage.textContent='Unable to save this project. Check your connection and try again.';
+      return;
+    }
     savedProjects.unshift(newProject);
     projects.push(newProject);
     storeSavedProjects();
@@ -792,7 +834,7 @@ document.querySelector('[data-status="all"]').parentElement.addEventListener('cl
   updateProjectTabIndicator();
   render();
 });
-rows.addEventListener('click',event=>{
+rows.addEventListener('click',async event=>{
   const button=event.target.closest('[data-action]');
   if(!button)return;
   const project=projects.find(item=>item.id===button.dataset.id);
@@ -805,6 +847,14 @@ rows.addEventListener('click',event=>{
       removed.add(project.id);
       localStorage.setItem(removedKey,JSON.stringify([...removed]));
     }else{
+      if(!await ownedProjectsReady)return;
+      try{
+        await window.devMatchBackend.deleteOwnedProject('portfolio',project.id);
+      }catch(error){
+        console.error('Unable to delete your portfolio project from Supabase.',error);
+        window.alert('Unable to delete this project. Check your connection and try again.');
+        return;
+      }
       const index=savedProjects.findIndex(item=>item.id===project.id);
       if(index>=0){savedProjects.splice(index,1);storeSavedProjects()}
     }

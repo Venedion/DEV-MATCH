@@ -11,6 +11,19 @@ document.querySelectorAll('.client-notification-count').forEach(count=>{
 });
 const notificationDot=document.querySelector('.client-icon-button i');
 if(notificationDot)notificationDot.hidden=unreadNotificationCount===0;
+window.devMatchBackend.ready.then(user=>user?window.devMatchBackend.loadNotificationReads():null).then(readIds=>{
+  if(!readIds)return;
+  localStorage.setItem('devmatch-client-notifications-read',JSON.stringify(readIds));
+  const unreadCount=['jessica-comment','rizky-message'].filter(id=>!readIds.includes(id)).length;
+  document.querySelectorAll('.client-notification-count').forEach(count=>{
+    count.textContent=String(unreadCount);
+    count.hidden=unreadCount===0;
+  });
+  if(notificationDot)notificationDot.hidden=unreadCount===0;
+}).catch(error=>{
+  console.error('Unable to load notification status from Supabase.',error);
+  window.alert('Unable to load notification status. Check your connection and try again.');
+});
 const hour=new Date().getHours();
 document.getElementById('greeting').textContent=(hour<12?'Good morning, ':hour<18?'Good afternoon, ':'Good evening, ')+clientNameParts[0];
 
@@ -19,7 +32,38 @@ const favoritesKey='devmatch-client-project-favorites';
 if(localStorage.getItem(favoritesKey)===null){const legacy=localStorage.getItem('devmatch-client-favorites');if(legacy!==null)localStorage.setItem(favoritesKey,legacy);}
 const requestsKey='devmatch-client-requests';
 let favorites=JSON.parse(localStorage.getItem(favoritesKey)||'[]');
+const favoriteStateReady=window.devMatchBackend.ready.then(user=>user
+  ?window.devMatchBackend.loadFavorites()
+  :null
+).then(records=>{
+  if(!records)return false;
+  favorites=records.filter(item=>item.type==='project').map(item=>item.id);
+  const developerIds=records.filter(item=>item.type==='developer').map(item=>item.id);
+  localStorage.setItem(favoritesKey,JSON.stringify(favorites));
+  localStorage.setItem('devmatch-client-dev-favorites',JSON.stringify(developerIds));
+  window.DEVMATCH_NAV_BADGES?.updateFavorites();
+  renderProjects();
+  return true;
+}).catch(error=>{
+  console.error('Unable to load project favorites from Supabase.',error);
+  window.alert('Unable to load favorites. Check your connection and try again.');
+  return false;
+});
 let requests=JSON.parse(localStorage.getItem(requestsKey)||'[]');
+const requestsReady=window.devMatchBackend.ready.then(user=>user
+  ?window.devMatchBackend.loadOwnedProjects('request',requests)
+  :null
+).then(records=>{
+  if(!records)return false;
+  requests=records;
+  localStorage.setItem(requestsKey,JSON.stringify(requests));
+  renderRequests();
+  return true;
+}).catch(error=>{
+  console.error('Unable to load your project requests from Supabase.',error);
+  document.getElementById('requestsMessage').textContent='Unable to load your requests. Check your connection and try again.';
+  return false;
+});
 let activeCategory='All';
 let activeType='All';
 let activePrice='All';
@@ -202,7 +246,7 @@ function renderRequests(){
   }).join('');
 }
 
-function handleProjectGridClick(event){
+async function handleProjectGridClick(event){
   const openButton=event.target.closest('[data-project-open]');
   if(openButton){
     window.openProjectDetails(openButton.dataset.projectOpen);
@@ -210,8 +254,17 @@ function handleProjectGridClick(event){
   }
   const button=event.target.closest('[data-favorite]');
   if(button){
+    if(!await favoriteStateReady)return;
     const id=button.dataset.favorite;
-    favorites=favorites.includes(id)?favorites.filter(item=>item!==id):[...favorites,id];
+    const saved=favorites.includes(id);
+    try{
+      await window.devMatchBackend.setFavorite('project',id,!saved);
+    }catch(error){
+      console.error('Unable to update project favorite in Supabase.',error);
+      window.alert('Unable to save this favorite. Please try again.');
+      return;
+    }
+    favorites=saved?favorites.filter(item=>item!==id):[...favorites,id];
     localStorage.setItem(favoritesKey,JSON.stringify(favorites));
     renderProjects();
     return;
@@ -792,8 +845,16 @@ function showRequestDetails(request){
   document.getElementById('requestViewStatus').textContent=`${Number(request.views)||0} views · ${Number(request.saves??request.favorites)||0} saved · ${Number(request.commentCount??request.comments)||0} comments`;
   dialog.showModal();
 }
-function showRequestDetailPage(request){
+async function showRequestDetailPage(request){
   activeRequestDetailId=request.id;
+  let comments=[];
+  try{
+    comments=await window.devMatchBackend.loadProjectComments(request.id);
+  }catch(error){
+    console.error('Unable to load project request comments from Supabase.',error);
+    document.getElementById('requestsMessage').textContent='Unable to load request comments. Check your connection and try again.';
+  }
+  if(activeRequestDetailId!==request.id)return;
   const name=clientProfile.displayName||'Client';
   const initials=name.trim().split(/\s+/).filter(Boolean).slice(0,2).map(part=>part[0]).join('').toUpperCase()||'CL';
   const location=[clientProfile.city,clientProfile.country].filter(Boolean).join(', ')||'Indonesia';
@@ -803,7 +864,7 @@ function showRequestDetailPage(request){
   const specialties=(request.specialties||[]).map(specialty=>specialty==='Other'&&request.specialtyOther?`Other · ${request.specialtyOther}`:specialty);
   const views=Number(request.views)||0;
   const saves=Number(request.saves??request.favorites)||0;
-  const commentCount=Number(request.commentCount??(Array.isArray(request.comments)?request.comments.length:request.comments))||0;
+  const commentCount=comments.length;
   document.getElementById('requestDetailBreadcrumbTitle').textContent=request.title||'Project request';
   document.getElementById('requestDetailOwner').textContent=name;
   document.getElementById('requestDetailLocation').textContent=location;
@@ -864,16 +925,15 @@ function showRequestDetailPage(request){
     ?`Created ${new Date(created).toLocaleDateString('id-ID',{day:'numeric',month:'short',year:'numeric'})}`
     :'Date not available';
   document.getElementById('requestDetailCommentCount').textContent=String(commentCount);
-  const comments=Array.isArray(request.comments)?request.comments:[];
   const commentsList=document.getElementById('requestDetailCommentsList');
   commentsList.replaceChildren();
   comments.forEach(comment=>{
     const item=document.createElement('article');
     item.className='request-detail-comment';
     const author=document.createElement('strong');
-    author.textContent=comment.name||comment.author||'Developer';
+    author.textContent=comment.name||'Developer';
     const message=document.createElement('p');
-    message.textContent=comment.text||comment.message||'';
+    message.textContent=comment.text||'';
     item.append(author,message);
     commentsList.append(item);
   });
@@ -884,8 +944,7 @@ function showRequestDetailPage(request){
     note.textContent=`${commentCount} comment${commentCount===1?'':'s'} recorded. Full discussion is not available in this browser yet.`;
     commentsList.append(note);
   }
-  const commenters=new Map();
-  (request.activity||[]).filter(entry=>/comment/i.test(entry.action||'')&&entry.name).forEach(entry=>commenters.set(entry.name,entry));
+  const commenters=new Map(comments.map(comment=>[comment.name,comment]));
   const commentersList=document.getElementById('requestDetailCommentersList');
   commentersList.replaceChildren();
   commenters.forEach(entry=>{
@@ -893,7 +952,7 @@ function showRequestDetailPage(request){
     person.className='request-detail-commenter';
     const avatar=document.createElement('span');
     avatar.className='request-detail-avatar';
-    avatar.textContent=String(entry.initials||entry.name).trim().split(/\s+/).slice(0,2).map(part=>part[0]).join('').toUpperCase();
+    avatar.textContent=entry.initials||String(entry.name).trim().split(/\s+/).slice(0,2).map(part=>part[0]).join('').toUpperCase();
     const personName=document.createElement('strong');
     personName.textContent=entry.name;
     person.append(avatar,personName);
@@ -909,8 +968,19 @@ function showRequestDetailPage(request){
   showClientView('request-detail');
   window.scrollTo({top:0,behavior:'smooth'});
 }
-function updateRequestStatus(requestId,status){
-  const updatedRequests=requests.map(request=>request.id===requestId?{...request,status,updated:Date.now()}:request);
+async function updateRequestStatus(requestId,status){
+  if(!await requestsReady)return;
+  const updatedRequest=requests.find(request=>request.id===requestId);
+  if(!updatedRequest)return;
+  const changedRequest={...updatedRequest,status,updated:Date.now()};
+  try{
+    await window.devMatchBackend.saveOwnedProject('request',changedRequest);
+  }catch(error){
+    console.error('Unable to update the project request in Supabase.',error);
+    document.getElementById('requestsMessage').textContent='Could not update this request. Check your connection and try again.';
+    return;
+  }
+  const updatedRequests=requests.map(request=>request.id===requestId?changedRequest:request);
   try{
     localStorage.setItem(requestsKey,JSON.stringify(updatedRequests));
   }catch(error){
@@ -927,8 +997,16 @@ function updateRequestStatus(requestId,status){
   }
 }
 async function deleteRequest(requestId){
+  if(!await requestsReady)return;
   const request=requests.find(item=>item.id===requestId);
   if(!request||!window.confirm(`Delete "${request.title||'this request'}"? This cannot be undone.`))return;
+  try{
+    await window.devMatchBackend.deleteOwnedProject('request',requestId);
+  }catch(error){
+    console.error('Unable to delete the project request from Supabase.',error);
+    document.getElementById('requestsMessage').textContent='Could not delete this request. Check your connection and try again.';
+    return;
+  }
   const updatedRequests=requests.filter(item=>item.id!==requestId);
   try{
     localStorage.setItem(requestsKey,JSON.stringify(updatedRequests));
@@ -955,6 +1033,10 @@ async function deleteRequest(requestId){
   }
 }
 async function saveRequest(status){
+  if(!await requestsReady){
+    document.getElementById('requestComposerMessage').textContent='Your account requests are not ready to save. Reload the page and try again.';
+    return;
+  }
   const data=requestFormData();
   const message=document.getElementById('requestComposerMessage');
   message.textContent='';
@@ -1045,6 +1127,13 @@ async function saveRequest(status){
   }
   const {referenceFiles,...requestData}=data;
   const request={...requestData,attachments,id,status,updated:Date.now()};
+  try{
+    request.id=await window.devMatchBackend.saveOwnedProject('request',request);
+  }catch(error){
+    console.error('Unable to save the project request to Supabase.',error);
+    message.textContent='Could not save this request. Check your connection and try again.';
+    return;
+  }
   const updatedRequests=[...requests];
   if(existingIndex>=0)updatedRequests[existingIndex]=request;
   else updatedRequests.unshift(request);

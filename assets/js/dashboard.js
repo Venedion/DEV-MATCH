@@ -11,6 +11,28 @@ const unreadNotificationCount=['jessica-comment','rizky-message'].filter(id=>!no
 document.getElementById('developerNotificationCount').textContent=String(unreadNotificationCount);
 document.getElementById('developerNotificationCount').hidden=unreadNotificationCount===0;
 document.querySelector('.notification-button i').hidden=unreadNotificationCount===0;
+window.devMatchBackend.ready.then(user=>user?window.devMatchBackend.loadNotificationReads():null).then(readIds=>{
+  if(!readIds)return;
+  localStorage.setItem('devmatch-dev-notifications-read',JSON.stringify(readIds));
+  const unreadCount=['jessica-comment','rizky-message'].filter(id=>!readIds.includes(id)).length;
+  document.getElementById('developerNotificationCount').textContent=String(unreadCount);
+  document.getElementById('developerNotificationCount').hidden=unreadCount===0;
+  document.querySelector('.notification-button i').hidden=unreadCount===0;
+}).catch(error=>{
+  console.error('Unable to load notification status from Supabase.',error);
+  window.alert('Unable to load notification status. Check your connection and try again.');
+});
+window.devMatchBackend.ready.then(user=>user?window.devMatchBackend.loadFavorites():null).then(records=>{
+  if(!records)return;
+  const projectIds=records.filter(item=>item.type==='project').map(item=>item.id);
+  const clientIds=records.filter(item=>item.type==='client').map(item=>item.id);
+  localStorage.setItem('devmatch-developer-project-favorites',JSON.stringify(projectIds));
+  localStorage.setItem('devmatch-favorite-clients',JSON.stringify(clientIds));
+  window.DEVMATCH_NAV_BADGES?.updateFavorites();
+}).catch(error=>{
+  console.error('Unable to load favorites from Supabase.',error);
+  window.alert('Unable to load favorites. Check your connection and try again.');
+});
 
 try {
   const chatConvs = JSON.parse(localStorage.getItem('devmatch_chat_conversations_v2') || '[]');

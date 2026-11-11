@@ -77,7 +77,8 @@ const favoriteKey='devmatch-client-dev-favorites';
 if(localStorage.getItem('devmatch-client-project-favorites')===null){const legacy=localStorage.getItem('devmatch-client-favorites');if(legacy!==null)localStorage.setItem('devmatch-client-project-favorites',legacy);}
 const favoriteDeveloper=(window.DEVMATCH_SAMPLE_DEVELOPERS||[]).find(developer=>developer.handle===project.handle);
 const favoriteId=favoriteDeveloper?.id||project.handle;
-const favorites=JSON.parse(localStorage.getItem(favoriteKey)||'[]');
+let favorites=JSON.parse(localStorage.getItem(favoriteKey)||'[]');
+let favoriteProjectIds=JSON.parse(localStorage.getItem('devmatch-client-project-favorites')||'[]');
 
 document.title=`${profileName} — DEV-MATCH`;
 document.getElementById('breadcrumbName').textContent=profileName;
@@ -112,13 +113,40 @@ function renderFavoriteButton(saved){
   favoriteButton.setAttribute('aria-pressed',String(saved));
   favoriteButton.innerHTML=`<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg><span>${saved?'Favorited':'Favorite'}</span>`;
 }
+const favoriteStateReady=window.devMatchBackend.ready.then(user=>user
+  ?window.devMatchBackend.loadFavorites()
+  :null
+).then(records=>{
+  if(!records)return false;
+  favorites=records.filter(item=>item.type==='developer').map(item=>item.id);
+  favoriteProjectIds=records.filter(item=>item.type==='project').map(item=>item.id);
+  localStorage.setItem(favoriteKey,JSON.stringify(favorites));
+  localStorage.setItem('devmatch-client-project-favorites',JSON.stringify(favoriteProjectIds));
+  renderFavoriteButton(favorites.includes(favoriteId));
+  renderProjects();
+  return true;
+}).catch(error=>{
+  console.error('Unable to load favorites from Supabase.',error);
+  window.alert('Unable to load favorites. Check your connection and try again.');
+  return null;
+});
 renderFavoriteButton(favorites.includes(favoriteId));
-favoriteButton.addEventListener('click',()=>{
-  const current=JSON.parse(localStorage.getItem(favoriteKey)||'[]');
-  const alreadyFavorited=current.includes(favoriteId);
-  const updated=alreadyFavorited?current.filter(id=>id!==favoriteId):[...current,favoriteId];
-  localStorage.setItem(favoriteKey,JSON.stringify(updated));
-  renderFavoriteButton(updated.includes(favoriteId));
+favoriteButton.addEventListener('click',async()=>{
+  const authenticated=await favoriteStateReady;
+  if(authenticated===null)return;
+  const alreadyFavorited=favorites.includes(favoriteId);
+  if(authenticated){
+    try{
+      await window.devMatchBackend.setFavorite('developer',favoriteId,!alreadyFavorited);
+    }catch(error){
+      console.error('Unable to update developer favorite in Supabase.',error);
+      window.alert('Unable to save this favorite. Please try again.');
+      return;
+    }
+  }
+  favorites=alreadyFavorited?favorites.filter(id=>id!==favoriteId):[...favorites,favoriteId];
+  localStorage.setItem(favoriteKey,JSON.stringify(favorites));
+  renderFavoriteButton(!alreadyFavorited);
   const favoritesCount=Number(document.getElementById('statDeveloperFavorites').textContent)+(alreadyFavorited?-1:1);
   document.getElementById('statDeveloperFavorites').textContent=String(favoritesCount);
 });
@@ -146,28 +174,41 @@ function viewCount(value){
   return value.toLowerCase().includes('k')?count*1000:count;
 }
 function renderProjects(){
-  const savedProjects=JSON.parse(localStorage.getItem('devmatch-client-project-favorites')||'[]');
   const items=portfolio.filter(item=>(activeFilter==='All'||item.type===activeFilter)&&(!activeQuery||`${item.title} ${item.description} ${item.type}`.toLowerCase().includes(activeQuery)));
   const sort=sortSelect.value;
   items.sort((a,b)=>sort==='title'?a.title.localeCompare(b.title):sort==='newest'?portfolio.indexOf(a)-portfolio.indexOf(b):viewCount(b.views)-viewCount(a.views));
   grid.innerHTML=items.map(item=>{
     const art=item.art==='dashboard-art'?'dashboard':item.art==='store-art'?'store':'website';
     return `<article class="showcase-project">
-      <div class="project-art art-${art}"><div class="project-browser" aria-hidden="true"><div class="browser-bar"><i></i><i></i><i></i></div><div class="browser-content"><span class="art-accent"></span></div></div><button type="button" class="public-project-favorite" data-project-favorite="${escapeHtml(item.id)}" aria-label="${savedProjects.includes(item.id)?'Remove':'Add'} ${escapeHtml(item.title)} ${savedProjects.includes(item.id)?'from':'to'} favorites" aria-pressed="${savedProjects.includes(item.id)}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></button></div>
+      <div class="project-art art-${art}"><div class="project-browser" aria-hidden="true"><div class="browser-bar"><i></i><i></i><i></i></div><div class="browser-content"><span class="art-accent"></span></div></div><button type="button" class="public-project-favorite" data-project-favorite="${escapeHtml(item.id)}" aria-label="${favoriteProjectIds.includes(item.id)?'Remove':'Add'} ${escapeHtml(item.title)} ${favoriteProjectIds.includes(item.id)?'from':'to'} favorites" aria-pressed="${favoriteProjectIds.includes(item.id)}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0l-1.06 1.06-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></button></div>
       <div class="project-copy"><span class="project-category">${escapeHtml(item.category)}</span><h3>${escapeHtml(item.title)}</h3><p>${escapeHtml(item.description)}</p><footer class="project-footer"><strong>${escapeHtml(item.price)}</strong><span class="project-metric">◉ <b>${escapeHtml(item.views)}</b> &nbsp;♡ <b>${escapeHtml(item.favorites)}</b></span></footer></div>
     </article>`;
   }).join('');
-  document.querySelectorAll('[data-project-favorite]').forEach(button=>button.addEventListener('click',()=>{
+  document.querySelectorAll('[data-project-favorite]').forEach(button=>button.addEventListener('click',async()=>{
+    const authenticated=await favoriteStateReady;
+    if(authenticated===null)return;
     const id=button.dataset.projectFavorite;
-    const saved=JSON.parse(localStorage.getItem('devmatch-client-project-favorites')||'[]');
-    const updated=saved.includes(id)?saved.filter(value=>value!==id):[...saved,id];
-    localStorage.setItem('devmatch-client-project-favorites',JSON.stringify(updated));
+    const saved=favoriteProjectIds.includes(id);
+    if(authenticated){
+      try{
+        await window.devMatchBackend.setFavorite('project',id,!saved);
+      }catch(error){
+        console.error('Unable to update project favorite in Supabase.',error);
+        window.alert('Unable to save this favorite. Please try again.');
+        return;
+      }
+    }
+    favoriteProjectIds=saved?favoriteProjectIds.filter(value=>value!==id):[...favoriteProjectIds,id];
+    localStorage.setItem('devmatch-client-project-favorites',JSON.stringify(favoriteProjectIds));
     renderProjects();
   }));
   empty.hidden=items.length>0;
 }
-function renderComments(){
-  const comments=developerProjects.flatMap(item=>JSON.parse(localStorage.getItem(`devmatch-project-comments-${item.id}`)||'[]').map(comment=>({...comment,project:item.title})));
+async function renderComments(){
+  const projectComments=await Promise.all(developerProjects.map(async item=>
+    (await window.devMatchBackend.loadProjectComments(item.id)).map(comment=>({...comment,project:item.title}))
+  ));
+  const comments=projectComments.flat();
   commentsPanel.innerHTML=comments.length?comments.map(comment=>`<article class="review-item"><span class="review-avatar">${escapeHtml(comment.initials||'CL')}</span><div class="review-copy"><h3>${escapeHtml(comment.name)}</h3><small>on ${escapeHtml(comment.project)}</small><p>${escapeHtml(comment.text)}</p></div></article>`).join(''):'<p class="empty-state">No comments yet. Comments from project discussions will appear here.</p>';
 }
 filtersRoot.addEventListener('click',event=>{
@@ -193,7 +234,10 @@ document.querySelector('.portfolio-tabs').addEventListener('click',event=>{
   sortSelect.parentElement.hidden=!showProjects;
   commentsPanel.hidden=showProjects;
   empty.hidden=showProjects||portfolio.length>0;
-  if(!showProjects)renderComments();
+  if(!showProjects)renderComments().catch(error=>{
+    console.error('Unable to load developer portfolio comments from Supabase.',error);
+    window.alert('Unable to load comments. Check your connection and try again.');
+  });
 });
 document.getElementById('profileSearch').addEventListener('input',event=>{
   activeQuery=event.target.value.trim().toLowerCase();

@@ -16,9 +16,32 @@ const desktopMarkAllLayout=window.matchMedia('(min-width: 601px)');
 const notificationRows=[...document.querySelectorAll('[data-notification]')];
 const readNotifications=new Set(JSON.parse(localStorage.getItem(readStorageKey)||'[]'));
 const preferenceInputs=[...document.querySelectorAll('[data-preference]')];
-const savedPreferences=JSON.parse(localStorage.getItem(preferencesStorageKey)||'{}');
+let savedPreferences=JSON.parse(localStorage.getItem(preferencesStorageKey)||'{}');
 let activeFilter='all';
 let activeQuery='';
+const backend=window.devMatchBackend;
+const notificationStateReady=backend.ready.then(async user=>{
+  if(!user)return false;
+  const [readIds,preferences]=await Promise.all([
+    backend.loadNotificationReads(),
+    backend.loadNotificationPreferences()
+  ]);
+  readNotifications.clear();
+  readIds.forEach(id=>readNotifications.add(id));
+  localStorage.setItem(readStorageKey,JSON.stringify(readIds));
+  savedPreferences=preferences;
+  preferenceInputs.forEach(input=>{
+    if(Object.hasOwn(savedPreferences,input.dataset.preference)){
+      input.checked=Boolean(savedPreferences[input.dataset.preference]);
+    }
+  });
+  updateNotifications();
+  return true;
+}).catch(error=>{
+  console.error('Unable to load notification settings from Supabase.',error);
+  window.alert('Unable to load notification settings. Check your connection and try again.');
+  return false;
+});
 
 function positionMarkAllReadButton(){
   if(desktopMarkAllLayout.matches)notificationFilterActions.append(markAllReadButton);
@@ -65,9 +88,11 @@ function saveReadNotifications(){
   localStorage.setItem(readStorageKey,JSON.stringify([...readNotifications]));
 }
 
-function markRead(notificationId){
+async function markRead(notificationId){
+  if(!await notificationStateReady)throw new Error('Notification settings are not ready.');
   const row=notificationRows.find(item=>item.dataset.notification===notificationId);
   if(!row)return;
+  await backend.markNotificationsRead([notificationId]);
   row.classList.remove('is-unread');
   readNotifications.add(notificationId);
   saveReadNotifications();
@@ -86,7 +111,16 @@ document.querySelectorAll('.notification-filter').forEach(button=>{
   });
 });
 
-document.getElementById('markAllRead').addEventListener('click',()=>{
+document.getElementById('markAllRead').addEventListener('click',async()=>{
+  if(!await notificationStateReady)return;
+  const notificationIds=notificationRows.map(row=>row.dataset.notification);
+  try{
+    await backend.markNotificationsRead(notificationIds);
+  }catch(error){
+    console.error('Unable to mark notifications as read.',error);
+    window.alert('Unable to save notification status. Please try again.');
+    return;
+  }
   notificationRows.forEach(row=>{
     row.classList.remove('is-unread');
     readNotifications.add(row.dataset.notification);
@@ -96,16 +130,32 @@ document.getElementById('markAllRead').addEventListener('click',()=>{
 });
 
 document.querySelectorAll('[data-mark-read]').forEach(link=>{
-  link.addEventListener('click',()=>{
+  link.addEventListener('click',async event=>{
     const notificationId=link.dataset.notificationLink||link.closest('[data-notification]')?.dataset.notification;
-    if(notificationId)markRead(notificationId);
+    if(!notificationId)return;
+    event.preventDefault();
+    try{
+      await markRead(notificationId);
+      window.location.assign(link.href);
+    }catch(error){
+      console.error('Unable to mark notification as read.',error);
+      window.alert('Unable to save notification status. Please try again.');
+    }
   });
 });
 
 preferenceInputs.forEach(input=>{
-  input.addEventListener('change',()=>{
+  input.addEventListener('change',async()=>{
+    if(!await notificationStateReady)return;
     const preferences=Object.fromEntries(preferenceInputs.map(preference=>[preference.dataset.preference,preference.checked]));
-    localStorage.setItem(preferencesStorageKey,JSON.stringify(preferences));
+    try{
+      await backend.saveNotificationPreferences(preferences);
+      savedPreferences=preferences;
+    }catch(error){
+      console.error('Unable to save notification preferences.',error);
+      input.checked=!input.checked;
+      window.alert('Unable to save notification preferences. Please try again.');
+    }
   });
 });
 

@@ -489,7 +489,7 @@
       }
     });
 
-    document.getElementById('saveProfileSpecialties').addEventListener('click', () => {
+    document.getElementById('saveProfileSpecialties').addEventListener('click', async () => {
       if (specialtyDraft.some(item => item.toLowerCase() === 'other') && !specialtyOtherDraft.trim()) {
         const otherInput = document.getElementById('settingsSpecialtyOther');
         otherInput.dataset.validationAttempted = 'true';
@@ -503,7 +503,7 @@
         profileData.specialtyOther = specialtyDraft.some(item => item.toLowerCase() === 'other')
           ? specialtyOtherDraft.trim()
           : '';
-        localStorage.setItem(storageKey, JSON.stringify(profileData));
+        await persistProfile(profileData);
         profileSpecialties = [...specialtyDraft];
         profileSpecialtyOther = profileData.specialtyOther;
         setSpecialtiesEditing(false);

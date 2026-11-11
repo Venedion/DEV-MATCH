@@ -6,10 +6,11 @@
   const request=requests.find(item=>item.id===requestId);
   const layout=document.getElementById('requestDetailLayout');
   const notFound=document.getElementById('requestNotFound');
-  const commentsKey=`devmatch-request-comments-${requestId}`;
   const favoritesKey='devmatch-developer-project-favorites';
   const escapeHtml=value=>String(value??'').replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
   let comments=[];
+  let favorites=readJson(favoritesKey,[]);
+  let favoriteStateReady=Promise.resolve(false);
 
   function readJson(key,fallback){
     try{
@@ -76,33 +77,58 @@
     const name=profile.displayName||'Rizky Aditya';
     return name.trim().split(/\s+/).filter(Boolean).slice(0,2).map(part=>part[0]).join('').toUpperCase()||'DV';
   })();
-  const favorites=readJson(favoritesKey,[]);
   const saveButton=document.getElementById('saveRequestButton');
   const updateSaveButton=isSaved=>{
     saveButton.setAttribute('aria-pressed',String(isSaved));
     saveButton.setAttribute('aria-label',isSaved?'Remove saved request':'Save request');
   };
   updateSaveButton(Array.isArray(favorites)&&favorites.includes(request.id));
-  saveButton.addEventListener('click',()=>{
-    const current=readJson(favoritesKey,[]);
-    const saved=Array.isArray(current)?current:[];
-    const isSaved=saved.includes(request.id);
-    const updated=isSaved?saved.filter(id=>id!==request.id):[...saved,request.id];
+  favoriteStateReady=window.devMatchBackend.ready.then(async user=>{
+    if(!user)return false;
+    const records=await window.devMatchBackend.loadFavorites();
+    favorites=records.filter(item=>item.type==='project').map(item=>item.id);
+    localStorage.setItem(favoritesKey,JSON.stringify(favorites));
+    updateSaveButton(favorites.includes(request.id));
+    return true;
+  }).catch(error=>{
+    console.error('Unable to load saved project requests from Supabase.',error);
+    window.alert('Unable to load saved requests. Check your connection and try again.');
+    return null;
+  });
+  saveButton.addEventListener('click',async()=>{
+    const authenticated=await favoriteStateReady;
+    if(authenticated===null)return;
+    const isSaved=favorites.includes(request.id);
+    const updated=isSaved?favorites.filter(id=>id!==request.id):[...favorites,request.id];
+    if(authenticated){
+      try{
+        await window.devMatchBackend.setFavorite('project',request.id,!isSaved);
+      }catch(error){
+        console.error('Unable to update saved project requests in Supabase.',error);
+        window.alert('Unable to save this request. Please try again.');
+        return;
+      }
+    }
     try{
       localStorage.setItem(favoritesKey,JSON.stringify(updated));
+      favorites=updated;
       updateSaveButton(!isSaved);
     }catch(error){
       console.error('Unable to update saved project requests.',error);
     }
   });
-  comments=readJson(commentsKey,[]);
-  if(!Array.isArray(comments))comments=[];
+  try{
+    comments=await window.devMatchBackend.loadProjectComments(request.id);
+  }catch(error){
+    console.error('Unable to load project request comments from Supabase.',error);
+    window.alert('Unable to load project comments. Check your connection and try again.');
+  }
   renderComments();
   renderSimilarRequests();
   layout.hidden=false;
 
   document.getElementById('commentSort').addEventListener('change',renderComments);
-  document.getElementById('commentForm').addEventListener('submit',event=>{
+  document.getElementById('commentForm').addEventListener('submit',async event=>{
     event.preventDefault();
     const input=document.getElementById('commentInput');
     const text=input.value.trim();
@@ -112,15 +138,11 @@
       return;
     }
     input.setCustomValidity('');
-    const profile=readJson('devmatch-profile-dev',{});
-    const name=profile.displayName||'Rizky Aditya';
-    const initials=name.trim().split(/\s+/).filter(Boolean).slice(0,2).map(part=>part[0]).join('').toUpperCase()||'DV';
-    comments.push({name,initials,text,role:'Developer',time:'just now'});
     try{
-      localStorage.setItem(commentsKey,JSON.stringify(comments));
+      comments.push(await window.devMatchBackend.addProjectComment(request.id,text));
     }catch(error){
-      comments.pop();
-      console.error('Unable to save the project request comment.',error);
+      console.error('Unable to save the project request comment to Supabase.',error);
+      window.alert('Unable to post your comment. Please log in and try again.');
       return;
     }
     input.value='';
