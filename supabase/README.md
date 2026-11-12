@@ -48,6 +48,23 @@ On the first authenticated load, a user's own legacy requests and portfolio
 items are imported once only when that account has no matching rows. Legacy
 comments are not imported because their original authors cannot be verified.
 
+The conversations/directory migration
+(`migrations/202611120001_conversations_and_directory.sql`) completes the next
+large-level backend step for chat and discovery. It adds authenticated chat
+conversations and message tables with RLS and a directory view for logged-in
+users. The directory view exposes only an allowlist of public profile fields
+and project summary counts; private profile rows remain owner-readable only.
+Conversation participants cannot directly change or delete a thread, preventing
+one participant from exposing or deleting the other participant's message
+history. The prototype arrays in the browser still need to be replaced with
+Supabase queries before chat and discovery use real data.
+
+Apply `migrations/202611120002_public_project_comments.sql` after the
+conversations/directory migration. It limits new comments to published projects
+and open requests and only exposes comments for those public projects (plus a
+user's own existing comments). Conversation uniqueness is per participant pair
+and project, so the same users can have separate threads for separate projects.
+
 Local callback origin is http://localhost:3000. Set Site URL and allowed redirect
 URLs for the real deployment, including /devmatch-reset-password.html. Supabase
 may fall back to Site URL, so index.html waits for Auth before routing callbacks.

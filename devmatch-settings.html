@@ -16,7 +16,7 @@
   <script src="assets/js/mode-switch-state.js?v=20261030-client-mode-indicator"></script>
   <script src="assets/js/i18n.js?v=20261103-skill-edit-v2"></script>
 <script src="assets/vendor/supabase-2.119.0.js"></script>
-<script src="assets/js/backend.js?v=20261111-user-data"></script>
+<script src="assets/js/backend.js?v=20261112-private-profile-cache"></script>
 </head>
 <body class="page-scroll-shell">
   <!-- Topbar -->
@@ -396,12 +396,12 @@
               <div class="settings-form-grid" style="margin-bottom:20px;">
                 <div class="settings-field">
                   <label class="settings-label" for="settingsHourlyRate">Hourly Rate Default</label>
-                  <input class="settings-input" id="settingsHourlyRate" type="text" placeholder="Rp 150.000 / hour">
+                  <input class="settings-input" id="settingsHourlyRate" type="text" inputmode="numeric" autocomplete="off" placeholder="Rp 150.000 / hour">
                 </div>
 
                 <div class="settings-field">
                   <label class="settings-label" for="settingsMinProject">Minimum Project Budget</label>
-                  <input class="settings-input" id="settingsMinProject" type="text" placeholder="Rp 3.500.000">
+                  <input class="settings-input" id="settingsMinProject" type="text" inputmode="numeric" autocomplete="off" placeholder="Rp 3.500.000">
                 </div>
 
                 <div class="settings-field span-2">
@@ -818,7 +818,7 @@
     <span class="floating-chat-badge">3</span>
   </a>
 
-  <script src="assets/js/settings.js?v=20261111-user-data"></script>
+  <script src="assets/js/settings.js?v=20261112-numeric-rates"></script>
   <script src="assets/js/custom-select.js?v=20261028-custom-dropdowns-v3"></script>
   <script src="assets/js/nav-behavior.js?v=20261031-account-dropdown-ease"></script>
 </body>

@@ -13,6 +13,7 @@
   );
   const page = location.pathname.split('/').pop();
   const protectedPage = /^devmatch-(dashboard|client-dashboard|profile|complete|my-profile|my-projects|settings|favorites|chat|notifications|developer-notifications)\.html$/.test(page);
+  const privateProfileFields = ['bankName', 'accountNumber', 'accountHolder', 'npwp'];
   let activeAccountRole = null;
   if (protectedPage) {
     const style = document.createElement('style');
@@ -28,8 +29,32 @@
     }
     sessionStorage.removeItem('devmatch-profile-draft');
   }
+  function profileDataForCache(profileData) {
+    const cachedData = {...profileData};
+    privateProfileFields.forEach(field => delete cachedData[field]);
+    return cachedData;
+  }
+  function sanitizeStoredProfile(storage, key) {
+    const stored = storage.getItem(key);
+    if (!stored) return;
+    try {
+      const profile = JSON.parse(stored);
+      if (!profile || typeof profile !== 'object' || Array.isArray(profile)) {
+        storage.removeItem(key);
+        return;
+      }
+      if (privateProfileFields.some(field => Object.hasOwn(profile, field))) {
+        storage.setItem(key, JSON.stringify(profileDataForCache(profile)));
+      }
+    } catch {
+      storage.removeItem(key);
+    }
+  }
+  Object.keys(localStorage).filter(key => key.startsWith('devmatch-profile-'))
+    .forEach(key => sanitizeStoredProfile(localStorage, key));
+  sanitizeStoredProfile(sessionStorage, 'devmatch-profile-draft');
   function cache(row, user) {
-    const profile = {...row.profile_data, username: row.username || '', displayName: row.display_name,
+    const profile = {...profileDataForCache(row.profile_data), username: row.username || '', displayName: row.display_name,
       phone: row.phone || '', email: user.email, role: row.account_role, googleConnected: false};
     const key = 'devmatch-profile-' + row.account_role;
     const value = JSON.stringify(profile);
@@ -42,6 +67,14 @@
     const {data, error} = await client.from('profiles').select('*').eq('id', user.id).single();
     if (error) throw error;
     return data;
+  }
+  async function loadPrivateProfileFields() {
+    const user = await currentAccount();
+    const {data, error} = await client.from('profiles').select('profile_data').eq('id', user.id).single();
+    if (error) throw error;
+    return Object.fromEntries(privateProfileFields
+      .filter(field => Object.hasOwn(data.profile_data || {}, field))
+      .map(field => [field, data.profile_data[field]]));
   }
   function destination(row,user) {
     if(!user?.email_confirmed_at)return 'devmatch-verify-email.html';
@@ -422,14 +455,27 @@
     };
   }
 
-  async function saveProfile(value){
+  async function saveProfile(value, {includePrivateFields = false} = {}){
     const user=await currentAccount();
     const {email,phone,username,role,...details}=value;
+    const suppliedPrivateFields = {};
+    privateProfileFields.forEach(field => {
+      if (Object.hasOwn(details, field)) {
+        suppliedPrivateFields[field] = details[field];
+        delete details[field];
+      }
+    });
     const {data: currentProfile, error: profileError} = await client.from('profiles')
       .select('profile_data')
       .eq('id', user.id)
       .single();
     if (profileError) throw profileError;
+    privateProfileFields.forEach(field => {
+      if (Object.hasOwn(currentProfile.profile_data || {}, field)) {
+        details[field] = currentProfile.profile_data[field];
+      }
+    });
+    if (includePrivateFields) Object.assign(details, suppliedPrivateFields);
     if (Object.hasOwn(currentProfile.profile_data, 'notificationPreferences')) {
       details.notificationPreferences = currentProfile.profile_data.notificationPreferences;
     }
@@ -449,8 +495,10 @@
     client,
     ready,
     clearCache,
+    profileDataForCache,
     cache,
     loadProfile,
+    loadPrivateProfileFields,
     destination,
     saveProfile,
     changePassword,

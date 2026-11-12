@@ -15,6 +15,7 @@
   const role = params.get('role') === 'client' ? 'client' : 'dev';
   const isDeveloper = role === 'dev';
   const storageKey = isDeveloper ? 'devmatch-profile-dev' : 'devmatch-profile-client';
+  let privateProfileFieldsLoaded = false;
 
   // Load profile from localStorage
   function getProfile() {
@@ -41,12 +42,8 @@
       availability: 'Open for hiring',
       hourlyRate: 'Rp 150.000',
       minProjectPrice: 'Rp 3.500.000',
-      bankName: 'BCA',
-      accountNumber: '8820192841',
-      accountHolder: 'Rizky Aditya',
       companyName: 'PT Ombak Bistro Mandiri',
       industry: 'Food & Beverage',
-      npwp: '09.254.891.2-121.000'
     };
     let shouldPersistDefaults = false;
     try {
@@ -246,6 +243,15 @@
     }, 3500);
   }
 
+  function priceDigits(value) {
+    return String(value || '').replace(/\D/g, '');
+  }
+
+  function formatRupiah(value) {
+    const digits = priceDigits(value);
+    return digits ? `Rp ${digits.replace(/\B(?=(\d{3})+(?!\d))/g, '.')}` : '';
+  }
+
   // DOM elements
   const navBtns = document.querySelectorAll('.settings-nav-btn');
   const panels = document.querySelectorAll('.settings-panel');
@@ -340,12 +346,12 @@
     renderExperienceEntries();
 
     if (isDeveloper) {
-      setVal('settingsHourlyRate', profileData.hourlyRate || 'Rp 150.000');
-      setVal('settingsMinProject', profileData.minProjectPrice || 'Rp 3.500.000');
+      setVal('settingsHourlyRate', formatRupiah(profileData.hourlyRate || '150000'));
+      setVal('settingsMinProject', formatRupiah(profileData.minProjectPrice || '3500000'));
       setVal('settingsAvailability', profileData.availability || 'Open for hiring');
       setVal('settingsBankName', profileData.bankName || 'BCA');
-      setVal('settingsBankAccount', profileData.accountNumber || '8820192841');
-      setVal('settingsAccountHolder', profileData.accountHolder || profileData.displayName);
+      setVal('settingsBankAccount', profileData.accountNumber || '');
+      setVal('settingsAccountHolder', profileData.accountHolder || '');
     } else {
       setVal('settingsCompanyName', profileData.companyName || 'Ombak Bistro');
       setVal('settingsIndustry', profileData.industry || 'Food & Beverage');
@@ -414,8 +420,8 @@
     });
   }
 
-  async function persistProfile(value){
-    await window.devMatchBackend.saveProfile(value);
+  async function persistProfile(value, options){
+    await window.devMatchBackend.saveProfile(value, options);
   }
   // Identity changes require a separate verified flow, not a profile save.
   ['settingsEmail','settingsUsername'].forEach(id=>{
@@ -800,11 +806,40 @@
   // Role Specific Form Submission (Dev rates/payouts OR Client company/billing)
   const roleForm = document.getElementById('roleSpecificForm');
   if (roleForm) {
+    if (isDeveloper) {
+      ['settingsHourlyRate', 'settingsMinProject'].forEach(id => {
+        const input = document.getElementById(id);
+        input.addEventListener('input', () => {
+          const digitsBeforeCursor = priceDigits(input.value.slice(0, input.selectionStart)).length;
+          const formatted = formatRupiah(input.value);
+          if (input.value !== formatted) {
+            input.value = formatted;
+            let cursor = 3;
+            if (digitsBeforeCursor) {
+              let digitsSeen = 0;
+              for (let index = 0; index < formatted.length; index++) {
+                if (/\d/.test(formatted[index])) digitsSeen++;
+                if (digitsSeen === digitsBeforeCursor) {
+                  cursor = index + 1;
+                  break;
+                }
+              }
+            }
+            input.setSelectionRange(cursor, cursor);
+          }
+        });
+      });
+    }
+
     roleForm.addEventListener('submit', async function(e) {
       e.preventDefault();
+      if (!privateProfileFieldsLoaded) {
+        showToast('Cannot save settings until private payout and tax details load successfully.');
+        return;
+      }
       if (isDeveloper) {
-        profileData.hourlyRate = document.getElementById('settingsHourlyRate').value.trim();
-        profileData.minProjectPrice = document.getElementById('settingsMinProject').value.trim();
+        profileData.hourlyRate = formatRupiah(document.getElementById('settingsHourlyRate').value);
+        profileData.minProjectPrice = formatRupiah(document.getElementById('settingsMinProject').value);
         profileData.availability = document.getElementById('settingsAvailability').value;
         profileData.bankName = document.getElementById('settingsBankName').value;
         profileData.accountNumber = document.getElementById('settingsBankAccount').value.trim();
@@ -816,7 +851,7 @@
       }
 
       try {
-        await persistProfile(profileData);
+        await persistProfile(profileData, {includePrivateFields: true});
         showToast(isDeveloper ? 'Developer rates & payout settings updated!' : 'Company & billing details saved!');
       } catch (err) {
         showToast('Error saving settings');
@@ -1448,7 +1483,18 @@
 
   // Initialize
   setupWorkspaceLinks();
-  populateForm();
   initHashTab();
+  (async () => {
+    ['bankName', 'accountNumber', 'accountHolder', 'npwp'].forEach(field => delete profileData[field]);
+    try {
+      Object.assign(profileData, await window.devMatchBackend.loadPrivateProfileFields());
+      privateProfileFieldsLoaded = true;
+      populateForm();
+    } catch (error) {
+      console.error('Unable to load private payout and tax details.', error);
+      populateForm();
+      showToast('Unable to load private payout and tax details. Reload the page and try again.');
+    }
+  })();
 
 })();

@@ -92,7 +92,7 @@ $('form').addEventListener('submit',async e=>{
     const row=await backend.loadProfile(user);
     backend.clearCache();
     backend.cache(row,user);
-    sessionStorage.setItem('devmatch-profile-draft',JSON.stringify({...row.profile_data,username:row.username||'',role:row.account_role}));
+    sessionStorage.setItem('devmatch-profile-draft',JSON.stringify({...backend.profileDataForCache(row.profile_data),username:row.username||'',role:row.account_role}));
     location.assign(backend.destination(row,user));
   }catch(error){
     setErr('pass',error.message||'Unable to connect. Please try again.');
