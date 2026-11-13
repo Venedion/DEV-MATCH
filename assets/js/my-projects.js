@@ -647,8 +647,8 @@ function addMedia(files){
   message.textContent='';
   const accepted=[];
   for(const file of files){
-    const image=file.type.startsWith('image/');
-    const video=file.type.startsWith('video/');
+    const image=['image/jpeg','image/png','image/webp','image/gif'].includes(file.type);
+    const video=['video/mp4','video/webm'].includes(file.type);
     const sizeLimit=image?5*1024*1024:50*1024*1024;
     if((!image&&!video)||file.size>sizeLimit){
       message.textContent=`${file.name} wasn't added. Use PNG, JPG, or WebP up to 5 MB, or MP4/WebM up to 50 MB.`;
@@ -666,6 +666,24 @@ function addMedia(files){
   saveUnsavedProjectDraftMedia().catch(error=>{
     document.getElementById('mediaMessage').textContent=error.message;
   });
+}
+async function uploadSelectedMedia(projectId){
+  const uploaded=[];
+  try{
+    for(const file of selectedMedia){
+      uploaded.push(await window.devMatchBackend.uploadPortfolioMedia(projectId,file));
+    }
+    return uploaded;
+  }catch(error){
+    if(uploaded.length){
+      try{
+        await window.devMatchBackend.removeUploadedFiles('project-media',uploaded.map(item=>item.path));
+      }catch(cleanupError){
+        console.error('Unable to remove partially uploaded project media.',cleanupError);
+      }
+    }
+    throw error;
+  }
 }
 async function saveProject(status){
   if(!await ownedProjectsReady){
@@ -695,7 +713,7 @@ async function saveProject(status){
   }
   const chosenCover=selectedMedia.find(file=>file.type.startsWith('image/'));
   let coverImage=existingCoverImage;
-  if(chosenCover){
+  if(chosenCover&&editingId?.startsWith('sample-')){
     try{
       coverImage=await compressCoverImage(chosenCover);
     }catch(error){
@@ -720,6 +738,9 @@ async function saveProject(status){
     priceMax:form.elements.priceMax.value.trim(),
     services:[...form.querySelectorAll('[name="services"]:checked')].map(input=>input.value),
     mediaCount:selectedMedia.length||(existingCoverImage?1:0),
+    media:Array.isArray(projects.find(item=>item.id===editingId)?.media)
+      ?projects.find(item=>item.id===editingId).media
+      :[],
     coverImage,
     status,
     updated:Date.now()
@@ -733,12 +754,26 @@ async function saveProject(status){
       }else{
         const savedIndex=savedProjects.findIndex(item=>item.id===editingId);
         if(savedIndex>=0){
-          const updatedProject={...savedProjects[savedIndex],...projectData,id:editingId};
+          let updatedProject={...savedProjects[savedIndex],...projectData,id:editingId};
+          let uploaded=[];
           try{
+            if(selectedMedia.length){
+              uploaded=await uploadSelectedMedia(editingId);
+              updatedProject.media=[...new Set([...(updatedProject.media||[]),...uploaded.map(item=>item.url)])];
+              const coverIndex=selectedMedia.findIndex(file=>file.type.startsWith('image/'));
+              if(coverIndex>=0)updatedProject.coverImage=uploaded[coverIndex].url;
+            }
             await window.devMatchBackend.saveOwnedProject('portfolio',updatedProject);
           }catch(error){
+            if(uploaded.length){
+              try{
+                await window.devMatchBackend.removeUploadedFiles('project-media',uploaded.map(item=>item.path));
+              }catch(cleanupError){
+                console.error('Unable to remove uploaded project media after a failed save.',cleanupError);
+              }
+            }
             console.error('Unable to save your portfolio project to Supabase.',error);
-            projectMessage.textContent='Unable to save this project. Check your connection and try again.';
+            projectMessage.textContent=error.message||'Unable to save this project. Check your connection and try again.';
             return;
           }
           savedProjects[savedIndex]=updatedProject;
@@ -748,12 +783,36 @@ async function saveProject(status){
       }
     }
   }else{
-    const newProject={...projectData,views:0,favorites:0,comments:0,art:'dashboard'};
+    const newProject={...projectData,status:'draft',coverImage:'',media:[],views:0,favorites:0,comments:0,art:'dashboard'};
+    let uploaded=[];
     try{
       newProject.id=await window.devMatchBackend.saveOwnedProject('portfolio',newProject);
+      if(selectedMedia.length){
+        uploaded=await uploadSelectedMedia(newProject.id);
+        newProject.media=uploaded.map(item=>item.url);
+        newProject.coverImage=uploaded.find((item,index)=>selectedMedia[index].type.startsWith('image/'))?.url||'';
+      }
+      newProject.status=status;
+      await window.devMatchBackend.saveOwnedProject('portfolio',newProject);
     }catch(error){
+      if(uploaded.length){
+        try{
+          await window.devMatchBackend.removeUploadedFiles('project-media',uploaded.map(item=>item.path));
+        }catch(cleanupError){
+          console.error('Unable to remove uploaded project media after project creation failed.',cleanupError);
+        }
+      }
       console.error('Unable to create your portfolio project in Supabase.',error);
-      projectMessage.textContent='Unable to save this project. Check your connection and try again.';
+      projectMessage.textContent=error.message||'Unable to save this project. Check your connection and try again.';
+      if(newProject.id){
+        newProject.status='draft';
+        newProject.coverImage='';
+        newProject.media=[];
+        savedProjects.unshift(newProject);
+        projects.push(newProject);
+        storeSavedProjects();
+        render();
+      }
       return;
     }
     savedProjects.unshift(newProject);
@@ -854,6 +913,14 @@ rows.addEventListener('click',async event=>{
         console.error('Unable to delete your portfolio project from Supabase.',error);
         window.alert('Unable to delete this project. Check your connection and try again.');
         return;
+      }
+      const mediaUrls=[project.coverImage,...(Array.isArray(project.media)?project.media:[])]
+        .filter(value=>typeof value==='string');
+      try{
+        await window.devMatchBackend.removePortfolioMedia(mediaUrls);
+      }catch(error){
+        console.error('Project was deleted, but its Storage media could not be removed.',error);
+        window.alert('The project was deleted, but some media files could not be removed from Storage.');
       }
       const index=savedProjects.findIndex(item=>item.id===project.id);
       if(index>=0){savedProjects.splice(index,1);storeSavedProjects()}

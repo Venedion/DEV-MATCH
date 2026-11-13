@@ -40,7 +40,7 @@
     <span class="nav-label">Menu</span>
     <nav class="side-nav" aria-label="Client navigation">
       <a class="nav-item" href="devmatch-client-dashboard.html"><svg viewBox="0 0 24 24"><path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-6v-7h-4v7H4a1 1 0 0 1-1-1z"/></svg>Home</a>
-      <a class="nav-item" href="devmatch-chat.html?role=client"><svg viewBox="0 0 24 24"><path d="M21 11.5a8.5 8.5 0 0 1-8.5 8.5H4l1.5-4A8.5 8.5 0 1 1 21 11.5z"/></svg>Messages<span class="nav-count" style="background:#e7f6ed;color:#15934f;">3</span></a>
+      <a class="nav-item" href="devmatch-chat.html?role=client"><svg viewBox="0 0 24 24"><path d="M21 11.5a8.5 8.5 0 0 1-8.5 8.5H4l1.5-4A8.5 8.5 0 1 1 21 11.5z"/></svg>Messages</a>
       <a class="nav-item" href="devmatch-client-dashboard.html#requests"><svg viewBox="0 0 24 24"><path d="M6 3h9l4 4v14H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"/><path d="M14 3v5h5M8 13h8m-8 4h8"/></svg>My Requests</a>
       <a class="nav-item active" href="devmatch-discover-projects.html" aria-current="page"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="m15.5 8.5-2 5-5 2 2-5z"/></svg>Discover Projects</a>
       <a class="nav-item" href="devmatch-find-developers.html"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"/><path d="M3 20a6 6 0 0 1 12 0m2-8a3 3 0 1 0 0-6m1 8a5 5 0 0 1 3 5"/></svg>Developers</a>
@@ -88,11 +88,12 @@
         </div>
         <div class="market-sort">
           <span id="resultsSummary" aria-live="polite">Showing 0 projects</span>
-          <label class="sort-control"><span>Sort by</span><select id="sortFilter" aria-label="Sort projects"><option value="popular">Most Popular</option><option value="newest">Newest</option><option value="price-low">Price: Low to High</option><option value="price-high">Price: High to Low</option></select></label>
+          <label class="sort-control"><span>Sort by</span><select id="sortFilter" aria-label="Sort projects"><option value="popular">Recently updated</option><option value="newest">Newest</option><option value="price-low">Price: Low to High</option><option value="price-high">Price: High to Low</option></select></label>
           <div class="view-toggle" role="group" aria-label="Project view"><button class="selected" type="button" data-view="grid" aria-pressed="true" aria-label="Grid view"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg></button><button type="button" data-view="list" aria-pressed="false" aria-label="List view"><svg viewBox="0 0 24 24"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg></button></div>
         </div>
       </div>
       <header class="results-heading"><div><p class="market-eyebrow">FEATURED BY DEVELOPERS</p><h2 id="marketResultsTitle">Ready-to-Build Projects</h2></div><a href="devmatch-favorites.html?role=client">View Favorites <span aria-hidden="true">→</span></a></header>
+      <p id="catalogStatus" class="market-empty" role="status" aria-live="polite">Loading projects…</p>
       <div class="project-grid" id="projectGrid" aria-live="polite"></div>
       <div class="market-empty" id="emptyState" hidden>
         <span class="empty-search-icon"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg></span>
@@ -109,8 +110,7 @@
     <div class="dialog-content" id="dialogContent"></div>
   </dialog>
 
-  <script src="assets/js/projects-data.js"></script>
   <script src="assets/js/marketplace.js?v=20261111-user-data"></script>
-  <script src="assets/js/nav-behavior.js?v=20261031-account-dropdown-ease"></script>
+  <script src="assets/js/nav-behavior.js?v=20261112-secure-chat-badge"></script>
 </body>
 </html>

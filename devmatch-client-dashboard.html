@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=optional" rel="stylesheet">
-  <link rel="stylesheet" href="assets/css/client-dashboard.css?v=20261030-header-profile-sizing">
+  <link rel="stylesheet" href="assets/css/client-dashboard.css?v=20261112-supabase-catalog-media">
   <link rel="stylesheet" href="assets/css/project-detail.css">
   <link rel="stylesheet" href="assets/css/mode-switch-animation.css?v=20261030-active-indicator">
   <link rel="stylesheet" href="assets/css/mobile-navigation.css?v=20261031-desktop-dropdown-aligned">
@@ -17,7 +17,6 @@
       try {
         const stored = sessionStorage.getItem(storageKey);
         if (!stored) return;
-
         sessionStorage.removeItem(storageKey);
         const [previousMode, timestamp] = stored.split(':');
         const currentMode = location.pathname.endsWith('devmatch-client-dashboard.html')
@@ -49,7 +48,7 @@
         <a class="client-mode" href="devmatch-dashboard.html"><span>&lt;/&gt;</span>Developer Mode</a>
         <a class="client-mode active" href="devmatch-client-dashboard.html"><svg viewBox="0 0 24 24"><rect x="3" y="7" width="18" height="14" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>Client Mode</a>
       </div>
-      <a class="client-icon-button" href="devmatch-notifications.html" aria-label="Notifications"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9m-8 13h4"/></svg><i></i></a>
+      <a class="client-icon-button" href="devmatch-notifications.html" aria-label="Notifications"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9m-8 13h4"/></svg><i hidden></i></a>
       <a class="client-user" href="devmatch-my-profile.html?role=client"><span class="client-avatar" id="userAvatar">CL</span><span class="client-user-copy"><b id="topUserName">Client</b><small>Client</small></span><svg viewBox="0 0 24 24"><path d="m7 10 5 5 5-5"/></svg></a>
     </div>
   </header>
@@ -60,19 +59,19 @@
     <span class="client-nav-label">Menu</span>
     <nav class="client-nav" aria-label="Client dashboard navigation">
       <a class="client-nav-item active" href="#home"><svg viewBox="0 0 24 24"><path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-6v-7h-4v7H4a1 1 0 0 1-1-1z"/></svg>Home</a>
-      <a class="client-nav-item" href="devmatch-chat.html?role=client"><svg viewBox="0 0 24 24"><path d="M21 11.5a8.5 8.5 0 0 1-8.5 8.5H4l1.5-4A8.5 8.5 0 1 1 21 11.5z"/></svg>Messages<span class="client-nav-count" style="background:#e7f6ed;color:#15934f;">3</span></a>
+      <a class="client-nav-item" href="devmatch-chat.html?role=client"><svg viewBox="0 0 24 24"><path d="M21 11.5a8.5 8.5 0 0 1-8.5 8.5H4l1.5-4A8.5 8.5 0 1 1 21 11.5z"/></svg>Messages</a>
       <a class="client-nav-item" href="#requests" data-request-nav><svg viewBox="0 0 24 24"><path d="M6 3h9l4 4v14H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"/><path d="M14 3v5h5M8 13h8m-8 4h8"/></svg>My Requests</a>
       <a class="client-nav-item" href="devmatch-discover-projects.html"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="m15.5 8.5-2 5-5 2 2-5z"/></svg>Discover Projects</a>
       <a class="client-nav-item" href="devmatch-find-developers.html"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"/><path d="M3 20a6 6 0 0 1 12 0m2-8a3 3 0 1 0 0-6m1 8a5 5 0 0 1 3 5"/></svg>Developers</a>
       <a class="client-nav-item" href="devmatch-favorites.html?role=client"><svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>Favorites<span class="client-nav-count" id="favoriteCount">0</span></a>
-      <a class="client-nav-item" href="devmatch-notifications.html"><svg viewBox="0 0 24 24"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9m-8 13h4"/></svg>Notifications<span class="client-notification-count">2</span></a>
+      <a class="client-nav-item" href="devmatch-notifications.html"><svg viewBox="0 0 24 24"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9m-8 13h4"/></svg>Notifications<span class="client-notification-count" hidden></span></a>
     </nav>
     <span class="client-nav-label account-label">Account</span>
     <nav class="client-nav" aria-label="Account navigation">
       <a class="client-nav-item" href="devmatch-my-profile.html?role=client"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>Profile</a>
       <a class="client-nav-item" href="devmatch-settings.html?role=client"><svg viewBox="0 0 24 24"><path d="M4 21v-7m0-4V3m8 18v-9m0-4V3m8 18v-5m0-4V3M1 14h6m2-6h6m2 8h6"/></svg>Settings</a>
     </nav>
-    <div class="client-sidebar-foot"><span></span>Demo workspace</div>
+    <div class="client-sidebar-foot"><span></span>Client workspace</div>
   </aside>
 
   <main class="client-main" id="home">
@@ -130,9 +129,9 @@
       </header>
       <div class="request-stats-grid" id="requestStats">
         <article class="request-stat-card"><small>OPEN REQUESTS</small><strong id="requestStatOpen">0</strong><span><b id="requestStatClosed">0</b> closed, <b id="requestStatDraft">0</b> draft</span></article>
-        <article class="request-stat-card"><small>TOTAL VIEWS</small><strong id="requestStatViews">0</strong><span>across all requests</span></article>
-        <article class="request-stat-card"><small>SAVED BY DEVELOPERS</small><strong id="requestStatSaves">0</strong><span>developers who bookmarked</span></article>
-        <article class="request-stat-card"><small>COMMENTS</small><strong id="requestStatComments">0</strong><span>on your requests</span></article>
+        <article class="request-stat-card"><small>TOTAL VIEWS</small><strong id="requestStatViews">—</strong><span>across your projects</span></article>
+        <article class="request-stat-card"><small>SAVED BY DEVELOPERS</small><strong id="requestStatSaves">—</strong><span>on your projects</span></article>
+        <article class="request-stat-card"><small>COMMENTS</small><strong id="requestStatComments">—</strong><span>on your projects</span></article>
       </div>
       <div class="requests-workspace">
         <div class="requests-main-column">
@@ -153,7 +152,7 @@
           <p class="requests-message" id="requestsMessage" role="status" aria-live="polite"></p>
         </div>
         <aside class="requests-sidebar">
-          <section class="request-activity-card"><header><h2>Latest activity</h2><button type="button" data-request-filter="all">View all</button></header><div id="requestActivityList" class="request-activity-list"></div></section>
+          <section class="request-activity-card"><header><h2>Latest activity</h2><button type="button" data-request-filter="all">View all</button></header><div id="requestActivityList" class="request-activity-list" aria-live="polite"><p class="request-activity-empty" role="status">Loading activity&hellip;</p></div></section>
           <section class="request-tip-card"><span class="request-tip-icon" aria-hidden="true">✦</span><h2>Tip</h2><p>Once you've found a developer, close the request so others stop replying. You can reopen it anytime.</p></section>
         </aside>
       </div>
@@ -179,6 +178,7 @@
               <div class="request-detail-budget-fact"><dt>Budget</dt><dd><span id="requestDetailBudget"></span><span class="request-detail-negotiable" id="requestDetailNegotiable" hidden>Negotiable</span></dd></div>
               <div class="request-detail-deadline-fact"><dt>Deadline</dt><dd id="requestDetailDeadline"></dd><small id="requestDetailDeadlineRemaining"></small></div>
             </dl>
+            <section class="request-detail-specialties request-detail-references" id="requestDetailReferences" hidden><h2>Reference files</h2><div id="requestDetailAttachments"></div><p id="requestDetailAttachmentStatus" role="status" aria-live="polite" hidden></p></section>
             <section class="request-detail-specialties"><h2>Required specialization</h2><div id="requestDetailSpecialties"></div></section>
             <footer class="request-detail-stats"><span id="requestDetailViews"></span><span id="requestDetailSaves"></span><span id="requestDetailComments"></span><time id="requestDetailCreated"></time></footer>
           </article>
@@ -223,7 +223,7 @@
             <section class="request-reference-section" aria-labelledby="requestReferencesTitle">
               <div class="request-reference-heading"><h3 id="requestReferencesTitle">References <i class="request-optional">Optional</i></h3><p>Share links or images that help explain your idea.</p></div>
               <label class="request-form-field">Reference links<textarea class="request-control request-reference-links" name="references" rows="2" placeholder="https://example.com/inspiration"></textarea><small>Add one link per line.</small></label>
-              <label class="request-upload-control"><input id="requestReferenceFiles" name="referenceFiles" type="file" accept="image/png,image/jpeg,image/webp" multiple><span class="request-upload-icon" aria-hidden="true">↑</span><span><b>Add reference images</b><small>PNG, JPG, or WebP · up to 5 images, 5 MB each</small></span></label>
+              <label class="request-upload-control"><input id="requestReferenceFiles" name="referenceFiles" type="file" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.webp,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,image/jpeg,image/png,image/webp" multiple><span class="request-upload-icon" aria-hidden="true">↑</span><span><b>Add reference files</b><small>PDF, DOC, DOCX, JPG, PNG, or WebP · up to 5 files, 10 MB each</small></span></label>
               <ul class="request-attachment-list" id="requestAttachmentList" aria-live="polite" hidden></ul>
             </section>
           </section>
@@ -290,7 +290,7 @@
       <p class="empty-state" id="emptyState" hidden>No projects match your search. Try another keyword or category.</p>
     </section>
 
-    <p class="client-demo-note">Demo dashboard — projects and request activity shown here are sample data.</p>
+    <p class="client-demo-note">Project listings are published by developers; your requests, metrics, and activity are synced with Supabase.</p>
   </main>
 
   <dialog class="request-view-dialog" id="requestViewDialog" aria-labelledby="requestViewTitle">
@@ -298,7 +298,7 @@
     <div class="request-view-meta" id="requestViewMeta"></div>
     <p class="request-view-description" id="requestViewDescription"></p>
     <dl class="request-view-facts"><div><dt>Budget</dt><dd id="requestViewBudget"></dd></div><div><dt>Deadline</dt><dd id="requestViewDeadline"></dd></div><div><dt>Target start</dt><dd id="requestViewStart"></dd></div><div><dt>Required specialization</dt><dd id="requestViewSpecialties"></dd></div></dl>
-    <section class="request-view-references" id="requestViewReferences" hidden><h3>References</h3><div id="requestViewLinks"></div><ul id="requestViewAttachments"></ul></section>
+    <section class="request-view-references" id="requestViewReferences" hidden><h3>References</h3><div id="requestViewLinks"></div><ul id="requestViewAttachments"></ul><p id="requestViewAttachmentStatus" role="status" aria-live="polite" hidden></p></section>
     <div class="request-view-footer"><span id="requestViewStatus"></span><button class="request-primary-button" type="button" data-close-request-view>Done</button></div>
   </dialog>
 
@@ -379,11 +379,10 @@
 
   <a class="floating-chat" href="devmatch-chat.html?role=client" aria-label="Messages &amp; Chat" title="Open Messages &amp; Chat">
     <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5c-5 0-9 3.65-9 8.15 0 2.24 1.04 4.27 2.73 5.74L4.7 21l5.24-1.28c.67.12 1.36.18 2.06.18 5 0 9-3.65 9-8.15S17 3.5 12 3.5Z"/><circle cx="8.5" cy="11.7" r="1" fill="currentColor" stroke="none"/><circle cx="12" cy="11.7" r="1" fill="currentColor" stroke="none"/><circle cx="15.5" cy="11.7" r="1" fill="currentColor" stroke="none"/></svg>
-    <span class="floating-chat-badge" id="clientFloatingChatBadge">3</span>
+
   </a>
-  <script src="assets/js/projects-data.js"></script>
-  <script src="assets/js/project-detail.js?v=20261111-projects-comments"></script>
-  <script src="assets/js/client-dashboard.js?v=20261111-projects-comments"></script>
-  <script src="assets/js/nav-behavior.js?v=20261031-account-dropdown-ease"></script>
+  <script src="assets/js/project-detail.js?v=20261112-live-catalog-detail"></script>
+  <script src="assets/js/client-dashboard.js?v=20261112-supabase-catalog-storage"></script>
+  <script src="assets/js/nav-behavior.js?v=20261112-secure-chat-badge"></script>
 </body>
 </html>

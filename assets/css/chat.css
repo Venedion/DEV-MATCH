@@ -10,6 +10,10 @@ body.chat-body {
   background: var(--page);
 }
 
+.chat-body [hidden] {
+  display: none !important;
+}
+
 .chat-viewport {
   position: fixed;
   top: 58px;
@@ -368,7 +372,7 @@ body.chat-body {
   text-align: center;
 }
 
-.chat-viewport:not(.has-active-conversation) .chat-main-pane > :not(.chat-empty-state) {
+.chat-viewport:not(.has-active-conversation) .chat-main-pane > :not(.chat-empty-state):not(.chat-status) {
   display: none !important;
 }
 
@@ -720,6 +724,18 @@ body.chat-body {
   border: 1px solid rgba(0,0,0,0.06);
 }
 
+button.chat-attachment-card {
+  width: min(280px, 100%);
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+button.chat-attachment-card:hover {
+  filter: brightness(0.97);
+}
+
 .chat-msg-row.sent .chat-attachment-card {
   background: rgba(255,255,255,0.12);
   border-color: rgba(255,255,255,0.18);
@@ -832,6 +848,39 @@ body.chat-body {
   flex: none;
 }
 
+.chat-attachment-pending {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 0 0 8px;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.chat-attachment-pending[hidden] {
+  display: none;
+}
+
+.chat-attachment-pending span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.chat-attachment-pending button {
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
 .chat-composer-form {
   display: flex;
   align-items: flex-end;
@@ -934,6 +983,30 @@ body.chat-body {
   padding: 0 4px;
   font-size: 10px;
   color: var(--muted);
+}
+
+.chat-status {
+  min-height: 14px;
+  margin: 0;
+  padding: 4px 20px 8px;
+  background: #fff;
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.chat-status:empty {
+  display: none;
+}
+
+.chat-status.is-error {
+  color: #b42318;
+}
+
+.chat-main-header[hidden],
+.chat-project-banner[hidden],
+.chat-composer-wrap[hidden],
+.chat-quick-replies[hidden] {
+  display: none !important;
 }
 
 /* ============================================================

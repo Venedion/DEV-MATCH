@@ -41,7 +41,6 @@
       </a>
     </div>
   </header>
-
   <!-- Sidebar Navigation -->
   <aside class="sidebar">
     <div class="workspace">
@@ -51,7 +50,7 @@
     <a class="add-project side-add" href="devmatch-client-dashboard.html#requests">
       <svg viewBox="0 0 24 24"><path d="M12 5v14m-7-7h14"/></svg>Post a Request
     </a>
-    
+
     <span class="nav-label">Menu</span>
     <nav class="side-nav" aria-label="Client dashboard navigation">
       <a class="nav-item" href="devmatch-client-dashboard.html#home">
@@ -60,7 +59,7 @@
       </a>
       <a class="nav-item" href="devmatch-chat.html?role=client">
         <svg viewBox="0 0 24 24"><path d="M21 11.5a8.5 8.5 0 0 1-8.5 8.5H4l1.5-4A8.5 8.5 0 1 1 21 11.5z"/></svg>
-        Messages<span class="nav-count chat-unread-total-badge" style="background:#e7f6ed;color:#15934f;">3</span>
+        Messages<span class="nav-count chat-unread-total-badge" style="background:#e7f6ed;color:#15934f;" hidden>0</span>
       </a>
       <a class="nav-item" href="devmatch-client-dashboard.html#requests">
         <svg viewBox="0 0 24 24"><path d="M6 3h9l4 4v14H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"/><path d="M14 3v5h5M8 13h8m-8 4h8"/></svg>
@@ -191,17 +190,16 @@
       <div style="display:flex;align-items:center;gap:10px;">
         <span style="font-size:12px;color:#8e9097;font-weight:600;">Sorted by:</span>
         <div class="sort-toggle-wrap">
-          <button type="button" class="sort-btn active" data-sort="favorites">Most favorited</button>
-          <button type="button" class="sort-btn" data-sort="views">Most viewed</button>
-          <button type="button" class="sort-btn" data-sort="projects">Most projects</button>
+          <button type="button" class="sort-btn" data-sort="name">Name A–Z</button>
+          <button type="button" class="sort-btn active" data-sort="projects">Most projects</button>
         </div>
       </div>
     </div>
 
     <!-- Sub-header Row (Result Count & Sort Status) -->
     <div class="devs-sub-row">
-      <h2 class="devs-count-heading" id="devsCountHeading">38 full-stack developers</h2>
-      <span class="devs-sort-label" id="devsSortLabel">Sorted by most favorited</span>
+      <h2 class="devs-count-heading" id="devsCountHeading">0 developers</h2>
+      <span class="devs-sort-label" id="devsSortLabel">Sorted by most projects</span>
     </div>
 
     <!-- Developers Grid -->
@@ -210,7 +208,8 @@
     </section>
 
     <!-- Empty State -->
-    <div class="devs-empty-state" id="devsEmptyState">
+    <p id="directoryStatus" role="status" aria-live="polite">Loading developer directory…</p>
+    <div class="devs-empty-state" id="devsEmptyState" hidden>
       <div class="devs-empty-icon">
         <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>
       </div>
@@ -243,12 +242,11 @@
   <!-- Floating Chat Link -->
   <a class="floating-chat" href="devmatch-chat.html?role=client" aria-label="Messages &amp; Chat" title="Open Messages &amp; Chat">
     <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5c-5 0-9 3.65-9 8.15 0 2.24 1.04 4.27 2.73 5.74L4.7 21l5.24-1.28c.67.12 1.36.18 2.06.18 5 0 9-3.65 9-8.15S17 3.5 12 3.5Z"/><circle cx="8.5" cy="11.7" r="1" fill="currentColor" stroke="none"/><circle cx="12" cy="11.7" r="1" fill="currentColor" stroke="none"/><circle cx="15.5" cy="11.7" r="1" fill="currentColor" stroke="none"/></svg>
-    <span class="floating-chat-badge">3</span>
+
   </a>
 
   <!-- Scripts -->
-  <script src="assets/js/projects-data.js"></script>
-  <script src="assets/js/find-developers.js?v=20261111-user-data"></script>
-  <script src="assets/js/nav-behavior.js?v=20261031-account-dropdown-ease"></script>
+  <script src="assets/js/find-developers.js?v=20261112-live-directory"></script>
+  <script src="assets/js/nav-behavior.js?v=20261112-secure-chat-badge"></script>
 </body>
 </html>

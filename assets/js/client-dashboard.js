@@ -3,31 +3,15 @@ const clientName=clientProfile.displayName||'Client';
 const clientNameParts=clientName.trim().split(/\s+/).filter(Boolean);
 document.getElementById('topUserName').textContent=clientName;
 document.getElementById('userAvatar').textContent=clientNameParts.slice(0,2).map(part=>part[0]).join('').toUpperCase()||'CL';
-const notificationReadIds=new Set(JSON.parse(localStorage.getItem('devmatch-client-notifications-read')||'[]'));
-const unreadNotificationCount=['jessica-comment','rizky-message'].filter(id=>!notificationReadIds.has(id)).length;
-document.querySelectorAll('.client-notification-count').forEach(count=>{
-  count.textContent=String(unreadNotificationCount);
-  count.hidden=unreadNotificationCount===0;
-});
+document.querySelectorAll('.client-notification-count').forEach(count=>{count.textContent='';count.hidden=true;});
 const notificationDot=document.querySelector('.client-icon-button i');
-if(notificationDot)notificationDot.hidden=unreadNotificationCount===0;
-window.devMatchBackend.ready.then(user=>user?window.devMatchBackend.loadNotificationReads():null).then(readIds=>{
-  if(!readIds)return;
-  localStorage.setItem('devmatch-client-notifications-read',JSON.stringify(readIds));
-  const unreadCount=['jessica-comment','rizky-message'].filter(id=>!readIds.includes(id)).length;
-  document.querySelectorAll('.client-notification-count').forEach(count=>{
-    count.textContent=String(unreadCount);
-    count.hidden=unreadCount===0;
-  });
-  if(notificationDot)notificationDot.hidden=unreadCount===0;
-}).catch(error=>{
-  console.error('Unable to load notification status from Supabase.',error);
-  window.alert('Unable to load notification status. Check your connection and try again.');
-});
+if(notificationDot)notificationDot.hidden=true;
 const hour=new Date().getHours();
 document.getElementById('greeting').textContent=(hour<12?'Good morning, ':hour<18?'Good afternoon, ':'Good evening, ')+clientNameParts[0];
 
-const sampleProjects=window.DEVMATCH_SAMPLE_PROJECTS;
+let marketplaceProjects=[];
+let marketplaceLoaded=false;
+let marketplaceFailed=false;
 const favoritesKey='devmatch-client-project-favorites';
 if(localStorage.getItem(favoritesKey)===null){const legacy=localStorage.getItem('devmatch-client-favorites');if(legacy!==null)localStorage.setItem(favoritesKey,legacy);}
 const requestsKey='devmatch-client-requests';
@@ -50,6 +34,12 @@ const favoriteStateReady=window.devMatchBackend.ready.then(user=>user
   return false;
 });
 let requests=JSON.parse(localStorage.getItem(requestsKey)||'[]');
+let requestDashboardMetrics=null;
+function formatDashboardMetric(value){
+  return value!==null&&value!==undefined&&Number.isFinite(Number(value))
+    ?Number(value).toLocaleString('id-ID')
+    :'—';
+}
 const requestsReady=window.devMatchBackend.ready.then(user=>user
   ?window.devMatchBackend.loadOwnedProjects('request',requests)
   :null
@@ -75,11 +65,25 @@ let activeRequestFilter='all';
 let activeRequestQuery='';
 let activeRequestSort='newest';
 let activeRequestDetailId=null;
+let savingRequest=false;
 const grid=document.getElementById('projectGrid');
 const discoverGrid=document.getElementById('discoverGrid');
 
 function escapeHtml(value){
   return String(value).replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
+}
+
+function safeProjectCover(value){
+  if(typeof value!=='string')return '';
+  if(/^data:image\/(?:jpeg|png|webp);base64,/i.test(value))return value;
+  try{
+    const url=new URL(value);
+    return url.origin==='https://yxwktllqbmhustmhdaqi.supabase.co'
+      &&url.pathname.startsWith('/storage/v1/object/public/project-media/')
+      ?value:'';
+  }catch{
+    return '';
+  }
 }
 
 function artMarkup(project){
@@ -92,12 +96,13 @@ function artMarkup(project){
 }
 
 function getFilteredProjects(){
-  const filtered=sampleProjects.filter(project=>{
+  const filtered=marketplaceProjects.filter(project=>{
     const categoryMatches=activeCategory==='All'||project.category===activeCategory||project.type===activeCategory;
     const typeMatches=activeType==='All'||project.type===activeType;
     const price=Number(String(project.price).replace(/\D/g,''))||0;
-    const priceMatches=activePrice==='All'||activePrice==='under-5'&&price<5000000||activePrice==='5-to-8'&&price>=5000000&&price<=8000000||activePrice==='over-8'&&price>8000000;
-    const specialtyMatches=activeSpecialty==='All'||project.specialty===activeSpecialty;
+    const priceMatches=activePrice==='All'||price>0&&(activePrice==='under-5'&&price<5000000||activePrice==='5-to-8'&&price>=5000000&&price<=8000000||activePrice==='over-8'&&price>8000000);
+    const specialties=Array.isArray(project.specialties)?project.specialties:[project.specialty].filter(Boolean);
+    const specialtyMatches=activeSpecialty==='All'||specialties.includes(activeSpecialty);
     const queryMatches=!activeQuery||[project.title,project.type,project.category,project.description,project.developer,project.specialty].join(' ').toLowerCase().includes(activeQuery);
     return categoryMatches&&typeMatches&&priceMatches&&specialtyMatches&&queryMatches&&(!favoritesOnly||favorites.includes(project.id));
   });
@@ -114,6 +119,9 @@ function getFilteredProjects(){
 
 function projectCardMarkup(project,discover=false){
   const favorite=favorites.includes(project.id);
+  const artwork=project.coverImage
+    ?`<img class="project-cover-image" src="${escapeHtml(project.coverImage)}" alt="" loading="lazy">`
+    :artMarkup(project);
   return `
     <article class="client-project-card" data-project="${escapeHtml(project.id)}" tabindex="0" role="link" aria-label="View ${escapeHtml(project.title)} details">
       <div class="project-art ${project.art}">
@@ -121,7 +129,7 @@ function projectCardMarkup(project,discover=false){
         <button class="favorite-button" type="button" data-favorite="${escapeHtml(project.id)}" aria-pressed="${favorite}" aria-label="${favorite?'Remove from':'Add to'} favorites">
           <svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
         </button>
-        ${artMarkup(project)}
+        ${artwork}
       </div>
       <div class="project-body">
         <div class="project-meta"><b>${escapeHtml(project.category)}</b><span>${escapeHtml(project.age)}</span></div>
@@ -137,13 +145,20 @@ function renderProjects(){
   const filtered=getFilteredProjects();
   grid.innerHTML=filtered.map(project=>projectCardMarkup(project)).join('');
   discoverGrid.innerHTML=filtered.map(project=>projectCardMarkup(project,true)).join('');
-  document.getElementById('emptyState').hidden=filtered.length>0;
-  document.getElementById('discoverEmptyState').hidden=filtered.length>0;
-  document.getElementById('discoverProjectCount').textContent=String(sampleProjects.length);
+  const emptyMessage=marketplaceFailed
+    ?'Projects could not be loaded. Check your connection and try again.'
+    :marketplaceLoaded?'No projects match these filters. Try changing your search or filters.':'Loading published projects…';
+  const emptyState=document.getElementById('emptyState');
+  const discoverEmptyState=document.getElementById('discoverEmptyState');
+  emptyState.textContent=marketplaceFailed?'Projects could not be loaded. Check your connection and try again.':marketplaceLoaded?'No projects match your search. Try another keyword or category.':'Loading published projects…';
+  discoverEmptyState.textContent=emptyMessage;
+  emptyState.hidden=filtered.length>0;
+  discoverEmptyState.hidden=filtered.length>0;
+  document.getElementById('discoverProjectCount').textContent=String(marketplaceProjects.length);
   document.getElementById('discoverResultsCount').textContent=`${filtered.length} project${filtered.length===1?'':'s'}`;
   document.querySelectorAll('[data-category-count]').forEach(count=>{
     const category=count.dataset.categoryCount;
-    const total=category==='All'?sampleProjects.length:sampleProjects.filter(project=>project.category===category).length;
+    const total=category==='All'?marketplaceProjects.length:marketplaceProjects.filter(project=>project.category===category).length;
     count.textContent=`${total} project${total===1?'':'s'}`;
   });
   document.getElementById('resultsLabel').textContent=activeQuery||activeCategory!=='All'
@@ -151,6 +166,67 @@ function renderProjects(){
     :'Explore ready-to-build ideas from independent developers.';
   document.getElementById('discoverResultsNote').textContent=activeSort==='newest'?'· showing newest first':activeSort==='oldest'?'· showing oldest first':activeSort==='price-low'?'· lowest price first':'· highest price first';
   document.getElementById('favoriteCount').textContent=String(favorites.length);
+}
+
+async function loadPublicProjects(){
+  try{
+    const user=await window.devMatchBackend.ready;
+    if(!user)throw new Error('Sign in to browse published projects.');
+    const client=window.devMatchBackend.client;
+    const {data:rows,error}=await client.from('projects')
+      .select('id,owner_id,title,project_type,category,price,cover_image,status,data,created_at,updated_at')
+      .eq('project_kind','portfolio')
+      .eq('status','published')
+      .order('updated_at',{ascending:false});
+    if(error)throw error;
+    const ownerIds=[...new Set((rows||[]).map(row=>row.owner_id).filter(Boolean))];
+    let peopleById=new Map();
+    if(ownerIds.length){
+      const {data:people,error:peopleError}=await client.from('directory_people')
+        .select('id,display_name,account_role,profile_data')
+        .eq('account_role','dev')
+        .in('id',ownerIds);
+      if(peopleError)throw peopleError;
+      peopleById=new Map((people||[]).map(person=>[person.id,person]));
+    }
+    marketplaceProjects=(rows||[]).map(row=>{
+      const data=row.data&&typeof row.data==='object'&&!Array.isArray(row.data)?row.data:{};
+      const person=peopleById.get(row.owner_id);
+      const profile=person?.profile_data&&typeof person.profile_data==='object'?person.profile_data:{};
+      const displayName=String(person?.display_name||'DEV-MATCH member');
+      const specialtyValues=Array.isArray(data.specialties)?data.specialties
+        :Array.isArray(profile.specialty)?profile.specialty
+          :String(data.specialty||profile.specialty||'').split(/[,\n]/);
+      const specialties=[...new Set(specialtyValues.map(value=>String(value).trim()).filter(Boolean))];
+      const createdAt=new Date(row.created_at||row.updated_at||Date.now());
+      const rawPrice=String(row.price||data.price||data.budgetLabel||data.budget||'');
+      return {
+        ...data,
+        id:row.id,
+        title:String(row.title||data.title||'Untitled project'),
+        type:String(row.project_type||data.projectType||data.type||'Project'),
+        category:String(row.category||data.category||'Other'),
+        description:String(data.description||data.overview||''),
+        specialty:specialties[0]||'',
+        specialties,
+        price:rawPrice||'Contact for pricing',
+        developer:displayName,
+        initials:(displayName.match(/\b\p{L}/gu)||[]).slice(0,2).join('').toUpperCase()||'DM',
+        location:[profile.city,profile.country].filter(Boolean).join(', ')||'Location not provided',
+        age:Number.isNaN(createdAt.getTime())?'Recently published':createdAt.toLocaleDateString(),
+        coverImage:safeProjectCover(row.cover_image||data.coverImage),
+        art:'dashboard-art'
+      };
+    });
+    marketplaceFailed=false;
+  }catch(error){
+    console.error('Unable to load published projects from Supabase.',error);
+    marketplaceProjects=[];
+    marketplaceFailed=true;
+  }finally{
+    marketplaceLoaded=true;
+    renderProjects();
+  }
 }
 
 function renderRequests(){
@@ -163,9 +239,9 @@ function renderRequests(){
   document.getElementById('requestStatOpen').textContent=String(counts.open);
   document.getElementById('requestStatClosed').textContent=String(counts.closed);
   document.getElementById('requestStatDraft').textContent=String(counts.draft);
-  document.getElementById('requestStatViews').textContent=String(requests.reduce((sum,request)=>sum+(Number(request.views)||0),0).toLocaleString('id-ID'));
-  document.getElementById('requestStatSaves').textContent=String(requests.reduce((sum,request)=>sum+(Number(request.saves??request.favorites)||0),0).toLocaleString('id-ID'));
-  document.getElementById('requestStatComments').textContent=String(requests.reduce((sum,request)=>sum+(Number(request.commentCount??request.comments)||0),0).toLocaleString('id-ID'));
+  document.getElementById('requestStatViews').textContent=formatDashboardMetric(requestDashboardMetrics?.views);
+  document.getElementById('requestStatSaves').textContent=formatDashboardMetric(requestDashboardMetrics?.favorites);
+  document.getElementById('requestStatComments').textContent=formatDashboardMetric(requestDashboardMetrics?.comments);
   document.getElementById('requestCountAll').textContent=String(requests.length);
   document.getElementById('requestCountOpen').textContent=String(counts.open);
   document.getElementById('requestCountClosed').textContent=String(counts.closed);
@@ -179,35 +255,6 @@ function renderRequests(){
     const secondUpdated=Number(second.updated)||0;
     return activeRequestSort==='oldest'?firstUpdated-secondUpdated:secondUpdated-firstUpdated;
   });
-  const activity=requests.flatMap(request=>(request.activity||[]).map(entry=>({...entry,requestTitle:request.title||'Project request'})))
-    .sort((first,second)=>(Number(second.created)||0)-(Number(first.created)||0)).slice(0,4);
-  const activityList=document.getElementById('requestActivityList');
-  activityList.replaceChildren();
-  if(activity.length){
-    activity.forEach(entry=>{
-      const item=document.createElement('article');
-      item.className='request-activity-item';
-      const avatar=document.createElement('span');
-      avatar.className='request-activity-avatar';
-      avatar.textContent=String(entry.initials||entry.name||'').trim().split(/\s+/).slice(0,2).map(part=>part[0]).join('').toUpperCase()||'•';
-      const copy=document.createElement('p');
-      const name=document.createElement('b');
-      name.textContent=entry.name||'A developer';
-      copy.append(name,document.createTextNode(` ${entry.action||'interacted with'} `));
-      const title=document.createElement('strong');
-      title.textContent=entry.requestTitle;
-      copy.append(title);
-      const time=document.createElement('small');
-      time.textContent=entry.time||'Recently';
-      item.append(avatar,copy,time);
-      activityList.append(item);
-    });
-  }else{
-    const empty=document.createElement('p');
-    empty.className='request-activity-empty';
-    empty.textContent='Developer views, saves, and comments will appear here once your requests get noticed.';
-    activityList.append(empty);
-  }
   if(!filtered.length){
     container.replaceChildren();
     const empty=document.getElementById('requestsEmpty');
@@ -438,7 +485,6 @@ let deadlinePickerMonth=new Date().getMonth();
 let pendingReferenceFiles=[];
 let retainedAttachments=[];
 let removedAttachmentIds=new Set();
-let requestAttachmentDatabasePromise=null;
 const monthNames=Array.from({length:12},(_,index)=>new Intl.DateTimeFormat('en',{month:'long'}).format(new Date(2026,index,1)));
 const shortMonthNames=Array.from({length:12},(_,index)=>new Intl.DateTimeFormat('en',{month:'short'}).format(new Date(2026,index,1)));
 function isoDate(date){
@@ -659,7 +705,7 @@ function syncConditionalFields(){
 }
 function renderReferenceAttachments(){
   const list=document.getElementById('requestAttachmentList');
-  const attachments=[...retainedAttachments.filter(item=>!removedAttachmentIds.has(item.id)).map(item=>({name:item.name,id:item.id,source:'saved'})),...pendingReferenceFiles.map((file,index)=>({name:file.name,index,source:'pending'}))];
+  const attachments=[...retainedAttachments.filter(item=>!removedAttachmentIds.has(item.path)).map(item=>({name:item.name,path:item.path,source:'saved'})),...pendingReferenceFiles.map((file,index)=>({name:file.name,index,source:'pending'}))];
   list.hidden=attachments.length===0;
   list.replaceChildren(...attachments.map(attachment=>{
     const item=document.createElement('li');
@@ -667,42 +713,12 @@ function renderReferenceAttachments(){
     name.textContent=attachment.name;
     const remove=document.createElement('button');
     remove.type='button';
-    remove.dataset.removeAttachment=attachment.source==='saved'?attachment.id:String(attachment.index);
+    remove.dataset.removeAttachment=attachment.source==='saved'?attachment.path:String(attachment.index);
     remove.dataset.attachmentSource=attachment.source;
     remove.setAttribute('aria-label',`Remove ${attachment.name}`);
     remove.textContent='×';
     item.append(name,remove);
     return item;
-  }));
-}
-function openRequestAttachmentDatabase(){
-  if(!('indexedDB' in window))return Promise.reject(new Error('This browser does not support local file storage.'));
-  if(!requestAttachmentDatabasePromise){
-    requestAttachmentDatabasePromise=new Promise((resolve,reject)=>{
-      const opening=indexedDB.open('devmatch-client-request-files',1);
-      opening.onupgradeneeded=()=>{
-        if(!opening.result.objectStoreNames.contains('attachments'))opening.result.createObjectStore('attachments',{keyPath:'id'});
-      };
-      opening.onsuccess=()=>resolve(opening.result);
-      opening.onerror=()=>reject(opening.error||new Error('Could not open local file storage.'));
-    });
-  }
-  return requestAttachmentDatabasePromise;
-}
-function persistRequestAttachments(requestId,files,removeIds){
-  return openRequestAttachmentDatabase().then(database=>new Promise((resolve,reject)=>{
-    const transaction=database.transaction('attachments','readwrite');
-    const store=transaction.objectStore('attachments');
-    const saved=[];
-    files.forEach((file,index)=>{
-      const id=`${requestId}:${Date.now()}:${index}:${Math.random().toString(36).slice(2,8)}`;
-      store.put({id,requestId,name:file.name,type:file.type,size:file.size,blob:file});
-      saved.push({id,name:file.name,type:file.type,size:file.size});
-    });
-    removeIds.forEach(id=>store.delete(id));
-    transaction.oncomplete=()=>resolve(saved);
-    transaction.onerror=()=>reject(transaction.error||new Error('Could not save reference images.'));
-    transaction.onabort=()=>reject(transaction.error||new Error('Saving reference images was interrupted.'));
   }));
 }
 function requestFormData(){
@@ -740,7 +756,7 @@ function updateRequestPreview(){
   document.getElementById('requestPreviewCategory').textContent=request.category==='Other'&&request.categoryOther?`Other · ${request.categoryOther}`:request.category||'Category';
   document.getElementById('requestPreviewType').textContent=request.projectType||'Project type';
   document.getElementById('requestPreviewDescription').textContent=request.description||'Your project description will appear here to help developers understand what you need.';
-  const referenceCount=request.references.length+retainedAttachments.filter(item=>!removedAttachmentIds.has(item.id)).length+pendingReferenceFiles.length;
+  const referenceCount=request.references.length+retainedAttachments.filter(item=>!removedAttachmentIds.has(item.path)).length+pendingReferenceFiles.length;
   const referenceNote=document.getElementById('requestPreviewReferences');
   referenceNote.hidden=!referenceCount;
   referenceNote.textContent=referenceCount?`${referenceCount} reference${referenceCount===1?'':'s'} attached`: '';
@@ -765,11 +781,15 @@ function openRequestComposer(request=null){
   requestForm.reset();
   editingRequestId=request?.id||null;
   pendingReferenceFiles=[];
-  retainedAttachments=[...(request?.attachments||[])];
+  const savedAttachments=Array.isArray(request?.attachments)?request.attachments:[];
+  const legacyAttachmentCount=savedAttachments.filter(item=>!item||typeof item.path!=='string'||!item.path).length;
+  retainedAttachments=savedAttachments.filter(item=>item&&typeof item.path==='string'&&item.path);
   removedAttachmentIds=new Set();
   document.getElementById('requestPageTitle').textContent=request?'Edit project request':'Post a project request';
   document.querySelector('[data-post-request]').innerHTML=request?'Update Project Request <span aria-hidden="true">→</span>':'Post Project Request <span aria-hidden="true">→</span>';
-  document.getElementById('requestComposerMessage').textContent='';
+  document.getElementById('requestComposerMessage').textContent=legacyAttachmentCount
+    ?'Some older attachments were saved only in this browser and are no longer available. Reattach them if needed.'
+    :'';
   const profile=JSON.parse(localStorage.getItem('devmatch-profile-client')||'{}');
   const profileName=profile.displayName||'Client';
   document.getElementById('requestPreviewName').textContent=profileName;
@@ -798,6 +818,46 @@ function openRequestComposer(request=null){
   showClientView('request');
   window.scrollTo({top:0,behavior:'smooth'});
   if(!request)requestForm.elements.title.focus({preventScroll:true});
+}
+async function renderPrivateAttachmentLinks(request,container,statusElement,unavailableMessage){
+  const attachments=Array.isArray(request.attachments)?request.attachments:[];
+  container.dataset.requestId=String(request.id);
+  container.replaceChildren();
+  statusElement.hidden=true;
+  if(!attachments.length)return;
+  statusElement.textContent='Loading reference files…';
+  statusElement.hidden=false;
+  const unavailable=[];
+  await Promise.all(attachments.map(async attachment=>{
+    const item=document.createElement(container.tagName==='UL'?'li':'div');
+    container.append(item);
+    if(!attachment||typeof attachment.path!=='string'||!attachment.path){
+      item.textContent=unavailableMessage;
+      unavailable.push(attachment?.name||'attachment');
+      return;
+    }
+    item.textContent=`Loading ${attachment.name||'reference file'}…`;
+    try{
+      const url=await window.devMatchBackend.createPrivateFileUrl(attachment.path,attachment.name);
+      if(container.dataset.requestId!==String(request.id))return;
+      const link=document.createElement('a');
+      link.href=url;
+      link.target='_blank';
+      link.rel='noopener noreferrer';
+      link.textContent=attachment.name||'Download reference file';
+      item.replaceChildren(link);
+    }catch(error){
+      console.error('Unable to create a private reference-file link.',error);
+      if(container.dataset.requestId!==String(request.id))return;
+      item.textContent=`${attachment.name||'Reference file'} — unavailable`;
+      unavailable.push(attachment.name||'attachment');
+    }
+  }));
+  if(container.dataset.requestId!==String(request.id))return;
+  statusElement.textContent=unavailable.length
+    ?'Some reference files are unavailable to your account.'
+    :'Files are private and available only to authorized viewers.';
+  statusElement.hidden=unavailable.length===0;
 }
 function showRequestDetails(request){
   const dialog=document.getElementById('requestViewDialog');
@@ -836,12 +896,14 @@ function showRequestDetails(request){
       linkContainer.append(link);
     }catch{}
   });
-  (request.attachments||[]).forEach(attachment=>{
-    const item=document.createElement('li');
-    item.textContent=attachment.name||'Reference image';
-    attachmentList.append(item);
-  });
-  referenceSection.hidden=!linkContainer.children.length&&!attachmentList.children.length;
+  const attachmentStatus=document.getElementById('requestViewAttachmentStatus');
+  renderPrivateAttachmentLinks(
+    request,
+    attachmentList,
+    attachmentStatus,
+    'This older attachment is no longer available. Ask the owner to reattach it.'
+  );
+  referenceSection.hidden=!linkContainer.children.length&&!(request.attachments||[]).length;
   document.getElementById('requestViewStatus').textContent=`${Number(request.views)||0} views · ${Number(request.saves??request.favorites)||0} saved · ${Number(request.commentCount??request.comments)||0} comments`;
   dialog.showModal();
 }
@@ -876,6 +938,15 @@ async function showRequestDetailPage(request){
   document.getElementById('requestDetailStatus').className=`request-detail-status ${status}`;
   document.getElementById('requestDetailTitle').textContent=request.title||'Untitled request';
   document.getElementById('requestDetailDescription').textContent=request.description||'No description provided.';
+  const detailAttachments=document.getElementById('requestDetailAttachments');
+  const detailAttachmentStatus=document.getElementById('requestDetailAttachmentStatus');
+  document.getElementById('requestDetailReferences').hidden=!(request.attachments||[]).length;
+  renderPrivateAttachmentLinks(
+    request,
+    detailAttachments,
+    detailAttachmentStatus,
+    'This older attachment is no longer available. Ask the owner to reattach it.'
+  );
   document.getElementById('requestDetailBudget').textContent=request.budgetFrom&&request.budgetTo
     ?`${formatRequestMoney(request.budgetFrom)} — ${formatRequestMoney(request.budgetTo)}`
     :request.budget||'Not set';
@@ -1008,14 +1079,12 @@ async function deleteRequest(requestId){
     return;
   }
   const updatedRequests=requests.filter(item=>item.id!==requestId);
+  requests=updatedRequests;
   try{
     localStorage.setItem(requestsKey,JSON.stringify(updatedRequests));
   }catch(error){
-    console.error('Unable to delete the project request.',error);
-    document.getElementById('requestsMessage').textContent='Could not delete this request. Browser storage may be full.';
-    return;
+    console.warn('The request was deleted from Supabase, but its local cache could not be updated.',error);
   }
-  requests=updatedRequests;
   document.getElementById('requestsMessage').textContent='Request deleted.';
   renderRequests();
   if(activeRequestDetailId===requestId){
@@ -1023,12 +1092,13 @@ async function deleteRequest(requestId){
     history.replaceState(null,'','#requests');
     showClientView('requests');
   }
-  if(request.attachments?.length){
+  const attachmentPaths=(request.attachments||[]).map(attachment=>attachment?.path).filter(path=>typeof path==='string'&&path);
+  if(attachmentPaths.length){
     try{
-      await persistRequestAttachments(request.id,[],request.attachments.map(attachment=>attachment.id));
+      await window.devMatchBackend.removeUploadedFiles('private-uploads',attachmentPaths);
     }catch(error){
-      console.error('Unable to remove deleted request reference images.',error);
-      document.getElementById('requestsMessage').textContent='Request deleted, but some local reference images could not be removed.';
+      console.error('Unable to remove deleted request attachments from Supabase Storage.',error);
+      document.getElementById('requestsMessage').textContent='Request deleted, but some reference files could not be removed from storage.';
     }
   }
 }
@@ -1107,45 +1177,116 @@ async function saveRequest(status){
     requestForm.elements.references.focus();
     return;
   }
-  const totalAttachments=retainedAttachments.filter(item=>!removedAttachmentIds.has(item.id)).length+pendingReferenceFiles.length;
+  const savedAttachments=retainedAttachments.filter(item=>!removedAttachmentIds.has(item.path));
+  const totalAttachments=savedAttachments.length+pendingReferenceFiles.length;
   if(totalAttachments>5){
-    message.textContent='Attach no more than 5 reference images.';
+    message.textContent='Attach no more than 5 reference files.';
     return;
   }
-  const existingIndex=requests.findIndex(item=>item.id===editingRequestId);
-  const id=editingRequestId||`request-${Date.now()}`;
-  let attachments=retainedAttachments.filter(item=>!removedAttachmentIds.has(item.id));
-  if(pendingReferenceFiles.length||removedAttachmentIds.size){
-    try{
-      const saved=await persistRequestAttachments(id,pendingReferenceFiles,[...removedAttachmentIds]);
-      attachments=[...attachments,...saved];
-    }catch(error){
-      console.error('Unable to save project reference images.',error);
-      message.textContent='Could not save reference images in this browser. Please try again or remove the images.';
-      return;
-    }
+  const supportedTypes=new Set([
+    'application/pdf',
+    'application/msword',
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    'image/jpeg',
+    'image/png',
+    'image/webp'
+  ]);
+  if(pendingReferenceFiles.some(file=>!supportedTypes.has(file.type)||file.size>10*1024*1024)){
+    message.textContent='Use PDF, DOC, DOCX, JPG, PNG, or WebP files no larger than 10 MB each.';
+    return;
   }
+  if(savingRequest)return;
+  savingRequest=true;
+  document.querySelectorAll('[data-save-request-draft],[data-post-request]').forEach(button=>{button.disabled=true;});
+  const saveDraftButton=document.querySelector('[data-save-request-draft]');
+  const postButton=document.querySelector('[data-post-request]');
+  message.textContent='Saving request…';
   const {referenceFiles,...requestData}=data;
-  const request={...requestData,attachments,id,status,updated:Date.now()};
+  const removedPaths=[...removedAttachmentIds].filter(path=>typeof path==='string'&&path);
+  const request={...requestData,attachments:savedAttachments,id:editingRequestId||'',status,updated:Date.now()};
   try{
     request.id=await window.devMatchBackend.saveOwnedProject('request',request);
   }catch(error){
     console.error('Unable to save the project request to Supabase.',error);
     message.textContent='Could not save this request. Check your connection and try again.';
+    savingRequest=false;
+    document.querySelectorAll('[data-save-request-draft],[data-post-request]').forEach(button=>{button.disabled=false;});
     return;
   }
   const updatedRequests=[...requests];
+  const existingIndex=updatedRequests.findIndex(item=>item.id===request.id);
   if(existingIndex>=0)updatedRequests[existingIndex]=request;
   else updatedRequests.unshift(request);
+  requests=updatedRequests;
   try{
     localStorage.setItem(requestsKey,JSON.stringify(updatedRequests));
   }catch(error){
-    console.error('Unable to save the project request in browser storage.',error);
-    message.textContent='Could not save this request. Browser storage may be full.';
-    return;
+    console.warn('The request was saved to Supabase, but its local cache could not be updated.',error);
   }
-  requests=updatedRequests;
   renderRequests();
+  editingRequestId=request.id;
+  retainedAttachments=savedAttachments;
+  removedAttachmentIds.clear();
+
+  let cleanupWarning=false;
+  if(removedPaths.length){
+    try{
+      await window.devMatchBackend.removeUploadedFiles('private-uploads',removedPaths);
+    }catch(error){
+      cleanupWarning=true;
+      console.error('Unable to remove deleted reference files from Supabase Storage.',error);
+    }
+  }
+
+  if(pendingReferenceFiles.length){
+    const uploaded=[];
+    try{
+      message.textContent='Uploading reference files…';
+      for(const file of pendingReferenceFiles){
+        uploaded.push(await window.devMatchBackend.uploadPrivateFile('request',request.id,file));
+      }
+      const requestWithAttachments={...request,attachments:[...savedAttachments,...uploaded],updated:Date.now()};
+      await window.devMatchBackend.saveOwnedProject('request',requestWithAttachments);
+      request.attachments=requestWithAttachments.attachments;
+      request.updated=requestWithAttachments.updated;
+      const withAttachments=requests.map(item=>item.id===request.id?request: item);
+      requests=withAttachments;
+      try{
+        localStorage.setItem(requestsKey,JSON.stringify(withAttachments));
+      }catch(error){
+        console.warn('Reference files are saved, but the local request cache could not be updated.',error);
+      }
+      renderRequests();
+      retainedAttachments=request.attachments;
+    }catch(error){
+      console.error('Unable to save reference files to Supabase Storage.',error);
+      let cleanupFailed=false;
+      if(uploaded.length){
+        try{
+          await window.devMatchBackend.removeUploadedFiles('private-uploads',uploaded.map(file=>file.path));
+        }catch(cleanupError){
+          cleanupFailed=true;
+          console.error('Unable to clean up uploaded request files after the database update failed.',cleanupError);
+        }
+      }
+      message.textContent=cleanupFailed
+        ?'The request was saved, but its attachments could not be saved or cleaned up. Please contact support before retrying.'
+        :cleanupWarning
+          ?'The request was saved, but its attachments could not be saved and some removed files could not be deleted. Try again.'
+          :'The request was saved, but its attachments could not be saved. Check your connection and try again.';
+      savingRequest=false;
+      document.querySelectorAll('[data-save-request-draft],[data-post-request]').forEach(button=>{button.disabled=false;});
+      return;
+    }
+  }
+  if(saveDraftButton)saveDraftButton.disabled=false;
+  if(postButton)postButton.disabled=false;
+  savingRequest=false;
+  pendingReferenceFiles=[];
+  retainedAttachments=[...(request.attachments||[])];
+  removedAttachmentIds.clear();
+  renderReferenceAttachments();
+  if(cleanupWarning)document.getElementById('requestsMessage').textContent='Request saved, but some removed files could not be deleted from storage.';
   editingRequestId=null;
   history.replaceState(null,'','#requests');
   showClientView('requests');
@@ -1170,14 +1311,22 @@ document.getElementById('requestReferenceFiles').addEventListener('change',event
   const message=document.getElementById('requestComposerMessage');
   const files=[...event.target.files];
   event.target.value='';
-  const currentCount=retainedAttachments.filter(item=>!removedAttachmentIds.has(item.id)).length+pendingReferenceFiles.length;
-  const valid=files.filter(file=>['image/png','image/jpeg','image/webp'].includes(file.type)&&file.size<=5*1024*1024);
+  const currentCount=retainedAttachments.filter(item=>!removedAttachmentIds.has(item.path)).length+pendingReferenceFiles.length;
+  const supportedTypes=new Set([
+    'application/pdf',
+    'application/msword',
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    'image/jpeg',
+    'image/png',
+    'image/webp'
+  ]);
+  const valid=files.filter(file=>supportedTypes.has(file.type)&&file.size<=10*1024*1024);
   if(valid.length!==files.length){
-    message.textContent='Only PNG, JPG, or WebP images up to 5 MB each can be attached.';
+    message.textContent='Use PDF, DOC, DOCX, JPG, PNG, or WebP files no larger than 10 MB each.';
     return;
   }
   if(currentCount+valid.length>5){
-    message.textContent='Attach no more than 5 reference images.';
+    message.textContent='Attach no more than 5 reference files.';
     return;
   }
   pendingReferenceFiles.push(...valid);
@@ -1255,6 +1404,126 @@ document.querySelectorAll('[data-close-request-view]').forEach(button=>button.ad
 document.getElementById('requestViewDialog').addEventListener('click',event=>{if(event.target===event.currentTarget)event.currentTarget.close()});
 renderProjects();
 renderRequests();
+const requestActivityList=document.getElementById('requestActivityList');
+requestActivityList.replaceChildren();
+const requestActivityLoading=document.createElement('p');
+requestActivityLoading.className='request-activity-empty';
+requestActivityLoading.setAttribute('role','status');
+requestActivityLoading.textContent='Loading activity…';
+requestActivityList.append(requestActivityLoading);
+
+function requestActivityTime(value){
+  const date=new Date(value);
+  if(Number.isNaN(date.getTime()))return 'Recently';
+  const minutes=Math.max(0,Math.floor((Date.now()-date.getTime())/60000));
+  if(minutes<1)return 'Just now';
+  if(minutes<60)return `${minutes}m ago`;
+  const hours=Math.floor(minutes/60);
+  if(hours<24)return `${hours}h ago`;
+  const days=Math.floor(hours/24);
+  return days<7?`${days}d ago`:date.toLocaleDateString();
+}
+
+function requestActivityType(kind){
+  const value=String(kind||'').toLowerCase();
+  if(value.includes('comment')||value.includes('reply'))return 'commented on';
+  if(value.includes('favorite')||value.includes('favourite')||value.includes('save'))return 'saved';
+  if(value.includes('message')||value.includes('conversation'))return 'sent a message about';
+  if(value.includes('rating')||value.includes('review'))return 'left a rating for';
+  return 'updated';
+}
+
+async function loadClientDashboardData(){
+  const backend=window.devMatchBackend;
+  const client=backend.client;
+  try{
+    const user=await backend.ready;
+    if(!user)return;
+    const metricsTask=client.rpc('get_dashboard_metrics').then(({data,error})=>{
+      if(error)throw error;
+      requestDashboardMetrics=typeof data==='string'?JSON.parse(data):data;
+      if(!requestDashboardMetrics||typeof requestDashboardMetrics!=='object'
+        ||['projects','views','favorites','comments'].some(key=>requestDashboardMetrics[key]==null||!Number.isFinite(Number(requestDashboardMetrics[key])))){
+        throw new Error('Dashboard metrics are unavailable.');
+      }
+      renderRequests();
+    }).catch(error=>{
+      console.error('Unable to load request dashboard metrics.',error);
+      ['requestStatViews','requestStatSaves','requestStatComments'].forEach(id=>{document.getElementById(id).textContent='—';});
+      document.getElementById('requestsMessage').textContent='Unable to load dashboard metrics. Check your connection and try again.';
+    });
+    const activityTask=(async()=>{
+      const {data:notifications,error}=await client.from('notifications')
+        .select('id,actor_id,kind,project_id,conversation_id,created_at')
+        .eq('recipient_id',user.id)
+        .order('created_at',{ascending:false})
+        .limit(5);
+      if(error)throw error;
+      const entries=notifications||[];
+      if(!entries.length){
+        const empty=document.createElement('p');
+        empty.className='request-activity-empty';
+        empty.textContent='Recent request activity will appear here.';
+        requestActivityList.replaceChildren(empty);
+        return;
+      }
+      const actorIds=[...new Set(entries.map(entry=>entry.actor_id).filter(Boolean))];
+      const projectIds=[...new Set(entries.map(entry=>entry.project_id).filter(Boolean))];
+      const [actorsResult,projectsResult]=await Promise.all([
+        actorIds.length?client.from('directory_people').select('id,display_name').in('id',actorIds):Promise.resolve({data:[],error:null}),
+        projectIds.length?client.from('projects').select('id,title').in('id',projectIds):Promise.resolve({data:[],error:null})
+      ]);
+      if(actorsResult.error)throw actorsResult.error;
+      if(projectsResult.error)throw projectsResult.error;
+      const names=new Map((actorsResult.data||[]).map(actor=>[actor.id,actor.display_name]));
+      const titles=new Map((projectsResult.data||[]).map(project=>[project.id,project.title]));
+      requestActivityList.replaceChildren();
+      entries.forEach(entry=>{
+        const item=document.createElement('article');
+        item.className='request-activity-item';
+        const avatar=document.createElement('span');
+        avatar.className='request-activity-avatar';
+        avatar.textContent=String(names.get(entry.actor_id)||'').trim().split(/\s+/).slice(0,2).map(part=>part[0]).join('').toUpperCase()||'•';
+        const copy=document.createElement('p');
+        const actor=document.createElement('b');
+        actor.textContent=names.get(entry.actor_id)||'A member';
+        const title=document.createElement('strong');
+        title.textContent=titles.get(entry.project_id)||(entry.conversation_id?'your conversation':'your request');
+        copy.append(actor,document.createTextNode(` ${requestActivityType(entry.kind)} `),title);
+        const time=document.createElement('small');
+        time.textContent=requestActivityTime(entry.created_at);
+        item.append(avatar,copy,time);
+        requestActivityList.append(item);
+      });
+    })().catch(error=>{
+      console.error('Unable to load recent request activity.',error);
+      const message=document.createElement('p');
+      message.className='request-activity-empty';
+      message.setAttribute('role','status');
+      message.textContent='Unable to load activity. Check your connection and try again.';
+      requestActivityList.replaceChildren(message);
+    });
+    const unreadTask=(async()=>{
+      const [readIds,{data:notifications,error}]=await Promise.all([
+        backend.loadNotificationReads(),
+        client.from('notifications').select('id').eq('recipient_id',user.id)
+      ]);
+      if(error)throw error;
+      const unread=(notifications||[]).filter(entry=>!readIds.includes(entry.id)).length;
+      document.querySelectorAll('.client-notification-count').forEach(count=>{
+        count.textContent=String(unread);
+        count.hidden=unread===0;
+      });
+      if(notificationDot)notificationDot.hidden=unread===0;
+    })().catch(error=>console.error('Unable to load notification count.',error));
+    await Promise.all([metricsTask,activityTask,unreadTask]);
+  }catch(error){
+    console.error('Unable to load client dashboard data.',error);
+  }
+}
+
+loadClientDashboardData();
+loadPublicProjects();
 syncRequestPickers();
 syncConditionalFields();
 renderReferenceAttachments();

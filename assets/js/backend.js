@@ -433,6 +433,16 @@
     }));
   }
 
+  async function recordProjectView(projectId) {
+    if (typeof projectId !== 'string' || !projectId) {
+      throw new TypeError('A project ID is required.');
+    }
+    await currentAccount();
+    const {data, error} = await client.rpc('record_project_view', {p_project_id: projectId});
+    if (error) throw error;
+    return data;
+  }
+
   async function addProjectComment(projectId, text) {
     if (typeof projectId !== 'string' || !projectId
       || typeof text !== 'string' || !text.trim() || text.trim().length > 5000) {
@@ -453,6 +463,142 @@
       initials: data.author_initials,
       time: data.created_at
     };
+  }
+
+  function safeFileName(value) {
+    const name = String(value || 'upload')
+      .normalize('NFKD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^A-Za-z0-9._-]+/g, '-')
+      .replace(/^-+|-+$/g, '')
+      .slice(-100);
+    return name || 'upload';
+  }
+
+  function validateUpload(file, allowedTypes, maximumBytes) {
+    if (!(file instanceof Blob) || !allowedTypes.includes(file.type)) {
+      throw new TypeError('Choose a supported file type.');
+    }
+    if (file.size <= 0 || file.size > maximumBytes) {
+      throw new RangeError('The selected file is empty or exceeds the upload size limit.');
+    }
+  }
+
+  async function uploadProfileAvatar(file) {
+    validateUpload(file, ['image/jpeg', 'image/png', 'image/webp', 'image/gif'], 10 * 1024 * 1024);
+    const user = await currentAccount();
+    const path = `${user.id}/avatars/${crypto.randomUUID()}-${safeFileName(file.name)}`;
+    const {error} = await client.storage.from('project-media').upload(path, file, {
+      cacheControl: '31536000',
+      contentType: file.type,
+      upsert: false
+    });
+    if (error) throw error;
+    const {data} = client.storage.from('project-media').getPublicUrl(path);
+    return {path, url: data.publicUrl};
+  }
+
+  async function removeProfileAvatar(url) {
+    if (typeof url !== 'string') return;
+    const prefix = 'https://yxwktllqbmhustmhdaqi.supabase.co/storage/v1/object/public/project-media/';
+    if (!url.startsWith(prefix)) return;
+    const user = await currentAccount();
+    const path = url.slice(prefix.length).split('/').map(decodeURIComponent).join('/');
+    if (path.split('/')[0] !== user.id) {
+      throw new Error('You can only remove your own profile photo.');
+    }
+    await removeUploadedFiles('project-media', [path]);
+  }
+
+  async function uploadPortfolioMedia(projectId, file) {
+    if (typeof projectId !== 'string' || !projectId) {
+      throw new TypeError('A saved project ID is required before uploading project media.');
+    }
+    const imageTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+    const videoTypes = ['video/mp4', 'video/webm'];
+    const allowedTypes = file?.type?.startsWith('video/') ? videoTypes : imageTypes;
+    validateUpload(file, allowedTypes, file?.type?.startsWith('video/')
+      ? 50 * 1024 * 1024
+      : 10 * 1024 * 1024);
+    const user = await currentAccount();
+    const path = `${user.id}/${projectId}/${crypto.randomUUID()}-${safeFileName(file.name)}`;
+    const {error} = await client.storage.from('project-media').upload(path, file, {
+      cacheControl: '31536000',
+      contentType: file.type,
+      upsert: false
+    });
+    if (error) throw error;
+    const {data} = client.storage.from('project-media').getPublicUrl(path);
+    return {path, url: data.publicUrl};
+  }
+
+  async function removePortfolioMedia(urls) {
+    if (!Array.isArray(urls) || urls.some(url => typeof url !== 'string')) {
+      throw new TypeError('Project media URLs must be provided as a list.');
+    }
+    const user = await currentAccount();
+    const prefix = 'https://yxwktllqbmhustmhdaqi.supabase.co/storage/v1/object/public/project-media/';
+    const paths = urls.filter(url => url.startsWith(prefix)).map(url =>
+      url.slice(prefix.length).split('/').map(decodeURIComponent).join('/')
+    );
+    if (paths.some(path => path.split('/')[0] !== user.id)) {
+      throw new Error('You can only remove your own project media.');
+    }
+    await removeUploadedFiles('project-media', paths);
+  }
+
+  async function uploadPrivateFile(kind, entityId, file) {
+    const allowedTypes = [
+      'application/pdf',
+      'application/msword',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'image/jpeg',
+      'image/png',
+      'image/webp'
+    ];
+    validateUpload(file, allowedTypes, 10 * 1024 * 1024);
+    const user = await currentAccount();
+    let path;
+    if (kind === 'experience') {
+      path = `experience/${user.id}/${crypto.randomUUID()}-${safeFileName(file.name)}`;
+    } else if (kind === 'request' && typeof entityId === 'string' && entityId) {
+      path = `request/${user.id}/${entityId}/${crypto.randomUUID()}-${safeFileName(file.name)}`;
+    } else {
+      throw new TypeError('A supported private upload type is required.');
+    }
+    const {error} = await client.storage.from('private-uploads').upload(path, file, {
+      cacheControl: '3600',
+      contentType: file.type,
+      upsert: false
+    });
+    if (error) throw error;
+    return {path, name: file.name, size: file.size, type: file.type};
+  }
+
+  async function createPrivateFileUrl(path, downloadName) {
+    if (typeof path !== 'string'
+      || !/^(experience|request)\/[A-Za-z0-9-]+(?:\/[A-Za-z0-9-]+)*\/[^/]+$/.test(path)) {
+      throw new TypeError('A valid private upload path is required.');
+    }
+    const user = await currentAccount();
+    if (!user) throw new Error('Authentication is required to access this file.');
+    const options = downloadName ? {download: safeFileName(downloadName)} : {download: true};
+    const {data, error} = await client.storage.from('private-uploads')
+      .createSignedUrl(path, 300, options);
+    if (error) throw error;
+    return data.signedUrl;
+  }
+
+  async function removeUploadedFiles(bucket, paths) {
+    if (!['project-media', 'private-uploads'].includes(bucket)
+      || !Array.isArray(paths)
+      || paths.some(path => typeof path !== 'string' || path.startsWith('/') || path.includes('..'))) {
+      throw new TypeError('A supported bucket and valid file paths are required.');
+    }
+    if (!paths.length) return;
+    await currentAccount();
+    const {error} = await client.storage.from(bucket).remove(paths);
+    if (error) throw error;
   }
 
   async function saveProfile(value, {includePrivateFields = false} = {}){
@@ -502,6 +648,13 @@
     destination,
     saveProfile,
     changePassword,
+    uploadProfileAvatar,
+    removeProfileAvatar,
+    uploadPortfolioMedia,
+    removePortfolioMedia,
+    uploadPrivateFile,
+    createPrivateFileUrl,
+    removeUploadedFiles,
     loadFavorites,
     setFavorite,
     clearFavorites,
@@ -513,6 +666,7 @@
     saveOwnedProject,
     deleteOwnedProject,
     loadProjectComments,
+    recordProjectView,
     addProjectComment
   };
 })();

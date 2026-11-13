@@ -41,7 +41,7 @@
     <span class="nav-label">Menu</span>
     <nav class="side-nav" aria-label="Client dashboard navigation">
       <a class="nav-item" href="devmatch-client-dashboard.html#home"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-6v-7h-4v7H4a1 1 0 0 1-1-1z"/></svg>Home</a>
-      <a class="nav-item" href="devmatch-chat.html?role=client"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 11.5a8.5 8.5 0 0 1-8.5 8.5H4l1.5-4A8.5 8.5 0 1 1 21 11.5z"/></svg>Messages<span class="nav-count nav-count-message">3</span></a>
+      <a class="nav-item" href="devmatch-chat.html?role=client"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 11.5a8.5 8.5 0 0 1-8.5 8.5H4l1.5-4A8.5 8.5 0 1 1 21 11.5z"/></svg>Messages</a>
       <a class="nav-item" href="devmatch-client-dashboard.html#requests"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h9l4 4v14H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"/><path d="M14 3v5h5M8 13h8m-8 4h8"/></svg>My Requests</a>
       <a class="nav-item" href="devmatch-discover-projects.html"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="m15.5 8.5-2 5-5 2 2-5z"/></svg>Discover Projects</a>
       <a class="nav-item active" href="devmatch-find-developers.html" aria-current="page"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3"/><path d="M3 20a6 6 0 0 1 12 0m2-8a3 3 0 1 0 0-6m1 8a5 5 0 0 1 3 5"/></svg>Developers</a>
@@ -57,9 +57,10 @@
   </aside>
 
   <main class="dashboard profile-page">
+    <p id="profileStatus" role="status" aria-live="polite">Loading developer profile…</p>
     <header class="profile-page-heading"><div><p class="eyebrow">Developers</p><h1>Developer Profile</h1></div></header>
     <nav class="public-profile-breadcrumb" aria-label="Breadcrumb"><a href="devmatch-find-developers.html">Developers</a><span>›</span><b id="breadcrumbName">Developer</b></nav>
-    <section class="profile-identity-card">
+    <section class="profile-identity-card" hidden>
       <div class="profile-cover"><span class="cover-code" aria-hidden="true">&lt;/&gt;</span><span class="cover-orbit cover-orbit-one"></span><span class="cover-orbit cover-orbit-two"></span></div>
       <div class="identity-body">
         <div class="identity-avatar" id="developerInitials">DM</div>
@@ -76,7 +77,7 @@
         </div>
       </div>
     </section>
-    <div class="profile-columns">
+    <div class="profile-columns" hidden>
       <aside class="profile-details">
         <section class="profile-card about-card"><div class="card-heading"><h2>About</h2></div><p class="about-copy" id="developerAboutCard"></p><div class="role-info-grid"><div class="role-info-item"><small>EXPERIENCE</small><strong id="developerExperience"></strong></div><div class="role-info-item"><small>LOCATION</small><strong id="developerLocationCard"></strong></div></div></section>
         <section class="profile-card"><div class="card-heading"><h2>Specialization</h2></div><div class="profile-specialty-grid" id="developerSpecialties"></div></section>
@@ -108,8 +109,7 @@
       </section>
     </div>
   </main>
-  <script src="assets/js/projects-data.js"></script>
-  <script src="assets/js/developer-profile.js?v=20261111-projects-comments"></script>
-  <script src="assets/js/nav-behavior.js?v=20261031-account-dropdown-ease"></script>
+  <script src="assets/js/developer-profile.js?v=20261112-live-directory"></script>
+  <script src="assets/js/nav-behavior.js?v=20261112-secure-chat-badge"></script>
 </body>
 </html>

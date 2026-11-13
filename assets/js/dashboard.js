@@ -1,311 +1,310 @@
-const profile=JSON.parse(localStorage.getItem('devmatch-profile-dev')||'{}');
-const displayName=typeof profile.displayName==='string'&&profile.displayName.trim()
-  ? profile.displayName.trim()
-  : 'Rizky Aditya';
-const nameParts=displayName.trim().split(/\s+/).filter(Boolean);
-document.getElementById('welcomeName').textContent=nameParts[0]||'Rizky';
-document.getElementById('topUserName').textContent=displayName;
-document.getElementById('userAvatar').textContent=nameParts.slice(0,2).map(part=>part[0]).join('').toUpperCase()||'DM';
-const notificationReadIds=new Set(JSON.parse(localStorage.getItem('devmatch-dev-notifications-read')||'[]'));
-const unreadNotificationCount=['jessica-comment','rizky-message'].filter(id=>!notificationReadIds.has(id)).length;
-document.getElementById('developerNotificationCount').textContent=String(unreadNotificationCount);
-document.getElementById('developerNotificationCount').hidden=unreadNotificationCount===0;
-document.querySelector('.notification-button i').hidden=unreadNotificationCount===0;
-window.devMatchBackend.ready.then(user=>user?window.devMatchBackend.loadNotificationReads():null).then(readIds=>{
-  if(!readIds)return;
-  localStorage.setItem('devmatch-dev-notifications-read',JSON.stringify(readIds));
-  const unreadCount=['jessica-comment','rizky-message'].filter(id=>!readIds.includes(id)).length;
-  document.getElementById('developerNotificationCount').textContent=String(unreadCount);
-  document.getElementById('developerNotificationCount').hidden=unreadCount===0;
-  document.querySelector('.notification-button i').hidden=unreadCount===0;
-}).catch(error=>{
-  console.error('Unable to load notification status from Supabase.',error);
-  window.alert('Unable to load notification status. Check your connection and try again.');
-});
-window.devMatchBackend.ready.then(user=>user?window.devMatchBackend.loadFavorites():null).then(records=>{
-  if(!records)return;
-  const projectIds=records.filter(item=>item.type==='project').map(item=>item.id);
-  const clientIds=records.filter(item=>item.type==='client').map(item=>item.id);
-  localStorage.setItem('devmatch-developer-project-favorites',JSON.stringify(projectIds));
-  localStorage.setItem('devmatch-favorite-clients',JSON.stringify(clientIds));
-  window.DEVMATCH_NAV_BADGES?.updateFavorites();
-}).catch(error=>{
-  console.error('Unable to load favorites from Supabase.',error);
-  window.alert('Unable to load favorites. Check your connection and try again.');
-});
+(() => {
+  const backend = window.devMatchBackend;
+  const client = backend?.client;
+  const formatNumber = value => Number.isFinite(Number(value))
+    ? Number(value).toLocaleString('en-US')
+    : '—';
+  const setText = (selector, value) => {
+    const element = document.querySelector(selector);
+    if (element) element.textContent = value;
+  };
+  const profile = JSON.parse(localStorage.getItem('devmatch-profile-dev') || '{}');
+  const displayName = typeof profile.displayName === 'string' && profile.displayName.trim()
+    ? profile.displayName.trim()
+    : 'Developer';
+  const nameParts = displayName.split(/\s+/).filter(Boolean);
+  setText('#welcomeName', nameParts[0] || 'Developer');
+  setText('#topUserName', displayName);
+  setText('#userAvatar', nameParts.slice(0, 2).map(part => part[0]).join('').toUpperCase() || 'DM');
 
-try {
-  const chatConvs = JSON.parse(localStorage.getItem('devmatch_chat_conversations_v2') || '[]');
-  const chatUnread = chatConvs.length ? chatConvs.reduce((sum, c) => sum + (c.unreadCount || 0), 0) : 3;
-  const floatingBadge = document.getElementById('floatingChatBadge');
-  if (floatingBadge) {
-    floatingBadge.textContent = String(chatUnread);
-    floatingBadge.hidden = chatUnread === 0;
+  const metricElements = {
+    projects: document.getElementById('totalProjects'),
+    views: document.getElementById('totalViews'),
+    favorites: document.getElementById('totalFavorites'),
+    comments: document.getElementById('totalComments')
+  };
+  const projectList = document.getElementById('projectList');
+  const commentsList = document.querySelector('.comment-list');
+  const interactionList = document.querySelector('.interaction-list');
+  const stateText = {
+    loading: 'Loading your dashboard…',
+    emptyProjects: 'No projects yet. Add a project to see it here.',
+    emptyComments: 'No comments on your projects yet.',
+    emptyActivity: 'Recent project activity will appear here.',
+    error: 'Unable to load dashboard data. Check your connection and try again.'
+  };
+
+  function showMessage(container, message, className = 'dashboard-empty') {
+    const paragraph = document.createElement('p');
+    paragraph.className = className;
+    paragraph.textContent = message;
+    container.replaceChildren(paragraph);
   }
-} catch (e) {}
 
-const defaultProjects=[
-  {title:'Restaurant Website',type:'Website',views:2480,price:'Rp 3.500.000'},
-  {title:'Kasir Pintar POS',type:'Web App',views:1920,price:'Rp 6.000.000'},
-  {title:'Klinik Booking App',type:'Android / iOS',views:1310,price:'Rp 5.000.000'},
-  {title:'Gudang Inventory',type:'Web App',views:980,price:'Rp 4.500.000'}
-];
-const projectStorageKey='devmatch-dashboard-projects';
-const savedProjects=JSON.parse(localStorage.getItem(projectStorageKey)||'[]');
-const projects=[...savedProjects,...defaultProjects];
-const projectList=document.getElementById('projectList');
+  function initials(value) {
+    return String(value || '').trim().split(/\s+/).slice(0, 2)
+      .map(part => part[0] || '').join('').toUpperCase() || '•';
+  }
 
-function renderProjects(projectScale=1){
-  const visibleProjects=projects
-    .map(project=>({...project,rangeViews:Math.max(0,Math.round((Number(project.views)||0)*projectScale))}))
-    .sort((first,second)=>second.rangeViews-first.rangeViews);
-  const maxViews=Math.max(...visibleProjects.map(project=>project.rangeViews),1);
-  projectList.innerHTML=visibleProjects.slice(0,5).map(project=>`
-    <article class="project-row">
-      <div class="project-info">
-        <span class="project-thumb" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18M8 4v5m8-5v5M7 13h4m-4 3h8"/></svg></span>
-        <div><h3 class="project-name">${escapeHtml(project.title)}</h3><p class="project-type">${escapeHtml(project.type)}</p></div>
-        <p class="project-views">${project.rangeViews.toLocaleString('en-US')}<small>views</small></p>
-      </div>
-      <div class="project-bar"><i style="width:${Math.max(8,Math.round(project.rangeViews/maxViews*100))}%"></i></div>
-    </article>`).join('');
-}
+  function timeAgo(value) {
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return 'Recently';
+    const minutes = Math.max(0, Math.floor((Date.now() - date.getTime()) / 60000));
+    if (minutes < 1) return 'Just now';
+    if (minutes < 60) return `${minutes}m ago`;
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) return `${hours}h ago`;
+    const days = Math.floor(hours / 24);
+    if (days < 7) return `${days}d ago`;
+    return date.toLocaleDateString();
+  }
 
-function escapeHtml(value){
-  return String(value).replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
-}
+  function activityCategory(kind) {
+    const value = String(kind || '').toLowerCase();
+    if (value.includes('comment') || value.includes('reply')) return 'comments';
+    if (value.includes('message') || value.includes('conversation')) return 'messages';
+    if (value.includes('favorite') || value.includes('favourite') || value.includes('save')) return 'favorites';
+    if (value.includes('rating') || value.includes('review')) return 'ratings';
+    return 'updates';
+  }
 
-renderProjects();
+  function activityVerb(category) {
+    return ({
+      comments: 'commented on',
+      messages: 'sent a message about',
+      favorites: 'saved',
+      ratings: 'left a rating for',
+      updates: 'updated'
+    })[category];
+  }
 
-const ranges={
-  7:{projects:3,views:2860,favorites:184,comments:37,projectScale:.23,trends:['↗ +1 this week','↗ +8.2%','↗ +6.1%','↗ +4.8%'],viewsPath:'M0 177 C55 170 75 135 130 147 S205 107 263 119 S332 70 388 98 S455 127 510 92 S620 38 700 28',favoritesPath:'M0 200 C55 195 76 176 130 184 S204 166 263 173 S332 150 388 160 S455 167 510 148 S620 126 700 112'},
-  30:{projects:12,views:12480,favorites:864,comments:156,projectScale:1,trends:['↗ +2 this month','↗ +12.4%','↗ +8.1%','↗ +5.3%'],viewsPath:'M0 174 C35 164 44 128 96 143 S157 104 208 111 S278 65 328 94 S390 123 439 96 S505 35 555 58 S628 52 700 23',favoritesPath:'M0 198 C52 194 61 174 112 183 S171 162 221 171 S279 148 332 157 S387 166 442 148 S504 131 555 137 S632 112 700 104'},
-  90:{projects:36,views:38920,favorites:2679,comments:487,projectScale:3.12,trends:['↗ +6 this quarter','↗ +18.7%','↗ +16.2%','↗ +11.5%'],viewsPath:'M0 190 C45 180 75 156 120 164 S188 130 235 143 S300 112 350 126 S420 84 470 101 S535 70 585 82 S645 40 700 18',favoritesPath:'M0 207 C55 196 85 187 130 192 S195 171 245 180 S310 159 360 166 S430 140 480 151 S540 126 590 136 S650 111 700 96'},
-  lifetime:{projects:54,views:152640,favorites:10492,comments:2864,projectScale:12.23,trends:['↗ 54 projects','↗ 152,640 views','↗ 10,492 favorites','↗ 2,864 comments'],viewsPath:'M0 190 C45 180 75 156 120 164 S188 130 235 143 S300 112 350 126 S420 84 470 101 S535 70 585 82 S645 40 700 18',favoritesPath:'M0 207 C55 196 85 187 130 192 S195 171 245 180 S310 159 360 166 S430 140 480 151 S540 126 590 136 S650 111 700 96'}
-};
-
-const periodSelect=document.getElementById('periodSelect');
-const periodTrigger=document.getElementById('periodTrigger');
-const periodOptions=document.getElementById('periodOptions');
-const periodIcon=document.querySelector('.period-icon-wrap');
-const customRangeForm=document.getElementById('customRangeForm');
-const rangeStartInput=document.getElementById('rangeStart');
-const rangeEndInput=document.getElementById('rangeEnd');
-const rangeError=document.getElementById('rangeError');
-const today=new Date();
-today.setHours(0,0,0,0);
-
-periodTrigger.prepend(periodIcon);
-
-function toInputDate(date){
-  return `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`;
-}
-
-function parseInputDate(value){
-  const [year,month,day]=value.split('-').map(Number);
-  return new Date(year,month-1,day);
-}
-
-function dateLabel(date,includeYear=false){
-  return date.toLocaleDateString('en-US',{month:'short',day:'numeric',...(includeYear?{year:'numeric'}:{})});
-}
-
-function formatNumber(value){
-  return Math.round(value).toLocaleString('en-US');
-}
-
-function formatPeriodLabel(start,end){
-  const includeYear=start.getFullYear()!==end.getFullYear();
-  return `${dateLabel(start,includeYear)} – ${dateLabel(end,true)}`;
-}
-
-function updateChart(data,start,end,days){
-  document.getElementById('viewsLine').setAttribute('d',data.viewsPath);
-  document.getElementById('viewsArea').setAttribute('d',data.viewsPath+' V212 H0Z');
-  document.getElementById('favoritesLine').setAttribute('d',data.favoritesPath);
-  const tickCount=Math.min(7,days);
-  const tickDates=Array.from({length:tickCount},(_,index)=>{
-    const date=new Date(start);
-    date.setDate(start.getDate()+Math.round(index*(days-1)/Math.max(tickCount-1,1)));
-    return date;
-  });
-  document.getElementById('chartLabels').innerHTML=tickDates.map(date=>`<span>${dateLabel(date,start.getFullYear()!==end.getFullYear())}</span>`).join('');
-  const axisMax=Math.max(500,Math.ceil(data.views/8/500)*500);
-  document.querySelector('.y-labels').innerHTML=[axisMax,Math.round(axisMax*.75),Math.round(axisMax*.5),Math.round(axisMax*.25),0].map(value=>`<span>${value>=1000?`${Number((value/1000).toFixed(1))}k`:value}</span>`).join('');
-  document.getElementById('chartViews').textContent=formatNumber(data.views);
-  document.getElementById('totalViews').textContent=formatNumber(data.views);
-}
-
-function updateActivity(start,end,isLifetime){
-  const startValue=toInputDate(start);
-  const endValue=toInputDate(end);
-  document.querySelectorAll('.comment-list,.interaction-list').forEach(list=>{
-    const items=[...list.querySelectorAll('.comment,.interaction-list > p:not(.range-empty)')];
-    let visibleCount=0;
-    items.forEach(item=>{
-      const eventDateValue=toInputDate(today);
-      item.hidden=!isLifetime&&(eventDateValue<startValue||eventDateValue>endValue);
-      if(!item.hidden)visibleCount+=1;
-    });
-    let emptyState=list.querySelector('.range-empty');
-    if(!emptyState){
-      emptyState=document.createElement('p');
-      emptyState.className='range-empty';
-      list.append(emptyState);
+  async function loadMetrics(user) {
+    const { data, error } = await client.rpc('get_dashboard_metrics');
+    if (error) throw error;
+    const metrics = typeof data === 'string' ? JSON.parse(data) : data;
+    if (!metrics || typeof metrics !== 'object'
+      || Object.keys(metricElements).some(key => metrics[key] == null || !Number.isFinite(Number(metrics[key])))) {
+      throw new Error('Dashboard metrics are unavailable.');
     }
-    emptyState.textContent=list.classList.contains('comment-list')
-      ? 'No comments in this date range.'
-      : 'No interactions in this date range.';
-    emptyState.hidden=visibleCount>0;
-  });
-}
+    Object.entries(metricElements).forEach(([key, element]) => {
+      if (element) element.textContent = formatNumber(metrics[key]);
+    });
+    const chartViews = document.getElementById('chartViews');
+    if (chartViews) chartViews.textContent = formatNumber(metrics.views);
+    const status = document.getElementById('dashboardStatus');
+    if (status) status.hidden = true;
+    return user;
+  }
 
-function updateDashboard(selection){
-  const periodText=selection.key==='lifetime'
-    ? 'Lifetime'
-    : selection.key==='custom'
-      ? formatPeriodLabel(selection.start,selection.end)
-      : `Last ${selection.days} days`;
-  const data=selection.key==='custom'
-    ? {
-        ...ranges['30'],
-        key:'custom',
-        projects:Math.max(1,Math.round(ranges['30'].projects*selection.days/30)),
-        views:Math.round(ranges['30'].views*selection.days/30),
-        favorites:Math.round(ranges['30'].favorites*selection.days/30),
-        comments:Math.round(ranges['30'].comments*selection.days/30),
-        projectScale:selection.days/30,
-        trends:[
-          `↗ +${Math.round(2*selection.days/30)} project${Math.round(2*selection.days/30)===1?'':'s'}`,
-          ...ranges['30'].trends.slice(1)
-        ]
+  async function loadProjects(user) {
+    const { data, error } = await client.from('projects')
+      .select('id,title,project_type,status')
+      .eq('owner_id', user.id)
+      .eq('project_kind', 'portfolio')
+      .order('updated_at', { ascending: false });
+    if (error) throw error;
+    if (!data?.length) {
+      showMessage(projectList, stateText.emptyProjects);
+      return [];
+    }
+    projectList.replaceChildren();
+    data.slice(0, 5).forEach(project => {
+      const row = document.createElement('article');
+      row.className = 'project-row';
+      const info = document.createElement('div');
+      info.className = 'project-info';
+      const thumb = document.createElement('span');
+      thumb.className = 'project-thumb';
+      thumb.setAttribute('aria-hidden', 'true');
+      thumb.textContent = '↗';
+      const copy = document.createElement('div');
+      const title = document.createElement('h3');
+      title.className = 'project-name';
+      title.textContent = project.title || 'Untitled project';
+      const type = document.createElement('p');
+      type.className = 'project-type';
+      type.textContent = project.project_type || 'Project';
+      copy.append(title, type);
+      const status = document.createElement('p');
+      status.className = 'project-views';
+      status.textContent = project.status === 'published' ? 'Published' : 'Draft';
+      info.append(thumb, copy, status);
+      row.append(info);
+      projectList.append(row);
+    });
+    return data;
+  }
+
+  async function loadComments(projects) {
+    if (!projects.length) {
+      showMessage(commentsList, stateText.emptyComments, 'range-empty');
+      return;
+    }
+    const { data, error } = await client.from('comments')
+      .select('id,project_id,text,author_name,created_at')
+      .in('project_id', projects.map(project => project.id))
+      .order('created_at', { ascending: false })
+      .limit(5);
+    if (error) throw error;
+    if (!data?.length) {
+      showMessage(commentsList, stateText.emptyComments, 'range-empty');
+      return;
+    }
+    const titles = new Map(projects.map(project => [project.id, project.title || 'Project']));
+    commentsList.replaceChildren();
+    data.forEach(comment => {
+      const item = document.createElement('article');
+      item.className = 'comment';
+      const avatar = document.createElement('span');
+      avatar.className = 'comment-avatar';
+      avatar.textContent = initials(comment.author_name);
+      const copy = document.createElement('p');
+      const name = document.createElement('b');
+      name.textContent = comment.author_name || 'A member';
+      const projectTitle = document.createElement('strong');
+      projectTitle.textContent = titles.get(comment.project_id) || 'Project';
+      const body = document.createElement('span');
+      body.textContent = comment.text || '';
+      copy.append(name, document.createTextNode(' on '), projectTitle, body);
+      const time = document.createElement('time');
+      time.dateTime = comment.created_at;
+      time.textContent = timeAgo(comment.created_at);
+      item.append(avatar, copy, time);
+      commentsList.append(item);
+    });
+  }
+
+  async function loadActivity(user, projects) {
+    const { data, error } = await client.from('notifications')
+      .select('id,actor_id,kind,project_id,conversation_id,created_at')
+      .eq('recipient_id', user.id)
+      .order('created_at', { ascending: false })
+      .limit(5);
+    if (error) throw error;
+    if (!data?.length) {
+      showMessage(interactionList, stateText.emptyActivity, 'range-empty');
+      return;
+    }
+    const actorIds = [...new Set(data.map(item => item.actor_id).filter(Boolean))];
+    const projectIds = [...new Set(data.map(item => item.project_id).filter(Boolean))];
+    const [actorsResult, projectsResult] = await Promise.all([
+      actorIds.length
+        ? client.from('directory_people').select('id,display_name').in('id', actorIds)
+        : Promise.resolve({ data: [], error: null }),
+      projectIds.length
+        ? client.from('projects').select('id,title').in('id', projectIds)
+        : Promise.resolve({ data: [], error: null })
+    ]);
+    if (actorsResult.error) throw actorsResult.error;
+    if (projectsResult.error) throw projectsResult.error;
+    const names = new Map((actorsResult.data || []).map(actor => [actor.id, actor.display_name]));
+    const titles = new Map(projects.map(project => [project.id, project.title]));
+    (projectsResult.data || []).forEach(project => titles.set(project.id, project.title));
+    interactionList.replaceChildren();
+    data.forEach(entry => {
+      const category = activityCategory(entry.kind);
+      const item = document.createElement('p');
+      const icon = document.createElement('span');
+      icon.className = `interaction-icon${category === 'messages' ? ' message' : category === 'favorites' ? '' : ' view'}`;
+      icon.setAttribute('aria-hidden', 'true');
+      icon.textContent = category === 'favorites' ? '♡' : category === 'comments' ? '“' : category === 'messages' ? '✉' : '•';
+      const copy = document.createElement('span');
+      const actor = document.createElement('b');
+      actor.textContent = names.get(entry.actor_id) || 'A member';
+      const description = document.createTextNode(` ${activityVerb(category)} `);
+      const project = document.createElement('strong');
+      project.textContent = titles.get(entry.project_id) || (entry.conversation_id ? 'your conversation' : 'your work');
+      const time = document.createElement('small');
+      time.textContent = timeAgo(entry.created_at);
+      copy.append(actor, description, project, time);
+      item.append(icon, copy);
+      interactionList.append(item);
+    });
+  }
+
+  function setError(container, message, className = 'dashboard-empty') {
+    if (container) showMessage(container, message, className);
+  }
+
+  async function start() {
+    showMessage(projectList, stateText.loading);
+    showMessage(commentsList, stateText.loading, 'range-empty');
+    showMessage(interactionList, stateText.loading, 'range-empty');
+    const status = document.getElementById('dashboardStatus');
+    if (status) {
+      status.textContent = stateText.loading;
+      status.hidden = false;
+    }
+    if (!backend || !client) {
+      if (status) {
+        status.textContent = stateText.error;
+        status.hidden = false;
       }
-    : {...ranges[selection.key],key:selection.key};
-  const comparisonText=selection.key==='lifetime'
-    ? 'all time'
-    : selection.key==='custom'
-      ? `vs ${periodText}`
-      : `vs previous ${selection.days} days`;
+      Object.values(metricElements).forEach(element => { if (element) element.textContent = '—'; });
+      setError(projectList, stateText.error);
+      setError(commentsList, stateText.error);
+      setError(interactionList, stateText.error);
+      return;
+    }
+    try {
+      const user = await backend.ready;
+      if (!user) return;
+      const projectResult = await loadProjects(user).catch(error => {
+        console.error('Unable to load dashboard projects.', error);
+        setError(projectList, stateText.error);
+        return [];
+      });
+      const tasks = [
+        loadMetrics(user).catch(error => {
+          console.error('Unable to load dashboard metrics.', error);
+          Object.values(metricElements).forEach(element => { if (element) element.textContent = '—'; });
+          if (status) {
+            status.textContent = stateText.error;
+            status.hidden = false;
+          }
+        }),
+        loadComments(projectResult).catch(error => {
+          console.error('Unable to load dashboard comments.', error);
+          setError(commentsList, stateText.error, 'range-empty');
+        }),
+        loadActivity(user, projectResult).catch(error => {
+          console.error('Unable to load dashboard activity.', error);
+          setError(interactionList, stateText.error, 'range-empty');
+        })
+      ];
+      await Promise.all(tasks);
+      const readIds = await backend.loadNotificationReads();
+      const { data: notifications, error } = await client.from('notifications')
+        .select('id')
+        .eq('recipient_id', user.id);
+      if (error) throw error;
+      const unreadCount = (notifications || []).filter(item => !readIds.includes(item.id)).length;
+      const badge = document.getElementById('developerNotificationCount');
+      badge.textContent = String(unreadCount);
+      badge.hidden = unreadCount === 0;
+      const dot = document.querySelector('.notification-button i');
+      if (dot) dot.hidden = unreadCount === 0;
+    } catch (error) {
+      console.error('Unable to load dashboard data.', error);
+      if (status) {
+        status.textContent = stateText.error;
+        status.hidden = false;
+      }
+    }
+  }
 
-  document.getElementById('periodValue').textContent=periodText;
-  document.getElementById('dateRange').value=selection.key;
-  document.getElementById('rangeDescription').textContent=selection.key==='lifetime'
-    ? 'Here’s how your projects have performed over their lifetime.'
-    : selection.key==='custom'
-      ? `Here’s how your projects performed from ${periodText}.`
-      : `Here’s how your projects performed over the last ${selection.days} days.`;
-  const statValues=document.querySelectorAll('.stats .stat-card > strong');
-  statValues[0].textContent=formatNumber(data.projects+savedProjects.length);
-  statValues[1].textContent=formatNumber(data.views);
-  statValues[2].textContent=formatNumber(data.favorites);
-  statValues[3].textContent=formatNumber(data.comments);
-  document.querySelectorAll('.stat-card .comparison').forEach(element=>element.textContent=comparisonText);
-  document.querySelectorAll('.stats .stat-card .trend').forEach((element,index)=>element.textContent=data.trends[index]);
-  document.querySelector('.chart-summary .trend').textContent=data.trends[1];
-  renderProjects(data.projectScale);
-  updateChart(data,selection.start,selection.end,selection.days);
-  updateActivity(selection.start,selection.end,selection.key==='lifetime');
-  document.querySelectorAll('[data-chart-range]').forEach(button=>{
-    button.classList.toggle('selected',selection.key===button.dataset.chartRange);
+  const search = document.getElementById('searchInput');
+  search?.addEventListener('input', () => {
+    const query = search.value.trim().toLowerCase();
+    document.querySelectorAll('.project-row,.comment').forEach(row => {
+      row.hidden = !!query && !row.textContent.toLowerCase().includes(query);
+    });
   });
-  document.querySelectorAll('.period-presets [data-range]').forEach(button=>{
-    button.setAttribute('aria-pressed',String(button.dataset.range===selection.key));
+  document.addEventListener('keydown', event => {
+    if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') {
+      event.preventDefault();
+      search?.focus();
+    }
   });
-}
-
-function applyPreset(range){
-  const end=new Date(today);
-  const start=new Date(today);
-  let days;
-  if(range==='lifetime'){
-    start.setFullYear(2000,0,1);
-    days=Math.floor((end-start)/86400000)+1;
-  }else{
-    days=Number(range);
-    start.setDate(start.getDate()-days+1);
-  }
-  updateDashboard({key:range,days,start,end});
-  rangeError.hidden=true;
-}
-
-function setPeriodMenuOpen(open){
-  periodSelect.classList.toggle('open',open);
-  periodTrigger.setAttribute('aria-expanded',String(open));
-  periodOptions.hidden=!open;
-}
-
-rangeEndInput.max=toInputDate(today);
-rangeStartInput.value=toInputDate(new Date(today.getFullYear(),today.getMonth(),today.getDate()-29));
-rangeEndInput.value=toInputDate(today);
-rangeStartInput.max=rangeEndInput.value;
-rangeEndInput.min=rangeStartInput.value;
-rangeStartInput.addEventListener('change',()=>{rangeEndInput.min=rangeStartInput.value;});
-rangeEndInput.addEventListener('change',()=>{rangeStartInput.max=rangeEndInput.value;});
-document.querySelectorAll('[data-chart-range]').forEach(button=>button.addEventListener('click',()=>{
-  applyPreset(button.dataset.chartRange);
-}));
-document.querySelectorAll('.period-presets [data-range]').forEach(button=>button.addEventListener('click',()=>{
-  applyPreset(button.dataset.range);
-  setPeriodMenuOpen(false);
-  periodTrigger.focus();
-}));
-customRangeForm.addEventListener('submit',event=>{
-  event.preventDefault();
-  const start=parseInputDate(rangeStartInput.value);
-  const end=parseInputDate(rangeEndInput.value);
-  if(Number.isNaN(start.getTime())||Number.isNaN(end.getTime())||start>end||end>today){
-    rangeError.textContent='Choose a valid date range that ends today or earlier.';
-    rangeError.hidden=false;
-    return;
-  }
-  const days=Math.floor((end-start)/86400000)+1;
-  rangeError.hidden=true;
-  updateDashboard({key:'custom',days,start,end});
-  setPeriodMenuOpen(false);
-  periodTrigger.focus();
-});
-periodTrigger.addEventListener('click',()=>setPeriodMenuOpen(periodOptions.hidden));
-periodTrigger.addEventListener('keydown',event=>{
-  if(event.key==='ArrowDown'||event.key==='Enter'||event.key===' '){
-    event.preventDefault();
-    setPeriodMenuOpen(true);
-    periodOptions.querySelector('[aria-pressed="true"]')?.focus();
-  }
-});
-periodOptions.addEventListener('keydown',event=>{
-  if(event.key==='Escape'){
-    setPeriodMenuOpen(false);
-    periodTrigger.focus();
-  }
-});
-document.addEventListener('click',event=>{
-  if(!periodSelect.contains(event.target))setPeriodMenuOpen(false);
-});
-document.addEventListener('keydown',event=>{
-  if(event.key==='Escape'&&!periodOptions.hidden){
-    setPeriodMenuOpen(false);
-    periodTrigger.focus();
-  }
-});
-applyPreset('30');
-
-document.querySelectorAll('[data-target]').forEach(button=>button.addEventListener('click',()=>{
-  document.querySelector(button.dataset.target)?.scrollIntoView({behavior:'smooth',block:'start'});
-}));
-document.querySelectorAll('.nav-item[href^="#"]').forEach(link=>link.addEventListener('click',()=>{
-  document.querySelectorAll('.nav-item').forEach(item=>item.classList.remove('active'));
-  link.classList.add('active');
-}));
-
-const search=document.getElementById('searchInput');
-search.addEventListener('input',()=>{
-  const query=search.value.trim().toLowerCase();
-  document.querySelectorAll('.project-row').forEach(row=>row.hidden=!row.textContent.toLowerCase().includes(query));
-  document.querySelectorAll('.comment').forEach(row=>row.hidden=!!query&&!row.textContent.toLowerCase().includes(query));
-});
-document.addEventListener('keydown',event=>{
-  if((event.metaKey||event.ctrlKey)&&event.key.toLowerCase()==='k'){
-    event.preventDefault();
-    search.focus();
-  }
-});
+  start();
+})();

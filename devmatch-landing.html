@@ -19,6 +19,8 @@
 <script src="assets/js/i18n.js?v=20261102-profile-details"></script>
 <script src="assets/vendor/supabase-2.119.0.js"></script>
 <script src="assets/js/backend.js?v=20261112-private-profile-cache"></script>
+<script src="assets/vendor/supabase-2.119.0.js"></script>
+<script src="assets/js/backend.js?v=20261112-private-profile-cache"></script>
 </head>
 <body>
 <nav><div class="wrap">
@@ -44,21 +46,21 @@
     <article class="path" id="p-dev">
       <div class="top"><div class="ico"><svg viewBox="0 0 24 24"><path d="m16 18 6-6-6-6M8 6l-6 6 6 6"/></svg></div><span class="tag">FOR BUILDERS</span></div>
       <div><h2>I am a developer</h2><p style="margin-top:10px">Showcase your best work, discover meaningful projects, and connect with your next client.</p></div>
-      <div class="stage"><div class="shot a">Building<br>better futures.<div style="margin-top:8px;height:8px;width:40px;border-radius:9px;background:#6366f1"></div></div><div class="shot b"><small>Sales today</small><div class="bar"><i style="height:30%"></i><i style="height:50%"></i><i style="height:40%"></i><i style="height:80%"></i><i style="height:60%"></i><i style="height:95%"></i></div><b style="font-size:12px">Rp 3.500.000</b></div><div class="shot c">Savor every<br>moment.<div style="margin:8px 0;height:8px;width:50px;border-radius:9px;background:#e0622b"></div></div></div>
+      <div class="stage"><div class="shot a">Building<br>better futures.<div style="margin-top:8px;height:8px;width:40px;border-radius:9px;background:#6366f1"></div></div><div class="shot b"><small>Published projects</small><div class="bar"><i style="height:30%"></i><i style="height:50%"></i><i style="height:40%"></i><i style="height:80%"></i><i style="height:60%"></i><i style="height:95%"></i></div><b style="font-size:12px">Catalog preview</b></div><div class="shot c">Savor every<br>moment.<div style="margin:8px 0;height:8px;width:50px;border-radius:9px;background:#e0622b"></div></div></div>
       <div class="cta-row"><a class="btn btn-arrow btn-hover-lift" href="devmatch-auth.html?mode=register&amp;role=dev">Start showcasing <svg viewBox="0 0 24 24"><path d="M2 12h20M15 5l7 7-7 7"/></svg></a><small>Free for developers</small></div>
     </article>
     <article class="path" id="p-cli">
       <div class="top"><div class="ico"><svg viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg></div><span class="tag">FOR VISIONARIES</span></div>
       <div><h2>I need a developer</h2><p style="margin-top:10px">Explore ready-to-build ideas and find the right developer to bring your vision to life.</p></div>
       <div class="stage"><div class="dev-list">
-        <div class="row"><div class="av">RA</div><div>Rizky Aditya<span>Full-stack developer</span></div><em class="status s-ok" style="font-style:normal">● Open for hiring</em></div>
-        <div class="row"><div class="av">SN</div><div>Sarah Nasution<span>UI/UX developer</span></div><em class="status s-free" style="font-style:normal">● Freelance</em></div>
-        <div class="row"><div class="av">DK</div><div>Daniel Kurniawan<span>Mobile developer</span></div><em class="status s-ok" style="font-style:normal">● Open for hiring</em></div>
+        <div class="row"><div class="av">DM</div><div>Developer profiles<span>Browse verified skills</span></div><em class="status s-ok" style="font-style:normal">Client access</em></div>
+        <div class="row"><div class="av">DM</div><div>Published portfolios<span>Explore recent work</span></div><em class="status s-free" style="font-style:normal">Live listings</em></div>
+        <div class="row"><div class="av">DM</div><div>Project requests<span>Connect with clients</span></div><em class="status s-ok" style="font-style:normal">Developer access</em></div>
       </div></div>
       <div class="cta-row"><a class="btn btn-arrow btn-hover-lift" href="devmatch-auth.html?mode=register&amp;role=client">Find your developer <svg viewBox="0 0 24 24"><path d="M2 12h20M15 5l7 7-7 7"/></svg></a><small>No signup fees</small></div>
     </article>
   </div>
-  <div class="stats"><div><b>2,400+</b><span>independent developers</span></div><div><b>850+</b><span>projects to explore</span></div><div><b>1,200+</b><span>connections made</span></div></div>
+  <div class="stats"><div><b>Published</b><span>project catalog</span></div><div><b>Authenticated</b><span>people directory</span></div><div><b>Two roles</b><span>one DEV-MATCH account</span></div></div>
 </div></header>
 
 <section id="how"><div class="wrap center">
@@ -76,13 +78,15 @@
 </div></section>
 
 <section class="alt" id="projects"><div class="wrap">
-  <div class="head"><div><span class="sm">Featured projects</span><h2>Ready-to-build projects, priced upfront</h2><p>Every listing shows what’s included and what it costs — no guessing.</p></div><a class="btn btn-arrow btn-hover-color" href="#">Explore all projects <svg viewBox="0 0 24 24"><path d="M2 12h20M15 5l7 7-7 7"/></svg></a></div>
+  <div class="head"><div><span class="sm">Featured projects</span><h2>Ready-to-build projects, priced upfront</h2><p>Every listing shows what’s included and what it costs — no guessing.</p></div><a class="btn btn-arrow btn-hover-color" href="devmatch-discover-projects.html">Explore all projects <svg viewBox="0 0 24 24"><path d="M2 12h20M15 5l7 7-7 7"/></svg></a></div>
+  <p id="landingProjectStatus" role="status" aria-live="polite">Loading published projects…</p>
   <div class="chips" id="chips"></div>
   <div class="grid4" id="projGrid"></div>
 </div></section>
 
 <section id="developers"><div class="wrap">
-  <div class="head"><div><span class="sm">Featured developers</span><h2>Meet developers clients trust</h2></div><a class="btn btn-arrow btn-hover-color" href="#">Browse developers <svg viewBox="0 0 24 24"><path d="M2 12h20M15 5l7 7-7 7"/></svg></a></div>
+  <div class="head"><div><span class="sm">Featured developers</span><h2>Meet developers clients trust</h2></div><a class="btn btn-arrow btn-hover-color" href="devmatch-find-developers.html">Browse developers <svg viewBox="0 0 24 24"><path d="M2 12h20M15 5l7 7-7 7"/></svg></a></div>
+  <p id="landingDirectoryStatus" role="status" aria-live="polite">Sign in to browse developer profiles.</p>
   <div class="grid4" id="devGrid"></div>
 </div></section>
 
@@ -110,7 +114,7 @@
 </div></section>
 
 <section id="join"><div class="wrap"><div class="final">
-  <div><h2>Ready to make your next great connection?</h2><p>Join 2,400+ developers and the businesses who hire them.</p></div>
+  <div><h2>Ready to make your next great connection?</h2><p>Join the DEV-MATCH community of developers and businesses.</p></div>
   <div style="display:flex;gap:12px;flex-wrap:wrap"><a class="btn btn-hover-color" href="devmatch-auth.html?mode=register&amp;role=dev">&lt;&gt; I’m a developer</a><a class="btn o btn-hover-color" href="devmatch-auth.html?mode=register&amp;role=client">I need a developer</a></div>
 </div></div></section>
 </main>
@@ -123,6 +127,6 @@
   <div class="copy">© 2026 DEV-MATCH. All rights reserved.</div>
 </div></footer>
 
-<script src="assets/js/landing.js?v=20261105-how-panels-consistent"></script>
+<script src="assets/js/landing.js?v=20261112-live-catalog"></script>
 </body>
 </html>

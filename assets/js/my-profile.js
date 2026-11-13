@@ -254,7 +254,17 @@
   function setAvatar(id,imageUrl,fallback){
     const element=document.getElementById(id);
     if(!element)return;
-    if(typeof imageUrl!=='string'||!/^data:image\/(?:jpeg|png);base64,/.test(imageUrl)){
+    let validImage=typeof imageUrl==='string'&&/^data:image\/(?:jpeg|png);base64,/.test(imageUrl);
+    if(typeof imageUrl==='string'&&imageUrl.startsWith('https://')){
+      try{
+        const url=new URL(imageUrl);
+        validImage=url.origin==='https://yxwktllqbmhustmhdaqi.supabase.co'
+          &&url.pathname.startsWith('/storage/v1/object/public/project-media/');
+      }catch{
+        validImage=false;
+      }
+    }
+    if(!validImage){
       element.textContent=fallback;
       return;
     }

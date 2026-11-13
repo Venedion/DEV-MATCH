@@ -44,17 +44,20 @@
     localStorage.setItem(DEVS_KEY, JSON.stringify(idsFor('developer')));
   }
 
-  // Helper getters
+  let favoriteProjects = [];
+  let favoriteClients = [];
+  let favoriteDevelopers = [];
+
   function getAllProjects() {
-    return Array.isArray(window.DEVMATCH_SAMPLE_PROJECTS) ? window.DEVMATCH_SAMPLE_PROJECTS : [];
+    return favoriteProjects;
   }
 
   function getAllClients() {
-    return Array.isArray(window.DEVMATCH_SAMPLE_CLIENTS) ? window.DEVMATCH_SAMPLE_CLIENTS : [];
+    return favoriteClients;
   }
 
   function getAllDevelopers() {
-    return Array.isArray(window.DEVMATCH_SAMPLE_DEVELOPERS) ? window.DEVMATCH_SAMPLE_DEVELOPERS : [];
+    return favoriteDevelopers;
   }
 
   // Load Saved Projects
@@ -63,14 +66,14 @@
       if (typeof localStorage !== 'undefined') {
         const stored = localStorage.getItem(PROJECTS_KEY);
         if (stored) return JSON.parse(stored);
-        const defaultFavorites = isClient ? ['restaurant', 'pos', 'booking'] : ['pos', 'inventory'];
+        const defaultFavorites = [];
         localStorage.setItem(PROJECTS_KEY, JSON.stringify(defaultFavorites));
         return defaultFavorites;
       }
     } catch (e) {
       console.warn('Failed to read project favorites from localStorage', e);
     }
-    return ['restaurant', 'pos', 'booking'];
+    return [];
   }
 
   // Load Saved Clients (Developer Mode)
@@ -79,14 +82,14 @@
       if (typeof localStorage !== 'undefined') {
         const stored = localStorage.getItem(CLIENTS_KEY);
         if (stored) return JSON.parse(stored);
-        const defaultClients = ['jessica-sitorus', 'klinik-sehat-bersama'];
+        const defaultClients = [];
         localStorage.setItem(CLIENTS_KEY, JSON.stringify(defaultClients));
         return defaultClients;
       }
     } catch (e) {
       console.warn('Failed to read client favorites from localStorage', e);
     }
-    return ['jessica-sitorus', 'klinik-sehat-bersama'];
+    return [];
   }
 
   // Load Saved Developers (Client Mode)
@@ -95,14 +98,14 @@
       if (typeof localStorage !== 'undefined') {
         const stored = localStorage.getItem(DEVS_KEY);
         if (stored) return JSON.parse(stored);
-        const defaultDevs = ['rizky-aditya'];
+        const defaultDevs = [];
         localStorage.setItem(DEVS_KEY, JSON.stringify(defaultDevs));
         return defaultDevs;
       }
     } catch (e) {
       console.warn('Failed to read developer favorites from localStorage', e);
     }
-    return ['rizky-aditya'];
+    return [];
   }
 
   async function persistFavorite(type, id, saved, storageKey) {
@@ -122,9 +125,9 @@
   }
 
   // State
-  let favoriteProjectIds = loadProjectFavorites();
-  let favoriteClientIds = loadClientFavorites();
-  let favoriteDevIds = loadDevFavorites();
+  let favoriteProjectIds = initialFavoriteRows ? loadProjectFavorites() : [];
+  let favoriteClientIds = initialFavoriteRows ? loadClientFavorites() : [];
+  let favoriteDevIds = initialFavoriteRows ? loadDevFavorites() : [];
   let currentTab = 'projects'; // 'projects' or ('clients' in dev mode / 'developers' in client mode)
   let currentCategory = 'all';
   let searchQuery = '';
@@ -148,6 +151,138 @@
   const favDialogContent = document.getElementById('favDialogContent');
   const toastEl = document.getElementById('favToast');
   const toastTextEl = document.getElementById('favToastText');
+
+  async function loadFavoriteEntities() {
+    if (!initialFavoriteRows) return;
+    const client = window.devMatchBackend.client;
+    let projectRows = [];
+    if (favoriteProjectIds.length) {
+      const {data, error} = await client.from('projects')
+        .select('id,owner_id,title,project_kind,project_type,category,price,cover_image,status,data,created_at')
+        .in('id', favoriteProjectIds)
+        .eq('project_kind', isClient ? 'portfolio' : 'request')
+        .eq('status', isClient ? 'published' : 'open');
+      if (error) throw error;
+      projectRows = data || [];
+    }
+
+    const ownerIds = [...new Set(projectRows.map(project => project.owner_id).filter(Boolean))];
+    const projectOwners = new Map();
+    if (ownerIds.length) {
+      const {data, error} = await client.from('directory_people')
+        .select('id,display_name,account_role,profile_data')
+        .eq('account_role', isClient ? 'dev' : 'client')
+        .in('id', ownerIds);
+      if (error) throw error;
+      (data || []).forEach(person => projectOwners.set(person.id, person));
+    }
+    favoriteProjects = projectRows.map(row => {
+      const data = row.data && typeof row.data === 'object' && !Array.isArray(row.data) ? row.data : {};
+      const owner = projectOwners.get(row.owner_id);
+      const name = String(owner?.display_name || 'DEV-MATCH member');
+      const price = String(row.price || data.budgetLabel || data.budget || 'Contact for pricing');
+      const detailUrl = isClient
+        ? `devmatch-discover-project-detail.html?project=${encodeURIComponent(row.id)}`
+        : `devmatch-find-project-detail.html?request=${encodeURIComponent(row.id)}`;
+      const profileUrl = isClient
+        ? `devmatch-developer-profile.html?developer=${encodeURIComponent(row.owner_id)}`
+        : `devmatch-client-profile.html?client=${encodeURIComponent(row.owner_id)}`;
+      return {
+        ...data,
+        id: row.id,
+        ownerId: row.owner_id,
+        title: String(row.title || data.title || 'Untitled project'),
+        type: String(row.project_type || data.projectType || data.type || 'Project'),
+        category: String(row.category || data.category || 'Other'),
+        description: String(data.description || data.overview || ''),
+        developer: name,
+        initials: (name.match(/\b\p{L}/gu) || []).slice(0, 2).join('').toUpperCase() || 'DM',
+        price,
+        detailUrl,
+        profileUrl,
+        coverImage: String(row.cover_image || ''),
+        art: 'dashboard-art'
+      };
+    });
+
+    if (isClient && favoriteDevIds.length) {
+      const {data, error} = await client.from('directory_people')
+        .select('id,display_name,username,profile_data,published_portfolio_count')
+        .eq('account_role', 'dev')
+        .in('id', favoriteDevIds);
+      if (error) throw error;
+      favoriteDevelopers = (data || []).map(person => {
+        const profile = person.profile_data || {};
+        const name = String(person.display_name || 'DEV-MATCH member');
+        const skills = Array.isArray(profile.skills) ? profile.skills.map(String) : [];
+        const specialization = Array.isArray(profile.specialty)
+          ? profile.specialty.join(', ')
+          : String(profile.specialtyOther || profile.specialty || 'Developer');
+        const availability = String(profile.availability || 'Availability not provided');
+        return {
+          id: person.id,
+          name,
+          initials: (name.match(/\b\p{L}/gu) || []).slice(0, 2).join('').toUpperCase() || 'DM',
+          specialization,
+          status: availability,
+          location: [profile.city, profile.country].filter(Boolean).join(', ') || 'Location not provided',
+          bio: String(profile.bio || 'No biography provided.'),
+          skills,
+          projectsCount: Number(person.published_portfolio_count) || 0,
+          views: 'Not available',
+          viewsCount: 0,
+          favoritesCount: 'Not available',
+          contactId: person.id,
+          profileUrl: `devmatch-developer-profile.html?developer=${encodeURIComponent(person.id)}`
+        };
+      });
+    } else if (!isClient && favoriteClientIds.length) {
+      const {data: people, error: peopleError} = await client.from('directory_people')
+        .select('id,display_name,profile_data,open_request_count')
+        .eq('account_role', 'client')
+        .in('id', favoriteClientIds);
+      if (peopleError) throw peopleError;
+      const requestsByOwner = new Map();
+      const {data: requests, error: requestsError} = await client.from('projects')
+        .select('id,owner_id,title,project_type,category,price,data')
+        .eq('project_kind', 'request')
+        .eq('status', 'open')
+        .in('owner_id', favoriteClientIds)
+        .order('updated_at', {ascending: false});
+      if (requestsError) throw requestsError;
+      (requests || []).forEach(row => {
+        const data = row.data && typeof row.data === 'object' ? row.data : {};
+        const request = {
+          title: String(row.title || data.title || 'Untitled request'),
+          budget: String(row.price || data.budgetLabel || data.budget || 'Budget not specified'),
+          description: String(data.description || data.overview || ''),
+          category: String(row.category || data.category || 'Other'),
+          type: String(row.project_type || data.projectType || data.type || 'Project'),
+          tags: Array.isArray(data.stack) ? data.stack.map(String) : []
+        };
+        requestsByOwner.set(row.owner_id, [...(requestsByOwner.get(row.owner_id) || []), request]);
+      });
+      favoriteClients = (people || []).map(person => {
+        const profile = person.profile_data || {};
+        const name = String(person.display_name || 'DEV-MATCH member');
+        const requestsForClient = requestsByOwner.get(person.id) || [];
+        const category = String(profile.industry || 'Business');
+        return {
+          id: person.id,
+          contactId: person.id,
+          name,
+          initials: (name.match(/\b\p{L}/gu) || []).slice(0, 2).join('').toUpperCase() || 'DM',
+          business: String(profile.companyName || name),
+          category,
+          businessType: category,
+          location: [profile.city, profile.country].filter(Boolean).join(', ') || 'Location not provided',
+          openRequestsCount: Number(person.open_request_count) || 0,
+          requests: requestsForClient,
+          activeText: 'Active'
+        };
+      });
+    }
+  }
   const toastUndoBtn = document.getElementById('favToastUndo');
   let toastTimer = null;
 
@@ -441,7 +576,7 @@
           <button class="fav-remove-btn" type="button" data-remove-fav="${escapeHtml(project.id)}" title="Remove from favorites" aria-label="Remove ${escapeHtml(project.title)} from favorites">
             <svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
           </button>
-          <div class="fav-art-window">
+          ${safeCoverImage(project.coverImage) ? `<img class="fav-project-cover" src="${escapeHtml(safeCoverImage(project.coverImage))}" alt="" loading="lazy">` : `<div class="fav-art-window">
             <div class="fav-art-window-bar"><i></i><i></i><i></i></div>
             <div class="fav-art-mock">
               <div class="fav-art-side"></div>
@@ -451,7 +586,7 @@
                 <div class="fav-art-line" style="width:75%;"></div>
               </div>
             </div>
-          </div>
+          </div>`}
         </div>
 
         <div class="fav-card-body">
@@ -460,7 +595,7 @@
           <p class="fav-card-desc">${escapeHtml(project.description)}</p>
 
           <div class="fav-card-meta">
-            <a class="fav-dev-pill" href="devmatch-developer-profile.html?developer=${encodeURIComponent(project.id)}">
+            <a class="fav-dev-pill" href="${escapeHtml(project.profileUrl)}">
               <span class="fav-dev-avatar">${escapeHtml(project.initials)}</span>
               <span class="fav-dev-name">${escapeHtml(project.developer)}</span>
             </a>
@@ -469,11 +604,11 @@
         </div>
 
         <footer class="fav-card-footer">
-          <a class="fav-action-link primary" href="devmatch-chat.html?project=${encodeURIComponent(project.id)}${isClient ? '&role=client' : ''}">
+          <a class="fav-action-link primary" href="devmatch-chat.html?${isClient ? 'project' : 'request'}=${encodeURIComponent(project.id)}&role=${isClient ? 'client' : 'dev'}">
             <svg viewBox="0 0 24 24"><path d="M21 11.5a8.5 8.5 0 0 1-8.5 8.5H4l1.5-4A8.5 8.5 0 1 1 21 11.5z"/></svg>
-            Chat with Dev
+            ${isClient ? 'Chat with Dev' : 'Chat with Client'}
           </a>
-          <a class="fav-action-link" href="devmatch-developer-profile.html?developer=${encodeURIComponent(project.id)}">
+          <a class="fav-action-link" href="${escapeHtml(project.detailUrl)}">
             View Details
           </a>
         </footer>
@@ -795,6 +930,19 @@
     return Number(str.replace(/[^0-9]/g, '')) || 0;
   }
 
+  function safeCoverImage(value) {
+    if (typeof value !== 'string') return '';
+    if (/^data:image\/(?:jpeg|png|webp);base64,/i.test(value)) return value;
+    try {
+      const url = new URL(value);
+      return url.origin === 'https://yxwktllqbmhustmhdaqi.supabase.co'
+        && url.pathname.startsWith('/storage/v1/object/public/project-media/')
+        ? value : '';
+    } catch {
+      return '';
+    }
+  }
+
   // Remove a project favorite
   function removeFavoriteProject(id) {
     const card = document.querySelector(`.fav-card[data-project-id="${id}"]`);
@@ -1086,7 +1234,7 @@
         const menu = document.querySelector('.side-nav[aria-label="Dashboard navigation"]');
         if (menu) menu.innerHTML = `
           <a class="nav-item" href="devmatch-client-dashboard.html"><svg viewBox="0 0 24 24"><path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-6v-7h-4v7H4a1 1 0 0 1-1-1z"/></svg>Home</a>
-          <a class="nav-item" href="devmatch-chat.html?role=client"><svg viewBox="0 0 24 24"><path d="M21 11.5a8.5 8.5 0 0 1-8.5 8.5H4l1.5-4A8.5 8.5 0 1 1 21 11.5z"/></svg>Messages<span class="nav-count chat-unread-total-badge">3</span></a>
+          <a class="nav-item" href="devmatch-chat.html?role=client"><svg viewBox="0 0 24 24"><path d="M21 11.5a8.5 8.5 0 0 1-8.5 8.5H4l1.5-4A8.5 8.5 0 1 1 21 11.5z"/></svg>Messages<span class="nav-count chat-unread-total-badge" hidden>0</span></a>
           <a class="nav-item" href="devmatch-client-dashboard.html#requests"><svg viewBox="0 0 24 24"><path d="M6 3h9l4 4v14H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"/><path d="M14 3v5h5M8 13h8m-8 4h8"/></svg>My Requests</a>
           <a class="nav-item" href="devmatch-discover-projects.html"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="m15.5 8.5-2 5-5 2 2-5z"/></svg>Discover Projects</a>
           <a class="nav-item" href="devmatch-find-developers.html"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"/><path d="M3 20a6 6 0 0 1 12 0m2-8a3 3 0 1 0 0-6m1 8a5 5 0 0 1 3 5"/></svg>Developers</a>
@@ -1103,6 +1251,12 @@
   }
 
   // Initialize
+  try {
+    await loadFavoriteEntities();
+  } catch (error) {
+    console.error('Unable to load favorited projects and profiles from Supabase.', error);
+    window.alert('Unable to load your saved items. Check your connection and try again.');
+  }
   loadUserProfile();
   updateCategoryOptions();
   updateSortOptions();

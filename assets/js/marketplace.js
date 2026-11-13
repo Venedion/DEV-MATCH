@@ -3,8 +3,10 @@
 
   const main = document.querySelector('[data-marketplace]');
   const isRequestsPage = main.dataset.marketplace === 'requests';
-  const projects = Array.isArray(window.DEVMATCH_SAMPLE_PROJECTS) ? window.DEVMATCH_SAMPLE_PROJECTS : [];
-  const requests = Array.isArray(window.DEVMATCH_SAMPLE_REQUESTS) ? window.DEVMATCH_SAMPLE_REQUESTS : [];
+  let projects = [];
+  let requests = [];
+  let catalogError = null;
+  let catalogLoaded = false;
   const favoritesKey = isRequestsPage ? 'devmatch-developer-project-favorites' : 'devmatch-client-project-favorites';
   if (localStorage.getItem(favoritesKey) === null) {
     const legacy = localStorage.getItem('devmatch-client-favorites');
@@ -19,6 +21,7 @@
   const categoryButtons = [...document.querySelectorAll('[data-category]')];
   const loadMoreButton = document.getElementById('loadMore');
   const remainingCount = document.getElementById('remainingCount');
+  const catalogStatus = document.getElementById('catalogStatus');
   let favoriteIds = readFavorites();
   const favoriteStateReady = window.devMatchBackend.ready.then(user => user
     ? window.devMatchBackend.loadFavorites()
@@ -409,7 +412,10 @@
     const shown = filtered.slice(0, visibleCount);
     grid.classList.toggle('is-list', view === 'list');
     grid.innerHTML = shown.map(renderProject).join('');
-    emptyState.hidden = filtered.length !== 0;
+    emptyState.hidden = Boolean(catalogError) || filtered.length !== 0;
+    catalogStatus.hidden = catalogLoaded && !catalogError;
+    if(!catalogLoaded&&!catalogError)catalogStatus.textContent='Loading projects…';
+    if (catalogError) catalogStatus.textContent = 'Projects could not be loaded. Check your connection and try again.';
     summary.textContent = isRequestsPage
       ? `Showing ${filtered.length} ${filtered.length === 1 ? 'project' : 'projects'}`
       : `Showing ${filtered.length} ${filtered.length === 1 ? 'project' : 'projects'}`;
@@ -572,5 +578,77 @@
     }
   });
 
-  render();
+  async function loadCatalog() {
+    grid.setAttribute('aria-busy', 'true');
+    catalogStatus.hidden = false;
+    catalogStatus.textContent = 'Loading projects…';
+    try {
+      const user = await window.devMatchBackend.ready;
+      const kind = isRequestsPage ? 'request' : 'portfolio';
+      let query = window.devMatchBackend.client.from('projects')
+        .select('id,owner_id,title,project_type,category,price,price_type,cover_image,status,data,created_at,updated_at')
+        .eq('project_kind', kind)
+        .eq('status', isRequestsPage ? 'open' : 'published')
+        .order('updated_at', {ascending:false});
+      const {data: rows, error} = await query;
+      if (error) throw error;
+
+      let peopleById = new Map();
+      if (user && rows?.length) {
+        const {data:account,error:accountError}=await window.devMatchBackend.client.from('profiles')
+          .select('account_role').eq('id',user.id).single();
+        if(accountError)throw accountError;
+        const expectedRole=isRequestsPage?'dev':'client';
+        if(account.account_role!==expectedRole)throw new Error(`This project catalog is available in ${expectedRole} mode.`);
+        const {data: people, error: peopleError} = await window.devMatchBackend.client
+          .from('directory_people')
+          .select('id,display_name,username,account_role,profile_data,published_portfolio_count,open_request_count')
+          .eq('account_role',isRequestsPage?'client':'dev');
+        if (peopleError) throw peopleError;
+        peopleById = new Map((people || []).map(person => [person.id, person]));
+      }
+      const records = (rows || []).map(row => {
+        const data = row.data && typeof row.data === 'object' ? row.data : {};
+        const person = peopleById.get(row.owner_id);
+        const profile = person?.profile_data || {};
+        const name = person?.display_name || '';
+        const location = String(profile.city || '');
+        const category = String(row.category || data.category || '');
+        const type = String(row.project_type || data.projectType || data.type || '');
+        const description = String(data.description || data.overview || '');
+        const budget = String(row.price || data.price || data.budgetLabel || data.budget || '');
+        const tags = Array.isArray(data.stack) ? data.stack : String(data.stack || '').split(/\s+(?:and|,)\s+/).filter(Boolean);
+        return {
+          ...data, id:row.id, title:String(row.title || data.title || ''), type, category,
+          description, stack:tags, coverImage:row.cover_image || '',
+          price:budget, budgetLabel:budget, budget:Number(String(data.budget || budget).replace(/[^\d]/g,'')) || 0,
+          developer:name || 'DEV-MATCH member', client:name || 'DEV-MATCH member',
+          initials:(name.match(/\b\p{L}/gu)||[]).slice(0,2).join('').toUpperCase() || 'DM',
+          location:location || 'Location not provided',
+          age:new Intl.DateTimeFormat(undefined,{dateStyle:'medium'}).format(new Date(row.created_at || row.updated_at)),
+          days:new Intl.DateTimeFormat(undefined,{dateStyle:'medium'}).format(new Date(row.created_at || row.updated_at)),
+          created:new Intl.DateTimeFormat(undefined,{dateStyle:'medium'}).format(new Date(row.created_at || row.updated_at)),
+          status:row.status, ownerId:row.owner_id, viewsCount:0, popularity:0,
+          overview:String(data.overview || description), features:Array.isArray(data.features)?data.features:[],
+          art:'dashboard-art'
+        };
+      });
+      if (isRequestsPage) requests = records;
+      else projects = records;
+      catalogError = null;
+      catalogLoaded = true;
+      render();
+      catalogStatus.hidden = true;
+    } catch (error) {
+      console.error('Unable to load public projects from Supabase.', error);
+      catalogError = error;
+      catalogLoaded = true;
+      projects = [];
+      requests = [];
+      render();
+    } finally {
+      grid.removeAttribute('aria-busy');
+    }
+  }
+  loadCatalog();
 })();

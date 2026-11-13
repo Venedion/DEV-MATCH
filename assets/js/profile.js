@@ -87,7 +87,7 @@ const content=[
         <div class="section-heading"><span class="field-label">Experience <span class="optional-hint">Optional</span></span><button class="add-experience" type="button" data-add-experience>+ Add experience</button></div>
         <p class="experience-hint">Add a role, then attach a supporting file or a link.</p>
         <div class="experience-list">${renderExperienceEntries()}</div>
-        <p class="upload-note">Demo: selected files are not uploaded. Re-select them after leaving or reloading this page.</p>
+        <p class="upload-note">Supporting files are stored privately and are only available to you.</p>
       </div>`:`
       <div class="field"><label class="field-label" for="project">Project details</label><textarea class="control" id="project" maxlength="700" placeholder="Describe the features, audience, and goals for your project">${escapeHtml(profile.project)}</textarea></div>
       <div class="field"><label class="field-label" for="skills">Preferred skills or technology (optional)</label><input class="control" id="skills" maxlength="160" placeholder="e.g. Website, React, online payments" value="${escapeHtml(profile.skills)}"></div>`
@@ -290,6 +290,7 @@ async function finish(){
   if(finish.pending)return;
   finish.pending=true;
   try{
+  await Promise.all(experienceFiles.values());
   const age=profile.birthday?Math.max(0,Math.floor((Date.now()-new Date(profile.birthday).getTime())/(365.2425*24*60*60*1000))):null;
   const saved={...profile,role,whatsappConnected:Boolean(profile.whatsapp),googleConnected:false,ageRange:age===null?'':age<18?'Under 18':age<25?'18–24':age<35?'25–34':age<45?'35–44':'45+'};
   delete saved.birthday;
@@ -343,10 +344,24 @@ document.getElementById('stepFields').addEventListener('change',event=>{
     const entry=profile.experiences.find(item=>item.id===entryElement.dataset.experienceId);
     if(entry){
       const files=[...target.files];
-      experienceFiles.set(entry.id,files);
-      entry.files=files.map(file=>file.name);
-      entryElement.querySelector('[data-file-name]').textContent=entry.files.join(', ')||'PDF, DOC, DOCX, JPG, or PNG';
-      sessionStorage.setItem(draftKey,JSON.stringify({...draft,...profile,role}));
+      const fileNames=entryElement.querySelector('[data-file-name]');
+      if(files.length){
+        fileNames.textContent='Uploading files securely…';
+        const upload=Promise.all(files.map(file=>window.devMatchBackend.uploadPrivateFile('experience','',file)))
+          .then(uploaded=>{
+            entry.filePaths=[...(entry.filePaths||[]),...uploaded.map(item=>item.path)];
+            entry.files=[...(entry.files||[]),...uploaded.map(item=>item.name)];
+            fileNames.textContent=entry.files.join(', ');
+            sessionStorage.setItem(draftKey,JSON.stringify({...draft,...profile,role}));
+          })
+          .catch(cause=>{
+            fileNames.textContent=cause.message||'Unable to upload supporting files.';
+            throw cause;
+          })
+          .finally(()=>experienceFiles.delete(entry.id));
+        experienceFiles.set(entry.id,upload);
+        upload.catch(()=>{});
+      }
     }
     return;
   }
@@ -513,6 +528,9 @@ else{
   });
   if(typeof draft.instagram!=='string'&&typeof draft.social==='string')profile.instagram=draft.social;
   profile.whatsapp=profile.whatsapp.replace(/\D/g,'');
-  nextExperienceId=profile.experiences.reduce((max,entry)=>Math.max(max,Number(entry.id)||0),0);
+  profile.experiences=profile.experiences
+    .filter(entry=>entry&&typeof entry==='object'&&!Array.isArray(entry))
+    .map((entry,index)=>({...entry,id:String(index+1),files:Array.isArray(entry.files)?entry.files.map(String):[]}));
+  nextExperienceId=profile.experiences.length;
 }
 render();

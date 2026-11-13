@@ -453,22 +453,6 @@
     return projects.length + secondary.length;
   }
 
-  function getUnreadMessageCount() {
-    try {
-      const stored = localStorage.getItem('devmatch_chat_conversations_v2');
-      if (stored === null) return 3;
-      const conversations = JSON.parse(stored);
-      if (!Array.isArray(conversations)) {
-        console.warn('Expected an array in localStorage key "devmatch_chat_conversations_v2".');
-        return 3;
-      }
-      return conversations.reduce((total, conversation) => total + (Number(conversation.unreadCount) || 0), 0);
-    } catch (error) {
-      console.warn('Could not read message counts from localStorage.', error);
-      return 3;
-    }
-  }
-
   function getUnreadNotificationCount() {
     const readKey = isClientMode ? 'devmatch-client-notifications-read' : 'devmatch-dev-notifications-read';
     const readIds = new Set(readStoredArray(readKey, []));
@@ -512,7 +496,7 @@
 
   function updateNavBadges() {
     const unreadNotificationCount = getUnreadNotificationCount();
-    updateLinkBadge('nav a[href^="devmatch-chat.html"]', 'message', getUnreadMessageCount());
+    updateLinkBadge('nav a[href^="devmatch-chat.html"]', 'message', 0);
     updateLinkBadge('nav a[href^="devmatch-favorites.html"]', 'favorites', getFavoriteCount());
     updateLinkBadge(
       'nav a[href^="devmatch-developer-notifications.html"], nav a[href^="devmatch-notifications.html"]',

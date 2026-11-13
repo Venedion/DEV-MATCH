@@ -404,6 +404,14 @@
   background: #f4ebe1;
 }
 
+.fav-project-cover {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
 .fav-card:nth-child(3n+2) .fav-card-art {
   background: #e7e8fc;
 }

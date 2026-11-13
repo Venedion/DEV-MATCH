@@ -10,150 +10,16 @@
   // Distinct favorite key for Client Mode Developer bookmarks
   const FAVORITES_KEY = 'devmatch-client-dev-favorites';
 
-  const DEVELOPERS_DATA = Array.isArray(window.DEVMATCH_SAMPLE_DEVELOPERS) && window.DEVMATCH_SAMPLE_DEVELOPERS.length > 0
-    ? window.DEVMATCH_SAMPLE_DEVELOPERS
-    : [
-        {
-          id: 'rizky-aditya',
-          handle: '@rizkyaditya',
-          contactId: 'rizky',
-          initials: 'RA',
-          name: 'Rizky Aditya',
-          location: 'Medan, Indonesia',
-          city: 'Medan',
-          status: 'Open for hiring',
-          statusType: 'open',
-          specialization: 'Full-stack',
-          gender: 'Male',
-          bio: 'Business websites and POS systems for Indonesian SMEs. 5 years shipping Laravel + React.',
-          skills: ['React', 'Laravel', 'MySQL', 'Figma'],
-          projectsCount: 18,
-          views: '4.2k',
-          viewsCount: 4200,
-          favoritesCount: 312,
-          rating: '4.9',
-          reviews: 24,
-          profileUrl: 'devmatch-developer-profile.html?developer=restaurant&view=public-profile-20261109'
-        },
-        {
-          id: 'winson-lim',
-          handle: '@winsonlim',
-          contactId: 'winson',
-          initials: 'WL',
-          name: 'Winson Lim',
-          location: 'Medan, Indonesia',
-          city: 'Medan',
-          status: 'Freelance',
-          statusType: 'freelance',
-          specialization: 'Full-stack',
-          gender: 'Male',
-          bio: 'Founder of chrip.dev — custom web systems for cafés, retail and small businesses.',
-          skills: ['Next.js', 'Supabase', 'Tailwind', 'Vercel'],
-          projectsCount: 14,
-          views: '3.6k',
-          viewsCount: 3600,
-          favoritesCount: 276,
-          rating: '4.8',
-          reviews: 19,
-          profileUrl: 'devmatch-developer-profile.html?developer=pos&view=public-profile-20261109'
-        },
-        {
-          id: 'putri-ayu-lestari',
-          handle: '@putriayu',
-          contactId: 'putri',
-          initials: 'PA',
-          name: 'Putri Ayu Lestari',
-          location: 'Yogyakarta, Indonesia',
-          city: 'Yogyakarta',
-          status: 'Open for hiring',
-          statusType: 'open',
-          specialization: 'Full-stack',
-          gender: 'Female',
-          bio: 'Booking and membership platforms with clean admin dashboards and payment gateways.',
-          skills: ['Vue', 'Node.js', 'Prisma', 'Midtrans'],
-          projectsCount: 12,
-          views: '2.8k',
-          viewsCount: 2800,
-          favoritesCount: 241,
-          rating: '4.9',
-          reviews: 18,
-          profileUrl: 'devmatch-developer-profile.html?developer=booking&view=public-profile-20261109'
-        },
-        {
-          id: 'fajar-ramadhan',
-          handle: '@fajar_r',
-          contactId: 'fajar',
-          initials: 'FR',
-          name: 'Fajar Ramadhan',
-          location: 'Jakarta, Indonesia',
-          city: 'Jakarta',
-          status: 'Busy',
-          statusType: 'busy',
-          specialization: 'Full-stack',
-          gender: 'Male',
-          bio: 'Enterprise-grade web apps — ERP modules, inventory and reporting for distributors.',
-          skills: ['Django', 'React', 'Redis', 'AWS'],
-          projectsCount: 21,
-          views: '5.1k',
-          viewsCount: 5100,
-          favoritesCount: 230,
-          rating: '4.8',
-          reviews: 27,
-          profileUrl: 'devmatch-developer-profile.html?developer=inventory&view=public-profile-20261109'
-        },
-        {
-          id: 'michelle-gunawan',
-          handle: '@michelleg',
-          contactId: 'michelle',
-          initials: 'MG',
-          name: 'Michelle Gunawan',
-          location: 'Medan, Indonesia',
-          city: 'Medan',
-          status: 'Open for hiring',
-          statusType: 'open',
-          specialization: 'Full-stack',
-          gender: 'Female',
-          bio: 'E-commerce specialist: storefronts, marketplace sync and courier integrations.',
-          skills: ['Shopify', 'Next.js', 'Go', 'Figma'],
-          projectsCount: 9,
-          views: '1.9k',
-          viewsCount: 1900,
-          favoritesCount: 198,
-          rating: '4.7',
-          reviews: 14,
-          profileUrl: 'devmatch-developer-profile.html?developer=store&view=public-profile-20261109'
-        },
-        {
-          id: 'yosua-simanjuntak',
-          handle: '@yosuas',
-          contactId: 'yosua',
-          initials: 'YS',
-          name: 'Yosua Simanjuntak',
-          location: 'Balige, Indonesia',
-          city: 'Balige',
-          status: 'Not available',
-          statusType: 'unavailable',
-          specialization: 'Full-stack',
-          gender: 'Male',
-          bio: 'School and community apps — attendance, payments and parent portals.',
-          skills: ['Laravel', 'Flutter', 'MySQL', 'Docker'],
-          projectsCount: 7,
-          views: '1.2k',
-          viewsCount: 1200,
-          favoritesCount: 143,
-          rating: '4.6',
-          reviews: 11,
-          profileUrl: 'devmatch-developer-profile.html?developer=analytics&view=public-profile-20261109'
-        }
-      ];
+  let DEVELOPERS_DATA = [];
 
   // State
   let searchQuery = '';
   let searchScope = 'all';
-  let selectedSpecialization = 'Full-stack'; // Default matching PDF ("Specialization: Full-stack")
+  let selectedSpecialization = 'all';
   let selectedGender = 'all';
   let selectedStatus = 'all';
-  let currentSort = 'favorites'; // 'favorites', 'views', 'projects'
+  let currentSort = 'projects';
+  let directoryLoaded = false;
   let favoriteIds = loadFavorites();
 
   // Elements
@@ -194,11 +60,9 @@
         const parsed = JSON.parse(stored);
         return Array.isArray(parsed) ? parsed : [];
       }
-      const initialSeed = ['rizky-aditya'];
-      localStorage.setItem(FAVORITES_KEY, JSON.stringify(initialSeed));
-      return initialSeed;
+      return [];
     } catch (e) {
-      return ['rizky-aditya'];
+      return [];
     }
   }
 
@@ -240,7 +104,7 @@
       }
 
       // Gender filter
-      if (selectedGender !== 'all' && dev.gender.toLowerCase() !== selectedGender.toLowerCase()) {
+      if (selectedGender !== 'all' && (!dev.gender || dev.gender.toLowerCase() !== selectedGender.toLowerCase())) {
         return false;
       }
 
@@ -266,31 +130,26 @@
       }
 
       return true;
-    }).sort((a, b) => {
-      if (currentSort === 'views') {
-        return b.viewsCount - a.viewsCount;
-      } else if (currentSort === 'projects') {
-        return b.projectsCount - a.projectsCount;
-      } else {
-        // 'favorites'
-        return b.favoritesCount - a.favoritesCount;
-      }
-    });
+    }).sort((a, b) => currentSort === 'projects'
+      ? b.projectsCount - a.projectsCount || a.name.localeCompare(b.name)
+      : a.name.localeCompare(b.name));
   }
 
   // Render Developer Cards
   function renderDevelopers() {
+    if(!directoryLoaded)return;
     const devs = getFilteredDevelopers();
 
     if (devs.length === 0) {
       devsGrid.innerHTML = '';
       emptyState.classList.add('show');
+      emptyState.hidden = false;
     } else {
       emptyState.classList.remove('show');
+      emptyState.hidden = true;
       devsGrid.innerHTML = devs.map(dev => {
         const isFav = favoriteIds.includes(dev.id);
         const profileUrl = new URL(dev.profileUrl, location.href);
-        profileUrl.searchParams.set('view', 'client-public-profile-20261109');
 
         return `
           <article class="dev-card" data-dev-id="${escapeHtml(dev.id)}">
@@ -333,7 +192,7 @@
                 <small>Views</small>
               </div>
               <div class="dev-stat-col">
-                <strong>${dev.favoritesCount}</strong>
+                <strong>${escapeHtml(dev.favoritesCount)}</strong>
                 <small>Favorites</small>
               </div>
             </div>
@@ -355,7 +214,7 @@
     // Update count heading
     if (countHeading) {
       if (selectedSpecialization === 'Full-stack' && !searchQuery && selectedGender === 'all' && selectedStatus === 'all') {
-        countHeading.textContent = '38 full-stack developers';
+        countHeading.textContent = `${devs.length} full-stack developers`;
       } else if (selectedSpecialization !== 'all') {
         countHeading.textContent = `${devs.length} ${selectedSpecialization.toLowerCase()} developers`;
       } else {
@@ -364,12 +223,10 @@
     }
 
     if (sortLabel) {
-      if (currentSort === 'views') {
-        sortLabel.textContent = 'Sorted by most viewed';
-      } else if (currentSort === 'projects') {
+      if (currentSort === 'projects') {
         sortLabel.textContent = 'Sorted by most projects';
       } else {
-        sortLabel.textContent = 'Sorted by most favorited';
+        sortLabel.textContent = 'Sorted by name';
       }
     }
 
@@ -606,7 +463,55 @@
     }
   }
 
-  // Initialize
+  async function loadDevelopers() {
+    const status = document.getElementById('directoryStatus');
+    status.hidden = false;
+    status.textContent = 'Loading developer directory?';
+    try {
+      const user = await window.devMatchBackend.ready;
+      if (!user) throw new Error('Sign in with a client account to browse the developer directory.');
+      const {data: account, error: accountError} = await window.devMatchBackend.client
+        .from('profiles').select('account_role').eq('id', user.id).single();
+      if (accountError) throw accountError;
+      if (account.account_role !== 'client') throw new Error('The developer directory is available in client mode.');
+      const {data: people, error} = await window.devMatchBackend.client.from('directory_people')
+        .select('id,display_name,username,account_role,profile_data,published_portfolio_count')
+        .eq('account_role','dev');
+      if (error) throw error;
+      DEVELOPERS_DATA = (people || []).map(person => {
+        const profile=person.profile_data || {};
+        const name=String(person.display_name || 'DEV-MATCH member');
+        const skills=Array.isArray(profile.skills)?profile.skills.map(String):[];
+        const specialization=String(profile.specialtyOther || profile.specialty || 'Developer');
+        const availability=String(profile.availability || '');
+        const statusType=/available|open|hiring/i.test(availability)?'open':/busy/i.test(availability)?'busy':'freelance';
+        return {id:person.id,handle:person.username?`@${String(person.username).replace(/^@/,'')}`:'',contactId:person.id,
+          initials:(name.match(/\b\p{L}/gu)||[]).slice(0,2).join('').toUpperCase()||'DM',name,
+          location:String(profile.city || 'Location not provided'),city:String(profile.city || ''),status:availability || 'Availability not provided',statusType,
+          specialization,gender:'',bio:String(profile.bio || 'No biography provided.'),skills,
+          projectsCount:Number(person.published_portfolio_count)||0,views:'Not available',viewsCount:0,favoritesCount:'Not available',
+          profileUrl:`devmatch-developer-profile.html?developer=${encodeURIComponent(person.id)}`};
+      });
+      if(genderDropdown)genderDropdown.hidden=true;
+      directoryLoaded=true;
+      status.hidden = true;
+      emptyState.classList.toggle('show',DEVELOPERS_DATA.length===0);
+      renderDevelopers();
+    } catch (error) {
+      console.error('Unable to load the developer directory from Supabase.', error);
+      status.textContent = error.message && /Sign in|available in client mode/.test(error.message)
+        ? error.message : 'The developer directory could not be loaded. Check your connection and try again.';
+      status.hidden = false;
+      DEVELOPERS_DATA = [];
+      directoryLoaded=false;
+      emptyState.classList.remove('show');
+      emptyState.hidden=true;
+      renderDevelopers();
+    }
+  }
+
   initEvents();
-  renderDevelopers();
+  emptyState.classList.remove('show');
+  emptyState.hidden=true;
+  loadDevelopers();
 })();

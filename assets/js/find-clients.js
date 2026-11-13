@@ -8,325 +8,7 @@
 
   const FAVORITES_KEY = 'devmatch-favorite-clients';
 
-  // Client Dataset matching the PDF UI Design exactly
-  const CLIENTS_DATA = Array.isArray(window.DEVMATCH_SAMPLE_CLIENTS) ? window.DEVMATCH_SAMPLE_CLIENTS : [
-    {
-      id: 'jessica-sitorus',
-      contactId: 'jessica',
-      name: 'Jessica Sitorus',
-      initials: 'JS',
-      business: 'Kopi Ombak — Café',
-      category: 'Café',
-      businessType: 'Café / F&B',
-      type: 'Client',
-      openRequestsCount: 3,
-      location: 'Medan',
-      activeText: 'Active 2h ago',
-      orderIndex: 1,
-      requests: [
-        {
-          id: 'req-js-1',
-          title: 'Sistem Kasir & POS Multi-cabang',
-          category: 'POS',
-          type: 'Web App',
-          budget: 'Rp 6.500.000',
-          description: 'Membutuhkan sistem kasir cloud untuk 2 outlet kedai kopi kami, dengan sinkronisasi inventaris stok biji kopi, laporan penjualan harian, dan integrasi pembayaran QRIS.',
-          tags: ['POS', 'Cloud', 'Inventory', 'QRIS']
-        },
-        {
-          id: 'req-js-2',
-          title: 'Website Menu Digital & Reservasi Meja',
-          category: 'Company Profile',
-          type: 'Website',
-          budget: 'Rp 3.500.000',
-          description: 'Website katalog menu interaktif dengan foto hidangan dan formulir reservasi meja yang langsung mengirim konfirmasi via WhatsApp ke pelanggan.',
-          tags: ['Next.js', 'WhatsApp API', 'Responsive']
-        },
-        {
-          id: 'req-js-3',
-          title: 'Program Loyalty & Kupon Digital Pelanggan',
-          category: 'Marketing',
-          type: 'Web App',
-          budget: 'Rp 2.800.000',
-          description: 'Fitur stempel digital pelanggan setia berdasarkan nomor handphone saat transaksi di meja kasir.',
-          tags: ['Loyalty', 'Web App', 'Promotion']
-        }
-      ]
-    },
-    {
-      id: 'andreas-halim',
-      contactId: 'andreas',
-      name: 'Andreas Halim',
-      initials: 'AH',
-      business: 'Halim Fashion — Retail',
-      category: 'Retail',
-      businessType: 'Retail / Fashion',
-      type: 'Client',
-      openRequestsCount: 1,
-      location: 'Medan',
-      activeText: 'Active 5h ago',
-      orderIndex: 2,
-      requests: [
-        {
-          id: 'req-ah-1',
-          title: 'Katalog Fashion & Integrasi WhatsApp Checkout',
-          category: 'E-Commerce',
-          type: 'Website',
-          budget: 'Rp 4.500.000',
-          description: 'Toko butik pakaian butuh website katalog modern dengan fitur filter ukuran/warna, live stok barang, dan tombol direct order ke admin WhatsApp.',
-          tags: ['E-Commerce', 'Catalog', 'WhatsApp Checkout']
-        }
-      ]
-    },
-    {
-      id: 'klinik-sehat-bersama',
-      contactId: 'klinik-sehat',
-      name: 'Klinik Sehat Bersama',
-      initials: 'KS',
-      business: 'Healthcare clinic',
-      category: 'Healthcare',
-      businessType: 'Healthcare',
-      type: 'Client',
-      openRequestsCount: 2,
-      location: 'Pematangsiantar',
-      activeText: 'Active 1d ago',
-      orderIndex: 3,
-      requests: [
-        {
-          id: 'req-ks-1',
-          title: 'Sistem Booking Janji Dokter & Pasien',
-          category: 'Booking',
-          type: 'Web App',
-          budget: 'Rp 5.500.000',
-          description: 'Website pendaftaran antrean dan janji temu pasien dengan dokter spesialis, lengkap dengan pengingat otomatis sebelum jadwal konsultasi.',
-          tags: ['Booking', 'Antrean', 'WhatsApp Reminder']
-        },
-        {
-          id: 'req-ks-2',
-          title: 'Aplikasi Rekam Medis Ringan & Jadwal Dokter',
-          category: 'Healthcare',
-          type: 'Web App',
-          budget: 'Rp 7.000.000',
-          description: 'Sistem internal staf administrasi klinik untuk mengelola riwayat kunjungan pasien dan jadwal dokter jaga.',
-          tags: ['Dashboard', 'Internal System', 'Security']
-        }
-      ]
-    },
-    {
-      id: 'toko-sinar-jaya',
-      contactId: 'sinar-jaya',
-      name: 'Toko Sinar Jaya',
-      initials: 'SJ',
-      business: 'Building materials',
-      category: 'Building materials',
-      businessType: 'Building materials',
-      type: 'Client',
-      openRequestsCount: 1,
-      location: 'Medan',
-      activeText: 'Active 2d ago',
-      orderIndex: 4,
-      requests: [
-        {
-          id: 'req-sj-1',
-          title: 'Aplikasi Manajemen Stok Material & Surat Jalan',
-          category: 'Inventory',
-          type: 'Web App',
-          budget: 'Rp 5.000.000',
-          description: 'Aplikasi gudang bahan bangunan untuk mencatat semen, besi, keramik masuk dan keluar serta cetak surat jalan pengiriman ke proyek pembeli.',
-          tags: ['Inventory', 'Surat Jalan', 'Cetak PDF']
-        }
-      ]
-    },
-    {
-      id: 'maria-nainggolan',
-      contactId: 'maria',
-      name: 'Maria Nainggolan',
-      initials: 'MN',
-      business: 'Homestay — Hospitality',
-      category: 'Hospitality',
-      businessType: 'Hospitality',
-      type: 'Client',
-      openRequestsCount: 1,
-      location: 'Toba',
-      activeText: 'Active 3d ago',
-      orderIndex: 5,
-      requests: [
-        {
-          id: 'req-mn-1',
-          title: 'Website Reservasi Kamar Danau Toba & Payment Gateway',
-          category: 'Booking',
-          type: 'Website',
-          budget: 'Rp 4.200.000',
-          description: 'Website showcase penginapan tepi Danau Toba dengan kalender ketersediaan kamar, galeri foto pemandangan, dan pembayaran instan QRIS/Transfer.',
-          tags: ['Hospitality', 'Midtrans', 'Kalender Booking']
-        }
-      ]
-    },
-    {
-      id: 'cv-maju-bersama',
-      contactId: 'maju-bersama',
-      name: 'CV Maju Bersama',
-      initials: 'MB',
-      business: 'Distribution',
-      category: 'Distribution',
-      businessType: 'Distribution',
-      type: 'Client',
-      openRequestsCount: 2,
-      location: 'Binjai',
-      activeText: 'Active 4d ago',
-      orderIndex: 6,
-      requests: [
-        {
-          id: 'req-mb-1',
-          title: 'Sistem Tracking Kurir & Pengiriman Barang',
-          category: 'Logistics',
-          type: 'Web App',
-          budget: 'Rp 8.000.000',
-          description: 'Aplikasi tracking rute pengiriman armada truk distribusi barang konsumsi untuk toko grosir di Sumatera Utara.',
-          tags: ['Tracking', 'GPS', 'Distribusi']
-        },
-        {
-          id: 'req-mb-2',
-          title: 'Portal B2B Order & Invoice Otomatis',
-          category: 'E-Commerce',
-          type: 'Web App',
-          budget: 'Rp 6.500.000',
-          description: 'Portal pemesanan khusus toko retail langganan untuk repeat order barang tanpa harus chat manual.',
-          tags: ['B2B', 'Invoicing', 'Order Portal']
-        }
-      ]
-    },
-    {
-      id: 'budi-santoso',
-      contactId: 'budi',
-      name: 'Budi Santoso',
-      initials: 'BS',
-      business: 'Santoso Logistics — Ekspedisi',
-      category: 'Distribution',
-      businessType: 'Distribution',
-      type: 'Client',
-      openRequestsCount: 1,
-      location: 'Medan',
-      activeText: 'Active 5d ago',
-      orderIndex: 7,
-      requests: [
-        {
-          id: 'req-bs-1',
-          title: 'Cek Ongkir & Pelacakan Resi Ekspedisi Lokal',
-          category: 'Logistics',
-          type: 'Website',
-          budget: 'Rp 3.800.000',
-          description: 'Widget kalkulator ongkos kirim antar-kabupaten di Sumut dan formulir tracking no resi untuk konsumen.',
-          tags: ['Cek Ongkir', 'Resi', 'Logistik']
-        }
-      ]
-    },
-    {
-      id: 'dewi-lestari',
-      contactId: 'dewi',
-      name: 'Dewi Lestari',
-      initials: 'DL',
-      business: 'Aroma Bakery — Café',
-      category: 'Café',
-      businessType: 'Café / F&B',
-      type: 'Client',
-      openRequestsCount: 2,
-      location: 'Pematangsiantar',
-      activeText: 'Active 6d ago',
-      orderIndex: 8,
-      requests: [
-        {
-          id: 'req-dl-1',
-          title: 'Pre-order Kue Ulang Tahun & Custom Cake Builder',
-          category: 'E-Commerce',
-          type: 'Web App',
-          budget: 'Rp 4.000.000',
-          description: 'Form interaktif pemesanan kue ulang tahun dengan pilihan rasa, ukuran, ucapan, dan tanggal antar.',
-          tags: ['Custom Cake', 'Pre-order', 'F&B']
-        }
-      ]
-    },
-    {
-      id: 'pt-prima-solusindo',
-      contactId: 'prima',
-      name: 'PT Prima Solusindo',
-      initials: 'PS',
-      business: 'Konsultan Bisnis & Legal',
-      category: 'Services',
-      businessType: 'Services',
-      type: 'Client',
-      openRequestsCount: 0,
-      location: 'Bandung',
-      activeText: 'Active 1w ago',
-      orderIndex: 9,
-      requests: []
-    },
-    {
-      id: 'hendra-wijaya',
-      contactId: 'hendra',
-      name: 'Hendra Wijaya',
-      initials: 'HW',
-      business: 'Wijaya Auto Parts — Retail',
-      category: 'Retail',
-      businessType: 'Retail / Fashion',
-      type: 'Client',
-      openRequestsCount: 1,
-      location: 'Jakarta',
-      activeText: 'Active 1w ago',
-      orderIndex: 10,
-      requests: [
-        {
-          id: 'req-hw-1',
-          title: 'Katalog Sparepart Mobil & Filter Seri Kendaraan',
-          category: 'E-Commerce',
-          type: 'Web App',
-          budget: 'Rp 6.000.000',
-          description: 'Pencarian sparepart berdasarkan merk mobil, tahun keluaran, dan nomor seri onderdil.',
-          tags: ['Catalog', 'Search Filter', 'Sparepart']
-        }
-      ]
-    },
-    {
-      id: 'rina-susanti',
-      contactId: 'rina',
-      name: 'Rina Susanti',
-      initials: 'RS',
-      business: 'Klinik Gigi Harmoni — Healthcare',
-      category: 'Healthcare',
-      businessType: 'Healthcare',
-      type: 'Client',
-      openRequestsCount: 1,
-      location: 'Surabaya',
-      activeText: 'Active 2w ago',
-      orderIndex: 11,
-      requests: [
-        {
-          id: 'req-rs-1',
-          title: 'Reservasi Pasien Dokter Gigi & Reminder WhatsApp',
-          category: 'Booking',
-          type: 'Website',
-          budget: 'Rp 4.500.000',
-          description: 'Sistem booking perawatan gigi (scaling, tambal, behel) dengan pemilihan jam senggang dokter.',
-          tags: ['Booking', 'Klinik Gigi', 'WhatsApp']
-        }
-      ]
-    },
-    {
-      id: 'toko-emas-berkah',
-      contactId: 'emas-berkah',
-      name: 'Toko Emas Berkah',
-      initials: 'TE',
-      business: 'Perhiasan & Retail',
-      category: 'Retail',
-      businessType: 'Retail / Fashion',
-      type: 'Client',
-      openRequestsCount: 0,
-      location: 'Yogyakarta',
-      activeText: 'Active 2w ago',
-      orderIndex: 12,
-      requests: []
-    }
-  ];
+  let CLIENTS_DATA = [];
 
   // State
   let searchQuery = '';
@@ -334,7 +16,7 @@
   let selectedBusinessType = 'all';
   let selectedLocation = 'all';
   let hasOpenRequestsOnly = true; // Enabled by default per PDF design (solid dark pill)
-  let sortOrder = 'newest';
+  let sortOrder = 'az';
   let favoriteIds = getSavedFavorites();
 
   // Elements
@@ -381,11 +63,9 @@
         const data = JSON.parse(stored);
         return Array.isArray(data) ? data : [];
       }
-      const defaultFavs = ['jessica-sitorus', 'klinik-sehat-bersama'];
-      localStorage.setItem(FAVORITES_KEY, JSON.stringify(defaultFavs));
-      return defaultFavs;
+      return [];
     } catch (e) {
-      return ['jessica-sitorus', 'klinik-sehat-bersama'];
+      return [];
     }
   }
 
@@ -454,11 +134,8 @@
 
       return true;
     }).sort((a, b) => {
-      if (sortOrder === 'newest') {
-        return a.orderIndex - b.orderIndex;
-      } else {
-        return b.orderIndex - a.orderIndex;
-      }
+      const byName=a.name.localeCompare(b.name);
+      return sortOrder==='za'?-byName:byName;
     });
   }
 
@@ -469,8 +146,10 @@
     if (clients.length === 0) {
       clientsGrid.innerHTML = '';
       emptyState.classList.add('show');
+      emptyState.hidden = false;
     } else {
       emptyState.classList.remove('show');
+      emptyState.hidden = true;
       clientsGrid.innerHTML = clients.map(client => {
         const isFav = favoriteIds.includes(client.id);
         const reqText = client.openRequestsCount === 1 ? '1 open request' : `${client.openRequestsCount} open requests`;
@@ -529,7 +208,7 @@
     // Update count heading
     if (clientsCountEl) {
       if (!searchQuery && selectedBusinessType === 'all' && selectedLocation === 'all' && hasOpenRequestsOnly) {
-        clientsCountEl.textContent = '120 clients';
+        clientsCountEl.textContent = `${clients.length} clients`;
       } else {
         clientsCountEl.textContent = `${clients.length} clients`;
       }
@@ -794,13 +473,13 @@
     // Sort Newest / Oldest
     if (sortNewestBtn && sortOldestBtn) {
       sortNewestBtn.addEventListener('click', () => {
-        sortOrder = 'newest';
+        sortOrder = 'az';
         sortNewestBtn.classList.add('active');
         sortOldestBtn.classList.remove('active');
         renderClients();
       });
       sortOldestBtn.addEventListener('click', () => {
-        sortOrder = 'oldest';
+        sortOrder = 'za';
         sortOldestBtn.classList.add('active');
         sortNewestBtn.classList.remove('active');
         renderClients();
@@ -897,7 +576,60 @@
     }
   }
 
-  // Init
+  async function loadClients() {
+    const status = document.getElementById('directoryStatus');
+    status.hidden = false;
+    status.textContent = 'Loading client directory?';
+    try {
+      const user = await window.devMatchBackend.ready;
+      if (!user) throw new Error('Sign in with a developer account to browse the client directory.');
+      const {data: account, error: accountError} = await window.devMatchBackend.client
+        .from('profiles').select('account_role').eq('id', user.id).single();
+      if (accountError) throw accountError;
+      if (account.account_role !== 'dev') throw new Error('The client directory is available in developer mode.');
+      const [{data: people, error: peopleError}, {data: rows, error: projectsError}] = await Promise.all([
+        window.devMatchBackend.client.from('directory_people')
+          .select('id,display_name,username,account_role,profile_data,open_request_count')
+          .eq('account_role', 'client'),
+        window.devMatchBackend.client.from('projects')
+          .select('id,owner_id,title,project_type,category,price,data,status,created_at,updated_at')
+          .eq('project_kind', 'request').eq('status', 'open').order('updated_at', {ascending:false})
+      ]);
+      if (peopleError) throw peopleError;
+      if (projectsError) throw projectsError;
+      const requestsByOwner = new Map();
+      (rows || []).forEach(row => {
+        const data = row.data && typeof row.data === 'object' ? row.data : {};
+        const request = {id:row.id,title:row.title,category:row.category,type:row.project_type,
+          budget:row.price || data.budgetLabel || data.budget || '',description:data.description || data.overview || '',
+          tags:Array.isArray(data.stack)?data.stack:[]};
+        requestsByOwner.set(row.owner_id,[...(requestsByOwner.get(row.owner_id)||[]),request]);
+      });
+      CLIENTS_DATA = (people || []).map((person,index) => {
+        const profile = person.profile_data || {};
+        const name = String(person.display_name || 'DEV-MATCH member');
+        const requests = requestsByOwner.get(person.id) || [];
+        const category = String(profile.industry || '');
+        return {id:person.id,contactId:person.id,name,initials:(name.match(/\b\p{L}/gu)||[]).slice(0,2).join('').toUpperCase()||'DM',
+          business:String(profile.companyName || name),category,businessType:category||'Business type not provided',type:'Client',
+          openRequestsCount:requests.length,location:String(profile.city || 'Location not provided'),activeText:'Profile listed',
+          orderIndex:index,requests};
+      });
+      status.hidden = true;
+      emptyState.hidden = CLIENTS_DATA.length > 0;
+      renderClients();
+    } catch (error) {
+      console.error('Unable to load the client directory from Supabase.', error);
+      status.textContent = error.message && /Sign in|available in developer mode/.test(error.message)
+        ? error.message : 'The client directory could not be loaded. Check your connection and try again.';
+      status.hidden = false;
+      CLIENTS_DATA = [];
+      emptyState.hidden = true;
+      renderClients();
+    }
+  }
+
   initEvents();
-  renderClients();
+  emptyState.hidden = true;
+  loadClients();
 })();

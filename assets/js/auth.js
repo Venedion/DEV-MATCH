@@ -13,7 +13,58 @@ const copy={
 };
 let role=params.get('role')==='client'?'cli':'dev';
 let mode=params.get('mode')==='login'?'log':'reg';
+let registrationChallengePromise=null;
 const emailRe=/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+async function registrationFunctionError(error,fallback){
+  const response=error?.context;
+  if(response&&typeof response.clone==='function'){
+    try{
+      const body=await response.clone().json();
+      if(typeof body.error==='string')return new Error(body.error);
+    }catch{}
+  }
+  return new Error(error?.message||fallback);
+}
+function loadRegistrationChallenge(){
+  if(!registrationChallengePromise){
+    registrationChallengePromise=window.devMatchBackend.client.functions
+      .invoke('register-challenge',{method:'GET'})
+      .then(async({data:challenge,error})=>{
+        if(error)throw await registrationFunctionError(error,'Unable to initialize registration protection.');
+        if(typeof challenge.payload!=='string'||typeof challenge.signature!=='string'||challenge.difficulty!==14)
+          throw new Error('Unable to initialize registration protection. Reload the page and try again.');
+        return challenge;
+      })
+      .catch(error=>{registrationChallengePromise=null;throw error;});
+  }
+  return registrationChallengePromise;
+}
+function warmRegistrationChallenge(){
+  if(mode==='reg')loadRegistrationChallenge().catch(()=>{});
+}
+async function requestRegistrationPermit(email){
+  const challenge=await loadRegistrationChallenge();
+  const status=$('authStatus');
+  if(status)status.textContent='Checking your browser…';
+  const worker=new Worker('/assets/js/registration-pow-worker.js');
+  let counter;
+  try{
+    counter=await new Promise((resolve,reject)=>{
+      worker.onmessage=event=>{
+        if(Number.isSafeInteger(event.data.counter))resolve(event.data.counter);
+        else if(event.data.error)reject(new Error(event.data.error));
+      };
+      worker.onerror=()=>reject(new Error('Unable to complete registration verification.'));
+      worker.postMessage({input:`${challenge.payload}.${challenge.signature}`,difficulty:challenge.difficulty});
+    });
+  }finally{worker.terminate();}
+  const {data:result,error}=await window.devMatchBackend.client.functions.invoke('register-permit',{
+    body:{email,challenge,counter,website:$('website').value}
+  });
+  if(error)throw await registrationFunctionError(error,'Unable to verify registration. Please try again.');
+  if(typeof result.registrationPermit!=='string')throw new Error('Unable to verify registration. Please try again.');
+  return result.registrationPermit;
+}
 function render(){
   const c=copy[role],reg=mode==='reg';
   document.querySelectorAll('.reg').forEach(e=>e.classList.toggle('hide',!reg));
@@ -31,7 +82,7 @@ function render(){
   $('pass').placeholder=reg?'8+ chars, 1 uppercase, 1 special character':'Your password';
   $('submit').textContent=reg?'Create account':'Log in';
   $('alt').innerHTML=reg?'Already have an account? <button class="link" type="button" id="toggle">Log in</button>':'New to DEV-MATCH? <button class="link" type="button" id="toggle">Create an account</button>';
-  $('toggle').onclick=()=>{mode=reg?'log':'reg';clearErr();render()};
+  $('toggle').onclick=()=>{mode=reg?'log':'reg';registrationChallengePromise=null;clearErr();render();warmRegistrationChallenge()};
   document.title=(reg?'Create your account':'Log in')+' — DEV-MATCH';
   userHint();
 }
@@ -72,9 +123,10 @@ $('form').addEventListener('submit',async e=>{
     await backend.ready;
     const activeRole=role==='dev'?'dev':'client';
     if(reg){
+      const registrationPermit=await requestRegistrationPermit(em);
       const {data,error}=await backend.client.auth.signUp({
         email:em,password:pw,
-        options:{data:{username:u,phone:'+62'+ph,account_role:activeRole}}
+        options:{data:{username:u,phone:'+62'+ph,account_role:activeRole,registration_permit:registrationPermit}}
       });
       if(error)throw error;
       $('pass').value='';
@@ -106,4 +158,5 @@ const status=document.createElement('p');
 status.id='authStatus';status.setAttribute('role','status');status.style.marginTop='16px';$('form').append(status);
 if(params.get('reset')==='success')status.textContent='Password updated. Log in with your new password.';
 if(params.get('error')==='connection')status.textContent='Unable to connect. Please try logging in again.';
+warmRegistrationChallenge();
 })();

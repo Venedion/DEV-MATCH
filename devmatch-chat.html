@@ -8,14 +8,14 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=optional" rel="stylesheet">
   <link rel="stylesheet" href="assets/css/dashboard.css?v=20261030-fixed-profile-width">
-  <link rel="stylesheet" href="assets/css/chat.css?v=20261101-chat-no-default-room">
+  <link rel="stylesheet" href="assets/css/chat.css?v=20261112-encrypted-attachments">
   <link rel="stylesheet" href="assets/css/client-shell.css?v=20261030-header-size-match">
   <link rel="stylesheet" href="assets/css/mode-switch-animation.css?v=20261030-client-mode-route">
   <link rel="stylesheet" href="assets/css/mobile-navigation.css?v=20261031-desktop-dropdown-aligned">
   <script src="assets/js/mode-switch-state.js?v=20261030-client-mode-indicator"></script>
   <script src="assets/js/i18n.js?v=20261102-profile-details"></script>
 <script src="assets/vendor/supabase-2.119.0.js"></script>
-<script src="assets/js/backend.js?v=20261112-private-profile-cache"></script>
+<script src="assets/js/backend.js?v=20261112-storage-media"></script>
 </head>
 <body class="chat-body">
   <!-- Topbar -->
@@ -61,7 +61,7 @@
       <a class="nav-item active" href="devmatch-chat.html" aria-current="page">
         <svg viewBox="0 0 24 24"><path d="M21 11.5a8.5 8.5 0 0 1-8.5 8.5H4l1.5-4A8.5 8.5 0 1 1 21 11.5z"/></svg>
         Messages
-        <span class="nav-count chat-unread-total-badge" style="background:#e7f6ed;color:#15934f;">3</span>
+        <span class="nav-count chat-unread-total-badge" style="background:#e7f6ed;color:#15934f;" hidden>0</span>
       </a>
       <a class="nav-item" href="devmatch-my-projects.html">
         <svg viewBox="0 0 24 24"><path d="M3 6a2 2 0 0 1 2-2h5l2 2h7a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
@@ -96,7 +96,7 @@
         Settings
       </a>
     </nav>
-    <div class="sidebar-foot"><span class="online-dot"></span>Demo workspace</div>
+    <div class="sidebar-foot"><span class="online-dot"></span>Secure chat</div>
   </aside>
 
   <!-- Chat Viewport -->
@@ -106,7 +106,7 @@
       <header class="chat-conv-header">
         <div class="chat-conv-title-wrap">
           <h1>Messages</h1>
-          <span class="chat-total-badge" id="chatTotalBadge">3</span>
+          <span class="chat-total-badge" id="chatTotalBadge" hidden>0</span>
         </div>
         <div class="chat-conv-actions">
           <button class="chat-tool-btn" id="markAllReadBtn" type="button" title="Mark all conversations as read" aria-label="Mark all read">
@@ -147,20 +147,20 @@
         <p>Choose a message from the list to start chatting.</p>
       </div>
       <!-- Active Header -->
-      <header class="chat-main-header">
+      <header class="chat-main-header" hidden>
         <div class="chat-header-user">
           <button class="chat-back-btn" id="chatBackBtn" type="button" aria-label="Back to conversations list">
             <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
           </button>
-          <div class="chat-avatar" id="activeAvatar">JS</div>
+          <div class="chat-avatar" id="activeAvatar"></div>
           <div class="chat-header-details">
             <div class="chat-header-name">
-              <span id="activeName">Jessica Sitorus</span>
-              <span class="chat-role-pill" id="activeRole">Client</span>
+              <span id="activeName"></span>
+              <span class="chat-role-pill" id="activeRole"></span>
             </div>
             <div class="chat-header-status">
-              <span class="chat-header-status-dot" id="activeStatusDot"></span>
-              <span id="activeStatusText">Active now</span>
+              <span class="chat-header-status-dot" id="activeStatusDot" hidden></span>
+              <span id="activeStatusText"></span>
             </div>
           </div>
         </div>
@@ -181,10 +181,10 @@
       </header>
 
       <!-- Sticky Project Context Banner -->
-      <aside class="chat-project-banner" id="activeProjectBanner">
+      <aside class="chat-project-banner" id="activeProjectBanner" hidden>
         <div class="chat-project-banner-info">
           <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18M8 4v5m8-5v5"/></svg>
-          <span>Discussing: <strong id="activeProjectTitle">Restaurant Website Development</strong> (<span id="activeProjectPrice">Rp 3.500.000</span>)</span>
+          <span>Discussing: <strong id="activeProjectTitle"></strong> (<span id="activeProjectPrice"></span>)</span>
         </div>
         <a class="chat-project-banner-link" id="viewProjectLink" href="#" target="_blank">View details</a>
       </aside>
@@ -197,19 +197,21 @@
       </section>
 
       <!-- Quick reply suggestions -->
-      <div class="chat-quick-replies" id="chatQuickReplies" aria-label="Quick replies">
+      <div class="chat-quick-replies" id="chatQuickReplies" aria-label="Quick replies" hidden>
         <!-- Rendered by chat.js -->
       </div>
 
       <!-- Message Composer -->
-      <footer class="chat-composer-wrap">
+      <footer class="chat-composer-wrap" hidden>
+        <div class="chat-attachment-pending" id="chatAttachmentPreview" hidden></div>
+        <input id="chatAttachmentInput" type="file" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.webp" hidden>
         <form class="chat-composer-form" id="chatComposerForm">
           <div class="chat-composer-tools">
             <button class="chat-composer-btn" id="chatAttachBtn" type="button" title="Attach file or proposal" aria-label="Attach file">
               <svg viewBox="0 0 24 24"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
             </button>
           </div>
-          <textarea class="chat-composer-input" id="chatMessageInput" rows="1" placeholder="Write a message... (Press Enter to send)" required></textarea>
+          <textarea class="chat-composer-input" id="chatMessageInput" rows="1" placeholder="Write a message... (Press Enter to send)"></textarea>
           <button class="chat-send-btn" type="submit" aria-label="Send message">
             <svg viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
           </button>
@@ -219,10 +221,11 @@
           <span>Shift + Enter for new line</span>
         </div>
       </footer>
+      <p class="chat-status" id="chatStatus" role="status" aria-live="polite"></p>
     </main>
 
     <!-- Column 3: Contact & Project Details Drawer -->
-    <aside class="chat-detail-pane" id="chatDetailPane" aria-label="Contact and project details">
+    <aside class="chat-detail-pane closed" id="chatDetailPane" aria-label="Contact and project details">
       <header class="chat-detail-header">
         <h3>Contact &amp; Details</h3>
         <button class="chat-detail-close" id="closeDetailBtn" type="button" aria-label="Close details panel">
@@ -233,19 +236,18 @@
       <div class="chat-detail-content">
         <!-- Profile Summary -->
         <div class="chat-detail-profile">
-          <div class="chat-detail-avatar" id="detailAvatar">JS</div>
-          <h4 class="chat-detail-name" id="detailName">Jessica Sitorus</h4>
-          <p class="chat-detail-sub" id="detailRole">Client · Verified Contact</p>
-          <div class="chat-detail-rating">★ 4.9 <small style="color:var(--muted);font-weight:400;">(12 projects completed)</small></div>
+          <div class="chat-detail-avatar" id="detailAvatar"></div>
+          <h4 class="chat-detail-name" id="detailName"></h4>
+          <p class="chat-detail-sub" id="detailRole"></p>
         </div>
 
         <!-- Inquired Project Card -->
         <div class="chat-detail-section">
           <h5 class="chat-detail-section-title">Inquired Project</h5>
           <div class="chat-detail-project-card">
-            <h4 id="detailProjectTitle">Restaurant Website Development</h4>
-            <p id="detailProjectDesc">Warm, responsive bistro website with digital menu and reservations.</p>
-            <div class="chat-detail-project-price" id="detailProjectPrice">Rp 3.500.000 · Agreed estimate</div>
+            <h4 id="detailProjectTitle"></h4>
+            <p id="detailProjectDesc">Private conversation</p>
+            <div class="chat-detail-project-price" id="detailProjectPrice"></div>
           </div>
         </div>
 
@@ -258,7 +260,7 @@
         </div>
 
         <!-- Direct Actions -->
-        <div class="chat-detail-section">
+        <div class="chat-detail-section" hidden>
           <h5 class="chat-detail-section-title">Quick Actions</h5>
           <div style="display:grid;gap:8px;">
             <a class="chat-action-btn whatsapp-btn" id="detailWhatsAppAction" href="#" target="_blank" style="justify-content:center;height:38px;">
@@ -276,7 +278,7 @@
   </div>
 
   <script src="assets/js/projects-data.js"></script>
-  <script src="assets/js/chat.js?v=20261101-chat-no-default-room"></script>
-  <script src="assets/js/nav-behavior.js?v=20261031-account-dropdown-ease"></script>
+  <script src="assets/js/chat.js?v=20261112-encrypted-attachments"></script>
+  <script src="assets/js/nav-behavior.js?v=20261112-secure-chat-badge"></script>
 </body>
 </html>

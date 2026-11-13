@@ -34,8 +34,8 @@
         <i></i>
       </a>
       <a class="user-menu" href="devmatch-my-profile.html?role=dev">
-        <span class="user-avatar">RA</span>
-        <span class="user-copy"><b>Rizky Aditya</b><small>Developer</small></span>
+        <span class="user-avatar">DV</span>
+        <span class="user-copy"><b>Developer account</b><small>Developer</small></span>
         <svg viewBox="0 0 24 24"><path d="m7 10 5 5 5-5"/></svg>
       </a>
     </div>
@@ -59,7 +59,7 @@
       </a>
       <a class="nav-item" href="devmatch-chat.html">
         <svg viewBox="0 0 24 24"><path d="M21 11.5a8.5 8.5 0 0 1-8.5 8.5H4l1.5-4A8.5 8.5 0 1 1 21 11.5z"/></svg>
-        Messages<span class="nav-count chat-unread-total-badge" style="background:#e7f6ed;color:#15934f;">3</span>
+        Messages<span class="nav-count chat-unread-total-badge" style="background:#e7f6ed;color:#15934f;" hidden>0</span>
       </a>
       <a class="nav-item" href="devmatch-my-projects.html">
         <svg viewBox="0 0 24 24"><path d="M3 6a2 2 0 0 1 2-2h5l2 2h7a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
@@ -79,7 +79,7 @@
       </a>
       <a class="nav-item" href="devmatch-developer-notifications.html">
         <svg viewBox="0 0 24 24"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9m-8 13h4"/></svg>
-        Notifications<span class="nav-count" id="developerNotificationCount">3</span>
+        Notifications
       </a>
     </nav>
 
@@ -191,14 +191,15 @@
 
         <!-- Sort Pill Switcher -->
         <div class="sort-toggle-wrap" role="group" aria-label="Urutan klien">
-          <button id="sortNewestBtn" class="sort-btn active" type="button">Newest</button>
-          <button id="sortOldestBtn" class="sort-btn" type="button">Oldest</button>
+          <button id="sortNewestBtn" class="sort-btn active" type="button">A–Z</button>
+          <button id="sortOldestBtn" class="sort-btn" type="button">Z–A</button>
         </div>
       </div>
     </section>
 
     <!-- Results Count -->
-    <h2 class="clients-count-header" id="clientsCountHeading">120 clients</h2>
+    <h2 class="clients-count-header" id="clientsCountHeading">0 clients</h2>
+    <p id="directoryStatus" role="status" aria-live="polite">Loading client directory…</p>
 
     <!-- Client Cards Grid -->
     <div class="clients-grid" id="clientsGrid" aria-live="polite">
@@ -206,7 +207,7 @@
     </div>
 
     <!-- Empty State -->
-    <div class="clients-empty-state" id="clientsEmptyState">
+    <div class="clients-empty-state" id="clientsEmptyState" hidden>
       <div class="empty-icon-circle">
         <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
       </div>
@@ -225,8 +226,7 @@
   <!-- Toast Notification -->
   <div class="fc-toast" id="fcToast"></div>
 
-  <script src="assets/js/projects-data.js"></script>
-  <script src="assets/js/nav-behavior.js?v=20261031-account-dropdown-ease"></script>
-  <script src="assets/js/find-clients.js?v=20261111-user-data"></script>
+  <script src="assets/js/nav-behavior.js?v=20261112-secure-chat-badge"></script>
+  <script src="assets/js/find-clients.js?v=20261112-live-directory"></script>
 </body>
 </html>

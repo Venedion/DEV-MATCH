@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=optional" rel="stylesheet">
   <link rel="stylesheet" href="assets/css/dashboard.css?v=20261030-fixed-profile-width">
-  <link rel="stylesheet" href="assets/css/favorites.css?v=20261101-favorites-count-spacing-subtle">
+  <link rel="stylesheet" href="assets/css/favorites.css?v=20261112-storage-media">
   <link rel="stylesheet" href="assets/css/find-clients.css?v=20261030-scroll-area">
   <link rel="stylesheet" href="assets/css/client-shell.css?v=20261030-header-size-match">
   <link rel="stylesheet" href="assets/css/mode-switch-animation.css?v=20261030-client-mode-route">
@@ -42,7 +42,6 @@
       </a>
     </div>
   </header>
-
   <!-- Sidebar -->
   <aside class="sidebar">
     <div class="workspace"><span class="workspace-icon">&lt;/&gt;</span><span><b>Developer workspace</b><small>Showcase &amp; find clients</small></span></div>
@@ -50,7 +49,7 @@
     <span class="nav-label">Menu</span>
     <nav class="side-nav" aria-label="Dashboard navigation">
       <a class="nav-item" href="devmatch-dashboard.html"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>Overview</a>
-      <a class="nav-item" href="devmatch-chat.html"><svg viewBox="0 0 24 24"><path d="M21 11.5a8.5 8.5 0 0 1-8.5 8.5H4l1.5-4A8.5 8.5 0 1 1 21 11.5z"/></svg>Messages<span class="nav-count" style="background:#e7f6ed;color:#15934f;">3</span></a>
+      <a class="nav-item" href="devmatch-chat.html"><svg viewBox="0 0 24 24"><path d="M21 11.5a8.5 8.5 0 0 1-8.5 8.5H4l1.5-4A8.5 8.5 0 1 1 21 11.5z"/></svg>Messages</a>
       <a class="nav-item" href="devmatch-my-projects.html"><svg viewBox="0 0 24 24"><path d="M3 6a2 2 0 0 1 2-2h5l2 2h7a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>My Projects</a>
       <a class="nav-item" href="devmatch-find-projects.html"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="m15.5 8.5-2 5-5 2 2-5z"/></svg>Find Projects</a>
       <a class="nav-item" href="devmatch-find-clients.html"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"/><path d="M3 20a6 6 0 0 1 12 0m2-8a3 3 0 1 0 0-6m1 8a5 5 0 0 1 3 5"/></svg>Find Clients</a>
@@ -158,11 +157,10 @@
   <!-- Floating Chat Link -->
   <a class="floating-chat" href="devmatch-chat.html" aria-label="Messages &amp; Chat" title="Open Messages &amp; Chat">
     <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5c-5 0-9 3.65-9 8.15 0 2.24 1.04 4.27 2.73 5.74L4.7 21l5.24-1.28c.67.12 1.36.18 2.06.18 5 0 9-3.65 9-8.15S17 3.5 12 3.5Z"/><circle cx="8.5" cy="11.7" r="1" fill="currentColor" stroke="none"/><circle cx="12" cy="11.7" r="1" fill="currentColor" stroke="none"/><circle cx="15.5" cy="11.7" r="1" fill="currentColor" stroke="none"/></svg>
-    <span class="floating-chat-badge">3</span>
+
   </a>
 
-  <script src="assets/js/projects-data.js"></script>
-  <script src="assets/js/favorites.js?v=20261111-user-data"></script>
-  <script src="assets/js/nav-behavior.js?v=20261031-account-dropdown-ease"></script>
+  <script src="assets/js/favorites.js?v=20261112-supabase-favorites"></script>
+  <script src="assets/js/nav-behavior.js?v=20261112-secure-chat-badge"></script>
 </body>
 </html>

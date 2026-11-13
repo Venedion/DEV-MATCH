@@ -1,0 +1,10 @@
+project_id = "yxwktllqbmhustmhdaqi"
+
+[functions.register-challenge]
+verify_jwt = false
+
+[functions.register-permit]
+verify_jwt = false
+
+[functions.chat-api]
+verify_jwt = true
