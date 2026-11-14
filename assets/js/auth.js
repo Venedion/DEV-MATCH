@@ -46,7 +46,7 @@ async function requestRegistrationPermit(email){
   const challenge=await loadRegistrationChallenge();
   const status=$('authStatus');
   if(status)status.textContent='Checking your browser…';
-  const worker=new Worker('/assets/js/registration-pow-worker.js');
+  const worker=new Worker('assets/js/registration-pow-worker.js');
   let counter;
   try{
     counter=await new Promise((resolve,reject)=>{

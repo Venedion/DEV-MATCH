@@ -18,7 +18,7 @@
     busy=true;status.textContent='Sending your request…';tick();
     try{
       const {error}=await window.devMatchBackend.client.auth.resetPasswordForEmail(email,{
-        redirectTo:location.origin+'/devmatch-reset-password.html'
+        redirectTo:new URL('devmatch-reset-password.html',location.href).href
       });
       if(error)throw error;
       limited=false;

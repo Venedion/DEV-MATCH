@@ -25,9 +25,9 @@ test('Forgot form sends a reset request with a return URL and prevents repeated 
   let submit,requests=0;
   const elements={forgotForm:{addEventListener:(_,fn)=>submit=fn},forgotEmail:{value:'test@example.invalid'},forgotSubmit:{},forgotStatus:{}};
   vm.runInNewContext(source('forgot-password.js'),{
-    document:{getElementById:id=>elements[id]},setInterval:()=>{},location:{origin:'https://example.invalid'},
+    document:{getElementById:id=>elements[id]},setInterval:()=>{},URL,location:{href:'https://example.invalid/team/devmatch-forgot-password.html'},
     window:{devMatchBackend:{client:{auth:{resetPasswordForEmail:async(email,options)=>{
-      requests++;assert.equal(email,'test@example.invalid');assert.equal(options.redirectTo,'https://example.invalid/devmatch-reset-password.html');return {error:null};
+      requests++;assert.equal(email,'test@example.invalid');assert.equal(options.redirectTo,'https://example.invalid/team/devmatch-reset-password.html');return {error:null};
     }}}}}
   });
   await submit({preventDefault(){}});await submit({preventDefault(){}});
@@ -38,7 +38,7 @@ test('Network failure does not claim the reset link was sent',async()=>{
   let submit;
   const elements={forgotForm:{addEventListener:(_,fn)=>submit=fn},forgotEmail:{value:'test@example.invalid'},forgotSubmit:{},forgotStatus:{}};
   vm.runInNewContext(source('forgot-password.js'),{
-    document:{getElementById:id=>elements[id]},setInterval:()=>{},location:{origin:'https://example.invalid'},
+    document:{getElementById:id=>elements[id]},setInterval:()=>{},URL,location:{href:'https://example.invalid/team/devmatch-forgot-password.html'},
     window:{devMatchBackend:{client:{auth:{resetPasswordForEmail:async()=>{throw new Error('offline');}}}}}
   });
   await submit({preventDefault(){}});assert.match(elements.forgotStatus.textContent,/Unable to request/);
@@ -47,7 +47,7 @@ test('An email quota rejection clearly reports that no reset email was sent',asy
   let submit;
   const elements={forgotForm:{addEventListener:(_,fn)=>submit=fn},forgotEmail:{value:'test@example.invalid'},forgotSubmit:{},forgotStatus:{}};
   vm.runInNewContext(source('forgot-password.js'),{
-    document:{getElementById:id=>elements[id]},setInterval:()=>{},location:{origin:'https://example.invalid'},
+    document:{getElementById:id=>elements[id]},setInterval:()=>{},URL,location:{href:'https://example.invalid/team/devmatch-forgot-password.html'},
     window:{devMatchBackend:{client:{auth:{resetPasswordForEmail:async()=>({error:{status:429,code:'over_email_send_rate_limit',message:'email rate limit exceeded'}})}}}}
   });
   await submit({preventDefault(){}});assert.match(elements.forgotStatus.textContent,/Email delivery limit reached/);assert.match(elements.forgotStatus.textContent,/No new reset email was sent/);assert.equal(elements.forgotSubmit.disabled,true);
