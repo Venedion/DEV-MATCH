@@ -7,7 +7,7 @@ export function getCorsHeaders(origin) {
     .split(',')
     .map(value => value.trim())
     .filter(Boolean);
-  allowedOrigins.push('http://127.0.0.1:8767', 'http://localhost:8080');
+  allowedOrigins.push('http://127.0.0.1:8767', 'http://localhost:8080', 'https://dev-match-vincent.vercel.app');
   if (!origin || !allowedOrigins.includes(origin)) return null;
   return {
     'Access-Control-Allow-Origin': origin,
