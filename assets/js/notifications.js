@@ -230,18 +230,26 @@
         .select('id,recipient_id,actor_id,kind,project_id,conversation_id,created_at')
         .eq('recipient_id', user.id)
         .order('created_at', {ascending: false})
-        .limit(100)
     ]);
     if (notificationResult.error) throw notificationResult.error;
+    const notifications = notificationResult.data || [];
+    const readIdsSet = new Set(readIds);
+    const unreadIds = notifications
+      .map(notification => notification.id)
+      .filter(id => !readIdsSet.has(id));
+    if (unreadIds.length) {
+      await backend.markNotificationsRead(unreadIds);
+      unreadIds.forEach(id => readIdsSet.add(id));
+      window.dispatchEvent(new Event('devmatch:notifications-changed'));
+    }
     readNotifications.clear();
-    readIds.forEach(id => readNotifications.add(id));
+    readIdsSet.forEach(id => readNotifications.add(id));
     savedPreferences = preferences || {};
     preferenceInputs.forEach(input => {
       if (Object.hasOwn(savedPreferences, input.dataset.preference)) {
         input.checked = Boolean(savedPreferences[input.dataset.preference]);
       }
     });
-    const notifications = notificationResult.data || [];
     const actorIds = [...new Set(notifications.map(item => item.actor_id).filter(Boolean))];
     const projectIds = [...new Set(notifications.map(item => item.project_id).filter(Boolean))];
     const [actorsResult, projectsResult] = await Promise.all([

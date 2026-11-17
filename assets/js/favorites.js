@@ -1210,8 +1210,8 @@
       const profile = JSON.parse(localStorage.getItem(key) || '{}');
       const name = typeof profile.displayName === 'string' && profile.displayName.trim()
         ? profile.displayName.trim()
-        : (isClient ? 'Jessica Sitorus' : 'Rizky Aditya');
-      const initials = name.trim().split(/\s+/).filter(Boolean).slice(0, 2).map(part => part[0]).join('').toUpperCase() || (isClient ? 'JS' : 'RA');
+        : (isClient ? 'Client' : 'Developer');
+      const initials = name.trim().split(/\s+/).filter(Boolean).slice(0, 2).map(part => part[0]).join('').toUpperCase() || (isClient ? 'CL' : 'DV');
       const role = isClient ? 'Client' : 'Developer';
       const userAvatarEl = document.getElementById('userAvatar');
       const topUserNameEl = document.getElementById('topUserName');

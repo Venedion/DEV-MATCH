@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=optional" rel="stylesheet">
-  <link rel="stylesheet" href="assets/css/dashboard.css?v=20261030-fixed-profile-width">
+  <link rel="stylesheet" href="assets/css/dashboard.css?v=20261118-pink-nav-badges">
   <link rel="stylesheet" href="assets/css/notifications.css?v=20261101-filter-row-mark-read">
   <link rel="stylesheet" href="assets/css/mode-switch-animation.css?v=20261030-active-indicator">
   <link rel="stylesheet" href="assets/css/mobile-navigation.css?v=20261118-workspaces">
@@ -87,7 +87,10 @@
       </aside>
     </div>
   </main>
-  <script src="assets/js/notifications.js?v=20261116-role-aware-navigation"></script>
-  <script src="assets/js/nav-behavior.js?v=20261118-workspaces"></script>
+  <a class="floating-chat" href="devmatch-chat.html" aria-label="Messages &amp; Chat" title="Open Messages &amp; Chat">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5c-5 0-9 3.65-9 8.15 0 2.24 1.04 4.27 2.73 5.74L4.7 21l5.24-1.28c.67.12 1.36.18 2.06.18 5 0 9-3.65 9-8.15S17 3.5 12 3.5Z"/><circle cx="8.5" cy="11.7" r="1" fill="currentColor" stroke="none"/><circle cx="12" cy="11.7" r="1" fill="currentColor" stroke="none"/><circle cx="15.5" cy="11.7" r="1" fill="currentColor" stroke="none"/></svg>
+  </a>
+  <script src="assets/js/notifications.js?v=20261118-merge-auto-read"></script>
+  <script src="assets/js/nav-behavior.js?v=20261118-merge-workspaces-realtime"></script>
 </body>
 </html>

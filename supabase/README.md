@@ -197,6 +197,11 @@ conversation participants. Supported files are PDF, DOC, DOCX, JPG, PNG, or
 WebP up to 2 MB. Redeploy `chat-api` after updating it. Do not upload chat
 attachments directly from the browser.
 
+Apply `migrations/202611180001_realtime_notifications.sql` after
+`202611120006_live_data_metrics_notifications_storage.sql` to add the
+notification table to Supabase Realtime. This allows the app's notification
+badge to update while a user is on another page.
+
 The migration and frontend changes are local until the migration is applied
 and the updated `chat-api` is deployed to the hosted project. Apply database
 migrations in order; do not mark a feature live until its Supabase operation

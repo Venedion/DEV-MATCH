@@ -2,7 +2,7 @@
 const profile=JSON.parse(localStorage.getItem('devmatch-profile-dev')||'{}');
 const displayName=typeof profile.displayName==='string'&&profile.displayName.trim()
   ? profile.displayName.trim()
-  : 'Rizky Aditya';
+  : 'Developer';
 const nameParts=displayName.trim().split(/\s+/).filter(Boolean);
 document.getElementById('topUserName').textContent=displayName;
 document.getElementById('userAvatar').textContent=nameParts.slice(0,2).map(part=>part[0]).join('').toUpperCase()||'DM';

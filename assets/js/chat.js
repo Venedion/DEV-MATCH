@@ -140,12 +140,14 @@
   }
 
   function markRead(conversation) {
+    const wasUnread = conversation.unreadCount > 0;
     conversation.unreadCount = 0;
     try {
       localStorage.setItem(readAtKey(conversation.id), String(Date.now()));
     } catch (error) {
       console.warn('Unable to save local chat read status.', error);
     }
+    if (wasUnread) window.dispatchEvent(new Event('devmatch:messages-changed'));
   }
 
   function updateUnreadCounts() {

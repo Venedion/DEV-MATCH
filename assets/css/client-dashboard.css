@@ -47,11 +47,9 @@ svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.8;stroke
 .client-nav-item svg{width:19px;height:19px;color:#6f7179}
 .client-nav-item:hover,.client-nav-item.active{background:#f2f2f3;color:var(--cd-ink)}
 .client-nav-item.active{font-weight:700}
-.client-nav-count,.client-notification-count{min-width:19px;height:19px;margin-left:auto;display:grid;place-items:center;border-radius:99px;background:#f0f0f2;color:#555;font-size:11px;font-weight:700}
-.client-notification-count{background:#fee9e9;color:#d43b3b}
-.client-nav-count.nav-count-message{background:#e7f6ed;color:#15934f}
-.client-nav-count.nav-count-favorites{background:#f0f0f2;color:#555}
-.client-nav-count.nav-count-notifications,.client-notification-count.nav-count-notifications{background:#fee9e9;color:#d43b3b}
+.client-nav-count,.client-notification-count{min-width:19px;height:19px;margin-left:auto;display:grid;place-items:center;border-radius:99px;background:#fce4ec;color:#c2185b;font-size:11px;font-weight:700}
+.client-notification-count,.client-nav-count.nav-count-message,.client-nav-count.nav-count-favorites{background:#fce4ec;color:#c2185b}
+.client-nav-count.nav-count-notifications,.client-notification-count.nav-count-notifications{background:#fce4ec;color:#c2185b}
 .client-sidebar nav a[href^="devmatch-chat.html"] .client-nav-count:not(.nav-count-message){display:none!important}
 .client-nav-count[hidden],.client-notification-count[hidden]{display:none}
 .account-label{margin-top:22px}
@@ -540,7 +538,8 @@ body{font-size:16px}
 .dialog-message,.cancel-request{font-size:13px}
 .floating-chat{position:fixed;right:24px;bottom:24px;z-index:10;width:62px;height:62px;display:grid;place-items:center;border:1px solid #e5e5e8;border-radius:50%;background:#fff;color:var(--cd-ink);box-shadow:0 8px 24px #0002;text-decoration:none;cursor:pointer;transition:transform .18s ease,box-shadow .18s ease,background-color .18s ease}
 .floating-chat:hover{transform:translateY(-3px);box-shadow:0 12px 28px #0003;background-color:#fafafa;color:var(--cd-ink)}
-.floating-chat-badge{position:absolute;top:-2px;right:-2px;min-width:20px;height:20px;padding:0 5px;display:grid;place-items:center;border:2px solid #fff;border-radius:99px;background:#15934f;color:#fff;font-size:11px;font-weight:700;line-height:1}
+.floating-chat-badge{position:absolute;top:-3px;right:-3px;min-width:20px;height:20px;padding:0 5px;display:grid;place-items:center;border:2px solid #fff;border-radius:99px;background:#d92d20;color:#fff;font-size:11px;font-weight:700;line-height:1}
+.floating-chat-badge[hidden]{display:none}
 .floating-chat svg{width:39px;height:39px;stroke-width:2.5}
 @media(max-width:820px){.client-nav-label,.client-nav-item,.client-sidebar-foot{font-size:0}}
 @media(max-width:600px){.floating-chat{right:16px;bottom:16px;width:54px;height:54px}.floating-chat svg{width:34px;height:34px}.client-hero>p{font-size:14px}.client-hero h1{font-size:30px}.hero-search input{font-size:13px}.hero-search button{font-size:13px}.popular{font-size:12px}.popular button{font-size:11px}.category-card b{font-size:12px}.category-card small{font-size:11px}.section-heading h2{font-size:18px}.section-heading p,.section-heading>a{font-size:12px}.project-body h3{font-size:14px}.project-body>p,.project-by{font-size:11px}.project-price{font-size:14px}.client-demo-note{font-size:11px}}

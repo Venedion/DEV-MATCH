@@ -169,7 +169,7 @@
   function updateHeaderProfile() {
     const workspace = isClientMode ? 'client' : 'dev';
     const role = isClientMode ? 'Client' : 'Developer';
-    const fallbackName = isClientMode ? 'Client User' : 'Rizky Aditya';
+    const fallbackName = isClientMode ? 'Client User' : 'Developer';
     const profile = getWorkspaceProfile(workspace);
     const displayName = typeof profile.displayName === 'string'
       ? profile.displayName.trim() || fallbackName
@@ -488,39 +488,19 @@
     document.body.classList.add('account-return-enabled');
   }
 
-  function readStoredArray(key, fallback, legacyKey) {
-    try {
-      const stored = localStorage.getItem(key);
-      if (stored !== null) {
-        const parsed = JSON.parse(stored);
-        if (Array.isArray(parsed)) return parsed;
-        console.warn(`Expected an array in localStorage key "${key}".`);
-      } else if (legacyKey) {
-        const legacy = localStorage.getItem(legacyKey);
-        if (legacy !== null) {
-          const parsed = JSON.parse(legacy);
-          if (Array.isArray(parsed)) return parsed;
-          console.warn(`Expected an array in localStorage key "${legacyKey}".`);
-        }
-      }
-    } catch (error) {
-      console.warn(`Could not read localStorage key "${key}".`, error);
-    }
-    return fallback;
+  async function updateFavoriteBadges() {
+    const backend = window.devMatchBackend;
+    if (!backend) throw new Error('Supabase is unavailable.');
+    const user = await backend.ready;
+    const favorites = user ? await backend.loadFavorites() : [];
+    updateLinkBadge('nav a[href^="devmatch-favorites.html"]', 'favorites', favorites.length);
   }
 
-  function getFavoriteCount() {
-    const projectKey = isClientMode
-      ? 'devmatch-client-project-favorites'
-      : 'devmatch-developer-project-favorites';
-    const secondaryKey = isClientMode
-      ? 'devmatch-client-dev-favorites'
-      : 'devmatch-favorite-clients';
-    const projectDefaults = isClientMode ? ['restaurant', 'pos', 'booking'] : ['pos', 'inventory'];
-    const secondaryDefaults = isClientMode ? ['rizky-aditya'] : ['jessica-sitorus', 'klinik-sehat-bersama'];
-    const projects = readStoredArray(projectKey, projectDefaults, 'devmatch-client-favorites');
-    const secondary = readStoredArray(secondaryKey, secondaryDefaults);
-    return projects.length + secondary.length;
+  function refreshFavoriteBadges() {
+    updateFavoriteBadges().catch(error => {
+      console.error('Unable to load favorite badges from Supabase.', error);
+      updateLinkBadge('nav a[href^="devmatch-favorites.html"]', 'favorites', 0);
+    });
   }
 
   function updateHeaderNotificationDot(unreadCount) {
@@ -558,10 +538,105 @@
     });
   }
 
+  function updateFloatingChatBadges(unreadCount) {
+    document.querySelectorAll('.floating-chat').forEach(link => {
+      let badge = link.querySelector('.floating-chat-badge');
+      if (!badge) {
+        badge = document.createElement('span');
+        badge.className = 'floating-chat-badge';
+        badge.setAttribute('aria-hidden', 'true');
+        link.appendChild(badge);
+      }
+
+      badge.textContent = String(unreadCount);
+      badge.hidden = unreadCount === 0;
+      link.setAttribute(
+        'aria-label',
+        unreadCount ? `Messages & Chat, ${unreadCount} unread conversations` : 'Messages & Chat'
+      );
+      link.title = unreadCount
+        ? `Open Messages & Chat (${unreadCount} unread)`
+        : 'Open Messages & Chat';
+    });
+  }
+
+  let notificationRealtimeChannel = null;
+  let notificationRealtimeUserId = null;
+  let notificationRealtimeSetup = null;
+  let notificationAuthSubscription = null;
+
+  async function ensureNotificationRealtime(backend, user) {
+    if (notificationRealtimeSetup) await notificationRealtimeSetup;
+    if (notificationRealtimeChannel && notificationRealtimeUserId === user.id) return;
+
+    notificationRealtimeSetup = (async () => {
+      if (notificationRealtimeChannel) {
+        await backend.client.removeChannel(notificationRealtimeChannel);
+        notificationRealtimeChannel = null;
+      }
+
+      const {data, error} = await backend.client.auth.getSession();
+      if (error) throw error;
+      if (!data.session?.access_token) throw new Error('Your session is unavailable.');
+      await backend.client.realtime.setAuth(data.session.access_token);
+
+      if (!notificationAuthSubscription) {
+        const {data: authListener} = backend.client.auth.onAuthStateChange((_event, session) => {
+          if (session?.access_token) {
+            void backend.client.realtime.setAuth(session.access_token).catch(error => {
+              console.error('Unable to refresh the notification real-time session.', error);
+            });
+          }
+        });
+        notificationAuthSubscription = authListener.subscription;
+      }
+
+      notificationRealtimeUserId = user.id;
+      notificationRealtimeChannel = backend.client
+        .channel(`nav-updates:${user.id}`)
+        .on('postgres_changes', {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'notifications',
+          filter: `recipient_id=eq.${user.id}`
+        }, () => {
+          refreshNotificationBadges();
+        })
+        .on('postgres_changes', {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'messages'
+        }, () => {
+          refreshMessageBadges();
+        })
+        .subscribe(status => {
+          if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+            console.error('Navigation real-time updates are unavailable.', status);
+          }
+        });
+    })();
+
+    try {
+      await notificationRealtimeSetup;
+    } catch (error) {
+      notificationRealtimeUserId = null;
+      throw error;
+    } finally {
+      notificationRealtimeSetup = null;
+    }
+  }
+
   async function updateNotificationBadges() {
     const backend = window.devMatchBackend;
     if (!backend) throw new Error('Supabase is unavailable.');
     const user = await backend.ready;
+    if (user) {
+      try {
+        await ensureNotificationRealtime(backend, user);
+      } catch (error) {
+        console.error('Unable to subscribe to notification updates.', error);
+      }
+    }
     const unreadNotificationCount = user ? await backend.loadUnreadNotificationCount() : 0;
     updateLinkBadge(
       'nav a[href^="devmatch-developer-notifications.html"], nav a[href^="devmatch-notifications.html"]',
@@ -583,16 +658,55 @@
     });
   }
 
+  async function updateMessageBadges() {
+    const backend = window.devMatchBackend;
+    if (!backend) throw new Error('Supabase is unavailable.');
+    const user = await backend.ready;
+    let unreadCount = 0;
+
+    if (user) {
+      const {data, error} = await backend.client.functions.invoke('chat-api', {
+        body: {action: 'list-conversations'}
+      });
+      if (error) throw error;
+      if (!Array.isArray(data?.data)) {
+        throw new Error('Chat service returned an invalid conversation list.');
+      }
+
+      unreadCount = data.data.filter(conversation => {
+        const lastMessage = conversation.last_message;
+        if (!lastMessage || lastMessage.sender_id === user.id) return false;
+        try {
+          const readAt = Number(localStorage.getItem(
+            `devmatch-chat-read:${user.id}:${conversation.id}`
+          ) || 0);
+          return !(Date.parse(lastMessage.created_at) <= readAt);
+        } catch (error) {
+          console.warn('Unable to read local chat status.', error);
+          return true;
+        }
+      }).length;
+    }
+
+    updateLinkBadge('nav a[href^="devmatch-chat.html"]', 'message', unreadCount);
+    updateFloatingChatBadges(unreadCount);
+  }
+
+  function refreshMessageBadges() {
+    updateMessageBadges().catch(error => {
+      console.error('Unable to load unread conversations for navigation.', error);
+      updateLinkBadge('nav a[href^="devmatch-chat.html"]', 'message', 0);
+    });
+  }
+
   function updateNavBadges() {
-    updateLinkBadge('nav a[href^="devmatch-chat.html"]', 'message', 0);
-    updateLinkBadge('nav a[href^="devmatch-favorites.html"]', 'favorites', getFavoriteCount());
+    refreshMessageBadges();
+    refreshFavoriteBadges();
     refreshNotificationBadges();
   }
 
   window.DEVMATCH_NAV_BADGES = {
-    updateFavorites: function () {
-      updateLinkBadge('nav a[href^="devmatch-favorites.html"]', 'favorites', getFavoriteCount());
-    },
+    updateFavorites: refreshFavoriteBadges,
     updateNotifications: refreshNotificationBadges
   };
   updateNavBadges();
@@ -601,6 +715,7 @@
   });
   window.addEventListener('storage', updateNavBadges);
   window.addEventListener('devmatch:notifications-changed', refreshNotificationBadges);
+  window.addEventListener('devmatch:messages-changed', refreshMessageBadges);
 
   document.addEventListener('click', event => {
     if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
