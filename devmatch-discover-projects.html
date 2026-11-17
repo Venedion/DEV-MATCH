@@ -48,18 +48,28 @@
   <script src="assets/js/sidebar-navigation.js?v=20261118-workspaces"></script>
 
   <main class="marketplace-main" data-marketplace="discover">
-    <section class="market-hero">
-      <p class="market-eyebrow"><span></span>DEV-MATCH PROJECT CATALOG</p>
-      <h1>Explore Ready-to-Build Projects</h1>
-      <p class="market-intro">Discover real web and app solutions from experienced developers with transparent pricing.</p>
-      <form class="market-search" id="marketSearchForm" role="search">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
-        <input id="marketSearch" type="search" placeholder="Search projects, categories, technologies, or developers..." aria-label="Search projects">
-        <kbd>⌘K</kbd>
-        <button type="submit">Search</button>
-      </form>
-      <div class="quick-search"><span>Try searching</span><button type="button" data-query="Company Profile">Company Profile</button><button type="button" data-query="Café POS">Café POS</button><button type="button" data-query="Clinic Booking">Clinic Booking</button><button type="button" data-query="Online Store">Online Store</button><button type="button" data-query="Flutter Developer">Flutter Developer</button></div>
-    </section>
+    <header class="market-discovery-header">
+      <div class="market-discovery-header-copy">
+        <h1>Discover projects</h1>
+        <p>Discover ready-to-build web and app solutions from experienced developers.</p>
+      </div>
+      <div class="market-discovery-tabs" role="tablist" aria-label="Browse options">
+        <button class="market-discovery-tab active" type="button" aria-selected="true">
+          Projects <span class="market-discovery-tab-count">128</span>
+        </button>
+        <a class="market-discovery-tab" href="devmatch-find-developers.html">
+          Developers <span class="market-discovery-tab-count">64</span>
+        </a>
+      </div>
+    </header>
+
+    <form class="market-search market-discovery-search" id="marketSearchForm" role="search">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
+      <input id="marketSearch" type="search" placeholder="Search projects, categories, technologies, or developers..." aria-label="Search projects">
+      <kbd>⌘K</kbd>
+      <button type="submit">Search</button>
+    </form>
+    <div class="quick-search"><span>Try searching</span><button type="button" data-query="Company Profile">Company Profile</button><button type="button" data-query="Café POS">Café POS</button><button type="button" data-query="Clinic Booking">Clinic Booking</button><button type="button" data-query="Online Store">Online Store</button><button type="button" data-query="Flutter Developer">Flutter Developer</button></div>
 
     <section class="market-categories" aria-label="Project categories">
       <button class="market-category is-active" type="button" data-category="all"><span class="category-symbol"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18m-9-9a15 15 0 0 1 0 18m0-18a15 15 0 0 0 0 18"/></svg></span><b>All Projects</b><small data-category-count="all">0 projects</small></button>
