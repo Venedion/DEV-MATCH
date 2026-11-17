@@ -185,7 +185,7 @@
       if(button.dataset.tab==='comments'){
         commentsPanel.innerHTML='<p class="empty-state">Loading comments…</p>';
         try{
-          const groups=await Promise.all(projects.map(async item=>(await window.devMatchBackend.loadProjectComments(item.id)).map(comment=>({...comment,project:item.title}))));
+          const groups=await Promise.all(projects.map(async item=>(await window.devMatchBackend.loadProjectComments(item.id)).comments.map(comment=>({...comment,project:item.title}))));
           renderComments(groups.flat());
         }catch(error){console.error('Unable to load public portfolio comments from Supabase.',error);commentsPanel.textContent='Comments could not be loaded. Check your connection and try again.';}
       }

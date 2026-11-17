@@ -78,7 +78,7 @@
       document.getElementById('chatDeveloperLink').href=user?chatUrl(row.id):'devmatch-auth.html?mode=login';
       const clientName='Client';
       document.getElementById('clientInitials').textContent=initials(clientName);
-      try{comments=await window.devMatchBackend.loadProjectComments(row.id);}
+      try{comments=(await window.devMatchBackend.loadProjectComments(row.id)).comments;}
       catch(commentError){console.error('Unable to load public project comments from Supabase.',commentError);comments=[];errorElement.textContent='Project loaded, but comments could not be loaded.';errorElement.hidden=false;}
       commentOrder=document.querySelector('.sort-comments select').value;
       renderComments();content.hidden=false;

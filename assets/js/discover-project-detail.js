@@ -136,7 +136,7 @@
     favoriteButton.hidden=!user||accountRole!=='client';
     updateFavoriteButtons(favorites.includes(project.id));
     let commentsFailed=false;
-    try{comments=await window.devMatchBackend.loadProjectComments(project.id);}
+    try{comments=(await window.devMatchBackend.loadProjectComments(project.id)).comments;}
     catch(error){console.error('Unable to load public project comments from Supabase.',error);commentsFailed=true;}
     initializeDetailLayout();renderComments();layout.hidden=false;
     document.getElementById('detailFavoriteAction').addEventListener('click',setFavorite);

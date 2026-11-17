@@ -104,7 +104,7 @@
     if(similarError)throw similarError;
     renderSimilarRequests(similar||[]);
     let commentsFailed=false;
-    try{comments=await window.devMatchBackend.loadProjectComments(project.id);}
+    try{comments=(await window.devMatchBackend.loadProjectComments(project.id)).comments;}
     catch(error){console.error('Unable to load public project comments from Supabase.',error);status.textContent='Project details loaded, but comments could not be loaded.';commentsFailed=true;}
     renderComments();
     if(commentsFailed)status.textContent='Project details loaded, but comments could not be loaded.';
