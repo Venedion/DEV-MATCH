@@ -199,7 +199,7 @@ svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.8;stroke
 .request-search input{width:100%;min-width:0;border:0;outline:0;background:transparent;color:#30333c;font-size:12px}
 .request-search input::placeholder{color:#999da6}
 .request-list{display:grid;grid-template-columns:1fr;gap:11px}
-.request-card{display:grid;grid-template-columns:minmax(0,1fr);align-items:stretch;justify-content:stretch;gap:9px;padding:13px 14px;border:1px solid var(--cd-line);border-radius:12px;background:#fff;transition:border-color .15s,box-shadow .15s}
+.request-card{display:grid;grid-template-columns:minmax(0,1fr);align-items:stretch;justify-content:stretch;gap:9px;padding:13px 14px;border:1px solid var(--cd-line);border-radius:12px;background:#fff;cursor:pointer;transition:border-color .15s,box-shadow .15s}
 .request-card:hover{border-color:#d7d8dd;box-shadow:0 4px 14px #1717190a}
 .request-card-topline{display:flex;align-items:center;justify-content:space-between;gap:10px}
 .request-card-badges{min-width:0;display:flex;align-items:center;gap:5px;flex-wrap:wrap}

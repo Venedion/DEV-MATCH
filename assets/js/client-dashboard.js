@@ -1494,6 +1494,14 @@ document.querySelectorAll('[data-request-filter]').forEach(button=>button.addEve
   renderRequests();
 }));
 document.getElementById('requestList').addEventListener('click',event=>{
+  const card=event.target.closest('[data-request-card]');
+  if(card&&!event.target.closest('button,a,input,select,textarea,summary,[data-request-ignore-open]')){
+    const request=requests.find(item=>item.id===card.dataset.requestCard);
+    if(request){
+      showRequestDetails(request);
+      return;
+    }
+  }
   const detailButton=event.target.closest('[data-request-detail]');
   if(detailButton){
     const request=requests.find(item=>item.id===detailButton.dataset.requestDetail);
