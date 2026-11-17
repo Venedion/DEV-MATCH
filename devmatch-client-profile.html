@@ -7,10 +7,10 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=optional" rel="stylesheet">
-  <link rel="stylesheet" href="assets/css/client-profile.css?v=20261101-client-profile">
+  <link rel="stylesheet" href="assets/css/client-profile.css?v=20261117-project-reviews">
   <script src="assets/js/i18n.js?v=20261102-profile-details"></script>
 <script src="assets/vendor/supabase-2.119.0.js"></script>
-<script src="assets/js/backend.js?v=20261112-private-profile-cache"></script>
+<script src="assets/js/backend.js?v=20261117-project-reviews"></script>
 </head>
 <body>
   <header class="client-profile-topbar">
@@ -59,6 +59,20 @@
       <div class="client-requests-list" id="clientRequests"></div>
     </section>
 
+    <section class="client-requests-section client-reviews-section" id="clientReviewsSection" hidden>
+      <div class="section-heading">
+        <div>
+          <span class="profile-eyebrow">REPUTATION</span>
+          <h2>Client reviews</h2>
+        </div>
+        <div class="client-review-summary">
+          <strong id="clientRating">—</strong>
+          <span id="clientReviewCount">no reviews yet</span>
+        </div>
+      </div>
+      <div class="client-reviews-list" id="clientReviews"></div>
+    </section>
+
     <section class="profile-unavailable" id="profileUnavailable" role="status" hidden>
       <h1>Client profile unavailable</h1>
       <p>This client profile could not be found.</p>
@@ -66,6 +80,6 @@
     </section>
   </main>
 
-  <script src="assets/js/client-profile.js?v=20261112-live-directory"></script>
+  <script src="assets/js/client-profile.js?v=20261117-project-reviews"></script>
 </body>
 </html>

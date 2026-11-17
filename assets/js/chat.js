@@ -38,11 +38,19 @@
     activeProjectPrice: document.getElementById('activeProjectPrice'),
     viewProjectLink: document.getElementById('viewProjectLink'),
     viewProjectBtn: document.getElementById('viewProjectBtn'),
+    projectEngagementPanel: document.getElementById('projectEngagementPanel'),
+    engagementStatus: document.getElementById('engagementStatus'),
+    confirmProjectCompletion: document.getElementById('confirmProjectCompletion'),
+    projectReviewForm: document.getElementById('projectReviewForm'),
+    projectReviewRating: document.getElementById('projectReviewRating'),
+    projectReviewText: document.getElementById('projectReviewText'),
+    projectReviewMessage: document.getElementById('projectReviewMessage'),
     activeWhatsAppBtn: document.getElementById('activeWhatsAppBtn'),
     detailAvatar: document.getElementById('detailAvatar'),
     detailName: document.getElementById('detailName'),
     detailRole: document.getElementById('detailRole'),
     detailProjectCard: document.getElementById('detailProjectCard'),
+    detailProfileLink: document.getElementById('detailProfileLink'),
     detailProjectTitle: document.getElementById('detailProjectTitle'),
     detailProjectDesc: document.getElementById('detailProjectDesc'),
     detailProjectPrice: document.getElementById('detailProjectPrice'),
@@ -291,6 +299,47 @@
         void selectConversation(element.dataset.convId);
       });
     });
+    elements.confirmProjectCompletion?.addEventListener('click', async () => {
+      const conversation = getActiveConversation();
+      if (!conversation?.project || elements.confirmProjectCompletion.disabled) return;
+      elements.confirmProjectCompletion.disabled = true;
+      elements.engagementStatus.textContent = 'Saving your completion confirmation…';
+      try {
+        await backend.confirmProjectCompletion(conversation.id);
+        await refreshProjectEngagement(conversation);
+      } catch (error) {
+        console.error('Unable to confirm project completion.', error);
+        elements.engagementStatus.textContent = error.message || 'Unable to confirm completion. Please try again.';
+        elements.confirmProjectCompletion.disabled = false;
+      }
+    });
+    elements.projectReviewForm?.addEventListener('submit', async event => {
+      event.preventDefault();
+      const conversation = getActiveConversation();
+      const rating = Number(elements.projectReviewRating.value);
+      const submitButton = elements.projectReviewForm.querySelector('[type="submit"]');
+      if (!conversation?.project || !rating || submitButton.disabled) return;
+      submitButton.disabled = true;
+      elements.projectReviewMessage.textContent = 'Submitting your review…';
+      elements.projectReviewMessage.hidden = false;
+      try {
+        const engagement = await backend.loadProjectEngagement(conversation.id);
+        if (!engagement) throw new Error('Project completion has not been confirmed.');
+        await backend.submitProjectReview(
+          engagement.id,
+          rating,
+          elements.projectReviewText.value
+        );
+        elements.projectReviewForm.reset();
+        await refreshProjectEngagement(conversation);
+      } catch (error) {
+        console.error('Unable to submit project review.', error);
+        elements.projectReviewMessage.textContent = error.message || 'Unable to submit your review. Please try again.';
+        elements.projectReviewMessage.hidden = false;
+      } finally {
+        submitButton.disabled = false;
+      }
+    });
   }
 
   function getActiveConversation() {
@@ -314,6 +363,7 @@
       if (chatEmptyStateEl) chatEmptyStateEl.hidden = false;
       if (mainHeader) mainHeader.hidden = true;
       if (projectBanner) projectBanner.hidden = true;
+      if (elements.projectEngagementPanel) elements.projectEngagementPanel.hidden = true;
       if (composer) composer.hidden = true;
       if (quickRepliesEl) quickRepliesEl.hidden = true;
       setDetailPaneOpen(false);
@@ -338,6 +388,7 @@
     const project = conversation.project;
     elements.detailProjectCard?.classList.toggle('is-unlinked', !project);
     if (projectBanner) projectBanner.hidden = !project;
+    if (elements.projectEngagementPanel) elements.projectEngagementPanel.hidden = false;
     if (project) {
       if (elements.activeProjectTitle) elements.activeProjectTitle.textContent = project.title;
       if (elements.activeProjectPrice) elements.activeProjectPrice.textContent = project.price || '';
@@ -352,6 +403,15 @@
     }
     if (elements.detailName) elements.detailName.textContent = conversation.name;
     if (elements.detailRole) elements.detailRole.textContent = conversation.role;
+    if (elements.detailProfileLink) {
+      const isClient = conversation.roleType === 'client';
+      const isDeveloper = conversation.roleType === 'dev';
+      elements.detailProfileLink.hidden = !conversation.participantId || (!isClient && !isDeveloper);
+      if (!elements.detailProfileLink.hidden) {
+        const page = isClient ? 'devmatch-client-profile.html?client=' : 'devmatch-developer-profile.html?developer=';
+        elements.detailProfileLink.href = `${page}${encodeURIComponent(conversation.participantId)}`;
+      }
+    }
     if (elements.detailProjectTitle) {
       elements.detailProjectTitle.textContent = project?.title || 'No project linked';
     }
@@ -409,6 +469,78 @@
     document.getElementById('toggleDetailBtn')?.setAttribute('aria-expanded', String(isOpen));
   }
 
+  async function refreshProjectEngagement(conversation = getActiveConversation()) {
+    const panel = elements.projectEngagementPanel;
+    if (!panel) return;
+    if (!conversation) {
+      panel.hidden = true;
+      return;
+    }
+    if (conversation.id !== activeConvId) return;
+
+    panel.hidden = false;
+    if (!conversation.project?.id) {
+      elements.engagementStatus.textContent = 'Reviews require a project-linked conversation. Start a chat from a project page to enable completion confirmation.';
+      elements.confirmProjectCompletion.hidden = true;
+      elements.projectReviewForm.hidden = true;
+      elements.projectReviewMessage.hidden = true;
+      return;
+    }
+    elements.engagementStatus.textContent = 'Loading project completion status…';
+    elements.confirmProjectCompletion.hidden = true;
+    elements.confirmProjectCompletion.disabled = true;
+    elements.projectReviewForm.hidden = true;
+    elements.projectReviewMessage.hidden = true;
+    try {
+      const engagement = await backend.loadProjectEngagement(conversation.id);
+      if (conversation.id !== activeConvId) return;
+      if (!engagement) {
+        elements.engagementStatus.textContent = 'Confirm completion here when the work is finished. Both participants must confirm before either side can review.';
+        elements.confirmProjectCompletion.hidden = false;
+        elements.confirmProjectCompletion.disabled = false;
+        elements.confirmProjectCompletion.textContent = 'Confirm project completion';
+        return;
+      }
+
+      const viewerIsClient = currentProfile.account_role === 'client';
+      const viewerConfirmed = Boolean(viewerIsClient
+        ? engagement.client_completed_at
+        : engagement.developer_completed_at);
+      const partnerConfirmed = Boolean(viewerIsClient
+        ? engagement.developer_completed_at
+        : engagement.client_completed_at);
+      if (!viewerConfirmed || !partnerConfirmed) {
+        elements.engagementStatus.textContent = viewerConfirmed
+          ? `You confirmed completion. Waiting for ${conversation.name} to confirm.`
+          : partnerConfirmed
+            ? `${conversation.name} confirmed completion. Confirm when the work is finished.`
+            : 'Both participants must confirm completion before reviews are available.';
+        elements.confirmProjectCompletion.hidden = false;
+        elements.confirmProjectCompletion.disabled = viewerConfirmed;
+        elements.confirmProjectCompletion.textContent = viewerConfirmed
+          ? 'Completion confirmed'
+          : 'Confirm project completion';
+        return;
+      }
+
+      elements.engagementStatus.textContent = 'Both participants confirmed completion. Each side can leave one review.';
+      const existingReview = await backend.loadMyProjectReview(engagement.id);
+      if (conversation.id !== activeConvId) return;
+      if (existingReview) {
+        elements.projectReviewMessage.textContent = 'Your review for this project has been submitted.';
+        elements.projectReviewMessage.hidden = false;
+        return;
+      }
+      elements.projectReviewForm.hidden = false;
+    } catch (error) {
+      console.error('Unable to load project completion status.', error);
+      if (conversation.id !== activeConvId) return;
+      elements.engagementStatus.textContent = 'Could not load completion status. Check your connection and try again.';
+      elements.confirmProjectCompletion.hidden = false;
+      elements.confirmProjectCompletion.disabled = false;
+    }
+  }
+
   function scrollThreadToBottom() {
     threadContainerEl?.scrollTo({top: threadContainerEl.scrollHeight, behavior: 'auto'});
   }
@@ -460,6 +592,14 @@
           setStatus(error.message || 'Unable to refresh messages.', true);
         }
       })
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'project_engagements'
+      }, payload => {
+        const conversationId = payload.new?.conversation_id || payload.old?.conversation_id;
+        if (conversationId === activeConvId) void refreshProjectEngagement();
+      })
       .subscribe(status => {
         if (status === 'SUBSCRIBED') setStatus('Connected securely · messages encrypted at rest.');
         else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
@@ -479,6 +619,7 @@
     updateUnreadCounts();
     renderConversationsList();
     renderMessagesThread();
+    void refreshProjectEngagement(conversation);
     setStatus('Loading encrypted messages…');
     if (messageInputEl) messageInputEl.focus();
     try {
@@ -660,12 +801,6 @@
     }
   }
 
-  function updateNavLabel(link, label) {
-    const textNode = link && Array.from(link.childNodes)
-      .find(node => node.nodeType === Node.TEXT_NODE && node.textContent.trim());
-    if (textNode) textNode.textContent = ` ${label} `;
-  }
-
   function updateShell(profile) {
     const isClient = profile.account_role === 'client';
     const role = isClient ? 'client' : 'dev';
@@ -674,7 +809,10 @@
     const topName = document.getElementById('topUserName');
     if (avatar) avatar.textContent = initials(name);
     if (topName) topName.textContent = name;
+    const roleLabel = document.querySelector('.user-menu .user-copy small');
+    if (roleLabel) roleLabel.textContent = isClient ? 'Client' : 'Developer';
     document.body.classList.toggle('client-shell-page', isClient);
+    window.DEVMATCH_SIDEBAR_NAVIGATION?.setWorkspace(role);
     const userMenu = document.querySelector('.user-menu');
     if (userMenu) userMenu.href = `devmatch-my-profile.html?role=${role}`;
 
@@ -697,37 +835,10 @@
         sideAdd.href = 'devmatch-client-dashboard.html#requests';
         sideAdd.textContent = 'Post a Request';
       }
-      const overview = document.querySelector('.side-nav a[href="devmatch-dashboard.html"]');
-      if (overview) {
-        overview.href = 'devmatch-client-dashboard.html';
-        updateNavLabel(overview, 'Home');
-      }
-      const projects = document.querySelector('.side-nav a[href="devmatch-my-projects.html"]');
-      if (projects) {
-        projects.href = 'devmatch-client-dashboard.html#requests';
-        updateNavLabel(projects, 'My Requests');
-      }
-      const discover = document.querySelector('.side-nav a[href="devmatch-find-projects.html"]');
-      if (discover) {
-        discover.href = 'devmatch-discover-projects.html';
-        updateNavLabel(discover, 'Discover Projects');
-      }
-      const developers = document.querySelector('.side-nav a[href="devmatch-find-clients.html"]');
-      if (developers) {
-        developers.href = 'devmatch-find-developers.html';
-        updateNavLabel(developers, 'Developers');
-      }
-      const favorites = document.querySelector('.side-nav a[href="devmatch-favorites.html"]');
-      if (favorites) favorites.href = 'devmatch-favorites.html?role=client';
-      const messages = document.querySelector('.side-nav a[href="devmatch-chat.html"]');
-      if (messages) messages.href = 'devmatch-chat.html?role=client';
-      const profile = document.querySelector('.side-nav a[href="devmatch-my-profile.html?role=dev"]');
-      if (profile) profile.href = 'devmatch-my-profile.html?role=client';
-      const notifications = document.querySelector('.side-nav a[href="devmatch-developer-notifications.html"]');
-      if (notifications) notifications.href = 'devmatch-notifications.html';
       const topNotifications = document.querySelector('.notification-button');
       if (topNotifications) topNotifications.href = 'devmatch-notifications.html';
     }
+    window.DEVMATCH_NAV_BADGES?.updateNotifications();
   }
 
   function bindControls() {

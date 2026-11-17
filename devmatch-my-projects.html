@@ -11,9 +11,9 @@
   <link rel="stylesheet" href="assets/css/my-projects.css?v=20261101-sticky-editor-actions">
   <link rel="stylesheet" href="assets/css/mode-switch-animation.css?v=20261030-active-indicator">
   <link rel="stylesheet" href="assets/css/mobile-navigation.css?v=20261031-desktop-dropdown-aligned">
-  <script src="assets/js/i18n.js?v=20261102-profile-details"></script>
+  <script src="assets/js/i18n.js?v=20261117-supabase-workspace"></script>
 <script src="assets/vendor/supabase-2.119.0.js"></script>
-<script src="assets/js/backend.js?v=20261112-storage-media"></script>
+<script src="assets/js/backend.js?v=20261117-owned-project-metrics"></script>
 </head>
 <body class="page-scroll-shell">
   <header class="topbar">
@@ -37,22 +37,14 @@
     <div class="workspace"><span class="workspace-icon">&lt;/&gt;</span><span><b>Developer workspace</b><small>Showcase &amp; find clients</small></span></div>
     <button class="add-project side-add" type="button" data-open-project><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14m-7-7h14"/></svg>Add Project</button>
     <span class="nav-label">Menu</span>
-    <nav class="side-nav" aria-label="Dashboard navigation">
-      <a class="nav-item" href="devmatch-dashboard.html"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>Overview</a>
-      <a class="nav-item" href="devmatch-chat.html"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 11.5a8.5 8.5 0 0 1-8.5 8.5H4l1.5-4A8.5 8.5 0 1 1 21 11.5z"/></svg>Messages</a>
-      <a class="nav-item active" href="devmatch-my-projects.html" aria-current="page"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6a2 2 0 0 1 2-2h5l2 2h7a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>My Projects</a>
-      <a class="nav-item" href="devmatch-find-projects.html"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="m15.5 8.5-2 5-5 2 2-5z"/></svg>Find Projects</a>
-      <a class="nav-item" href="devmatch-find-clients.html"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3"/><path d="M3 20a6 6 0 0 1 12 0m2-8a3 3 0 1 0 0-6m1 8a5 5 0 0 1 3 5"/></svg>Find Clients</a>
-      <a class="nav-item" href="devmatch-dashboard.html#projects"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>Favorites</a>
-      <a class="nav-item" href="devmatch-developer-notifications.html"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9m-8 13h4"/></svg>Notifications<span class="nav-count">2</span></a>
+    <nav class="side-nav" aria-label="Dashboard navigation" data-shared-navigation="primary">
     </nav>
     <span class="nav-label account-label">Account</span>
-    <nav class="side-nav" aria-label="Account navigation">
-      <a class="nav-item" href="devmatch-my-profile.html?role=dev"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>Profile</a>
-      <a class="nav-item" href="devmatch-settings.html"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 21v-7m0-4V3m8 18v-9m0-4V3m8 18v-5m0-4V3M1 14h6m2-6h6m2 8h6"/></svg>Settings</a>
+    <nav class="side-nav" aria-label="Account navigation" data-shared-navigation="account">
     </nav>
-    <div class="sidebar-foot"><span class="online-dot"></span>Demo workspace</div>
+    <div class="sidebar-foot"><span class="online-dot"></span>Supabase workspace</div>
   </aside>
+  <script src="assets/js/sidebar-navigation.js?v=20261117-shared-sidebar"></script>
 
   <main class="projects-page">
     <section class="project-editor" id="projectEditor" hidden>
@@ -178,9 +170,9 @@
     <section class="project-management" aria-label="Manage project listings">
       <div class="projects-toolbar">
         <div class="project-tabs" role="tablist" aria-label="Filter projects by status">
-          <button class="project-tab active" type="button" role="tab" aria-selected="true" data-status="all">All <span id="allCount">12</span></button>
-          <button class="project-tab" type="button" role="tab" aria-selected="false" data-status="published">Published <span id="publishedCount">10</span></button>
-          <button class="project-tab" type="button" role="tab" aria-selected="false" data-status="draft">Drafts <span id="draftCount">2</span></button>
+          <button class="project-tab active" type="button" role="tab" aria-selected="true" data-status="all">All <span id="allCount">0</span></button>
+          <button class="project-tab" type="button" role="tab" aria-selected="false" data-status="published">Published <span id="publishedCount">0</span></button>
+          <button class="project-tab" type="button" role="tab" aria-selected="false" data-status="draft">Drafts <span id="draftCount">0</span></button>
         </div>
         <div class="project-tools">
           <label class="table-search"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg><input id="projectSearch" type="search" placeholder="Search my projects"></label>
@@ -201,11 +193,10 @@
           <thead><tr><th scope="col">Project</th><th scope="col">Price</th><th scope="col">Status</th><th scope="col">Views</th><th scope="col">Favorites</th><th scope="col">Comments</th><th scope="col"><span class="visually-hidden">Actions</span></th></tr></thead>
           <tbody id="managedProjectRows"></tbody>
         </table>
-        <div class="table-footer"><span id="resultSummary">Showing 6 of 12 projects</span><nav class="pagination" id="pagination" aria-label="Project pages"></nav></div>
+        <div class="table-footer"><span id="resultSummary">Loading projects…</span><nav class="pagination" id="pagination" aria-label="Project pages"></nav></div>
         <p class="empty-projects" id="emptyProjects" hidden>No projects match your search.</p>
       </div>
     </section>
-    <p class="demo-note">Demo workspace — listing metrics are sample data.</p>
     </section>
   </main>
 
@@ -225,7 +216,7 @@
     </article>
     <footer class="preview-dialog-footer"><p>This is a preview only. Your project won’t be published until you choose <b>Publish project</b>.</p><button class="add-project primary-add" type="button" data-edit-preview>Back to editing</button></footer>
   </dialog>
-  <script src="assets/js/my-projects.js?v=20261112-supabase-project-media"></script>
-  <script src="assets/js/nav-behavior.js?v=20261112-secure-chat-badge"></script>
+  <script src="assets/js/my-projects.js?v=20261117-supabase-project-metrics"></script>
+  <script src="assets/js/nav-behavior.js?v=20261116-role-aware-navigation"></script>
 </body>
 </html>

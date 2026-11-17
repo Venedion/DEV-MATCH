@@ -7,6 +7,11 @@
   const favoritesKey='devmatch-client-project-favorites';
   const escapeHtml=value=>String(value??'').replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
   const initials=name=>(String(name||'').match(/\b\p{L}/gu)||[]).slice(0,2).join('').toUpperCase()||'DM';
+  function formatCommentTime(value){
+    if(typeof value!=='string'||!value)return '';
+    const date=new Date(value);
+    return Number.isNaN(date.getTime())?'':new Intl.DateTimeFormat(undefined,{dateStyle:'medium',timeStyle:'short'}).format(date);
+  }
   let project=null,comments=[],favorites=[],viewRecordFailed=false;
   function readJson(key,fallback){try{const value=localStorage.getItem(key);return value?JSON.parse(value):fallback;}catch{return fallback;}}
   function updateFavoriteButtons(saved){
@@ -20,7 +25,7 @@
     document.getElementById('commentsHeadingCount').textContent=String(comments.length);
     document.getElementById('projectCommentsStat').textContent=`${comments.length} comments`;
     document.getElementById('commentsEmpty').hidden=comments.length>0;
-    document.getElementById('commentList').innerHTML=ordered.map(comment=>`<article class="discover-comment"><span class="discover-detail-avatar">${escapeHtml(comment.initials||'CL')}</span><div><strong>${escapeHtml(comment.name||'DEV-MATCH member')}</strong><time>${escapeHtml(comment.time||'')}</time><p>${escapeHtml(comment.text||'')}</p></div></article>`).join('');
+    document.getElementById('commentList').innerHTML=ordered.map(comment=>`<article class="discover-comment"><span class="discover-detail-avatar">${escapeHtml(comment.initials||'CL')}</span><div><strong>${escapeHtml(comment.name||'DEV-MATCH member')}</strong><time datetime="${escapeHtml(comment.time||'')}">${escapeHtml(formatCommentTime(comment.time))}</time><p>${escapeHtml(comment.text||'')}</p></div></article>`).join('');
   }
   function initializeDetailLayout(){
     const preview=document.getElementById('projectPreview');

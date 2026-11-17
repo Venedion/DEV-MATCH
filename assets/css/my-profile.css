@@ -28,6 +28,7 @@
 .identity-title-row{display:flex;align-items:flex-start;justify-content:space-between;gap:16px}
 .identity-title-row h2{margin-bottom:7px;font-size:25px;line-height:1.2;letter-spacing:-.055em}
 .availability-badge{display:inline-flex;align-items:center;gap:6px;padding:5px 9px;border-radius:99px;background:var(--profile-green-bg);color:var(--profile-green);font-size:10px;font-weight:700}
+.availability-badge[hidden],.identity-meta span[hidden]{display:none}
 .availability-badge i{width:6px;height:6px;border-radius:50%;background:currentColor}
 .availability-badge.busy{background:#fff4df;color:#9a6600}
 .availability-badge.unavailable{background:#f0f0f2;color:#64666e}

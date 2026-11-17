@@ -27,18 +27,27 @@ Accounts: https://supabase.com/dashboard/project/yxwktllqbmhustmhdaqi/auth/users
 Profiles: https://supabase.com/dashboard/project/yxwktllqbmhustmhdaqi/editor
 
 The initial migration, account-registration.sql, and email-onboarding.sql are
-already applied to the hosted project. Do not reapply them there. On a fresh
-project, run those files in that order. The email-onboarding guard replaces the
-experimental phone-required guard without marking a phone as verified.
+already applied to the hosted project. Do not reapply those files there. On a
+fresh project, apply `migrations/202611080001_account_profiles.sql`, then
+`migrations/202611090001_profile_account_fields.sql`, and then
+`email-onboarding.sql`. The profile migration adds the account and onboarding
+columns used by later migrations and creates new profiles from signup metadata,
+including the selected account role. `account-registration.sql` is retained as
+a rerunnable legacy equivalent for existing setups. Existing projects that
+already ran that legacy script should still apply the new profile migration
+once; its idempotent schema changes and trigger replacement keep the migration
+history aligned. The email-onboarding guard replaces the experimental
+phone-required guard without marking a phone as verified.
 
 The user favorites and notification state migration
 (`migrations/202611110001_user_preferences_and_favorites.sql`) must also be
 applied to the hosted project before deploying the matching frontend changes.
-On a fresh project, run it after the three account/profile SQL files. It creates
-RLS-protected favorites and notification-read tables; notification preferences
-are stored in `profiles.profile_data`. On the first authenticated load, legacy
-favorites and read-state values are imported once for that account if its new
-database table is empty; browser storage then serves only as a local cache.
+On a fresh project, run it after the profile migration and email-onboarding SQL.
+It creates RLS-protected favorites and notification-read tables; notification
+preferences are stored in `profiles.profile_data`. On the first authenticated
+load, legacy favorites and read-state values are imported once for that account
+if its new database table is empty; browser storage then serves only as a local
+cache.
 
 The projects/comments migration
 (`migrations/202611110002_projects_and_comments.sql`) is required for the
@@ -192,6 +201,18 @@ The migration and frontend changes are local until the migration is applied
 and the updated `chat-api` is deployed to the hosted project. Apply database
 migrations in order; do not mark a feature live until its Supabase operation
 has been verified.
+
+Two-way project reviews use
+`migrations/202611170002_project_engagement_reviews.sql`, after
+`migrations/202611170001_owned_project_metrics.sql`. In a project-linked chat,
+either participant can confirm completion; reviews unlock only after both the
+client and developer confirm. Each participant can submit one 1–5 rating and
+an optional comment per conversation. Review tables have no direct client write
+or read grants; authenticated RPCs enforce participant and completion checks,
+and the public profile RPC returns only display-safe review fields. Apply the
+migration before deploying the matching frontend. Chat participants retain
+read access to the project metadata associated with their conversation even
+after a request is closed, so they can finish the confirmation flow.
 
 Supabase Auth continues to manage password hashing and credentials; the app
 does not store password hashes itself. Argon2id migration and recovery codes

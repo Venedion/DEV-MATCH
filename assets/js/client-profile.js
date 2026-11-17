@@ -36,7 +36,14 @@
       .select('id,title,project_type,category,price,data').eq('owner_id',client.id)
       .eq('project_kind','request').eq('status','open').order('updated_at',{ascending:false});
     if(requestError)throw requestError;
-    if(!user&&!requests.length){showUnavailable('This client has no public open project requests.');return;}
+    let reviews=[];
+    let reviewsLoadFailed=false;
+    try{
+      reviews=await window.devMatchBackend.loadProfileReviews(client.id);
+    }catch(error){
+      console.error('Unable to load public client reviews from Supabase.',error);
+      reviewsLoadFailed=true;
+    }
     const profile=client.profile_data||{};
     const name=String(client.display_name||'DEV-MATCH member');
     const location=String(profile.city||'Location not provided');
@@ -50,6 +57,15 @@
     document.getElementById('clientBusinessType').textContent=String(profile.industry||'Not provided');
     document.getElementById('clientActivity').textContent='DEV-MATCH member';
     document.getElementById('clientRequestCount').textContent=String(requests.length);
+    const averageRating=reviews.length?reviews.reduce((sum,review)=>sum+review.rating,0)/reviews.length:null;
+    document.getElementById('clientRating').textContent=averageRating===null?'—':`★ ${averageRating.toFixed(1)}`;
+    document.getElementById('clientReviewCount').textContent=reviewsLoadFailed
+      ?'unable to load reviews'
+      :reviews.length?`from ${reviews.length} reviews`:'no reviews yet';
+    document.getElementById('clientReviews').innerHTML=reviewsLoadFailed
+      ?'<p class="client-review-empty">Reviews could not be loaded. Check your connection and try again.</p>'
+      :reviews.length?reviews.map(review=>`<article class="client-review"><span class="client-review-avatar">${escapeHtml(review.reviewerInitials||initials(review.reviewerName))}</span><div class="client-review-copy"><h3>${escapeHtml(review.reviewerName)}</h3><small>${escapeHtml(review.projectTitle||'Completed project')}</small><p>${escapeHtml(review.text)}</p></div><span class="client-review-stars" aria-label="${review.rating} out of 5 stars">${'★'.repeat(review.rating)}</span></article>`).join('')
+        :'<p class="client-review-empty">No reviews yet.</p>';
     document.getElementById('contactClient').href=user
       ?`devmatch-chat.html?contact=${encodeURIComponent(client.id)}&client=${encodeURIComponent(client.id)}`
       :'devmatch-auth.html?mode=login';
@@ -62,6 +78,7 @@
     status.hidden=true;
     profileCard.hidden=false;
     requestsSection.hidden=false;
+    document.getElementById('clientReviewsSection').hidden=false;
   }catch(error){
     console.error('Unable to load the client profile from Supabase.',error);
     showUnavailable('The client profile could not be loaded. Check your connection and try again.');

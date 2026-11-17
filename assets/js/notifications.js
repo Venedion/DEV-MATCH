@@ -286,6 +286,7 @@
     row.classList.remove('is-unread');
     readNotifications.add(notificationId);
     updateNotifications();
+    window.dispatchEvent(new Event('devmatch:notifications-changed'));
   }
 
   markAllReadButton?.addEventListener('click', async () => {
@@ -298,6 +299,7 @@
       ids.forEach(id => readNotifications.add(id));
       notificationRows.forEach(row => row.classList.remove('is-unread'));
       updateNotifications();
+      window.dispatchEvent(new Event('devmatch:notifications-changed'));
     } catch (error) {
       console.error('Unable to mark notifications as read.', error);
       notificationStatus.textContent = 'Unable to save notification status. Please try again.';

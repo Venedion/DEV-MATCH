@@ -10,11 +10,11 @@
   const isPreview=params.get('preview')==='1';
   const initials=name=>String(name||'').trim().split(/\s+/).filter(Boolean).slice(0,2).map(part=>part[0]).join('').toUpperCase()||(isDeveloper?'DM':'CL');
   const escapeHtml=value=>String(value??'').replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
-  const displayName=profile.displayName|| (isDeveloper?'Rizky Aditya':'Client User');
-  const username=String(profile.username|| (isDeveloper?'rizkyaditya':'clientbiz')).replace(/^@/,'');
-  const city=profile.city|| (isDeveloper?'Medan':'Jakarta');
-  const country=profile.country||'Indonesia';
-  const specialty=(Array.isArray(profile.specialty)?profile.specialty:typeof profile.specialty==='string'?[profile.specialty]:Object.prototype.hasOwnProperty.call(profile,'specialty')?[]:['Full-stack']).map(value=>String(value).trim()).filter(Boolean).map(value=>value==='Other'&&typeof profile.specialtyOther==='string'&&profile.specialtyOther.trim()?profile.specialtyOther.trim():value);
+  const displayName=String(profile.displayName||'').trim()||(isDeveloper?'Developer':'Client');
+  const username=String(profile.username||'').replace(/^@/,'');
+  const city=profile.city||'';
+  const country=profile.country||'';
+  const specialty=(Array.isArray(profile.specialty)?profile.specialty:typeof profile.specialty==='string'?[profile.specialty]:[]).map(value=>String(value).trim()).filter(Boolean).map(value=>value==='Other'&&typeof profile.specialtyOther==='string'&&profile.specialtyOther.trim()?profile.specialtyOther.trim():value);
   const specialtyDetails={
     'Full-stack':{description:'Front + back end',icon:'<path d="m16 18 6-6-6-6M8 6l-6 6 6 6"/>'},
     Frontend:{description:'Web interfaces',icon:'<rect x="4" y="4" width="6" height="6" rx="1"/><rect x="14" y="4" width="6" height="6" rx="1"/><rect x="4" y="14" width="6" height="6" rx="1"/><rect x="14" y="14" width="6" height="6" rx="1"/>'},
@@ -24,13 +24,10 @@
     'Game Dev':{description:'Unity, Roblox...',icon:'<path d="m7 7 10 0a4 4 0 0 1 3.8 5.2l-1.2 4a2 2 0 0 1-3.3.9L14 15H10l-2.3 2.1a2 2 0 0 1-3.3-.9l-1.2-4A4 4 0 0 1 7 7z"/><path d="M7 10v4m-2-2h4m7-1h.01M17 13h.01"/>'},
     Other:{description:'Tell us more',icon:'<path d="M12 5v14m-7-7h14"/>'}
   };
-  const title=isDeveloper?(specialty.length?`${specialty.slice(0,2).join(' & ')} Developer`:'Full-stack Developer'):'Small Business Owner';
-  const bio=profile.bio||(isDeveloper
-    ?'I build reliable web experiences for growing businesses, with a focus on practical tools, thoughtful design, and projects that help teams work better.'
-    :'Building a business with a focus on great customer experiences. I am looking for thoughtful digital solutions to help the business grow.');
-  const defaultSkills=isDeveloper?['React','Next.js','Laravel','Supabase','Figma','Tailwind CSS']:['Small business','Food & Beverage','E-Commerce'];
-  const skills=Array.isArray(profile.skills)?profile.skills.map(skill=>String(skill).trim()).filter(Boolean):normalizeList(profile.skills,defaultSkills);
-  const experiences=Array.isArray(profile.experiences)?profile.experiences.filter(item=>item&&typeof item==='object'&&(item.title||item.company)):defaultExperiences();
+  const title=isDeveloper?(specialty.length?`${specialty.slice(0,2).join(' & ')} Developer`:'Developer'):'Client';
+  const bio=String(profile.bio||'').trim();
+  const skills=Array.isArray(profile.skills)?profile.skills.map(skill=>String(skill).trim()).filter(Boolean):normalizeList(profile.skills,[]);
+  const experiences=Array.isArray(profile.experiences)?profile.experiences.filter(item=>item&&typeof item==='object'&&(item.title||item.company)):[];
   const projects=isDeveloper?loadDeveloperProjects():loadClientRequests();
   const toast=document.getElementById('profileToast');
   let toastTimer;
@@ -64,12 +61,6 @@
     return normalized.length?normalized:fallback;
   }
 
-  function defaultExperiences(){
-    return isDeveloper
-      ?[{title:'Independent Developer',company:'Freelance · 2022 – Present',link:''},{title:'Web Developer',company:'Digital projects · 2020 – 2022',link:''}]
-      :[{title:'Business Owner',company:profile.companyName||'Independent · Present',link:''}];
-  }
-
   function safeExternalUrl(value){
     if(!value)return '';
     try{
@@ -84,7 +75,7 @@
     if(profile.joined)return profile.joined;
     const created=Number(profile.createdAt);
     if(Number.isFinite(created)&&created>0)return new Date(created).toLocaleDateString('en-US',{month:'short',year:'numeric'});
-    return 'Sep 2026';
+    return '';
   }
 
   function formatCompact(value){
@@ -110,6 +101,7 @@
     const chatUrl=isDeveloper?'devmatch-chat.html':'devmatch-chat.html?role=client';
     document.documentElement.lang='en';
     document.body.classList.toggle('client-shell-page',!isDeveloper);
+    window.DEVMATCH_SIDEBAR_NAVIGATION?.setWorkspace(role);
     document.body.classList.toggle('profile-preview-mode',isPreview);
     document.title=`${displayName} — My Profile | DEV-MATCH`;
     document.querySelectorAll('#brandLink,#overviewLink').forEach(link=>link.href=dashboardUrl);
@@ -147,15 +139,18 @@
     document.querySelector('.workspace-icon').classList.toggle('client-workspace-icon',!isDeveloper);
     document.getElementById('identitySpecialty').hidden=!isDeveloper&&!profile.industry;
     if(!isDeveloper&&profile.industry)setText('identitySpecialty',profile.industry);
-    setText('identityBio',bio);
+    setText('identityBio',bio||'No bio added yet.');
     setText('aboutHeading',isDeveloper?'About':'About the business');
-    setText('aboutCopy',bio);
+    setText('aboutCopy',bio||'No bio added yet.');
     setText('skillsHeading',isDeveloper?'Skills & Tech Stacks':'Services & Focus');
     setText('showcaseHeading',isDeveloper?'Selected work':'Open project requests');
-    setText('showcaseDescription',isDeveloper?'A few projects that show what I can build.':'Projects currently shared with developers.');
+    setText('showcaseDescription',isDeveloper?'Published projects from your portfolio.':'Open requests shared with developers.');
     setText('statProjectsCaption',isDeveloper?'projects':'open requests');
     setText('statSavesLabel',isDeveloper?'Project favorites':'Request saves');
     setText('statRatingLabel',isDeveloper?'Client rating':'Developer rating');
+    setText('profileReviewsTabLabel',isDeveloper?'Client Reviews':'Developer Reviews');
+    setText('reviewsHeading',isDeveloper?'Client Reviews':'Developer Reviews');
+    setText('reviewsDescription',isDeveloper?'Feedback from clients after completed projects.':'Feedback from developers after completed projects.');
     setText('contactIntro',isDeveloper?'Have a project in mind? Let’s talk.':'Interested in working together? Get in touch.');
     document.getElementById('editProfile').href=settingsUrl;
     document.getElementById('previewProfile').href=`${profileUrl}&preview=1`;
@@ -187,8 +182,8 @@
         id:item.id,
         title:item.title||'Untitled project',
         category:item.category||item.type||'Project',
-        description:item.description||`${item.type||'Digital product'} built for a growing business.`,
-        price:item.price||'Contact for pricing',
+        description:item.description||'No description provided.',
+        price:item.price||'Not specified',
         views:Number(item.views)||0,
         favorites:Number(item.favorites)||0,
         art:item.art||'website'
@@ -198,15 +193,10 @@
       showcase.totalFavorites=published.reduce((sum,item)=>sum+(Number(item.favorites)||0),0);
       return showcase;
     }
-    const showcase=[
-      {id:'sample-restaurant',title:'Restaurant Website',category:'Company Profile',description:'A warm, responsive website with a digital menu and easy reservations.',price:'Rp 3.500.000',views:245,favorites:32,art:'website'},
-      {id:'sample-pos',title:'Small Business POS',category:'Web App',description:'A simple sales and inventory dashboard for a neighborhood café.',price:'Rp 6.000.000',views:1920,favorites:128,art:'dashboard'},
-      {id:'sample-store',title:'Online Storefront',category:'E-Commerce',description:'A clean shopping experience with product discovery and checkout.',price:'Rp 4.500.000',views:860,favorites:41,art:'store'},
-      {id:'sample-booking',title:'Booking Platform',category:'Web App',description:'A lightweight booking system that keeps appointments organized.',price:'Rp 3.000.000',views:540,favorites:28,art:'dashboard'}
-    ];
-    showcase.totalCount=12;
-    showcase.totalFavorites=864;
-    showcase.totalViews=12400;
+    const showcase=[];
+    showcase.totalCount=0;
+    showcase.totalFavorites=0;
+    showcase.totalViews=0;
     return showcase;
   }
 
@@ -217,7 +207,7 @@
       id:item.id,
       title:item.title||'Untitled request',
       category:item.category||item.projectType||'Project request',
-      description:item.description||'An open project request looking for the right developer.',
+      description:item.description||'No description provided.',
       price:item.budget||formatBudget(item.budgetFrom,item.budgetTo),
       views:Number(item.views)||0,
       favorites:Number(item.saves??item.favorites)||0,
@@ -235,18 +225,24 @@
   }
 
   function renderIdentity(){
-    const availability=profile.availability||'Open for hiring';
+    const availability=profile.availability||'';
     const avatar=initials(displayName);
     setText('profileName',displayName);
     setAvatar('profileAvatar',profile.avatar,avatar);
     setAvatar('userAvatar',profile.avatar,avatar);
     setText('topUserName',displayName);
-    setText('identityHandle',`@${username}`);
-    setText('identityLocation',[city,country].filter(Boolean).join(', '));
+    setText('identityHandle',username?`@${username}`:'');
+    document.getElementById('identityHandle').hidden=!username;
+    const location=[city,country].filter(Boolean).join(', ');
+    setText('identityLocation',location);
+    document.getElementById('identityLocation').hidden=!location;
     setText('identitySpecialty',isDeveloper?title:profile.industry||'');
-    setText('identityJoined',`Joined ${formatJoined()}`);
+    const joined=formatJoined();
+    setText('identityJoined',joined?`Joined ${joined}`:'');
+    document.getElementById('identityJoined').hidden=!joined;
     const availabilityBadge=document.getElementById('availabilityBadge');
     availabilityBadge.querySelector('span').textContent=availability;
+    availabilityBadge.hidden=!availability;
     availabilityBadge.classList.toggle('busy',availability.toLowerCase().includes('busy'));
     availabilityBadge.classList.toggle('unavailable',/not available|closed/i.test(availability));
   }
@@ -278,10 +274,12 @@
   function renderRoleInfo(){
     const root=document.getElementById('roleInfoCard');
     if(isDeveloper){
-      const contracts=normalizeList(profile.contractTypes, ['Milestone-based','Fixed-price','Consultation']);
-      root.innerHTML=`<div class="card-heading"><h2>Rates &amp; Work Terms</h2></div><div class="role-info-grid"><div class="role-info-item"><small>HOURLY RATE</small><strong>${escapeHtml(profile.hourlyRate||'Rp 150.000')} / hour</strong></div><div class="role-info-item"><small>MINIMUM PROJECT</small><strong>${escapeHtml(profile.minProjectPrice||'Rp 3.500.000')}</strong></div></div><div class="contract-list">${contracts.map(item=>`<span>${escapeHtml(item)}</span>`).join('')}</div>`;
+      const contracts=normalizeList(profile.contractTypes,[]);
+      const hourlyRate=profile.hourlyRate?`${profile.hourlyRate} / hour`:'Not provided';
+      root.innerHTML=`<div class="card-heading"><h2>Rates &amp; Work Terms</h2></div><div class="role-info-grid"><div class="role-info-item"><small>HOURLY RATE</small><strong>${escapeHtml(hourlyRate)}</strong></div><div class="role-info-item"><small>MINIMUM PROJECT</small><strong>${escapeHtml(profile.minProjectPrice||'Not provided')}</strong></div></div>${contracts.length?`<div class="contract-list">${contracts.map(item=>`<span>${escapeHtml(item)}</span>`).join('')}</div>`:'<p class="empty-state">No work terms added yet.</p>'}`;
     }else{
-      root.innerHTML=`<div class="card-heading"><h2>Company Details</h2></div><div class="role-info-grid"><div class="role-info-item"><small>BUSINESS NAME</small><strong>${escapeHtml(profile.companyName||displayName)}</strong></div><div class="role-info-item"><small>INDUSTRY</small><strong>${escapeHtml(profile.industry||'Small business')}</strong></div><div class="role-info-item"><small>NPWP STATUS</small><strong>${profile.npwp?'On file':'Not provided'}</strong></div><div class="role-info-item"><small>BUSINESS LOCATION</small><strong>${escapeHtml([city,country].filter(Boolean).join(', '))}</strong></div></div>`;
+      const businessLocation=[city,country].filter(Boolean).join(', ')||'Not provided';
+      root.innerHTML=`<div class="card-heading"><h2>Company Details</h2></div><div class="role-info-grid"><div class="role-info-item"><small>BUSINESS NAME</small><strong>${escapeHtml(profile.companyName||profile.displayName||'Not provided')}</strong></div><div class="role-info-item"><small>INDUSTRY</small><strong>${escapeHtml(profile.industry||'Not provided')}</strong></div><div class="role-info-item"><small>NPWP STATUS</small><strong>${profile.npwp?'On file':'Not provided'}</strong></div><div class="role-info-item"><small>BUSINESS LOCATION</small><strong>${escapeHtml(businessLocation)}</strong></div></div>`;
     }
   }
 
@@ -312,10 +310,10 @@
       return;
     }
     root.innerHTML=experiences.map(item=>{
-      const company=item.company||'Independent';
+      const companyLine=[item.company,item.period].filter(Boolean).join(' · ');
       const href=safeExternalUrl(item.link);
       const supportingFiles=Array.isArray(item.files)?item.files.map(String).filter(Boolean):[];
-      return `<li class="experience-item"><span class="experience-marker" aria-hidden="true"></span><div class="experience-copy"><b class="profile-experience-value">${escapeHtml(item.title||'Experience')}</b><span class="profile-experience-value">${escapeHtml(company)}${item.period?` · ${escapeHtml(item.period)}`:''}</span>${href?`<a href="${escapeHtml(href)}" target="_blank" rel="noopener noreferrer">View proof <span aria-hidden="true">↗</span></a>`:''}${supportingFiles.length?`<small class="experience-files profile-experience-value">${escapeHtml(supportingFiles.join(', '))}</small>`:''}</div></li>`;
+      return `<li class="experience-item"><span class="experience-marker" aria-hidden="true"></span><div class="experience-copy"><b class="profile-experience-value">${escapeHtml(item.title||'Experience')}</b>${companyLine?`<span class="profile-experience-value">${escapeHtml(companyLine)}</span>`:''}${href?`<a href="${escapeHtml(href)}" target="_blank" rel="noopener noreferrer">View proof <span aria-hidden="true">↗</span></a>`:''}${supportingFiles.length?`<small class="experience-files profile-experience-value">${escapeHtml(supportingFiles.join(', '))}</small>`:''}</div></li>`;
     }).join('');
   }
 
@@ -324,7 +322,7 @@
     const apps=[
       {name:'WhatsApp Business',icon:'WA',connected:isConnected('whatsappConnected',Boolean(String(profile.whatsapp||'').replace(/\D/g,''))),verified:Boolean(profile.whatsappVerified)},
       {name:'GitHub',icon:'GH',connected:isConnected('githubConnected',Boolean(profile.github||profile.githubUrl)),verified:Boolean(profile.githubVerified)},
-      {name:'Google',icon:'G',connected:isConnected('googleConnected',true),verified:Boolean(profile.googleVerified)},
+      {name:'Google',icon:'G',connected:isConnected('googleConnected',false),verified:Boolean(profile.googleVerified)},
       {name:'LinkedIn',icon:'in',connected:isConnected('linkedinConnected',Boolean(profile.linkedin||profile.linkedinUrl)),verified:Boolean(profile.linkedinVerified)}
     ];
     document.getElementById('connectedList').innerHTML=apps.map(app=>{
@@ -338,39 +336,48 @@
     const target=isDeveloper
       ?`devmatch-my-projects.html?project=${encodeURIComponent(project.id)}`
       :`devmatch-client-dashboard.html?role=client#request-detail/${encodeURIComponent(project.id)}`;
-    return `<a class="showcase-project" href="${escapeHtml(target)}" aria-label="${escapeHtml(project.title)} — view details"><div class="project-art art-${art}" aria-hidden="true"><div class="project-browser"><div class="browser-bar"><i></i><i></i><i></i></div><div class="browser-content"><span class="art-accent"></span></div></div></div><div class="project-copy"><span class="project-category">${escapeHtml(project.category||'Project')}</span><h3>${escapeHtml(project.title)}</h3><p>${escapeHtml(project.description)}</p><footer class="project-footer"><strong>${escapeHtml(project.price||'Contact for pricing')}</strong><span class="project-metric">◉ <b>${formatCompact(project.views)}</b> &nbsp;♡ <b>${formatCompact(project.favorites)}</b></span></footer></div></a>`;
+    return `<a class="showcase-project" href="${escapeHtml(target)}" aria-label="${escapeHtml(project.title)} — view details"><div class="project-art art-${art}" aria-hidden="true"><div class="project-browser"><div class="browser-bar"><i></i><i></i><i></i></div><div class="browser-content"><span class="art-accent"></span></div></div></div><div class="project-copy"><span class="project-category">${escapeHtml(project.category||'Project')}</span><h3>${escapeHtml(project.title)}</h3><p>${escapeHtml(project.description)}</p><footer class="project-footer"><strong>${escapeHtml(project.price||'Not specified')}</strong><span class="project-metric">◉ <b>${formatCompact(project.views)}</b> &nbsp;♡ <b>${formatCompact(project.favorites)}</b></span></footer></div></a>`;
   }
 
   function renderProjects(){
     setText('statProjects',String(projects.totalCount??projects.length));
-    document.getElementById('projectGrid').innerHTML=projects.length?projects.map(renderProjectCard).join(''):`<p class="empty-state">${isDeveloper?'Your published projects will appear here. Add a project to start building your showcase.':'No open requests right now. Open project requests will appear here for developers to discover.'}</p>`;
+    document.getElementById('projectGrid').innerHTML=projects.length?projects.map(renderProjectCard).join(''):`<p class="empty-state">${isDeveloper?'You have no published projects yet. Add a project to build your showcase.':'You have no open requests yet. Open project requests will appear here.'}</p>`;
     if(!isDeveloper){
       const manage=document.getElementById('allProjectsLink');
       manage.textContent='View requests →';
     }
   }
 
-  function renderReviews(){
+  async function renderReviews(){
     const root=document.getElementById('reviewList');
-    if(!isDeveloper){
-      root.innerHTML='<p class="empty-state">Reviews from developers will appear here after a completed project.</p>';
+    root.innerHTML='<p class="empty-state">Loading reviews…</p>';
+    setText('statRating','—');
+    setText('statReviews','loading reviews');
+    try{
+      const user=await window.devMatchBackend.ready;
+      if(!user)throw new Error('Authentication is required to load profile reviews.');
+      const reviews=await window.devMatchBackend.loadProfileReviews(user.id);
+      if(!reviews.length){
+        root.innerHTML=isDeveloper
+          ?'<p class="empty-state">Client reviews will appear here after a completed project.</p>'
+          :'<p class="empty-state">Developer reviews will appear here after a completed project.</p>';
+        setText('statRating','—');
+        setText('statReviews','no reviews yet');
+        return;
+      }
+      root.innerHTML=reviews.slice(0,8).map(review=>{
+        const stars=Math.round(review.rating);
+        return `<article class="review-item"><span class="review-avatar">${escapeHtml(review.reviewerInitials||initials(review.reviewerName))}</span><div class="review-copy"><h3>${escapeHtml(review.reviewerName)}</h3><small>${escapeHtml(review.projectTitle||'Completed project')}</small><p>${escapeHtml(review.text)}</p></div><span class="review-rating" aria-label="${stars} out of 5 stars">${'★'.repeat(stars)}</span></article>`;
+      }).join('');
+      const average=reviews.reduce((sum,item)=>sum+item.rating,0)/reviews.length;
+      setText('statRating',`★ ${average.toFixed(1)}`);
+      setText('statReviews',`from ${reviews.length} reviews`);
+    }catch(error){
+      console.error('Unable to load profile reviews from Supabase.',error);
+      root.innerHTML='<p class="empty-state">Reviews could not be loaded. Check your connection and try again.</p>';
       setText('statRating','—');
-      setText('statReviews','no reviews yet');
-      return;
+      setText('statReviews','unable to load reviews');
     }
-    const reviews=readStorage('devmatch-profile-reviews',[]);
-    if(!Array.isArray(reviews)||!reviews.length){
-      root.innerHTML='<p class="empty-state">Client reviews will appear here after a completed project. Keep delivering great work to build your reputation.</p>';
-      return;
-    }
-    root.innerHTML=reviews.slice(0,8).map(review=>{
-      const name=review.name||review.client||'Client';
-      const stars=Math.max(1,Math.min(5,Number(review.rating)||5));
-      return `<article class="review-item"><span class="review-avatar">${escapeHtml(initials(name))}</span><div class="review-copy"><h3>${escapeHtml(name)}</h3><small>${escapeHtml(review.project||'Completed project')}</small><p>${escapeHtml(review.comment||review.text||'')}</p></div><span class="review-rating" aria-label="${stars} out of 5 stars">${'★'.repeat(stars)}</span></article>`;
-    }).join('');
-    const average=reviews.reduce((sum,item)=>sum+(Number(item.rating)||5),0)/reviews.length;
-    setText('statRating',`★ ${average.toFixed(1)}`);
-    setText('statReviews',`from ${reviews.length} reviews`);
   }
 
   function renderActivity(){
@@ -389,6 +396,7 @@
   }
 
   function renderStats(){
+    setText('statViewsLabel',isDeveloper?'Project views':'Request views');
     if(isDeveloper){
       const views=projects.totalViews??projects.reduce((sum,item)=>sum+(Number(item.views)||0),0);
       const favorites=projects.totalFavorites??projects.reduce((sum,item)=>sum+(Number(item.favorites)||0),0);
@@ -471,7 +479,7 @@
   renderExperience();
   renderConnectedApps();
   renderProjects();
-  renderReviews();
+  void renderReviews();
   renderActivity();
   renderStats();
   document.getElementById('shareProfile').addEventListener('click',shareProfile);
