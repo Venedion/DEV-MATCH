@@ -92,10 +92,10 @@
     document.body.appendChild(mobileNavigationBackdrop);
   }
 
-  const activeModeLink = document.querySelector(
+  let activeModeLink = document.querySelector(
     '.mode-switch a.active, .client-mode-switch a.active'
   );
-  const isClientMode = activeModeLink
+  let isClientMode = activeModeLink
     ? getMode(activeModeLink) === 'client'
     : (
       new URLSearchParams(window.location.search).get('role') === 'client'
@@ -155,6 +155,35 @@
 
   updateHeaderProfile();
 
+  async function syncWorkspaceModeWithAccount() {
+    const backend = window.devMatchBackend;
+    if (!backend) return;
+    const user = await backend.ready;
+    if (!user) return;
+    const profile = await backend.loadProfile(user);
+    if (!['client', 'dev'].includes(profile.account_role)) {
+      throw new Error('The account has no supported workspace role.');
+    }
+
+    isClientMode = profile.account_role === 'client';
+    const activeMode = isClientMode ? 'client' : 'developer';
+    document.querySelectorAll(modeSwitchSelector).forEach(link => {
+      const active = getMode(link) === activeMode;
+      link.classList.toggle('active', active);
+      link.hidden = !active;
+      link.style.display = active ? '' : 'none';
+      if (active) {
+        link.href = isClientMode ? 'devmatch-client-dashboard.html' : 'devmatch-dashboard.html';
+      }
+    });
+    activeModeLink = document.querySelector(
+      '.mode-switch a.active, .client-mode-switch a.active'
+    );
+    updateHeaderProfile();
+    window.DEVMATCH_SIDEBAR_NAVIGATION?.setWorkspace(isClientMode ? 'client' : 'developer');
+    updateNavBadges();
+  }
+
   const headerUserLink = header?.querySelector('.user-menu, .client-user, .user-link');
   let headerAccountDropdown;
   let headerAccountDropdownCloseTimer;
@@ -171,7 +200,7 @@
   function prepareMobileAccountModeSwitch() {
     if (!modeSwitch || !headerAccountDropdown || !mobileSearchBreakpoint.matches) return;
     const targetLink = [...modeSwitch.querySelectorAll('a')]
-      .find(link => !link.classList.contains('active'));
+      .find(link => !link.hidden && !link.classList.contains('active'));
     if (!targetLink) return;
 
     const targetMode = getMode(targetLink);
@@ -453,12 +482,6 @@
     return projects.length + secondary.length;
   }
 
-  function getUnreadNotificationCount() {
-    const readKey = isClientMode ? 'devmatch-client-notifications-read' : 'devmatch-dev-notifications-read';
-    const readIds = new Set(readStoredArray(readKey, []));
-    return ['jessica-comment', 'rizky-message'].filter(id => !readIds.has(id)).length;
-  }
-
   function updateHeaderNotificationDot(unreadCount) {
     const notificationLink = document.querySelector(
       'header .notification-button, header .client-icon-button'
@@ -494,10 +517,11 @@
     });
   }
 
-  function updateNavBadges() {
-    const unreadNotificationCount = getUnreadNotificationCount();
-    updateLinkBadge('nav a[href^="devmatch-chat.html"]', 'message', 0);
-    updateLinkBadge('nav a[href^="devmatch-favorites.html"]', 'favorites', getFavoriteCount());
+  async function updateNotificationBadges() {
+    const backend = window.devMatchBackend;
+    if (!backend) throw new Error('Supabase is unavailable.');
+    const user = await backend.ready;
+    const unreadNotificationCount = user ? await backend.loadUnreadNotificationCount() : 0;
     updateLinkBadge(
       'nav a[href^="devmatch-developer-notifications.html"], nav a[href^="devmatch-notifications.html"]',
       'notifications',
@@ -506,13 +530,36 @@
     updateHeaderNotificationDot(unreadNotificationCount);
   }
 
+  function refreshNotificationBadges() {
+    updateNotificationBadges().catch(error => {
+      console.error('Unable to load notification badges from Supabase.', error);
+      updateLinkBadge(
+        'nav a[href^="devmatch-developer-notifications.html"], nav a[href^="devmatch-notifications.html"]',
+        'notifications',
+        0
+      );
+      updateHeaderNotificationDot(0);
+    });
+  }
+
+  function updateNavBadges() {
+    updateLinkBadge('nav a[href^="devmatch-chat.html"]', 'message', 0);
+    updateLinkBadge('nav a[href^="devmatch-favorites.html"]', 'favorites', getFavoriteCount());
+    refreshNotificationBadges();
+  }
+
   window.DEVMATCH_NAV_BADGES = {
     updateFavorites: function () {
       updateLinkBadge('nav a[href^="devmatch-favorites.html"]', 'favorites', getFavoriteCount());
-    }
+    },
+    updateNotifications: refreshNotificationBadges
   };
   updateNavBadges();
+  syncWorkspaceModeWithAccount().catch(error => {
+    console.error('Unable to sync the workspace mode with the account role.', error);
+  });
   window.addEventListener('storage', updateNavBadges);
+  window.addEventListener('devmatch:notifications-changed', refreshNotificationBadges);
 
   document.addEventListener('click', event => {
     if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
@@ -588,7 +635,8 @@
     }
 
     const modeLink = event.target.closest(modeSwitchSelector);
-    if (modeLink && mobileNavigationBreakpoint.matches && modeLink.classList.contains('active')) {
+    if (modeLink && mobileNavigationBreakpoint.matches && modeLink.classList.contains('active')
+      && [...modeSwitch.querySelectorAll('a')].some(link => !link.hidden && !link.classList.contains('active'))) {
       event.preventDefault();
       setMobileModeMenuOpen(!modeSwitch.classList.contains('mobile-mode-open'));
       return;

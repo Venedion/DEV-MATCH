@@ -7,13 +7,18 @@
   const favoritesKey='devmatch-developer-project-favorites';
   const escapeHtml=value=>String(value??'').replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
   const initials=name=>(String(name||'').match(/\b\p{L}/gu)||[]).slice(0,2).join('').toUpperCase()||'CL';
+  function formatCommentTime(value){
+    if(typeof value!=='string'||!value)return '';
+    const date=new Date(value);
+    return Number.isNaN(date.getTime())?'':new Intl.DateTimeFormat(undefined,{dateStyle:'medium',timeStyle:'short'}).format(date);
+  }
   let project=null,comments=[],favorites=[],viewRecordFailed=false;
   function renderComments(){
     const ordered=document.getElementById('commentSort').value==='newest'?[...comments].reverse():comments;
     document.getElementById('commentsCount').textContent=String(comments.length);
     document.getElementById('requestCommentCount').textContent=`▢ ${comments.length} comments`;
     document.getElementById('commentsEmpty').hidden=comments.length>0;
-    document.getElementById('requestComments').innerHTML=ordered.map(comment=>`<article class="find-comment"><span class="find-detail-avatar">${escapeHtml(comment.initials||'CL')}</span><div><strong>${escapeHtml(comment.name||'DEV-MATCH member')} <small>${escapeHtml(comment.role||'Member')}</small></strong><time>${escapeHtml(comment.time||'')}</time><p>${escapeHtml(comment.text||'')}</p></div></article>`).join('');
+    document.getElementById('requestComments').innerHTML=ordered.map(comment=>`<article class="find-comment"><span class="find-detail-avatar">${escapeHtml(comment.initials||'CL')}</span><div><strong>${escapeHtml(comment.name||'DEV-MATCH member')}</strong><time datetime="${escapeHtml(comment.time||'')}">${escapeHtml(formatCommentTime(comment.time))}</time><p>${escapeHtml(comment.text||'')}</p></div></article>`).join('');
   }
   function renderSimilarRequests(rows){
     document.getElementById('similarRequests').innerHTML=rows.filter(row=>row.id!==project.id).slice(0,3).map(row=>`<a class="find-similar-request" href="devmatch-find-project-detail.html?request=${encodeURIComponent(row.id)}"><strong>${escapeHtml(row.title)}</strong><small>${escapeHtml(row.price||'Budget not specified')}</small></a>`).join('');

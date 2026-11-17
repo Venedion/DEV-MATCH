@@ -1,4 +1,4 @@
--- Applied to hosted DEV-MATCH. Run after the initial and registration SQL on a fresh project.
+-- Applied to hosted DEV-MATCH. Run after the profile migration on a fresh project.
 -- Phone ownership remains UNVERIFIED; this release requires email confirmation only.
 begin;
 create or replace function private.require_verified_onboarding()

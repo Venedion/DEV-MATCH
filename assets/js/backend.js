@@ -13,6 +13,19 @@
   );
   const page = location.pathname.split('/').pop();
   const protectedPage = /^devmatch-(dashboard|client-dashboard|profile|complete|my-profile|my-projects|settings|favorites|chat|notifications|developer-notifications)\.html$/.test(page);
+  const roleSpecificPages = {
+    'devmatch-client-dashboard.html': 'client',
+    'devmatch-notifications.html': 'client',
+    'devmatch-discover-projects.html': 'client',
+    'devmatch-discover-project-detail.html': 'client',
+    'devmatch-find-developers.html': 'client',
+    'devmatch-dashboard.html': 'dev',
+    'devmatch-developer-notifications.html': 'dev',
+    'devmatch-my-projects.html': 'dev',
+    'devmatch-find-projects.html': 'dev',
+    'devmatch-find-project-detail.html': 'dev',
+    'devmatch-find-clients.html': 'dev'
+  };
   const privateProfileFields = ['bankName', 'accountNumber', 'accountHolder', 'npwp'];
   let activeAccountRole = null;
   if (protectedPage) {
@@ -97,10 +110,18 @@
     if(sessionStorage.getItem('devmatch-recovery')==='1' && page!=='devmatch-reset-password.html') {
       location.replace('devmatch-reset-password.html');return null;
     }
-    if (!protectedPage) return user;
+    if (!protectedPage && (!user || !Object.hasOwn(roleSpecificPages, page))) return user;
     const row = await loadProfile(user);
     activeAccountRole = row.account_role;
-    if(!user.email_confirmed_at){location.replace('devmatch-verify-email.html');return null;}
+    if (protectedPage && !user.email_confirmed_at) {
+      location.replace('devmatch-verify-email.html');
+      return null;
+    }
+    if (roleSpecificPages[page] && row.account_role !== roleSpecificPages[page]) {
+      location.replace(destination(row, user));
+      return null;
+    }
+    if (!protectedPage) return user;
     if(['devmatch-settings.html','devmatch-my-profile.html'].includes(page)){
       const query=new URLSearchParams(location.search);
       if(query.get('role')!==row.account_role){query.set('role',row.account_role);location.replace(page+'?'+query);return null;}
@@ -113,8 +134,11 @@
     if (changed) { location.reload(); return null; }
     document.getElementById('auth-pending')?.remove();
     return user;
-  })().catch(() => {
-    if (protectedPage) location.replace('devmatch-auth.html?mode=login&error=connection');
+  })().catch(error => {
+    if (protectedPage || Object.hasOwn(roleSpecificPages, page)) {
+      console.error('Unable to verify the account role for this page.', error);
+      location.replace('devmatch-auth.html?mode=login&error=connection');
+    }
     return null;
   });
   document.addEventListener('click', async event => {
@@ -253,6 +277,17 @@
     return rows.map(row => row.notification_id);
   }
 
+  async function loadUnreadNotificationCount() {
+    const user = await currentAccount();
+    const [readIds, {data, error}] = await Promise.all([
+      loadNotificationReads(),
+      client.from('notifications').select('id').eq('recipient_id', user.id)
+    ]);
+    if (error) throw error;
+    const readSet = new Set(readIds);
+    return (data || []).filter(notification => !readSet.has(notification.id)).length;
+  }
+
   async function markNotificationsRead(notificationIds) {
     const ids = [...new Set(notificationIds.filter(id => typeof id === 'string' && id.length > 0))];
     if (!ids.length) return;
@@ -306,8 +341,12 @@
   }
 
   function projectRowToRecord(row) {
+    const data = {...(row.data || {})};
+    delete data.views;
+    delete data.favorites;
+    delete data.comments;
     return {
-      ...row.data,
+      ...data,
       id: row.id,
       status: row.status,
       updated: new Date(row.updated_at).getTime(),
@@ -333,7 +372,11 @@
       const imported = legacyRecords
         .filter(record => record && typeof record === 'object' && typeof record.id === 'string')
         .map(record => {
-          const {coverImage, ...recordData} = record;
+          const recordData = {...record};
+          delete recordData.coverImage;
+          delete recordData.views;
+          delete recordData.favorites;
+          delete recordData.comments;
           return {
             owner_id: user.id,
             project_kind: kind,
@@ -343,7 +386,7 @@
             category: String(record.category || ''),
             price: String(record.price || record.budgetLabel || record.budget || ''),
             price_type: String(record.priceType || ''),
-            cover_image: String(coverImage || ''),
+            cover_image: String(record.coverImage || ''),
             status: kind === 'portfolio'
               ? (record.status === 'published' ? 'published' : 'draft')
               : (['open', 'closed'].includes(record.status) ? record.status : 'draft'),
@@ -370,12 +413,36 @@
     return rows.map(projectRowToRecord);
   }
 
+  async function loadOwnedProjectMetrics() {
+    await currentAccount();
+    const {data, error} = await client.rpc('get_owned_project_metrics');
+    if (error) throw error;
+    if (!Array.isArray(data)) throw new Error('Supabase returned invalid project metrics.');
+    return data.map(row => {
+      const metric = {
+        id: row.project_id,
+        views: Number(row.views),
+        favorites: Number(row.favorites),
+        comments: Number(row.comments)
+      };
+      if (typeof metric.id !== 'string' || !metric.id
+        || ![metric.views, metric.favorites, metric.comments].every(value => Number.isSafeInteger(value) && value >= 0)) {
+        throw new Error('Supabase returned invalid project metrics.');
+      }
+      return metric;
+    });
+  }
+
   async function saveOwnedProject(kind, record) {
     if (!['portfolio', 'request'].includes(kind) || !record || typeof record !== 'object') {
       throw new TypeError('A supported project kind and project record are required.');
     }
     const user = await currentAccount();
-    const {coverImage, ...recordData} = record;
+    const recordData = {...record};
+    delete recordData.coverImage;
+    delete recordData.views;
+    delete recordData.favorites;
+    delete recordData.comments;
     const isDatabaseId = typeof record.id === 'string'
       && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(record.id);
     const payload = {
@@ -463,6 +530,104 @@
       initials: data.author_initials,
       time: data.created_at
     };
+  }
+
+  function projectReviewRecord(row) {
+    const rating = Number(row?.rating);
+    if (!row || typeof row.id !== 'string' || !row.id
+      || !Number.isInteger(rating) || rating < 1 || rating > 5
+      || typeof row.reviewer_name !== 'string'
+      || typeof row.reviewer_initials !== 'string'
+      || typeof row.project_title !== 'string'
+      || typeof row.text !== 'string') {
+      throw new Error('Supabase returned an invalid project review.');
+    }
+    return {
+      id: row.id,
+      reviewerName: row.reviewer_name,
+      reviewerInitials: row.reviewer_initials,
+      projectTitle: row.project_title,
+      rating,
+      text: row.text,
+      createdAt: row.created_at
+    };
+  }
+
+  async function loadProfileReviews(profileId) {
+    if (typeof profileId !== 'string' || !profileId) {
+      throw new TypeError('A profile ID is required.');
+    }
+    const {data, error} = await client.rpc('get_profile_reviews', {p_profile_id: profileId});
+    if (error) throw error;
+    if (!Array.isArray(data)) throw new Error('Supabase returned an invalid project review list.');
+    return data.map(projectReviewRecord);
+  }
+
+  async function loadProjectEngagement(conversationId) {
+    if (typeof conversationId !== 'string' || !conversationId) {
+      throw new TypeError('A conversation ID is required.');
+    }
+    await currentAccount();
+    const {data, error} = await client.from('project_engagements')
+      .select('id,conversation_id,project_id,client_id,developer_id,client_completed_at,developer_completed_at')
+      .eq('conversation_id', conversationId)
+      .maybeSingle();
+    if (error) throw error;
+    return data || null;
+  }
+
+  async function confirmProjectCompletion(conversationId) {
+    if (typeof conversationId !== 'string' || !conversationId) {
+      throw new TypeError('A conversation ID is required.');
+    }
+    await currentAccount();
+    const {data: engagementId, error: startError} = await client.rpc(
+      'start_project_engagement',
+      {p_conversation_id: conversationId}
+    );
+    if (startError) throw startError;
+    if (typeof engagementId !== 'string' || !engagementId) {
+      throw new Error('Supabase returned an invalid project engagement.');
+    }
+    const {data, error} = await client.rpc(
+      'confirm_project_engagement',
+      {p_engagement_id: engagementId}
+    );
+    if (error) throw error;
+    if (!data || data.id !== engagementId) {
+      throw new Error('Supabase returned an invalid project completion confirmation.');
+    }
+    return data;
+  }
+
+  async function loadMyProjectReview(engagementId) {
+    if (typeof engagementId !== 'string' || !engagementId) {
+      throw new TypeError('An engagement ID is required.');
+    }
+    await currentAccount();
+    const {data, error} = await client.rpc('get_my_project_review', {p_engagement_id: engagementId});
+    if (error) throw error;
+    if (!Array.isArray(data)) throw new Error('Supabase returned an invalid project review.');
+    return data.length ? projectReviewRecord(data[0]) : null;
+  }
+
+  async function submitProjectReview(engagementId, rating, text = '') {
+    if (typeof engagementId !== 'string' || !engagementId
+      || !Number.isInteger(rating) || rating < 1 || rating > 5
+      || typeof text !== 'string' || text.length > 2000) {
+      throw new TypeError('An engagement ID, a rating from 1 to 5, and a comment up to 2000 characters are required.');
+    }
+    await currentAccount();
+    const {data, error} = await client.rpc('submit_project_review', {
+      p_engagement_id: engagementId,
+      p_rating: rating,
+      p_text: text.trim()
+    });
+    if (error) throw error;
+    if (!Array.isArray(data) || data.length !== 1) {
+      throw new Error('Supabase returned an invalid submitted project review.');
+    }
+    return projectReviewRecord(data[0]);
   }
 
   function safeFileName(value) {
@@ -659,14 +824,21 @@
     setFavorite,
     clearFavorites,
     loadNotificationReads,
+    loadUnreadNotificationCount,
     markNotificationsRead,
     loadNotificationPreferences,
     saveNotificationPreferences,
     loadOwnedProjects,
+    loadOwnedProjectMetrics,
     saveOwnedProject,
     deleteOwnedProject,
     loadProjectComments,
     recordProjectView,
-    addProjectComment
+    addProjectComment,
+    loadProfileReviews,
+    loadProjectEngagement,
+    confirmProjectCompletion,
+    loadMyProjectReview,
+    submitProjectReview
   };
 })();

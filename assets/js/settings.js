@@ -19,33 +19,6 @@
 
   // Load profile from localStorage
   function getProfile() {
-    const defaults = {
-      displayName: isDeveloper ? 'Rizky Aditya' : 'Client User',
-      username: isDeveloper ? 'rizkyaditya' : 'clientbiz',
-      email: isDeveloper ? 'rizky.aditya@example.com' : 'client@bistrobiz.com',
-      city: isDeveloper ? 'Medan' : 'Jakarta',
-      country: 'Indonesia',
-      bio: isDeveloper ? 'Business websites and POS systems for Indonesian SMEs. 5 years shipping Laravel + React.' : 'Looking for high quality developers to build restaurant and commerce web apps.',
-      whatsapp: '6281234567890',
-      whatsappConnected: true,
-      googleConnected: false,
-      specialty: isDeveloper ? ['Full-stack'] : [],
-      skills: isDeveloper
-        ? ['React', 'Next.js', 'Laravel', 'Supabase', 'Figma', 'Tailwind CSS']
-        : ['Small business', 'Food & Beverage', 'E-Commerce'],
-      experiences: isDeveloper
-        ? [
-            { title: 'Independent Developer', company: 'Freelance', period: '2022 – Present', link: '', files: [] },
-            { title: 'Web Developer', company: 'Digital projects', period: '2020 – 2022', link: '', files: [] }
-          ]
-        : [{ title: 'Business Owner', company: 'PT Ombak Bistro Mandiri', period: 'Present', link: '', files: [] }],
-      availability: 'Open for hiring',
-      hourlyRate: 'Rp 150.000',
-      minProjectPrice: 'Rp 3.500.000',
-      companyName: 'PT Ombak Bistro Mandiri',
-      industry: 'Food & Beverage',
-    };
-    let shouldPersistDefaults = false;
     try {
       if (typeof localStorage !== 'undefined') {
         const data = localStorage.getItem(storageKey);
@@ -53,22 +26,12 @@
           const parsed = JSON.parse(data);
           if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) return parsed;
           console.warn('Stored profile data is not a valid profile object.');
-          return defaults;
         }
-        shouldPersistDefaults = true;
       }
     } catch (e) {
       console.warn('Failed to load profile', e);
-      return defaults;
     }
-    if (shouldPersistDefaults) {
-      try {
-        localStorage.setItem(storageKey, JSON.stringify(defaults));
-      } catch (error) {
-        console.warn('Unable to persist the initial profile data.', error);
-      }
-    }
-    return defaults;
+    return {};
   }
 
   let profileData = getProfile();
@@ -298,27 +261,15 @@
       const el = document.getElementById(id);
       if (el && val !== undefined) el.value = val;
     };
-    const defaultSkills = isDeveloper
-      ? ['React', 'Next.js', 'Laravel', 'Supabase', 'Figma', 'Tailwind CSS']
-      : ['Small business', 'Food & Beverage', 'E-Commerce'];
-    const defaultExperiences = isDeveloper
-      ? [
-          { title: 'Independent Developer', company: 'Freelance', period: '2022 – Present', link: '', files: [] },
-          { title: 'Web Developer', company: 'Digital projects', period: '2020 – 2022', link: '', files: [] }
-        ]
-      : [{ title: 'Business Owner', company: profileData.companyName || 'Independent', period: 'Present', link: '', files: [] }];
-
     setVal('settingsDisplayName', profileData.displayName);
-    setVal('settingsUsername', profileData.username || 'user');
-    setVal('settingsEmail', profileData.email || 'user@example.com');
-    setVal('settingsCity', profileData.city || 'Medan');
+    setVal('settingsUsername', profileData.username || '');
+    setVal('settingsEmail', profileData.email || '');
+    setVal('settingsCity', profileData.city || '');
     setVal('settingsBio', profileData.bio || '');
     setVal('settingsWhatsapp', profileData.whatsapp || '');
-    profileSkills = normalizeSkills(profileData.skills, defaultSkills);
+    profileSkills = normalizeSkills(profileData.skills, []);
     renderSkillTags();
-    profileSpecialties = normalizeSpecialties(profileData.specialty === undefined && isDeveloper
-      ? ['Full-stack']
-      : profileData.specialty);
+    profileSpecialties = normalizeSpecialties(profileData.specialty);
     profileSpecialtyOther = typeof profileData.specialtyOther === 'string' ? profileData.specialtyOther : '';
     if (profileSpecialtyOther && !profileSpecialties.some(item => item.toLowerCase() === 'other')) {
       profileSpecialties.push('Other');
@@ -329,7 +280,7 @@
     renderSpecialties();
     const savedExperiences = Array.isArray(profileData.experiences)
       ? profileData.experiences
-      : defaultExperiences;
+      : [];
     profileData.experiences = savedExperiences;
     experienceDraft = savedExperiences
       .map((item, index) => ({ item, index }))
@@ -348,15 +299,15 @@
     renderExperienceEntries();
 
     if (isDeveloper) {
-      setVal('settingsHourlyRate', formatRupiah(profileData.hourlyRate || '150000'));
-      setVal('settingsMinProject', formatRupiah(profileData.minProjectPrice || '3500000'));
-      setVal('settingsAvailability', profileData.availability || 'Open for hiring');
-      setVal('settingsBankName', profileData.bankName || 'BCA');
+      setVal('settingsHourlyRate', formatRupiah(profileData.hourlyRate || ''));
+      setVal('settingsMinProject', formatRupiah(profileData.minProjectPrice || ''));
+      setVal('settingsAvailability', profileData.availability || '');
+      setVal('settingsBankName', profileData.bankName || '');
       setVal('settingsBankAccount', profileData.accountNumber || '');
       setVal('settingsAccountHolder', profileData.accountHolder || '');
     } else {
-      setVal('settingsCompanyName', profileData.companyName || 'Ombak Bistro');
-      setVal('settingsIndustry', profileData.industry || 'Food & Beverage');
+      setVal('settingsCompanyName', profileData.companyName || '');
+      setVal('settingsIndustry', profileData.industry || '');
       setVal('settingsNpwp', profileData.npwp || '');
     }
 
@@ -366,8 +317,8 @@
   function updateAvatarPreview() {
     const name = typeof profileData.displayName === 'string' && profileData.displayName.trim()
       ? profileData.displayName.trim()
-      : (isDeveloper ? 'Rizky Aditya' : 'Client');
-    const initials = name.trim().split(/\s+/).filter(Boolean).slice(0, 2).map(p => p[0]).join('').toUpperCase() || 'RA';
+      : (isDeveloper ? 'Developer' : 'Client');
+    const initials = name.trim().split(/\s+/).filter(Boolean).slice(0, 2).map(p => p[0]).join('').toUpperCase() || 'DM';
 
     setAvatar(userAvatarEl, profileData.avatar, initials);
     if (topUserNameEl) topUserNameEl.textContent = name;
@@ -1523,32 +1474,12 @@
   // Setup mode links in topbar / sidebar
   function setupWorkspaceLinks() {
     document.body.classList.toggle('client-shell-page', !isDeveloper);
+    window.DEVMATCH_SIDEBAR_NAVIGATION?.setWorkspace(isDeveloper ? 'developer' : 'client');
     if (!isDeveloper) {
-      const updateNavLink = (label, href, replacementLabel = label) => {
-        const link = [...document.querySelectorAll('.side-nav a')]
-          .find(item => item.textContent.trim().startsWith(label));
-        if (!link) return;
-
-        link.href = href;
-        const textNode = [...link.childNodes]
-          .find(node => node.nodeType === Node.TEXT_NODE && node.textContent.trim());
-        if (textNode) textNode.textContent = ` ${replacementLabel}`;
-      };
-
       const brand = document.querySelector('.topbar .brand');
       if (brand) brand.href = 'devmatch-client-dashboard.html';
       const userLink = document.querySelector('.topbar .user-menu');
       if (userLink) userLink.href = 'devmatch-my-profile.html?role=client';
-
-      updateNavLink('Overview', 'devmatch-client-dashboard.html#home', 'Home');
-      updateNavLink('Messages', 'devmatch-chat.html?role=client');
-      updateNavLink('My Projects', 'devmatch-client-dashboard.html#requests', 'My Requests');
-      updateNavLink('Find Projects', 'devmatch-discover-projects.html', 'Discover Projects');
-      updateNavLink('Find Clients', 'devmatch-find-developers.html', 'Developers');
-      updateNavLink('Favorites', 'devmatch-favorites.html?role=client');
-      updateNavLink('Notifications', 'devmatch-notifications.html');
-      updateNavLink('Profile', 'devmatch-my-profile.html?role=client');
-      updateNavLink('Settings', 'devmatch-settings.html?role=client');
 
       const notificationsUrl = 'devmatch-notifications.html';
       document.querySelectorAll('.notification-button, .client-icon-button').forEach(link => {

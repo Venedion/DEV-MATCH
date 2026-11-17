@@ -8,26 +8,17 @@ document.getElementById('topUserName').textContent=displayName;
 document.getElementById('userAvatar').textContent=nameParts.slice(0,2).map(part=>part[0]).join('').toUpperCase()||'DM';
 
 const storageKey='devmatch-dashboard-projects';
-const overridesKey='devmatch-my-projects-overrides';
-const removedKey='devmatch-my-projects-removed';
 const unsavedProjectDraftKey='devmatch-my-projects-unsaved-draft';
 const unsavedProjectDraftId='new-project';
 let unsavedProjectDraftDatabasePromise=null;
-const seedProjects=[
-  {id:'sample-restaurant',title:'Restaurant Website Development',type:'Website',category:'Company Profile',price:'Rp 3.500.000',priceType:'Starting from',status:'published',views:245,favorites:32,comments:8,art:'food',updated:12},
-  {id:'sample-pos',title:'Kasir Kopi POS',type:'Web App',category:'POS',price:'Rp 6.000.000',priceType:'Fixed price',status:'published',views:1920,favorites:128,comments:21,art:'dashboard',updated:11},
-  {id:'sample-booking',title:'Klinik Booking App',type:'Android / iOS',category:'Booking',price:'Rp 3jt — Rp 7jt',priceType:'Custom quote',status:'published',views:1310,favorites:86,comments:14,art:'booking',updated:10},
-  {id:'sample-inventory',title:'Gudang Pro Inventory',type:'Desktop App',category:'Inventory',price:'Rp 7.500.000',priceType:'Negotiable',status:'published',views:712,favorites:38,comments:5,art:'inventory',updated:9},
-  {id:'sample-loyalty',title:'Poin Loyalty App',type:'Android / iOS',category:'Other',price:'Rp 9.000.000',priceType:'Starting from',status:'draft',views:null,favorites:null,comments:null,art:'loyalty',updated:8},
-  {id:'sample-northwind',title:'Northwind Company Profile',type:'Website',category:'Company Profile',price:'Rp 4.500.000',priceType:'Negotiable',status:'published',views:860,favorites:41,comments:6,art:'northwind',updated:7},
-  {id:'sample-analytics',title:'Analytics Dashboard Kit',type:'Web App',category:'Dashboard',price:'Rp 4.200.000',priceType:'Fixed price',status:'published',views:640,favorites:29,comments:4,art:'analytics',updated:6},
-  {id:'sample-store',title:'LUMA Online Store',type:'Website',category:'E-Commerce',price:'Rp 8.000.000',priceType:'Starting from',status:'published',views:590,favorites:35,comments:7,art:'store',updated:5},
-  {id:'sample-portfolio',title:'Personal Portfolio Website',type:'Website',category:'Portfolio',price:'Rp 2.500.000',priceType:'Starting from',status:'published',views:430,favorites:24,comments:3,art:'northwind',updated:4},
-  {id:'sample-appointment',title:'Doctor Appointment System',type:'Web App',category:'Booking',price:'Rp 5.500.000',priceType:'Negotiable',status:'published',views:380,favorites:18,comments:4,art:'booking',updated:3},
-  {id:'sample-catalog',title:'Product Catalog App',type:'Android / iOS',category:'E-Commerce',price:'Rp 6.500.000',priceType:'Fixed price',status:'draft',views:null,favorites:null,comments:null,art:'loyalty',updated:2},
-  {id:'sample-invoice',title:'Invoice Management Tool',type:'Web App',category:'Business',price:'Rp 3.800.000',priceType:'Starting from',status:'published',views:215,favorites:12,comments:2,art:'analytics',updated:1}
-];
 let savedProjects=JSON.parse(localStorage.getItem(storageKey)||'[]');
+const realSavedProjects=savedProjects.filter(project=>!String(project?.id||'').startsWith('sample-'));
+if(realSavedProjects.length!==savedProjects.length){
+  savedProjects=realSavedProjects;
+  localStorage.setItem(storageKey,JSON.stringify(savedProjects));
+}
+localStorage.removeItem('devmatch-my-projects-overrides');
+localStorage.removeItem('devmatch-my-projects-removed');
 let migratedSavedProjects=false;
 savedProjects.forEach((project,index)=>{
   if(!project.id){
@@ -36,23 +27,20 @@ savedProjects.forEach((project,index)=>{
   }
 });
 if(migratedSavedProjects)localStorage.setItem(storageKey,JSON.stringify(savedProjects));
-const overrides=JSON.parse(localStorage.getItem(overridesKey)||'{}');
-const removed=new Set(JSON.parse(localStorage.getItem(removedKey)||'[]'));
-let projects=[
-  ...seedProjects.filter(project=>!removed.has(project.id)).map(project=>({...project,...overrides[project.id]})),
-  ...savedProjects.map((project,index)=>({...project,id:project.id||`saved-${index}`,category:project.category||project.type,priceType:project.priceType||'Starting from',status:project.status||'published',views:Number(project.views)||0,favorites:Number(project.favorites)||0,comments:Number(project.comments)||0,art:project.art||'dashboard',updated:project.updated||0}))
-];
+let projects=savedProjects.map((project,index)=>({...project,id:project.id||`saved-${index}`,category:project.category||project.type,priceType:project.priceType||'Starting from',status:project.status||'published',views:null,favorites:null,comments:null,art:project.art||'dashboard',updated:project.updated||0}));
 const ownedProjectsReady=window.devMatchBackend.ready.then(user=>user
   ?window.devMatchBackend.loadOwnedProjects('portfolio',savedProjects)
   :null
-).then(records=>{
+).then(async records=>{
   if(!records)return false;
-  savedProjects=records;
+  const metrics=await window.devMatchBackend.loadOwnedProjectMetrics();
+  const metricsById=new Map(metrics.map(metric=>[metric.id,metric]));
+  savedProjects=records.map(project=>({
+    ...project,
+    ...(metricsById.get(project.id)||{views:0,favorites:0,comments:0})
+  }));
   localStorage.setItem(storageKey,JSON.stringify(savedProjects));
-  projects=[
-    ...seedProjects.filter(project=>!removed.has(project.id)).map(project=>({...project,...overrides[project.id]})),
-    ...savedProjects.map(project=>({...project,category:project.category||project.type,priceType:project.priceType||'Starting from',status:project.status||'published',views:Number(project.views)||0,favorites:Number(project.favorites)||0,comments:Number(project.comments)||0,art:project.art||'dashboard',updated:project.updated||0}))
-  ];
+  projects=savedProjects.map((project,index)=>({...project,id:project.id||`saved-${index}`,category:project.category||project.type,priceType:project.priceType||'Starting from',status:project.status||'published',views:Number(project.views)||0,favorites:Number(project.favorites)||0,comments:Number(project.comments)||0,art:project.art||'dashboard',updated:project.updated||0}));
   render();
   return true;
 }).catch(error=>{
@@ -188,10 +176,6 @@ function render(){
 }
 function storeSavedProjects(){
   localStorage.setItem(storageKey,JSON.stringify(savedProjects));
-}
-function persistSeedChange(project){
-  overrides[project.id]={...project};
-  localStorage.setItem(overridesKey,JSON.stringify(overrides));
 }
 const editor=document.getElementById('projectEditor');
 const projectsPage=document.getElementById('projectsList');
@@ -532,28 +516,6 @@ function hasCompletePrice(){
     ?Boolean(form.elements.priceMin.value.trim()&&form.elements.priceMax.value.trim())
     :Boolean(form.elements.price.value.trim());
 }
-function compressCoverImage(file){
-  return new Promise((resolve,reject)=>{
-    const image=new Image();
-    const objectUrl=URL.createObjectURL(file);
-    image.onload=()=>{
-      URL.revokeObjectURL(objectUrl);
-      const scale=Math.min(1,800/image.width,500/image.height);
-      const canvas=document.createElement('canvas');
-      canvas.width=Math.max(1,Math.round(image.width*scale));
-      canvas.height=Math.max(1,Math.round(image.height*scale));
-      const context=canvas.getContext('2d');
-      if(!context){reject(new Error('Could not prepare the project cover image.'));return}
-      context.drawImage(image,0,0,canvas.width,canvas.height);
-      resolve(canvas.toDataURL('image/jpeg',.76));
-    };
-    image.onerror=()=>{
-      URL.revokeObjectURL(objectUrl);
-      reject(new Error('Could not read the selected project cover image.'));
-    };
-    image.src=objectUrl;
-  });
-}
 function updateEditor(){
   const title=form.elements.title.value.trim();
   const description=form.elements.description.value.trim();
@@ -711,18 +673,7 @@ async function saveProject(status){
       return;
     }
   }
-  const chosenCover=selectedMedia.find(file=>file.type.startsWith('image/'));
-  let coverImage=existingCoverImage;
-  if(chosenCover&&editingId?.startsWith('sample-')){
-    try{
-      coverImage=await compressCoverImage(chosenCover);
-    }catch(error){
-      projectMessage.textContent=error.message;
-      document.getElementById('projectPreviewMode').hidden=true;
-      editor.hidden=false;
-      return;
-    }
-  }
+  const coverImage=existingCoverImage;
   const projectData={
     title:title||'Untitled project',
     description,
@@ -748,38 +699,33 @@ async function saveProject(status){
   if(editingId){
     const existing=projects.find(item=>item.id===editingId);
     if(existing){
-      if(editingId.startsWith('sample-')){
-        Object.assign(existing,projectData);
-        persistSeedChange(existing);
-      }else{
-        const savedIndex=savedProjects.findIndex(item=>item.id===editingId);
-        if(savedIndex>=0){
-          let updatedProject={...savedProjects[savedIndex],...projectData,id:editingId};
-          let uploaded=[];
-          try{
-            if(selectedMedia.length){
-              uploaded=await uploadSelectedMedia(editingId);
-              updatedProject.media=[...new Set([...(updatedProject.media||[]),...uploaded.map(item=>item.url)])];
-              const coverIndex=selectedMedia.findIndex(file=>file.type.startsWith('image/'));
-              if(coverIndex>=0)updatedProject.coverImage=uploaded[coverIndex].url;
-            }
-            await window.devMatchBackend.saveOwnedProject('portfolio',updatedProject);
-          }catch(error){
-            if(uploaded.length){
-              try{
-                await window.devMatchBackend.removeUploadedFiles('project-media',uploaded.map(item=>item.path));
-              }catch(cleanupError){
-                console.error('Unable to remove uploaded project media after a failed save.',cleanupError);
-              }
-            }
-            console.error('Unable to save your portfolio project to Supabase.',error);
-            projectMessage.textContent=error.message||'Unable to save this project. Check your connection and try again.';
-            return;
+      const savedIndex=savedProjects.findIndex(item=>item.id===editingId);
+      if(savedIndex>=0){
+        let updatedProject={...savedProjects[savedIndex],...projectData,id:editingId};
+        let uploaded=[];
+        try{
+          if(selectedMedia.length){
+            uploaded=await uploadSelectedMedia(editingId);
+            updatedProject.media=[...new Set([...(updatedProject.media||[]),...uploaded.map(item=>item.url)])];
+            const coverIndex=selectedMedia.findIndex(file=>file.type.startsWith('image/'));
+            if(coverIndex>=0)updatedProject.coverImage=uploaded[coverIndex].url;
           }
-          savedProjects[savedIndex]=updatedProject;
-          Object.assign(existing,projectData);
-          storeSavedProjects();
+          await window.devMatchBackend.saveOwnedProject('portfolio',updatedProject);
+        }catch(error){
+          if(uploaded.length){
+            try{
+              await window.devMatchBackend.removeUploadedFiles('project-media',uploaded.map(item=>item.path));
+            }catch(cleanupError){
+              console.error('Unable to remove uploaded project media after a failed save.',cleanupError);
+            }
+          }
+          console.error('Unable to save your portfolio project to Supabase.',error);
+          projectMessage.textContent=error.message||'Unable to save this project. Check your connection and try again.';
+          return;
         }
+        savedProjects[savedIndex]=updatedProject;
+        Object.assign(existing,projectData);
+        storeSavedProjects();
       }
     }
   }else{
@@ -902,29 +848,24 @@ rows.addEventListener('click',async event=>{
   if(button.dataset.action==='edit')showEditor(project);
   if(button.dataset.action==='delete'){
     if(!window.confirm(`Delete "${project.title}" from your projects?`))return;
-    if(project.id.startsWith('sample-')){
-      removed.add(project.id);
-      localStorage.setItem(removedKey,JSON.stringify([...removed]));
-    }else{
-      if(!await ownedProjectsReady)return;
-      try{
-        await window.devMatchBackend.deleteOwnedProject('portfolio',project.id);
-      }catch(error){
-        console.error('Unable to delete your portfolio project from Supabase.',error);
-        window.alert('Unable to delete this project. Check your connection and try again.');
-        return;
-      }
-      const mediaUrls=[project.coverImage,...(Array.isArray(project.media)?project.media:[])]
-        .filter(value=>typeof value==='string');
-      try{
-        await window.devMatchBackend.removePortfolioMedia(mediaUrls);
-      }catch(error){
-        console.error('Project was deleted, but its Storage media could not be removed.',error);
-        window.alert('The project was deleted, but some media files could not be removed from Storage.');
-      }
-      const index=savedProjects.findIndex(item=>item.id===project.id);
-      if(index>=0){savedProjects.splice(index,1);storeSavedProjects()}
+    if(!await ownedProjectsReady)return;
+    try{
+      await window.devMatchBackend.deleteOwnedProject('portfolio',project.id);
+    }catch(error){
+      console.error('Unable to delete your portfolio project from Supabase.',error);
+      window.alert('Unable to delete this project. Check your connection and try again.');
+      return;
     }
+    const mediaUrls=[project.coverImage,...(Array.isArray(project.media)?project.media:[])]
+      .filter(value=>typeof value==='string');
+    try{
+      await window.devMatchBackend.removePortfolioMedia(mediaUrls);
+    }catch(error){
+      console.error('Project was deleted, but its Storage media could not be removed.',error);
+      window.alert('The project was deleted, but some media files could not be removed from Storage.');
+    }
+    const index=savedProjects.findIndex(item=>item.id===project.id);
+    if(index>=0){savedProjects.splice(index,1);storeSavedProjects()}
     projects=projects.filter(item=>item.id!==project.id);
     render();
   }

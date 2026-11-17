@@ -12,6 +12,7 @@
   const filtersRoot=document.getElementById('portfolioFilters');
   const grid=document.getElementById('portfolioGrid');
   const empty=document.getElementById('portfolioEmpty');
+  const reviewsPanel=document.getElementById('publicReviewsPanel');
   const commentsPanel=document.getElementById('commentsPanel');
   const sortSelect=document.getElementById('sortProjects');
   function showError(message){
@@ -45,6 +46,13 @@
   }
   function renderComments(comments){
     commentsPanel.innerHTML=comments.length?comments.map(comment=>`<article class="review-item"><span class="review-avatar">${escapeHtml(comment.initials||'CL')}</span><div class="review-copy"><h3>${escapeHtml(comment.name||'DEV-MATCH member')}</h3><small>on ${escapeHtml(comment.project)}</small><p>${escapeHtml(comment.text)}</p></div></article>`).join(''):'<p class="empty-state">No comments yet.</p>';
+  }
+  function renderProfileReviews(reviews,loadFailed=false){
+    if(loadFailed){
+      reviewsPanel.innerHTML='<p class="empty-state">Reviews could not be loaded. Check your connection and try again.</p>';
+      return;
+    }
+    reviewsPanel.innerHTML=reviews.length?reviews.map(review=>`<article class="review-item"><span class="review-avatar">${escapeHtml(review.reviewerInitials||'CL')}</span><div class="review-copy"><h3>${escapeHtml(review.reviewerName)}</h3><small>${escapeHtml(review.projectTitle||'Completed project')}</small><p>${escapeHtml(review.text)}</p></div><span class="review-rating" aria-label="${review.rating} out of 5 stars">${'★'.repeat(review.rating)}</span></article>`).join(''):'<p class="empty-state">No reviews yet.</p>';
   }
   if(!requestedId){showError('Developer profile not found.');return;}
   status.hidden=false;status.textContent='Loading developer profile…';
@@ -98,6 +106,14 @@
       }
     }
     if(!person){showError('This developer profile is not available.');return;}
+    let profileReviews=[];
+    let reviewsLoadFailed=false;
+    try{
+      profileReviews=await window.devMatchBackend.loadProfileReviews(person.id);
+    }catch(error){
+      console.error('Unable to load public developer reviews from Supabase.',error);
+      reviewsLoadFailed=true;
+    }
     let rows=publicProfileProjects;
     if(!rows){
       const result=await window.devMatchBackend.client.from('projects')
@@ -128,8 +144,15 @@
     document.getElementById('developerLocationCard').textContent=location;
     document.getElementById('statProjects').textContent=String(projects.length);
     document.getElementById('statProjectFavorites').textContent='—';
-    document.getElementById('statDeveloperFavorites').textContent='—';
     document.getElementById('statViews').textContent='—';
+    const averageRating=profileReviews.length
+      ?profileReviews.reduce((sum,review)=>sum+review.rating,0)/profileReviews.length
+      :null;
+    document.getElementById('statRating').textContent=averageRating===null?'—':`★ ${averageRating.toFixed(1)}`;
+    document.getElementById('statReviewCount').textContent=reviewsLoadFailed
+      ?'unable to load reviews'
+      :profileReviews.length?`from ${profileReviews.length} reviews`:'no reviews yet';
+    renderProfileReviews(profileReviews,reviewsLoadFailed);
     document.getElementById('portfolioCount').textContent=String(projects.length);
     document.getElementById('contactDeveloper').href=user&&accountRole==='client'?`devmatch-chat.html?contact=${encodeURIComponent(person.id)}&role=client`:'devmatch-auth.html?mode=login';
     document.getElementById('sidebarContactDeveloper').href=document.getElementById('contactDeveloper').href;
@@ -154,9 +177,12 @@
     document.querySelector('.portfolio-tabs').addEventListener('click',async event=>{
       const button=event.target.closest('[data-tab]');if(!button)return;
       const showProjects=button.dataset.tab==='projects';
+      const showReviews=button.dataset.tab==='reviews';
       document.querySelectorAll('[data-tab]').forEach(tab=>{const selected=tab===button;tab.classList.toggle('active',selected);tab.setAttribute('aria-selected',String(selected));});
-      filtersRoot.hidden=!showProjects;grid.hidden=!showProjects;sortSelect.parentElement.hidden=!showProjects;commentsPanel.hidden=showProjects;empty.hidden=showProjects||projects.length>0;
-      if(!showProjects){
+      filtersRoot.hidden=!showProjects;grid.hidden=!showProjects;sortSelect.parentElement.hidden=!showProjects;
+      reviewsPanel.hidden=!showReviews;commentsPanel.hidden=showProjects||showReviews;
+      empty.hidden=!showProjects||projects.length>0;
+      if(button.dataset.tab==='comments'){
         commentsPanel.innerHTML='<p class="empty-state">Loading comments…</p>';
         try{
           const groups=await Promise.all(projects.map(async item=>(await window.devMatchBackend.loadProjectComments(item.id)).map(comment=>({...comment,project:item.title}))));

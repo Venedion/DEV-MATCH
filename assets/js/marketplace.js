@@ -374,31 +374,6 @@
     categoryButtons.forEach(button => button.setAttribute('aria-pressed', String(button.dataset.category === activeCategory)));
   }
 
-  function updateNotificationCount() {
-    const badge = document.getElementById('clientNotificationCount');
-    if (!badge) return;
-    try {
-      const readIds = new Set(JSON.parse(localStorage.getItem('devmatch-client-notifications-read') || '[]'));
-      const unreadCount = ['jessica-comment', 'rizky-message'].filter(id => !readIds.has(id)).length;
-      badge.textContent = String(unreadCount);
-      badge.hidden = unreadCount === 0;
-    } catch (error) {
-      console.warn('Could not read DEV-MATCH notification state from localStorage.', error);
-    }
-  }
-
-  window.devMatchBackend.ready.then(user => user
-    ? window.devMatchBackend.loadNotificationReads()
-    : null
-  ).then(readIds => {
-    if (!readIds) return;
-    localStorage.setItem('devmatch-client-notifications-read', JSON.stringify(readIds));
-    updateNotificationCount();
-  }).catch(error => {
-    console.error('Unable to load notification status from Supabase.', error);
-    window.alert('Unable to load notification status. Check your connection and try again.');
-  });
-
   function updateFavoriteCount() {
     if (window.DEVMATCH_NAV_BADGES) {
       window.DEVMATCH_NAV_BADGES.updateFavorites();
@@ -420,7 +395,6 @@
       ? `Showing ${filtered.length} ${filtered.length === 1 ? 'project' : 'projects'}`
       : `Showing ${filtered.length} ${filtered.length === 1 ? 'project' : 'projects'}`;
     updateFavoriteCount();
-    updateNotificationCount();
     const remaining = Math.max(0, filtered.length - shown.length);
     remainingCount.textContent = remaining
       ? isRequestsPage

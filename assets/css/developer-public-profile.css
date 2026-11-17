@@ -45,6 +45,7 @@
 .public-project-favorite[aria-pressed=true]{color:#b4233b}
 .public-project-favorite[aria-pressed=true] svg{fill:#b4233b}
 .comments-panel{padding-top:5px}
+#publicReviewsPanel[hidden],#commentsPanel[hidden]{display:none}
 .comments-panel .empty-state{grid-column:auto}
 .comments-panel .review-item:last-child{border-bottom:0}
 .profile-page .contact-card .contact-message{font-size:13px}

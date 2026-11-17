@@ -8,14 +8,14 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=optional" rel="stylesheet">
   <link rel="stylesheet" href="assets/css/dashboard.css?v=20261030-fixed-profile-width">
-  <link rel="stylesheet" href="assets/css/chat.css?v=20261112-encrypted-attachments">
+  <link rel="stylesheet" href="assets/css/chat.css?v=20261117-project-reviews">
   <link rel="stylesheet" href="assets/css/client-shell.css?v=20261030-header-size-match">
   <link rel="stylesheet" href="assets/css/mode-switch-animation.css?v=20261030-client-mode-route">
   <link rel="stylesheet" href="assets/css/mobile-navigation.css?v=20261031-desktop-dropdown-aligned">
   <script src="assets/js/mode-switch-state.js?v=20261030-client-mode-indicator"></script>
   <script src="assets/js/i18n.js?v=20261102-profile-details"></script>
 <script src="assets/vendor/supabase-2.119.0.js"></script>
-<script src="assets/js/backend.js?v=20261112-storage-media"></script>
+<script src="assets/js/backend.js?v=20261117-project-reviews"></script>
 </head>
 <body class="chat-body">
   <!-- Topbar -->
@@ -53,51 +53,14 @@
       <svg viewBox="0 0 24 24"><path d="M12 5v14m-7-7h14"/></svg>Add Project
     </a>
     <span class="nav-label">Menu</span>
-    <nav class="side-nav" aria-label="Dashboard navigation">
-      <a class="nav-item" href="devmatch-dashboard.html">
-        <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
-        Overview
-      </a>
-      <a class="nav-item active" href="devmatch-chat.html" aria-current="page">
-        <svg viewBox="0 0 24 24"><path d="M21 11.5a8.5 8.5 0 0 1-8.5 8.5H4l1.5-4A8.5 8.5 0 1 1 21 11.5z"/></svg>
-        Messages
-        <span class="nav-count chat-unread-total-badge" style="background:#e7f6ed;color:#15934f;" hidden>0</span>
-      </a>
-      <a class="nav-item" href="devmatch-my-projects.html">
-        <svg viewBox="0 0 24 24"><path d="M3 6a2 2 0 0 1 2-2h5l2 2h7a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
-        My Projects
-      </a>
-      <a class="nav-item" href="devmatch-find-projects.html">
-        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="m15.5 8.5-2 5-5 2 2-5z"/></svg>
-        Find Projects
-      </a>
-      <a class="nav-item" href="devmatch-find-clients.html">
-        <svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"/><path d="M3 20a6 6 0 0 1 12 0m2-8a3 3 0 1 0 0-6m1 8a5 5 0 0 1 3 5"/></svg>
-        Find Clients
-      </a>
-      <a class="nav-item" href="devmatch-favorites.html">
-        <svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
-        Favorites
-      </a>
-      <a class="nav-item" href="devmatch-developer-notifications.html">
-        <svg viewBox="0 0 24 24"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9m-8 13h4"/></svg>
-        Notifications
-        <span class="nav-count" id="developerNotificationCount">2</span>
-      </a>
+    <nav class="side-nav" aria-label="Dashboard navigation" data-shared-navigation="primary">
     </nav>
     <span class="nav-label account-label">Account</span>
-    <nav class="side-nav" aria-label="Account navigation">
-      <a class="nav-item" href="devmatch-my-profile.html?role=dev">
-        <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>
-        Profile
-      </a>
-      <a class="nav-item" href="devmatch-settings.html">
-        <svg viewBox="0 0 24 24"><path d="M4 21v-7m0-4V3m8 18v-9m0-4V3m8 18v-5m0-4V3M1 14h6m2-6h6m2 8h6"/></svg>
-        Settings
-      </a>
+    <nav class="side-nav" aria-label="Account navigation" data-shared-navigation="account">
     </nav>
     <div class="sidebar-foot"><span class="online-dot"></span>Secure chat</div>
   </aside>
+  <script src="assets/js/sidebar-navigation.js?v=20261117-shared-sidebar"></script>
 
   <!-- Chat Viewport -->
   <div class="chat-viewport" id="chatViewport">
@@ -188,6 +151,30 @@
         </div>
         <a class="chat-project-banner-link" id="viewProjectLink" href="#" target="_blank">View details</a>
       </aside>
+      <section class="chat-engagement-card" id="projectEngagementPanel" aria-labelledby="engagementHeading" hidden>
+        <div class="chat-engagement-header">
+          <div>
+            <h2 id="engagementHeading">Project completion</h2>
+            <p id="engagementStatus" role="status" aria-live="polite">Both participants must confirm completion before reviews are available.</p>
+          </div>
+          <button class="chat-engagement-confirm" id="confirmProjectCompletion" type="button">Confirm project completion</button>
+        </div>
+        <form class="chat-review-form" id="projectReviewForm" hidden>
+          <label for="projectReviewRating">Your rating</label>
+          <select id="projectReviewRating" required>
+            <option value="">Choose a rating</option>
+            <option value="5">5 — Excellent</option>
+            <option value="4">4 — Good</option>
+            <option value="3">3 — Okay</option>
+            <option value="2">2 — Poor</option>
+            <option value="1">1 — Very poor</option>
+          </select>
+          <label for="projectReviewText">Review (optional)</label>
+          <textarea id="projectReviewText" maxlength="2000" rows="3" placeholder="Share a few details about working together."></textarea>
+          <button class="chat-engagement-submit" type="submit">Submit review</button>
+        </form>
+        <p class="chat-review-message" id="projectReviewMessage" role="status" aria-live="polite" hidden></p>
+      </section>
 
       <!-- Messages Thread -->
       <section class="chat-thread-container" id="chatThreadContainer" aria-label="Message history">
@@ -239,6 +226,7 @@
           <div class="chat-detail-avatar" id="detailAvatar"></div>
           <h4 class="chat-detail-name" id="detailName"></h4>
           <p class="chat-detail-sub" id="detailRole"></p>
+          <a class="chat-detail-profile-link" id="detailProfileLink" href="#" hidden>View profile and reviews</a>
         </div>
 
         <!-- Inquired Project Card -->
@@ -278,7 +266,7 @@
   </div>
 
   <script src="assets/js/projects-data.js"></script>
-  <script src="assets/js/chat.js?v=20261112-encrypted-attachments"></script>
-  <script src="assets/js/nav-behavior.js?v=20261112-secure-chat-badge"></script>
+  <script src="assets/js/chat.js?v=20261117-project-reviews"></script>
+  <script src="assets/js/nav-behavior.js?v=20261116-role-aware-navigation"></script>
 </body>
 </html>

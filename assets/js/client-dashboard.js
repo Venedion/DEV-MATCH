@@ -413,13 +413,18 @@ function showClientView(view){
   document.getElementById('requests').hidden=!viewingRequests;
   document.getElementById('requestDetailPage').hidden=!viewingDetail;
   document.getElementById('requestComposer').hidden=!composingRequest;
-  document.querySelectorAll('.client-nav-item').forEach(item=>item.classList.toggle('active',discovering
-    ?item.hasAttribute('data-discover-nav')
+  document.querySelectorAll('.client-nav-item').forEach(item=>{
+    const active=discovering
+    ?item.dataset.navKey==='discover'||item.hasAttribute('data-discover-nav')
     :composingRequest
       ?item.hasAttribute('data-request-nav')
       :viewingRequests||viewingDetail
         ?item.hasAttribute('data-request-nav')
-        :item.getAttribute('href')==='#home'));
+        :item.getAttribute('href')==='#home';
+    item.classList.toggle('active',active);
+    if(active)item.setAttribute('aria-current','page');
+    else item.removeAttribute('aria-current');
+  });
   if(discovering)document.querySelector('[data-discover-nav]').focus({preventScroll:true});
 }
 document.querySelectorAll('[data-discover-nav]').forEach(link=>link.addEventListener('click',event=>{
@@ -439,7 +444,12 @@ document.querySelectorAll('.client-nav-item[data-request-nav]').forEach(link=>li
 }));
 document.querySelectorAll('.client-nav-item[data-favorites-filter]').forEach(link=>link.addEventListener('click',()=>{
   showClientView('home');
-  document.querySelectorAll('.client-nav-item').forEach(item=>item.classList.toggle('active',item===link));
+  document.querySelectorAll('.client-nav-item').forEach(item=>{
+    const active=item===link;
+    item.classList.toggle('active',active);
+    if(active)item.setAttribute('aria-current','page');
+    else item.removeAttribute('aria-current');
+  });
   if(link.hasAttribute('data-favorites-filter')){
     activeQuery='';
     activeCategory='All';
