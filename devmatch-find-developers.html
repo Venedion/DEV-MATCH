@@ -10,7 +10,7 @@
   <link rel="stylesheet" href="assets/css/dashboard.css?v=20261030-fixed-profile-width">
   <link rel="stylesheet" href="assets/css/client-shell.css?v=20261030-header-size-match">
   <link rel="stylesheet" href="assets/css/mode-switch-animation.css?v=20261030-active-indicator">
-  <link rel="stylesheet" href="assets/css/find-developers.css?v=20261030-scroll-area">
+  <link rel="stylesheet" href="assets/css/find-developers.css?v=20261118-developer-pagination">
   <link rel="stylesheet" href="assets/css/mobile-navigation.css?v=20261118-workspaces">
   <script src="assets/js/i18n.js?v=20261102-profile-details"></script>
 <script src="assets/vendor/supabase-2.119.0.js"></script>
@@ -72,13 +72,13 @@
         <p>Browse independent developers by specialization, status and popularity.</p>
       </div>
 
-      <!-- Tab Toggle (Projects 128 | Developers 64) -->
-      <div class="devs-tabs-toggle" role="tablist" aria-label="Browse options">
+      <!-- Tab Toggle with live project and developer counts -->
+      <div class="devs-tabs-toggle developers-active" role="tablist" aria-label="Browse options">
         <a class="devs-tab-btn" href="devmatch-discover-projects.html">
-          Projects <span class="devs-tab-count">128</span>
+          Projects <span class="devs-tab-count" id="projectTabCount">0</span>
         </a>
         <button class="devs-tab-btn active" type="button" aria-selected="true">
-          Developers <span class="devs-tab-count">64</span>
+          Developers <span class="devs-tab-count" id="developerTabCount">0</span>
         </button>
       </div>
     </header>
@@ -171,7 +171,7 @@
 
     <!-- Developers Grid -->
     <section class="devs-grid" id="devsGrid" aria-label="Developer list">
-      <!-- Cards rendered dynamically by assets/js/find-developers.js?v=20261118-workspaces -->
+      <!-- Cards rendered dynamically by assets/js/find-developers.js?v=20261118-developer-pagination -->
     </section>
 
     <!-- Empty State -->
@@ -188,19 +188,7 @@
     </div>
 
     <!-- Pagination -->
-    <nav class="devs-pagination" aria-label="Developers pagination">
-      <button class="page-btn nav-arrow" type="button" aria-label="Previous page">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m15 18-6-6 6-6"/></svg>
-      </button>
-      <button class="page-btn active" type="button" data-page="1">1</button>
-      <button class="page-btn" type="button" data-page="2">2</button>
-      <button class="page-btn" type="button" data-page="3">3</button>
-      <span class="page-ellipsis">...</span>
-      <button class="page-btn" type="button" data-page="12">12</button>
-      <button class="page-btn nav-arrow" type="button" aria-label="Next page">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m9 18 6-6-6-6"/></svg>
-      </button>
-    </nav>
+    <nav class="devs-pagination" aria-label="Developers pagination" hidden></nav>
   </main>
 
   <!-- Toast Notification -->
@@ -213,7 +201,7 @@
   </a>
 
   <!-- Scripts -->
-  <script src="assets/js/find-developers.js?v=20261118-workspaces"></script>
+  <script src="assets/js/find-developers.js?v=20261118-developer-pagination"></script>
   <script src="assets/js/nav-behavior.js?v=20261118-workspaces"></script>
 </body>
 </html>

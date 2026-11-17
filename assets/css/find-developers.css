@@ -47,7 +47,7 @@
   font-weight: 400;
 }
 
-/* Tabs Toggle (Projects 128 | Developers 64) */
+/* Tabs Toggle (Projects | Developers) */
 .devs-tabs-toggle {
   display: inline-flex;
   align-items: center;
@@ -72,20 +72,17 @@
   border: 0;
   background: transparent;
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: color 0.15s ease;
   white-space: nowrap;
-}
-
-.devs-tab-btn:hover {
-  color: var(--fd-ink);
-  background: rgba(255, 255, 255, 0.5);
+  position: relative;
+  z-index: 1;
 }
 
 .devs-tab-btn.active {
-  background: #ffffff;
+  background: transparent;
   color: var(--fd-ink);
   font-weight: 700;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+  box-shadow: none;
 }
 
 .devs-tab-count {
@@ -689,6 +686,10 @@
   margin-bottom: 20px;
 }
 
+.devs-pagination[hidden] {
+  display: none;
+}
+
 .page-btn {
   min-width: 34px;
   height: 34px;
@@ -854,5 +855,74 @@
   }
   .devs-grid {
     grid-template-columns: 1fr;
+  }
+}
+
+.devs-tabs-toggle {
+  position: relative;
+  isolation: isolate;
+  width: 256px;
+}
+
+.devs-tabs-toggle > .devs-tab-btn:first-child {
+  width: 122px;
+  flex: none;
+  justify-content: center;
+}
+
+.devs-tabs-toggle > .devs-tab-btn:last-child {
+  width: 122px;
+  flex: none;
+  justify-content: center;
+}
+
+.devs-tabs-toggle::before {
+  position: absolute;
+  z-index: 0;
+  top: 5px;
+  left: 5px;
+  width: calc((100% - 10px) / 2);
+  height: calc(100% - 10px);
+  border-radius: 99px;
+  background: #ffffff;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+  content: "";
+}
+
+.devs-tabs-toggle.projects-active::before {
+  transform: translateX(0);
+  animation: devs-tab-to-projects 0.32s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.devs-tabs-toggle.developers-active::before {
+  transform: translateX(calc(100% + 2px));
+  animation: devs-tab-to-developers 0.32s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes devs-tab-to-projects {
+  from { transform: translateX(calc(100% + 2px)); }
+  to { transform: translateX(0); }
+}
+
+@keyframes devs-tab-to-developers {
+  from { transform: translateX(0); }
+  to { transform: translateX(calc(100% + 2px)); }
+}
+
+@media (max-width: 640px) {
+  .devs-tabs-toggle {
+    width: 100%;
+  }
+
+  .devs-tabs-toggle > .devs-tab-btn:first-child,
+  .devs-tabs-toggle > .devs-tab-btn:last-child {
+    width: auto;
+    flex: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .devs-tabs-toggle::before {
+    animation: none !important;
   }
 }

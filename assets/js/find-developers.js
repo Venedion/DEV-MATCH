@@ -9,6 +9,7 @@
 
   // Distinct favorite key for Client Mode Developer bookmarks
   const FAVORITES_KEY = 'devmatch-client-dev-favorites';
+  const DEVELOPERS_PER_PAGE = 9;
 
   let DEVELOPERS_DATA = [];
 
@@ -19,6 +20,7 @@
   let selectedGender = 'all';
   let selectedStatus = 'all';
   let currentSort = 'projects';
+  let currentPage = 1;
   let directoryLoaded = false;
   let favoriteIds = loadFavorites();
 
@@ -30,11 +32,14 @@
   const devsGrid = document.getElementById('devsGrid');
   const emptyState = document.getElementById('devsEmptyState');
   const countHeading = document.getElementById('devsCountHeading');
+  const projectTabCount = document.getElementById('projectTabCount');
+  const developerTabCount = document.getElementById('developerTabCount');
   const sortLabel = document.getElementById('devsSortLabel');
   const specDropdown = document.getElementById('specDropdown');
   const genderDropdown = document.getElementById('genderDropdown');
   const statusDropdown = document.getElementById('statusDropdown');
   const sortBtns = document.querySelectorAll('.sort-btn');
+  const pagination = document.querySelector('.devs-pagination');
   const toastEl = document.getElementById('fdToast');
   const sidebarFavBadge = document.getElementById('favoriteCount');
   const favoriteStateReady = window.devMatchBackend.ready.then(user => user
@@ -135,10 +140,50 @@
       : a.name.localeCompare(b.name));
   }
 
+  function renderPagination(pageCount) {
+    if (!pagination) return;
+
+    if (pageCount <= 1) {
+      pagination.hidden = true;
+      pagination.innerHTML = '';
+      return;
+    }
+
+    pagination.hidden = false;
+    let pageNumbers;
+    if (pageCount <= 5) {
+      pageNumbers = Array.from({length: pageCount}, (_, index) => index + 1);
+    } else if (currentPage <= 3) {
+      pageNumbers = [1, 2, 3, '…', pageCount];
+    } else if (currentPage >= pageCount - 2) {
+      pageNumbers = [1, '…', pageCount - 2, pageCount - 1, pageCount];
+    } else {
+      pageNumbers = [1, '…', currentPage - 1, currentPage, currentPage + 1, '…', pageCount];
+    }
+
+    const buttons = [
+      `<button class="page-btn nav-arrow" type="button" data-page="${currentPage - 1}" aria-label="Previous page" ${currentPage === 1 ? 'disabled' : ''}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m15 18-6-6 6-6"/></svg></button>`
+    ];
+    pageNumbers.forEach(page => {
+      if (page === '…') {
+        buttons.push('<span class="page-ellipsis" aria-hidden="true">…</span>');
+      } else {
+        buttons.push(`<button class="page-btn${page === currentPage ? ' active' : ''}" type="button" data-page="${page}" aria-label="Page ${page}" aria-current="${page === currentPage ? 'page' : 'false'}">${page}</button>`);
+      }
+    });
+    buttons.push(
+      `<button class="page-btn nav-arrow" type="button" data-page="${currentPage + 1}" aria-label="Next page" ${currentPage === pageCount ? 'disabled' : ''}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m9 18 6-6-6-6"/></svg></button>`
+    );
+    pagination.innerHTML = buttons.join('');
+  }
+
   // Render Developer Cards
   function renderDevelopers() {
     if(!directoryLoaded)return;
     const devs = getFilteredDevelopers();
+    const pageCount = Math.ceil(devs.length / DEVELOPERS_PER_PAGE);
+    currentPage = Math.min(currentPage, Math.max(pageCount, 1));
+    const visibleDevs = devs.slice((currentPage - 1) * DEVELOPERS_PER_PAGE, currentPage * DEVELOPERS_PER_PAGE);
 
     if (devs.length === 0) {
       devsGrid.innerHTML = '';
@@ -147,7 +192,7 @@
     } else {
       emptyState.classList.remove('show');
       emptyState.hidden = true;
-      devsGrid.innerHTML = devs.map(dev => {
+      devsGrid.innerHTML = visibleDevs.map(dev => {
         const isFav = favoriteIds.includes(dev.id);
         const profileUrl = new URL(dev.profileUrl, location.href);
 
@@ -210,6 +255,7 @@
         `;
       }).join('');
     }
+    renderPagination(pageCount);
 
     // Update count heading
     if (countHeading) {
@@ -417,14 +463,17 @@
       });
     }
 
-    // Pagination buttons click
-    document.querySelectorAll('.page-btn[data-page]').forEach(btn => {
-      btn.addEventListener('click', () => {
-        document.querySelectorAll('.page-btn[data-page]').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
+    if (pagination) {
+      pagination.addEventListener('click', event => {
+        const button = event.target.closest('.page-btn[data-page]');
+        if (!button || button.disabled) return;
+        const page = Number(button.dataset.page);
+        if (!Number.isInteger(page) || page < 1) return;
+        currentPage = page;
+        renderDevelopers();
         window.scrollTo({ top: 0, behavior: 'smooth' });
       });
-    });
+    }
 
     // Reset filter
     const btnReset = document.getElementById('btnResetDevs');
@@ -472,10 +521,11 @@
       if (!user) throw new Error('Sign in with a client account to browse the developer directory.');
       const account = await window.devMatchBackend.loadProfile(user);
       if (account.account_role !== 'client') throw new Error('The developer directory is available in client mode.');
-      const {data: people, error} = await window.devMatchBackend.client.from('directory_people')
-        .select('id,display_name,username,account_role,profile_data,published_portfolio_count')
+      const {data: people, count: totalDevelopers, error} = await window.devMatchBackend.client.from('directory_people')
+        .select('id,display_name,username,account_role,profile_data,published_portfolio_count', {count:'exact'})
         .eq('account_role','dev');
       if (error) throw error;
+      developerTabCount.textContent = totalDevelopers === null ? '0' : String(totalDevelopers);
       DEVELOPERS_DATA = (people || []).map(person => {
         const profile=person.profile_data || {};
         const name=String(person.display_name || 'DEV-MATCH member');
@@ -501,6 +551,7 @@
         ? error.message : 'The developer directory could not be loaded. Check your connection and try again.';
       status.hidden = false;
       DEVELOPERS_DATA = [];
+      developerTabCount.textContent = '0';
       directoryLoaded=false;
       emptyState.classList.remove('show');
       emptyState.hidden=true;
@@ -508,8 +559,23 @@
     }
   }
 
+  async function loadProjectTabCount() {
+    try {
+      const {count, error} = await window.devMatchBackend.client.from('projects')
+        .select('id', {count:'exact',head:true})
+        .eq('project_kind','portfolio')
+        .eq('status','published');
+      if (error) throw error;
+      projectTabCount.textContent = count === null ? '0' : String(count);
+    } catch (error) {
+      console.error('Unable to load project tab count from Supabase.', error);
+      projectTabCount.textContent = '0';
+    }
+  }
+
   initEvents();
   emptyState.classList.remove('show');
   emptyState.hidden=true;
+  loadProjectTabCount();
   loadDevelopers();
 })();

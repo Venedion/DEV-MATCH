@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=optional" rel="stylesheet">
   <link rel="stylesheet" href="assets/css/dashboard.css?v=20261030-fixed-profile-width">
-  <link rel="stylesheet" href="assets/css/marketplace.css?v=20261117-no-posts-clean-empty">
+  <link rel="stylesheet" href="assets/css/marketplace.css?v=20261118-tab-indicator-reverse">
   <link rel="stylesheet" href="assets/css/client-shell.css?v=20261030-header-size-match">
   <link rel="stylesheet" href="assets/css/mode-switch-animation.css?v=20261030-active-indicator">
   <link rel="stylesheet" href="assets/css/mobile-navigation.css?v=20261118-workspaces">
@@ -53,12 +53,12 @@
         <h1>Discover projects</h1>
         <p>Discover ready-to-build web and app solutions from experienced developers.</p>
       </div>
-      <div class="market-discovery-tabs" role="tablist" aria-label="Browse options">
+      <div class="market-discovery-tabs projects-active" role="tablist" aria-label="Browse options">
         <button class="market-discovery-tab active" type="button" aria-selected="true">
-          Projects <span class="market-discovery-tab-count">128</span>
+          Projects <span class="market-discovery-tab-count" id="projectTabCount">0</span>
         </button>
         <a class="market-discovery-tab" href="devmatch-find-developers.html">
-          Developers <span class="market-discovery-tab-count">64</span>
+          Developers <span class="market-discovery-tab-count" id="developerTabCount">0</span>
         </a>
       </div>
     </header>
@@ -112,7 +112,7 @@
     <div class="dialog-content" id="dialogContent"></div>
   </dialog>
 
-  <script src="assets/js/marketplace.js?v=20261118-workspaces"></script>
+  <script src="assets/js/marketplace.js?v=20261118-tab-counts-zero"></script>
   <script src="assets/js/nav-behavior.js?v=20261118-workspaces"></script>
 </body>
 </html>

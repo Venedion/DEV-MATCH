@@ -22,6 +22,8 @@
   const loadMoreButton = document.getElementById('loadMore');
   const remainingCount = document.getElementById('remainingCount');
   const catalogStatus = document.getElementById('catalogStatus');
+  const projectTabCount = document.getElementById('projectTabCount');
+  const developerTabCount = document.getElementById('developerTabCount');
   let favoriteIds = readFavorites();
   const favoriteStateReady = window.devMatchBackend.ready.then(user => user
     ? window.devMatchBackend.loadFavorites()
@@ -450,6 +452,24 @@
     }
   }
 
+  async function loadDeveloperTabCount() {
+    if (!developerTabCount) return;
+    try {
+      const user = await window.devMatchBackend.ready;
+      if (!user) return;
+      const account = await window.devMatchBackend.loadProfile(user);
+      if (account.account_role !== 'client') return;
+      const {count, error} = await window.devMatchBackend.client.from('directory_people')
+        .select('id', {count:'exact',head:true})
+        .eq('account_role','dev');
+      if (error) throw error;
+      developerTabCount.textContent = count === null ? '0' : String(count);
+    } catch (error) {
+      console.error('Unable to load developer tab count from Supabase.', error);
+      developerTabCount.textContent = '0';
+    }
+  }
+
   function render() {
     const source = isRequestsPage ? requests : projects;
     const filtered = getItems();
@@ -639,11 +659,11 @@
       const user = await window.devMatchBackend.ready;
       const kind = isRequestsPage ? 'request' : 'portfolio';
       let query = window.devMatchBackend.client.from('projects')
-        .select('id,owner_id,title,project_type,category,price,price_type,cover_image,status,data,created_at,updated_at')
+        .select('id,owner_id,title,project_type,category,price,price_type,cover_image,status,data,created_at,updated_at', isRequestsPage ? {} : {count:'exact'})
         .eq('project_kind', kind)
         .eq('status', isRequestsPage ? 'open' : 'published')
         .order('updated_at', {ascending:false});
-      const {data: rows, error} = await query;
+      const {data: rows, count: portfolioCount, error} = await query;
       if (error) throw error;
 
       let peopleById = new Map();
@@ -686,6 +706,9 @@
       });
       if (isRequestsPage) requests = records;
       else projects = records;
+      if (!isRequestsPage && projectTabCount) {
+        projectTabCount.textContent = portfolioCount === null ? '0' : String(portfolioCount);
+      }
       catalogError = null;
       catalogLoaded = true;
       render();
@@ -701,5 +724,6 @@
       grid.removeAttribute('aria-busy');
     }
   }
+  loadDeveloperTabCount();
   loadCatalog();
 })();
