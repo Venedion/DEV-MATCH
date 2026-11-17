@@ -12,16 +12,15 @@
       : 'developer';
   }
 
-  function setModeSwitchDestinations() {
+  function setModeSwitchDestinations(activeMode) {
     document.querySelectorAll(modeSwitchSelector).forEach(link => {
-      const destination = getMode(link) === 'client'
-        ? 'devmatch-client-dashboard.html'
-        : 'devmatch-dashboard.html';
-      link.href = destination;
+      const linkMode = getMode(link);
+      link.dataset.workspaceMode = linkMode;
+      link.href = linkMode === activeMode
+        ? (linkMode === 'client' ? 'devmatch-client-dashboard.html' : 'devmatch-dashboard.html')
+        : `devmatch-auth.html?mode=register&role=${linkMode === 'client' ? 'client' : 'dev'}`;
     });
   }
-
-  setModeSwitchDestinations();
 
   const header = document.querySelector('header.topbar, header.client-topbar, header.profile-topbar');
   const sidebar = document.querySelector('body > .sidebar, body > .client-sidebar');
@@ -103,6 +102,8 @@
       || document.body.dataset.workspace === 'client'
     );
 
+  setModeSwitchDestinations(isClientMode ? 'client' : 'developer');
+
   function getWorkspaceProfile(workspace) {
     const storageKey = `devmatch-profile-${workspace}`;
 
@@ -170,12 +171,10 @@
     document.querySelectorAll(modeSwitchSelector).forEach(link => {
       const active = getMode(link) === activeMode;
       link.classList.toggle('active', active);
-      link.hidden = !active;
-      link.style.display = active ? '' : 'none';
-      if (active) {
-        link.href = isClientMode ? 'devmatch-client-dashboard.html' : 'devmatch-dashboard.html';
-      }
+      link.hidden = false;
+      link.style.display = '';
     });
+    setModeSwitchDestinations(activeMode);
     activeModeLink = document.querySelector(
       '.mode-switch a.active, .client-mode-switch a.active'
     );
