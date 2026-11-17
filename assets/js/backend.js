@@ -417,20 +417,36 @@
     if (typeof projectId !== 'string' || !projectId) {
       throw new TypeError('A project ID is required.');
     }
-    const {data, error} = await client.from('comments')
-      .select('id,project_id,user_id,text,author_name,author_initials,created_at')
+    let result = await client.from('comments')
+      .select('id,project_id,parent_comment_id,user_id,text,author_name,author_initials,created_at')
       .eq('project_id', projectId)
       .order('created_at', {ascending: true});
-    if (error) throw error;
-    return (data || []).map(comment => ({
-      id: comment.id,
-      projectId: comment.project_id,
-      userId: comment.user_id,
-      text: comment.text,
-      name: comment.author_name,
-      initials: comment.author_initials,
-      time: comment.created_at
-    }));
+    let repliesSupported = true;
+    if (result.error && (
+      result.error.code === '42703'
+      || result.error.code === 'PGRST204'
+      || /parent_comment_id.*(does not exist|not found|schema cache)/i.test(result.error.message || '')
+    )) {
+      repliesSupported = false;
+      result = await client.from('comments')
+        .select('id,project_id,user_id,text,author_name,author_initials,created_at')
+        .eq('project_id', projectId)
+        .order('created_at', {ascending: true});
+    }
+    if (result.error) throw result.error;
+    return {
+      repliesSupported,
+      comments: (result.data || []).map(comment => ({
+        id: comment.id,
+        projectId: comment.project_id,
+        parentCommentId: comment.parent_comment_id || null,
+        userId: comment.user_id,
+        text: comment.text,
+        name: comment.author_name,
+        initials: comment.author_initials,
+        time: comment.created_at
+      }))
+    };
   }
 
   async function recordProjectView(projectId) {
@@ -457,6 +473,30 @@
     return {
       id: data.id,
       projectId: data.project_id,
+      userId: data.user_id,
+      text: data.text,
+      name: data.author_name,
+      initials: data.author_initials,
+      time: data.created_at
+    };
+  }
+
+  async function addProjectCommentReply(projectId, parentCommentId, text) {
+    if (typeof projectId !== 'string' || !projectId
+      || typeof parentCommentId !== 'string' || !parentCommentId
+      || typeof text !== 'string' || !text.trim() || text.trim().length > 5000) {
+      throw new TypeError('A project ID, comment ID, and reply between 1 and 5000 characters are required.');
+    }
+    const user = await currentAccount();
+    const {data, error} = await client.from('comments')
+      .insert({project_id: projectId, parent_comment_id: parentCommentId, user_id: user.id, text: text.trim()})
+      .select('id,project_id,parent_comment_id,user_id,text,author_name,author_initials,created_at')
+      .single();
+    if (error) throw error;
+    return {
+      id: data.id,
+      projectId: data.project_id,
+      parentCommentId: data.parent_comment_id,
       userId: data.user_id,
       text: data.text,
       name: data.author_name,
@@ -667,6 +707,7 @@
     deleteOwnedProject,
     loadProjectComments,
     recordProjectView,
-    addProjectComment
+    addProjectComment,
+    addProjectCommentReply
   };
 })();

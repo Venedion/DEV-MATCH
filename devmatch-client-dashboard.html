@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=optional" rel="stylesheet">
-  <link rel="stylesheet" href="assets/css/client-dashboard.css?v=20261112-supabase-catalog-media">
+  <link rel="stylesheet" href="assets/css/client-dashboard.css?v=20261117-request-view-footer">
   <link rel="stylesheet" href="assets/css/project-detail.css">
   <link rel="stylesheet" href="assets/css/mode-switch-animation.css?v=20261030-active-indicator">
   <link rel="stylesheet" href="assets/css/mobile-navigation.css?v=20261031-desktop-dropdown-aligned">
@@ -33,7 +33,7 @@
   </script>
   <script src="assets/js/i18n.js?v=20261102-profile-details"></script>
 <script src="assets/vendor/supabase-2.119.0.js"></script>
-<script src="assets/js/backend.js?v=20261112-private-profile-cache"></script>
+<script src="assets/js/backend.js?v=20261117-comment-replies-compat"></script>
 </head>
 <body class="page-scroll-shell">
   <header class="client-topbar">
@@ -129,22 +129,34 @@
       </header>
       <div class="request-stats-grid" id="requestStats">
         <article class="request-stat-card"><small>OPEN REQUESTS</small><strong id="requestStatOpen">0</strong><span><b id="requestStatClosed">0</b> closed, <b id="requestStatDraft">0</b> draft</span></article>
-        <article class="request-stat-card"><small>TOTAL VIEWS</small><strong id="requestStatViews">—</strong><span>across your projects</span></article>
-        <article class="request-stat-card"><small>SAVED BY DEVELOPERS</small><strong id="requestStatSaves">—</strong><span>on your projects</span></article>
-        <article class="request-stat-card"><small>COMMENTS</small><strong id="requestStatComments">—</strong><span>on your projects</span></article>
+        <article class="request-stat-card"><small>TOTAL VIEWS</small><strong id="requestStatViews">—</strong><span>across your project requests</span></article>
+        <article class="request-stat-card"><small>SAVED BY DEVELOPERS</small><strong id="requestStatSaves">—</strong><span>on your project requests</span></article>
+        <article class="request-stat-card"><small>COMMENTS</small><strong id="requestStatComments">—</strong><span>on your project requests</span></article>
       </div>
       <div class="requests-workspace">
         <div class="requests-main-column">
           <div class="requests-toolbar">
-            <div class="request-status-tabs" role="tablist" aria-label="Filter requests">
-              <button class="active" type="button" role="tab" aria-selected="true" data-request-filter="all">All <span id="requestCountAll">0</span></button>
-              <button type="button" role="tab" aria-selected="false" data-request-filter="open">Open <span id="requestCountOpen">0</span></button>
-              <button type="button" role="tab" aria-selected="false" data-request-filter="closed">Closed <span id="requestCountClosed">0</span></button>
-              <button type="button" role="tab" aria-selected="false" data-request-filter="draft">Draft <span id="requestCountDraft">0</span></button>
-            </div>
             <div class="requests-tools">
               <label class="request-search"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg><input id="requestSearch" type="search" placeholder="Search my requests"></label>
-              <label class="request-sort"><span class="visually-hidden">Sort requests</span><select id="requestSort"><option value="newest">Newest first</option><option value="oldest">Oldest first</option></select></label>
+              <div class="request-filter-control">
+                <button class="request-filter-trigger" id="requestFilterTrigger" type="button" aria-label="Filter requests" aria-haspopup="menu" aria-expanded="false" aria-controls="requestFilterMenu">
+                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16l-6.5 7.5v5l-3 1.5v-6.5L4 5z"/></svg>
+                  <span id="requestFilterLabel">Filter</span>
+                  <svg class="request-filter-chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="m7 10 5 5 5-5"/></svg>
+                </button>
+                <div class="request-filter-menu" id="requestFilterMenu" popover="manual" role="menu" aria-label="Filter and sort project requests">
+                  <button type="button" role="menuitemradio" data-request-filter="all" aria-checked="true"><span>All</span><span class="request-filter-option-meta"><span class="request-filter-count" id="requestCountAll">0</span><svg class="request-filter-check" viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 4 4L19 6"/></svg></span></button>
+                  <button type="button" role="menuitemradio" data-request-filter="open" aria-checked="false"><span>Open</span><span class="request-filter-option-meta"><span class="request-filter-count" id="requestCountOpen">0</span><svg class="request-filter-check" viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 4 4L19 6"/></svg></span></button>
+                  <button type="button" role="menuitemradio" data-request-filter="closed" aria-checked="false"><span>Closed</span><span class="request-filter-option-meta"><span class="request-filter-count" id="requestCountClosed">0</span><svg class="request-filter-check" viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 4 4L19 6"/></svg></span></button>
+                  <button type="button" role="menuitemradio" data-request-filter="draft" aria-checked="false"><span>Draft</span><span class="request-filter-option-meta"><span class="request-filter-count" id="requestCountDraft">0</span><svg class="request-filter-check" viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 4 4L19 6"/></svg></span></button>
+                  <div class="request-filter-sort-group" role="group" aria-labelledby="requestSortLabel">
+                    <p id="requestSortLabel">Sort by</p>
+                    <button type="button" role="menuitemradio" data-request-sort="newest" aria-checked="true"><span>Newest - Oldest</span><svg class="request-filter-check" viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 4 4L19 6"/></svg></button>
+                    <button type="button" role="menuitemradio" data-request-sort="oldest" aria-checked="false"><span>Oldest - Newest</span><svg class="request-filter-check" viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 4 4L19 6"/></svg></button>
+                  </div>
+                </div>
+              </div>
+              <select id="requestSort" hidden aria-hidden="true" tabindex="-1"><option value="newest">Newest - Oldest</option><option value="oldest">Oldest - Newest</option></select>
             </div>
           </div>
           <div class="request-list" id="requestList"></div>
@@ -152,7 +164,7 @@
           <p class="requests-message" id="requestsMessage" role="status" aria-live="polite"></p>
         </div>
         <aside class="requests-sidebar">
-          <section class="request-activity-card"><header><h2>Latest activity</h2><button type="button" data-request-filter="all">View all</button></header><div id="requestActivityList" class="request-activity-list" aria-live="polite"><p class="request-activity-empty" role="status">Loading activity&hellip;</p></div></section>
+          <section class="request-activity-card"><header><h2>Latest activity</h2><button type="button" id="openRequestActivity">View all</button></header><div id="requestActivityList" class="request-activity-list" aria-live="polite"><p class="request-activity-empty" role="status">Loading activity&hellip;</p></div></section>
           <section class="request-tip-card"><span class="request-tip-icon" aria-hidden="true">✦</span><h2>Tip</h2><p>Once you've found a developer, close the request so others stop replying. You can reopen it anytime.</p></section>
         </aside>
       </div>
@@ -185,6 +197,7 @@
           <section class="request-detail-comments">
             <header><h2>Comments <span id="requestDetailCommentCount">0</span></h2><span class="request-detail-comment-sort">Oldest first</span></header>
             <div id="requestDetailCommentsList"></div>
+            <p class="request-detail-comments-status" id="requestDetailCommentsStatus" role="status" aria-live="polite" hidden></p>
             <p id="requestDetailCommentsEmpty">No comments yet. Developer comments will appear here.</p>
           </section>
         </div>
@@ -294,7 +307,7 @@
   </main>
 
   <dialog class="request-view-dialog" id="requestViewDialog" aria-labelledby="requestViewTitle">
-    <div class="request-view-header"><div><span class="request-dialog-eyebrow">PROJECT REQUEST</span><h2 id="requestViewTitle"></h2></div><button class="dialog-close" type="button" data-close-request-view aria-label="Close request details">×</button></div>
+    <div class="request-view-header"><div><span class="request-dialog-eyebrow">PROJECT REQUEST</span><h2 id="requestViewTitle"></h2></div><button class="dialog-close" type="button" data-close-request-view aria-label="Close request details"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="m3 3 10 10M13 3 3 13"/></svg></button></div>
     <div class="request-view-meta" id="requestViewMeta"></div>
     <p class="request-view-description" id="requestViewDescription"></p>
     <dl class="request-view-facts"><div><dt>Budget</dt><dd id="requestViewBudget"></dd></div><div><dt>Deadline</dt><dd id="requestViewDeadline"></dd></div><div><dt>Target start</dt><dd id="requestViewStart"></dd></div><div><dt>Required specialization</dt><dd id="requestViewSpecialties"></dd></div></dl>
@@ -302,11 +315,19 @@
     <div class="request-view-footer"><span id="requestViewStatus"></span><button class="request-primary-button" type="button" data-close-request-view>Done</button></div>
   </dialog>
 
+  <dialog class="request-activity-dialog" id="requestActivityDialog" aria-labelledby="requestActivityTitle">
+    <header class="request-activity-dialog-header">
+      <h2 id="requestActivityTitle">Latest Activity</h2>
+      <button class="dialog-close" type="button" data-close-request-activity aria-label="Close latest activity"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="m3 3 10 10M13 3 3 13"/></svg></button>
+    </header>
+    <div class="request-activity-dialog-list" id="requestActivityDialogList" aria-live="polite"></div>
+  </dialog>
+
   <dialog class="project-detail-dialog" id="projectDetailDialog" aria-labelledby="projectTitle">
     <div class="detail-dialog-bar">
       <a class="detail-brand" href="devmatch-client-dashboard.html"><img class="brand-mark" src="assets/images/devmatch-logo.png" width="35" height="35" alt="" aria-hidden="true"><span>DEV-MATCH</span></a>
       <span class="detail-modal-label">Project details</span>
-      <button class="close-detail" id="closeProjectDetail" type="button" aria-label="Close project details">×</button>
+      <button class="close-detail" id="closeProjectDetail" type="button" aria-label="Close project details"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="m3 3 10 10M13 3 3 13"/></svg></button>
     </div>
     <div class="detail-page">
       <div class="detail-error" id="detailError" role="alert" hidden></div>
@@ -382,7 +403,7 @@
 
   </a>
   <script src="assets/js/project-detail.js?v=20261112-live-catalog-detail"></script>
-  <script src="assets/js/client-dashboard.js?v=20261112-supabase-catalog-storage"></script>
+  <script src="assets/js/client-dashboard.js?v=20261117-comment-replies-compat"></script>
   <script src="assets/js/nav-behavior.js?v=20261112-secure-chat-badge"></script>
 </body>
 </html>

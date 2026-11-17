@@ -42,6 +42,7 @@
     detailAvatar: document.getElementById('detailAvatar'),
     detailName: document.getElementById('detailName'),
     detailRole: document.getElementById('detailRole'),
+    detailProjectCard: document.getElementById('detailProjectCard'),
     detailProjectTitle: document.getElementById('detailProjectTitle'),
     detailProjectDesc: document.getElementById('detailProjectDesc'),
     detailProjectPrice: document.getElementById('detailProjectPrice'),
@@ -296,6 +297,13 @@
     return conversations.find(conversation => conversation.id === activeConvId) || null;
   }
 
+  function updateConversationQuery(conversationId) {
+    const url = new URL(window.location.href);
+    if (conversationId) url.searchParams.set('conversation', conversationId);
+    else url.searchParams.delete('conversation');
+    window.history.replaceState(window.history.state, '', url);
+  }
+
   function renderMessagesThread() {
     const conversation = getActiveConversation();
     const mainHeader = document.querySelector('.chat-main-header');
@@ -308,7 +316,7 @@
       if (projectBanner) projectBanner.hidden = true;
       if (composer) composer.hidden = true;
       if (quickRepliesEl) quickRepliesEl.hidden = true;
-      detailPaneEl?.classList.add('closed');
+      setDetailPaneOpen(false);
       if (chatMessagesEl) chatMessagesEl.replaceChildren();
       return;
     }
@@ -328,6 +336,7 @@
     if (elements.activeStatusDot) elements.activeStatusDot.hidden = true;
 
     const project = conversation.project;
+    elements.detailProjectCard?.classList.toggle('is-unlinked', !project);
     if (projectBanner) projectBanner.hidden = !project;
     if (project) {
       if (elements.activeProjectTitle) elements.activeProjectTitle.textContent = project.title;
@@ -390,7 +399,14 @@
   }
 
   function updateDetailPaneVisibility() {
-    if (mobileChatBreakpoint.matches && detailPaneEl) detailPaneEl.classList.add('closed');
+    if (mobileChatBreakpoint.matches) setDetailPaneOpen(false);
+  }
+
+  function setDetailPaneOpen(isOpen) {
+    if (!detailPaneEl) return;
+    detailPaneEl.classList.toggle('closed', !isOpen);
+    detailPaneEl.setAttribute('aria-hidden', String(!isOpen));
+    document.getElementById('toggleDetailBtn')?.setAttribute('aria-expanded', String(isOpen));
   }
 
   function scrollThreadToBottom() {
@@ -456,9 +472,10 @@
     const conversation = conversations.find(item => item.id === id);
     if (!conversation) return;
     activeConvId = id;
+    updateConversationQuery(id);
     markRead(conversation);
     if (chatViewportEl) chatViewportEl.classList.add('viewing-thread');
-    if (!mobileChatBreakpoint.matches) detailPaneEl?.classList.remove('closed');
+    setDetailPaneOpen(false);
     updateUnreadCounts();
     renderConversationsList();
     renderMessagesThread();
@@ -776,12 +793,13 @@
     });
     document.getElementById('chatBackBtn')?.addEventListener('click', () => {
       chatViewportEl?.classList.remove('viewing-thread');
+      updateConversationQuery(null);
     });
     document.getElementById('toggleDetailBtn')?.addEventListener('click', () => {
-      detailPaneEl?.classList.toggle('closed');
+      setDetailPaneOpen(detailPaneEl?.classList.contains('closed'));
     });
     document.getElementById('closeDetailBtn')?.addEventListener('click', () => {
-      detailPaneEl?.classList.add('closed');
+      setDetailPaneOpen(false);
     });
     document.getElementById('markAllReadBtn')?.addEventListener('click', () => {
       conversations.forEach(markRead);
@@ -792,7 +810,7 @@
     const attachButton = document.getElementById('chatAttachBtn');
     if (attachButton) attachButton.hidden = false;
     mobileChatBreakpoint.addEventListener('change', event => {
-      if (event.matches) detailPaneEl?.classList.add('closed');
+      if (event.matches) setDetailPaneOpen(false);
     });
   }
 

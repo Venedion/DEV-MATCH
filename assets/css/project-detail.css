@@ -81,8 +81,10 @@ svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.8;stroke
 .project-detail-dialog::backdrop{background:#17171970;backdrop-filter:blur(4px)}
 .detail-dialog-bar{height:60px;display:flex;align-items:center;gap:24px;flex:none;padding:0 24px;border-bottom:1px solid var(--line);background:#fff}
 .detail-modal-label{color:var(--muted);font-size:13px;font-weight:600}
-.close-detail{width:34px;height:34px;display:grid;place-items:center;margin-left:auto;border:1px solid var(--line);border-radius:50%;background:#fff;font-size:23px;line-height:1;cursor:pointer}
-.close-detail:hover{background:#f2f2f4}
+.close-detail{width:31px;height:31px;display:grid;place-items:center;margin-left:auto;padding:0;border:0;border-radius:0;background:transparent;color:#626772;line-height:1;cursor:pointer}
+.close-detail:hover{color:#22252c}
+.close-detail svg{display:block;width:13px;height:13px;overflow:visible}
+.close-detail svg path{fill:none;stroke:currentColor;stroke-linecap:round;stroke-width:1.6}
 .project-detail-dialog .detail-page{width:100%;max-width:none;height:calc(100% - 60px);margin:0;padding:34px 42px 56px;overflow-y:auto;scrollbar-width:none;-ms-overflow-style:none}
 .project-detail-dialog .detail-page::-webkit-scrollbar{display:none}
 .project-detail-dialog .detail-page{scrollbar-width:none;-ms-overflow-style:none}

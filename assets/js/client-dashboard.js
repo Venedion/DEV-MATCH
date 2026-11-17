@@ -65,6 +65,8 @@ let activeRequestFilter='all';
 let activeRequestQuery='';
 let activeRequestSort='newest';
 let activeRequestDetailId=null;
+let requestActivityEntries=[];
+let requestActivityState='loading';
 let savingRequest=false;
 const grid=document.getElementById('projectGrid');
 const discoverGrid=document.getElementById('discoverGrid');
@@ -285,7 +287,7 @@ function renderRequests(){
     const moreLabel=status==='open'?'Close request':status==='closed'?'Reopen request':'Publish request';
     return `<article class="request-item request-card" data-request-card="${escapeHtml(request.id)}">
       <div class="request-card-topline"><div class="request-card-badges"><span class="request-status ${status}">${status}</span><span class="request-card-tag">${escapeHtml(category)}</span><span class="request-card-tag">${escapeHtml(type)}</span>${request.negotiable?'<span class="request-card-tag">Negotiable</span>':''}</div>
-      <div class="request-card-menu"><details><summary aria-label="More actions for request">•••</summary><div><button type="button" data-request-action="${moreAction}" data-request-id="${escapeHtml(request.id)}">${moreLabel}</button><button class="danger" type="button" data-request-action="delete" data-request-id="${escapeHtml(request.id)}">Delete request</button></div></details></div></div>
+      <div class="request-card-menu"><details><summary aria-label="More actions for request">•••</summary><div><button type="button" data-request-action="${moreAction}" data-request-id="${escapeHtml(request.id)}">${moreLabel}</button>${status!=='draft'?`<button type="button" data-request-action="draft" data-request-id="${escapeHtml(request.id)}">Save as draft</button>`:''}<button class="danger" type="button" data-request-action="delete" data-request-id="${escapeHtml(request.id)}">Delete request</button></div></details></div></div>
       <h2>${escapeHtml(request.title||'Untitled request')}</h2>
       <div class="request-card-facts"><div><small>BUDGET</small><b>${escapeHtml(budget)}</b></div><div><small>DEADLINE</small><b>${deadline?escapeHtml(formatDeadline(request.deadline)):'Not set'}${daysLeft===null?'':` · ${escapeHtml(deadlineNote)}`}</b></div><div><small>REQUIRED</small><span>${specialties.length?specialties.map(specialty=>`<i>${escapeHtml(specialty)}</i>`).join(''):'Not specified'}</span></div></div>
       <footer class="request-card-footer"><span class="request-card-metrics"><span>◉ ${views}</span><span>♡ ${saves}</span><span>▢ ${comments}</span>${referenceCount?`<span class="request-card-new">${referenceCount} ref</span>`:''}</span><div class="request-card-actions"><button type="button" class="request-card-secondary" data-request-detail="${escapeHtml(request.id)}">More</button><button type="button" class="request-card-secondary" data-edit-request="${escapeHtml(request.id)}">Edit</button><button type="button" class="request-card-primary" data-request-action="view" data-request-id="${escapeHtml(request.id)}">View request <span aria-hidden="true">→</span></button></div></footer>
@@ -907,14 +909,26 @@ function showRequestDetails(request){
   document.getElementById('requestViewStatus').textContent=`${Number(request.views)||0} views · ${Number(request.saves??request.favorites)||0} saved · ${Number(request.commentCount??request.comments)||0} comments`;
   dialog.showModal();
 }
-async function showRequestDetailPage(request){
+async function showRequestDetailPage(request,{preserveScroll=false}={}){
+  const previousScrollY=window.scrollY;
   activeRequestDetailId=request.id;
+  let currentUserId=null;
+  let repliesSupported=true;
+  let commentsLoadFailed=false;
+  try{
+    const user=await window.devMatchBackend.ready;
+    currentUserId=user?.id||null;
+  }catch(error){
+    console.error('Unable to verify the current account for request replies.',error);
+  }
   let comments=[];
   try{
-    comments=await window.devMatchBackend.loadProjectComments(request.id);
+    const result=await window.devMatchBackend.loadProjectComments(request.id);
+    comments=result.comments;
+    repliesSupported=result.repliesSupported;
   }catch(error){
     console.error('Unable to load project request comments from Supabase.',error);
-    document.getElementById('requestsMessage').textContent='Unable to load request comments. Check your connection and try again.';
+    commentsLoadFailed=true;
   }
   if(activeRequestDetailId!==request.id)return;
   const name=clientProfile.displayName||'Client';
@@ -998,16 +1012,63 @@ async function showRequestDetailPage(request){
   document.getElementById('requestDetailCommentCount').textContent=String(commentCount);
   const commentsList=document.getElementById('requestDetailCommentsList');
   commentsList.replaceChildren();
+  const commentsStatus=document.getElementById('requestDetailCommentsStatus');
+  commentsStatus.hidden=!commentsLoadFailed&&repliesSupported;
+  if(commentsLoadFailed)commentsStatus.textContent='Unable to load comments. Check your connection and try again.';
+  else if(!repliesSupported)commentsStatus.textContent='Comments are visible, but replies require the latest database migration.';
+  const commentsByParent=new Map();
   comments.forEach(comment=>{
+    const parentId=comment.parentCommentId||null;
+    if(!commentsByParent.has(parentId))commentsByParent.set(parentId,[]);
+    commentsByParent.get(parentId).push(comment);
+  });
+  const appendComment=(comment,parentContainer)=>{
     const item=document.createElement('article');
     item.className='request-detail-comment';
+    item.dataset.commentId=comment.id;
     const author=document.createElement('strong');
-    author.textContent=comment.name||'Developer';
+    author.textContent=comment.name||'Member';
     const message=document.createElement('p');
     message.textContent=comment.text||'';
     item.append(author,message);
-    commentsList.append(item);
-  });
+    if(repliesSupported&&currentUserId&&comment.userId!==currentUserId){
+      const replyButton=document.createElement('button');
+      replyButton.className='request-detail-comment-reply-toggle';
+      replyButton.type='button';
+      replyButton.dataset.commentReplyToggle='';
+      replyButton.setAttribute('aria-expanded','false');
+      replyButton.textContent='Reply';
+      const form=document.createElement('form');
+      form.className='request-detail-comment-reply-form';
+      form.dataset.commentReplyForm='';
+      form.dataset.parentCommentId=comment.id;
+      form.hidden=true;
+      const input=document.createElement('textarea');
+      input.maxLength=5000;
+      input.required=true;
+      input.placeholder='Write a reply…';
+      input.setAttribute('aria-label',`Reply to ${comment.name||'member'}`);
+      const submit=document.createElement('button');
+      submit.type='submit';
+      submit.textContent='Send reply';
+      const status=document.createElement('p');
+      status.className='request-detail-comment-reply-status';
+      status.setAttribute('role','status');
+      status.setAttribute('aria-live','polite');
+      status.hidden=true;
+      form.append(input,submit,status);
+      item.append(replyButton,form);
+    }
+    parentContainer.append(item);
+    const replies=commentsByParent.get(comment.id)||[];
+    if(replies.length){
+      const replyList=document.createElement('div');
+      replyList.className='request-detail-comment-replies';
+      replies.forEach(reply=>appendComment(reply,replyList));
+      parentContainer.append(replyList);
+    }
+  };
+  (commentsByParent.get(null)||[]).forEach(comment=>appendComment(comment,commentsList));
   document.getElementById('requestDetailCommentsEmpty').hidden=comments.length>0||commentCount>0;
   if(commentCount>comments.length){
     const note=document.createElement('p');
@@ -1015,7 +1076,9 @@ async function showRequestDetailPage(request){
     note.textContent=`${commentCount} comment${commentCount===1?'':'s'} recorded. Full discussion is not available in this browser yet.`;
     commentsList.append(note);
   }
-  const commenters=new Map(comments.map(comment=>[comment.name,comment]));
+  const commenters=new Map(comments
+    .filter(comment=>comment.userId!==currentUserId)
+    .map(comment=>[comment.userId||comment.name,comment]));
   const commentersList=document.getElementById('requestDetailCommentersList');
   commentersList.replaceChildren();
   commenters.forEach(entry=>{
@@ -1037,7 +1100,7 @@ async function showRequestDetailPage(request){
   statusButton.dataset.nextStatus=status==='open'?'closed':'open';
   history.replaceState(null,'',`#request-detail/${encodeURIComponent(request.id)}`);
   showClientView('request-detail');
-  window.scrollTo({top:0,behavior:'smooth'});
+  window.scrollTo({top:preserveScroll?previousScrollY:0,behavior:preserveScroll?'auto':'smooth'});
 }
 async function updateRequestStatus(requestId,status){
   if(!await requestsReady)return;
@@ -1060,7 +1123,11 @@ async function updateRequestStatus(requestId,status){
     return;
   }
   requests=updatedRequests;
-  document.getElementById('requestsMessage').textContent=status==='closed'?'Request closed. You can reopen it anytime.':'Request reopened.';
+  document.getElementById('requestsMessage').textContent=status==='closed'
+    ?'Request closed. You can reopen it anytime.'
+    :status==='draft'
+      ?'Request saved as a draft.'
+      :'Request reopened.';
   renderRequests();
   if(activeRequestDetailId===requestId){
     const updatedRequest=requests.find(request=>request.id===requestId);
@@ -1352,15 +1419,68 @@ document.getElementById('requestSearch').addEventListener('input',event=>{
 });
 document.getElementById('requestSort').addEventListener('change',event=>{
   activeRequestSort=event.target.value;
+  document.querySelectorAll('#requestFilterMenu [data-request-sort]').forEach(option=>{
+    option.setAttribute('aria-checked',String(option.dataset.requestSort===event.target.value));
+  });
   renderRequests();
 });
+const requestFilterTrigger=document.getElementById('requestFilterTrigger');
+const requestFilterMenu=document.getElementById('requestFilterMenu');
+function closeRequestFilterMenu(returnFocus=false){
+  if(requestFilterMenu.matches(':popover-open'))requestFilterMenu.hidePopover();
+  requestFilterTrigger.setAttribute('aria-expanded','false');
+  if(returnFocus)requestFilterTrigger.focus();
+}
+requestFilterTrigger.addEventListener('click',()=>{
+  if(requestFilterMenu.matches(':popover-open')){
+    closeRequestFilterMenu();
+    return;
+  }
+  requestFilterMenu.showPopover();
+  const bounds=requestFilterTrigger.getBoundingClientRect();
+  const menuBounds=requestFilterMenu.getBoundingClientRect();
+  const width=Math.min(Math.max(bounds.width,190),window.innerWidth-20);
+  const left=Math.max(10,Math.min(bounds.right-width,window.innerWidth-width-10));
+  const top=window.innerHeight-bounds.bottom>=menuBounds.height+8
+    ?bounds.bottom+6
+    :Math.max(10,bounds.top-menuBounds.height-6);
+  requestFilterMenu.style.left=`${left}px`;
+  requestFilterMenu.style.top=`${top}px`;
+  requestFilterMenu.style.width=`${width}px`;
+  requestFilterTrigger.setAttribute('aria-expanded','true');
+  requestFilterMenu.querySelector(`[data-request-filter="${activeRequestFilter}"]`)?.focus({preventScroll:true});
+});
+requestFilterMenu.addEventListener('click',event=>{
+  const option=event.target.closest('[data-request-sort]');
+  if(!option)return;
+  const sort=document.getElementById('requestSort');
+  sort.value=option.dataset.requestSort;
+  sort.dispatchEvent(new Event('change',{bubbles:true}));
+  closeRequestFilterMenu(true);
+});
+requestFilterMenu.addEventListener('keydown',event=>{
+  if(event.key==='Escape'){
+    event.preventDefault();
+    closeRequestFilterMenu(true);
+  }
+});
+requestFilterMenu.addEventListener('toggle',()=>{
+  requestFilterTrigger.setAttribute('aria-expanded',String(requestFilterMenu.matches(':popover-open')));
+});
+document.addEventListener('pointerdown',event=>{
+  if(requestFilterMenu.matches(':popover-open')&&!requestFilterMenu.contains(event.target)&&!requestFilterTrigger.contains(event.target)){
+    closeRequestFilterMenu();
+  }
+});
+window.addEventListener('resize',()=>closeRequestFilterMenu());
+window.addEventListener('scroll',()=>closeRequestFilterMenu(),{capture:true,passive:true});
 document.querySelectorAll('[data-request-filter]').forEach(button=>button.addEventListener('click',()=>{
   activeRequestFilter=button.dataset.requestFilter;
-  document.querySelectorAll('.request-status-tabs [data-request-filter]').forEach(tab=>{
-    const active=tab.dataset.requestFilter===activeRequestFilter;
-    tab.classList.toggle('active',active);
-    tab.setAttribute('aria-selected',String(active));
+  document.getElementById('requestFilterLabel').textContent='Filter';
+  document.querySelectorAll('#requestFilterMenu [data-request-filter]').forEach(option=>{
+    option.setAttribute('aria-checked',String(option.dataset.requestFilter===activeRequestFilter));
   });
+  if(requestFilterMenu.contains(button))closeRequestFilterMenu(true);
   renderRequests();
 }));
 document.getElementById('requestList').addEventListener('click',event=>{
@@ -1385,9 +1505,20 @@ document.getElementById('requestList').addEventListener('click',event=>{
   if(actionButton.dataset.requestAction==='view')showRequestDetails(request);
   if(actionButton.dataset.requestAction==='close')updateRequestStatus(request.id,'closed');
   if(actionButton.dataset.requestAction==='reopen'||actionButton.dataset.requestAction==='publish')updateRequestStatus(request.id,'open');
+  if(actionButton.dataset.requestAction==='draft')updateRequestStatus(request.id,'draft');
   if(actionButton.dataset.requestAction==='delete')deleteRequest(request.id);
 });
 document.getElementById('requestDetailPage').addEventListener('click',event=>{
+  const replyToggle=event.target.closest('[data-comment-reply-toggle]');
+  if(replyToggle){
+    const form=replyToggle.parentElement.querySelector('[data-comment-reply-form]');
+    if(form){
+      form.hidden=!form.hidden;
+      replyToggle.setAttribute('aria-expanded',String(!form.hidden));
+      if(!form.hidden)form.querySelector('textarea').focus();
+    }
+    return;
+  }
   if(event.target.closest('[data-edit-detail-request]')){
     const request=requests.find(item=>item.id===activeRequestDetailId);
     if(request)openRequestComposer(request);
@@ -1399,6 +1530,46 @@ document.getElementById('requestDetailPage').addEventListener('click',event=>{
     return;
   }
   if(event.target.closest('[data-detail-delete]'))deleteRequest(activeRequestDetailId);
+});
+document.getElementById('requestDetailPage').addEventListener('submit',async event=>{
+  const form=event.target.closest('[data-comment-reply-form]');
+  if(!form)return;
+  event.preventDefault();
+  const input=form.querySelector('textarea');
+  const submit=form.querySelector('button[type="submit"]');
+  const status=form.querySelector('[role="status"]');
+  const text=input.value.trim();
+  if(!text){
+    status.textContent='Write a reply before sending.';
+    status.hidden=false;
+    input.focus();
+    return;
+  }
+  submit.disabled=true;
+  status.textContent='Sending reply…';
+  status.hidden=false;
+  const requestId=activeRequestDetailId;
+  try{
+    await window.devMatchBackend.addProjectCommentReply(
+      requestId,
+      form.dataset.parentCommentId,
+      text
+    );
+    if(activeRequestDetailId===requestId&&!document.getElementById('requestDetailPage').hidden){
+      const request=requests.find(item=>item.id===requestId);
+      if(request){
+        await showRequestDetailPage(request,{preserveScroll:true});
+        const pageStatus=document.getElementById('requestDetailCommentsStatus');
+        pageStatus.textContent='Reply sent. The developer has been notified.';
+        pageStatus.hidden=false;
+      }
+    }
+  }catch(error){
+    console.error('Unable to send a reply to the project comment.',error);
+    status.textContent='Unable to send your reply. Check your connection and try again.';
+    status.hidden=false;
+    submit.disabled=false;
+  }
 });
 document.querySelectorAll('[data-close-request-view]').forEach(button=>button.addEventListener('click',()=>document.getElementById('requestViewDialog').close()));
 document.getElementById('requestViewDialog').addEventListener('click',event=>{if(event.target===event.currentTarget)event.currentTarget.close()});
@@ -1426,12 +1597,93 @@ function requestActivityTime(value){
 
 function requestActivityType(kind){
   const value=String(kind||'').toLowerCase();
+  if(value.includes('reply'))return 'replied to your comment on';
   if(value.includes('comment')||value.includes('reply'))return 'commented on';
   if(value.includes('favorite')||value.includes('favourite')||value.includes('save'))return 'saved';
   if(value.includes('message')||value.includes('conversation'))return 'sent a message about';
   if(value.includes('rating')||value.includes('review'))return 'left a rating for';
   return 'updated';
 }
+
+function requestActivityDateGroup(value){
+  const date=new Date(value);
+  if(Number.isNaN(date.getTime()))return {key:'unknown',label:'Recently'};
+  const today=new Date();
+  const dateNumber=Date.UTC(date.getFullYear(),date.getMonth(),date.getDate());
+  const todayNumber=Date.UTC(today.getFullYear(),today.getMonth(),today.getDate());
+  const daysAgo=Math.round((todayNumber-dateNumber)/86400000);
+  if(daysAgo===0)return {key:'today',label:'Today'};
+  if(daysAgo===1)return {key:'yesterday',label:'Yesterday'};
+  const day=date.toLocaleDateString('en-US',{weekday:'short'});
+  const month=date.toLocaleDateString('en-US',{month:'short'});
+  return {
+    key:`${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`,
+    label:`${day}, ${String(date.getDate()).padStart(2,'0')} ${month} ${date.getFullYear()}`
+  };
+}
+
+function createRequestActivityItem(entry){
+  const item=document.createElement('article');
+  item.className='request-activity-item';
+  const avatar=document.createElement('span');
+  avatar.className='request-activity-avatar';
+  avatar.textContent=entry.initials||'•';
+  const copy=document.createElement('p');
+  const actor=document.createElement('b');
+  actor.textContent=entry.actorName;
+  const title=document.createElement('strong');
+  title.textContent=entry.title;
+  copy.append(actor,document.createTextNode(` ${requestActivityType(entry.kind)} `),title);
+  const time=document.createElement('small');
+  time.textContent=requestActivityTime(entry.created_at);
+  item.append(avatar,copy,time);
+  return item;
+}
+
+function renderRequestActivityDialog(){
+  const list=document.getElementById('requestActivityDialogList');
+  list.replaceChildren();
+  if(requestActivityState==='loading'||requestActivityState==='error'||!requestActivityEntries.length){
+    const message=document.createElement('p');
+    message.className='request-activity-empty';
+    message.setAttribute('role','status');
+    message.textContent=requestActivityState==='loading'
+      ?'Loading activity…'
+      :requestActivityState==='error'
+        ?'Unable to load activity. Check your connection and try again.'
+        :'Recent request activity will appear here.';
+    list.append(message);
+    return;
+  }
+  const groups=[];
+  const groupsByKey=new Map();
+  requestActivityEntries.forEach(entry=>{
+    const dateGroup=requestActivityDateGroup(entry.created_at);
+    let group=groupsByKey.get(dateGroup.key);
+    if(!group){
+      group={label:dateGroup.label,entries:[]};
+      groupsByKey.set(dateGroup.key,group);
+      groups.push(group);
+    }
+    group.entries.push(entry);
+  });
+  groups.forEach(group=>{
+    const section=document.createElement('section');
+    section.className='request-activity-date-group';
+    const heading=document.createElement('h3');
+    heading.textContent=group.label;
+    section.append(heading,...group.entries.map(createRequestActivityItem));
+    list.append(section);
+  });
+}
+
+const requestActivityDialog=document.getElementById('requestActivityDialog');
+document.getElementById('openRequestActivity').addEventListener('click',()=>{
+  renderRequestActivityDialog();
+  requestActivityDialog.showModal();
+});
+document.querySelector('[data-close-request-activity]').addEventListener('click',()=>requestActivityDialog.close());
+requestActivityDialog.addEventListener('click',event=>{if(event.target===event.currentTarget)event.currentTarget.close()});
 
 async function loadClientDashboardData(){
   const backend=window.devMatchBackend;
@@ -1456,11 +1708,19 @@ async function loadClientDashboardData(){
       const {data:notifications,error}=await client.from('notifications')
         .select('id,actor_id,kind,project_id,conversation_id,created_at')
         .eq('recipient_id',user.id)
-        .order('created_at',{ascending:false})
-        .limit(5);
+        .order('created_at',{ascending:false});
       if(error)throw error;
-      const entries=notifications||[];
+      const entries=(notifications||[]).slice().sort((a,b)=>{
+        const timeA=new Date(a.created_at).getTime();
+        const timeB=new Date(b.created_at).getTime();
+        if(!Number.isFinite(timeA))return Number.isFinite(timeB)?1:0;
+        if(!Number.isFinite(timeB))return -1;
+        return timeB-timeA;
+      });
       if(!entries.length){
+        requestActivityEntries=[];
+        requestActivityState='empty';
+        if(requestActivityDialog.open)renderRequestActivityDialog();
         const empty=document.createElement('p');
         empty.className='request-activity-empty';
         empty.textContent='Recent request activity will appear here.';
@@ -1477,26 +1737,23 @@ async function loadClientDashboardData(){
       if(projectsResult.error)throw projectsResult.error;
       const names=new Map((actorsResult.data||[]).map(actor=>[actor.id,actor.display_name]));
       const titles=new Map((projectsResult.data||[]).map(project=>[project.id,project.title]));
-      requestActivityList.replaceChildren();
-      entries.forEach(entry=>{
-        const item=document.createElement('article');
-        item.className='request-activity-item';
-        const avatar=document.createElement('span');
-        avatar.className='request-activity-avatar';
-        avatar.textContent=String(names.get(entry.actor_id)||'').trim().split(/\s+/).slice(0,2).map(part=>part[0]).join('').toUpperCase()||'•';
-        const copy=document.createElement('p');
-        const actor=document.createElement('b');
-        actor.textContent=names.get(entry.actor_id)||'A member';
-        const title=document.createElement('strong');
-        title.textContent=titles.get(entry.project_id)||(entry.conversation_id?'your conversation':'your request');
-        copy.append(actor,document.createTextNode(` ${requestActivityType(entry.kind)} `),title);
-        const time=document.createElement('small');
-        time.textContent=requestActivityTime(entry.created_at);
-        item.append(avatar,copy,time);
-        requestActivityList.append(item);
+      requestActivityEntries=entries.map(entry=>{
+        const actorName=names.get(entry.actor_id)||'A member';
+        return {
+          ...entry,
+          actorName,
+          title:titles.get(entry.project_id)||(entry.conversation_id?'your conversation':'your request'),
+          initials:String(actorName).trim().split(/\s+/).slice(0,2).map(part=>part[0]).join('').toUpperCase()
+        };
       });
+      requestActivityState='loaded';
+      if(requestActivityDialog.open)renderRequestActivityDialog();
+      requestActivityList.replaceChildren();
+      requestActivityEntries.slice(0,5).forEach(entry=>requestActivityList.append(createRequestActivityItem(entry)));
     })().catch(error=>{
       console.error('Unable to load recent request activity.',error);
+      requestActivityState='error';
+      if(requestActivityDialog.open)renderRequestActivityDialog();
       const message=document.createElement('p');
       message.className='request-activity-empty';
       message.setAttribute('role','status');

@@ -46,7 +46,7 @@
 .market-dropdown{position:relative;display:block;min-width:0}
 .market-select{width:100%;height:38px;display:flex;align-items:center;justify-content:space-between;gap:8px;min-width:135px;padding:0 11px;border:1px solid var(--market-line);border-radius:9px;background:#fff;color:#30343b;font:600 12.5px "Plus Jakarta Sans",system-ui,sans-serif;text-align:left;white-space:nowrap;cursor:pointer;transition:border-color .15s,background .15s}
 .market-select:hover{border-color:#c4c6cc;background:#fafafb}
-.market-select:focus-visible,.market-menu button:focus-visible{outline:2px solid #6872d8;outline-offset:2px}
+.market-select:focus-visible,.market-menu button:focus-visible{outline:2px solid #000;outline-offset:2px}
 .market-select>span{overflow:hidden;text-overflow:ellipsis}
 .market-select svg{width:15px;height:15px;flex:none;color:#747984;transition:transform .18s ease}
 .market-select[aria-expanded="true"] svg{transform:rotate(180deg)}
@@ -62,7 +62,7 @@
 .budget-menu-options{display:grid;flex:0 0 145px;gap:2px}
 .budget-menu-options button{min-height:37px}
 .budget-menu-options button[aria-pressed="true"]{background:#f1f2f5;color:var(--market-ink);font-weight:700}
-.budget-menu-values{flex:1;min-width:0;padding:4px 2px}
+.budget-menu-values{display:flex;flex:1;min-width:0;flex-direction:column;padding:4px 2px}
 .budget-menu-values[hidden],.budget-range-values[hidden]{display:none}
 .budget-menu-values label{display:grid;gap:5px;color:#59606b;font-size:11px;font-weight:700}
 .budget-menu-values label[hidden]{display:none}
@@ -73,6 +73,8 @@
 .budget-range-values{display:grid;grid-template-columns:minmax(0,1fr);gap:10px}
 .budget-range-hint{margin-top:7px;color:#777d87;font-size:10px;line-height:1.4}
 .budget-range-error{margin-top:7px;color:#b3313c;font-size:10px;line-height:1.4}
+.budget-save-filter{width:auto!important;min-height:32px!important;justify-content:center!important;margin:10px 0 0 auto;padding:0 12px!important;background:#000!important;color:#fff!important;font-weight:700!important}
+.budget-save-filter:hover{background:#252525!important;color:#fff!important}
 .market-sort{align-items:center;gap:12px}
 .market-sort>span{color:#4b5563;font-size:12.5px;font-weight:600;white-space:nowrap}
 .sort-control{display:flex;align-items:center;gap:7px;color:#646974;font-size:12px;font-weight:600;white-space:nowrap}
@@ -171,6 +173,8 @@
 .request-detail-row svg{width:14px;height:14px}
 .market-empty{padding:45px 20px;text-align:center}
 .market-empty[hidden]{display:none}
+.market-empty [hidden]{display:none}
+.empty-search-icon[hidden],#loadMore[hidden]{display:none}
 .empty-search-icon{width:48px;height:48px;display:grid;place-items:center;margin:0 auto 13px;border-radius:50%;background:#efeff1;color:#42464e}
 .empty-search-icon svg{width:22px;height:22px}
 .market-empty h3{font-size:16px;font-weight:800}

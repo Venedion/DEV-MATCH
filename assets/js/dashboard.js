@@ -211,7 +211,10 @@
       const copy = document.createElement('span');
       const actor = document.createElement('b');
       actor.textContent = names.get(entry.actor_id) || 'A member';
-      const description = document.createTextNode(` ${activityVerb(category)} `);
+      const verb = String(entry.kind || '').toLowerCase().includes('reply')
+        ? 'replied to your comment on'
+        : activityVerb(category);
+      const description = document.createTextNode(` ${verb} `);
       const project = document.createElement('strong');
       project.textContent = titles.get(entry.project_id) || (entry.conversation_id ? 'your conversation' : 'your work');
       const time = document.createElement('small');

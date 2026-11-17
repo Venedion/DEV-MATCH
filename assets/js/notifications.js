@@ -20,7 +20,8 @@
 
   const kindDetails = kind => {
     const value = String(kind || '').toLowerCase();
-    if (value.includes('comment') || value.includes('reply')) return {filter: 'comments', label: 'commented on', badge: '“'};
+    if (value.includes('reply')) return {filter: 'comments', label: 'replied to your comment on', badge: '“'};
+    if (value.includes('comment')) return {filter: 'comments', label: 'commented on', badge: '“'};
     if (value.includes('message') || value.includes('conversation')) return {filter: 'messages', label: 'sent you a message', badge: '✉'};
     if (value.includes('favorite') || value.includes('favourite') || value.includes('save')) return {filter: 'favorites', label: 'saved', badge: '♥'};
     if (value.includes('rating') || value.includes('review')) return {filter: 'ratings', label: 'left a rating', badge: '★'};

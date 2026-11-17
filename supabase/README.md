@@ -72,6 +72,13 @@ and open requests and only exposes comments for those public projects (plus a
 user's own existing comments). Conversation uniqueness is per participant pair
 and project, so the same users can have separate threads for separate projects.
 
+Apply `migrations/202611170001_project_comment_replies.sql` after the project
+comments and notification migrations. It adds threaded replies for project
+comments, lets request owners read comments on their own requests and reply
+even when a request is no longer public, and notifies the original commenter.
+Reply notifications are included in the developer notification feed and
+dashboard activity.
+
 After applying the profile/directory migration in the Supabase SQL Editor (or
 through the project's migration workflow), verify that authenticated users can
 read only their own `profiles` row and that `directory_people` returns only its

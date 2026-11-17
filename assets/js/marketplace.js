@@ -42,16 +42,32 @@
   let view = 'grid';
   let visibleCount = 3;
   const budgetValues = { mode: 'all', lower: '', from: '', to: '' };
+  let committedBudgetValues = { ...budgetValues };
+  let rollbackIncompleteBudget = () => {};
   const dropdownConfigs = [
     { selectId: 'typeFilter', triggerId: 'typeFilterTrigger', menuId: 'typeFilterMenu', width: 180 },
-    { selectId: 'budgetFilter', triggerId: 'budgetFilterTrigger', menuId: 'budgetFilterMenu', width: 430, align: 'left', custom: true },
+    { selectId: 'budgetFilter', triggerId: 'budgetFilterTrigger', menuId: 'budgetFilterMenu', width: 180, align: 'left', custom: true },
     { selectId: 'stackFilter', triggerId: 'stackFilterTrigger', menuId: 'stackFilterMenu', width: 180 },
     { selectId: 'sortFilter', triggerId: 'sortFilterTrigger', menuId: 'sortFilterMenu', width: 205, align: 'right' }
   ];
 
   function closeDropdown(menu, trigger){
+    if(menu.id==='budgetFilterMenu')rollbackIncompleteBudget();
     if(menu.matches(':popover-open'))menu.hidePopover();
     trigger.setAttribute('aria-expanded','false');
+  }
+
+  function isBudgetValuesValid(values){
+    if(values.mode==='all')return true;
+    if(values.mode==='lower-than'||values.mode==='higher-than'){
+      return values.lower!==''&&Number.isFinite(Number(values.lower))&&Number(values.lower)>=0;
+    }
+    if(values.mode==='range'){
+      const from=Number(values.from);
+      const to=Number(values.to);
+      return values.from!==''&&values.to!==''&&Number.isFinite(from)&&Number.isFinite(to)&&from>=0&&to>=from;
+    }
+    return false;
   }
 
   function syncDropdownLabels(){
@@ -164,6 +180,15 @@
     const budgetMenuValues=document.getElementById('budgetMenuValues');
     const budgetRangeError=document.getElementById('budgetRangeError');
     const budgetRangeHint=document.getElementById('budgetRangeHint');
+    const budgetSaveError=document.createElement('p');
+    budgetSaveError.className='budget-range-error';
+    budgetSaveError.setAttribute('role','alert');
+    budgetSaveError.hidden=true;
+    const budgetSaveButton=document.createElement('button');
+    budgetSaveButton.className='budget-save-filter';
+    budgetSaveButton.type='button';
+    budgetSaveButton.textContent='Save Filter';
+    budgetMenuValues.append(budgetSaveError,budgetSaveButton);
     budgetSingleInput.value=budgetValues.lower;
     budgetFromInput.value=budgetValues.from;
     budgetToInput.value=budgetValues.to;
@@ -194,10 +219,26 @@
         ?'Enter both amounts to filter projects.'
         :'Enter an amount to filter projects.';
       budgetRangeError.hidden=!(isRange&&budgetValues.from&&budgetValues.to&&Number(budgetValues.from)>Number(budgetValues.to));
+      budgetSaveError.hidden=true;
       budgetMenu.classList.toggle('has-values',needsValues);
       if(budgetMenu.matches(':popover-open'))positionBudgetMenu();
       syncDropdownLabels();
     }
+
+    rollbackIncompleteBudget=()=>{
+      if(isBudgetValuesValid(budgetValues)){
+        committedBudgetValues={...budgetValues};
+        return;
+      }
+      const changed=Object.keys(committedBudgetValues).some(key=>budgetValues[key]!==committedBudgetValues[key]);
+      Object.assign(budgetValues,committedBudgetValues);
+      document.getElementById('budgetFilter').value=budgetValues.mode;
+      budgetSingleInput.value=budgetValues.lower;
+      budgetFromInput.value=budgetValues.from;
+      budgetToInput.value=budgetValues.to;
+      updateBudgetFields();
+      if(changed)document.getElementById('budgetFilter').dispatchEvent(new Event('change',{bubbles:true}));
+    };
 
     budgetMenu.querySelectorAll('[data-budget-mode]').forEach(option=>{
       option.addEventListener('click',()=>{
@@ -212,6 +253,7 @@
           budgetToInput.value='';
         }
         updateBudgetFields();
+        if(isBudgetValuesValid(budgetValues))committedBudgetValues={...budgetValues};
         document.getElementById('budgetFilter').dispatchEvent(new Event('change',{bubbles:true}));
         if(budgetValues.mode==='all'){
           closeDropdown(budgetMenu,budgetTrigger);
@@ -226,15 +268,48 @@
       budgetValues.from=budgetFromInput.value;
       budgetValues.to=budgetToInput.value;
       updateBudgetFields();
+      if(isBudgetValuesValid(budgetValues))committedBudgetValues={...budgetValues};
       document.getElementById('budgetFilter').dispatchEvent(new Event('change',{bubbles:true}));
     };
     [budgetSingleInput,budgetFromInput,budgetToInput].forEach(input=>input.addEventListener('input',updateBudgetValue));
+    const saveBudgetFilter=()=>{
+      updateBudgetValue();
+      if(!isBudgetValuesValid(budgetValues)){
+        budgetSaveError.textContent=budgetValues.mode==='range'
+          ?budgetValues.from&&budgetValues.to
+            ?'From must be less than or equal to To.'
+            :'Enter both amounts to save this filter.'
+          :'Enter a valid amount to save this filter.';
+        budgetSaveError.hidden=false;
+        let focusTarget=budgetSingleInput;
+        if(budgetValues.mode==='range'){
+          focusTarget=!budgetValues.from||Number(budgetValues.from)<0
+            ?budgetFromInput
+            :!budgetValues.to||Number(budgetValues.to)<0||Number(budgetValues.from)>Number(budgetValues.to)
+              ?budgetToInput
+              :budgetFromInput;
+        }
+        focusTarget.focus({preventScroll:true});
+        return;
+      }
+      committedBudgetValues={...budgetValues};
+      closeDropdown(budgetMenu,budgetTrigger);
+      budgetTrigger.focus();
+    };
+    budgetSaveButton.addEventListener('click',saveBudgetFilter);
+    [budgetSingleInput,budgetFromInput,budgetToInput].forEach(input=>input.addEventListener('keydown',event=>{
+      if(event.key==='Enter'){
+        event.preventDefault();
+        budgetSaveButton.click();
+      }
+    }));
     budgetMenu.addEventListener('keydown',event=>{
       if(event.key==='Escape'){
         closeDropdown(budgetMenu,budgetTrigger);
         budgetTrigger.focus();
       }
     });
+    updateBudgetFields();
     document.addEventListener('pointerdown',event=>{
       dropdownConfigs.forEach(({triggerId,menuId})=>{
         const trigger=document.getElementById(triggerId);
@@ -244,7 +319,6 @@
         }
       });
     });
-    updateBudgetFields();
     syncDropdownLabels();
   }
 
@@ -285,26 +359,20 @@
   function getItems() {
     const source = isRequestsPage ? requests : projects;
     const type = document.getElementById('typeFilter').value;
-    const budget = document.getElementById('budgetFilter').value;
     const stack = document.getElementById('stackFilter').value.toLowerCase();
     const filtered = source.filter(item => {
       const price = priceValue(item);
-      const lower = Number(budgetValues.mode === 'range' ? budgetValues.from : budgetValues.lower);
-      const upper = Number(budgetValues.to);
-      const hasLower = budgetValues.mode === 'range' ? budgetValues.from !== '' : budgetValues.lower !== '';
-      const hasUpper = budgetValues.mode === 'range' && budgetValues.to !== '';
-      const invalidRange = budgetValues.mode === 'range' && hasLower && hasUpper && lower > upper;
-      const budgetMatch = isRequestsPage
-        ? !invalidRange && (
-          budgetValues.mode === 'all'
-          || budgetValues.mode === 'lower-than' && (!hasLower || price < lower)
-          || budgetValues.mode === 'higher-than' && (!hasLower || price > lower)
-          || budgetValues.mode === 'range' && (!hasLower || !hasUpper || price >= lower && price <= upper)
-        )
-        : budget === 'all'
-          || budget === 'under-3' && price < 3000000
-          || budget === '3-to-6' && price >= 3000000 && price <= 6000000
-          || budget === 'over-6' && price > 6000000;
+      const lower = Number(committedBudgetValues.mode === 'range' ? committedBudgetValues.from : committedBudgetValues.lower);
+      const upper = Number(committedBudgetValues.to);
+      const hasLower = committedBudgetValues.mode === 'range' ? committedBudgetValues.from !== '' : committedBudgetValues.lower !== '';
+      const hasUpper = committedBudgetValues.mode === 'range' && committedBudgetValues.to !== '';
+      const invalidRange = committedBudgetValues.mode === 'range' && hasLower && hasUpper && lower > upper;
+      const budgetMatch = !invalidRange && (
+        committedBudgetValues.mode === 'all'
+        || committedBudgetValues.mode === 'lower-than' && hasLower && price < lower
+        || committedBudgetValues.mode === 'higher-than' && hasLower && price > lower
+        || committedBudgetValues.mode === 'range' && hasLower && hasUpper && price >= lower && price <= upper
+      );
       const stacks = isRequestsPage ? item.stack : String(item.stack).split(/\s+(?:and|,)\s+/);
       const stackMatch = stack === 'all' || stacks.some(value => value.toLowerCase().includes(stack));
       const text = isRequestsPage
@@ -408,11 +476,23 @@
   }
 
   function render() {
+    const source = isRequestsPage ? requests : projects;
     const filtered = getItems();
     const shown = filtered.slice(0, visibleCount);
     grid.classList.toggle('is-list', view === 'list');
     grid.innerHTML = shown.map(renderProject).join('');
     emptyState.hidden = Boolean(catalogError) || filtered.length !== 0;
+    const noPosts = catalogLoaded && !catalogError && source.length === 0;
+    emptyState.querySelector('h3').textContent = noPosts
+      ? 'No projects have been posted yet'
+      : 'No projects match your filters';
+    emptyState.querySelector('p').textContent = noPosts
+      ? 'There are no project listings available right now. Please check back soon.'
+      : isRequestsPage
+        ? 'Try changing your search terms or resetting the filters to see more opportunities.'
+        : 'Try changing your search or resetting the filters to see more options.';
+    emptyState.querySelector('.empty-search-icon').hidden = noPosts;
+    emptyState.querySelector('[data-reset]').hidden = noPosts;
     catalogStatus.hidden = catalogLoaded && !catalogError;
     if(!catalogLoaded&&!catalogError)catalogStatus.textContent='Loading projects…';
     if (catalogError) catalogStatus.textContent = 'Projects could not be loaded. Check your connection and try again.';
@@ -506,18 +586,17 @@
     topSearchInput.value = '';
     ['typeFilter', 'budgetFilter', 'stackFilter'].forEach(id => { document.getElementById(id).value = 'all'; });
     document.getElementById('sortFilter').value = 'popular';
-    if(isRequestsPage){
-      budgetValues.mode = 'all';
-      budgetValues.lower = '';
-      budgetValues.from = '';
-      budgetValues.to = '';
-      ['budgetSingleValue', 'budgetFromValue', 'budgetToValue'].forEach(id => { document.getElementById(id).value = ''; });
-      document.getElementById('budgetMenuValues').hidden = true;
-      document.getElementById('budgetSingleValueLabel').hidden = false;
-      document.getElementById('budgetRangeValues').hidden = true;
-      document.getElementById('budgetRangeError').hidden = true;
-      document.getElementById('budgetFilterMenu').classList.remove('has-values');
-    }
+    budgetValues.mode = 'all';
+    budgetValues.lower = '';
+    budgetValues.from = '';
+    budgetValues.to = '';
+    committedBudgetValues = { ...budgetValues };
+    ['budgetSingleValue', 'budgetFromValue', 'budgetToValue'].forEach(id => { document.getElementById(id).value = ''; });
+    document.getElementById('budgetMenuValues').hidden = true;
+    document.getElementById('budgetSingleValueLabel').hidden = false;
+    document.getElementById('budgetRangeValues').hidden = true;
+    document.getElementById('budgetRangeError').hidden = true;
+    document.getElementById('budgetFilterMenu').classList.remove('has-values');
     syncDropdownLabels();
     categoryButtons.forEach(button => {
       const active = button.dataset.category === 'all';
