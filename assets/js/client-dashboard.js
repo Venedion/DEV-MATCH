@@ -65,6 +65,7 @@ let activeRequestFilter='all';
 let activeRequestQuery='';
 let activeRequestSort='newest';
 let activeRequestDetailId=null;
+let activeRequestViewId=null;
 let requestActivityEntries=[];
 let requestActivityState='loading';
 let savingRequest=false;
@@ -290,7 +291,7 @@ function renderRequests(){
       <div class="request-card-menu"><details><summary aria-label="More actions for request">•••</summary><div><button type="button" data-request-action="${moreAction}" data-request-id="${escapeHtml(request.id)}">${moreLabel}</button>${status!=='draft'?`<button type="button" data-request-action="draft" data-request-id="${escapeHtml(request.id)}">Save as draft</button>`:''}<button class="danger" type="button" data-request-action="delete" data-request-id="${escapeHtml(request.id)}">Delete request</button></div></details></div></div>
       <h2>${escapeHtml(request.title||'Untitled request')}</h2>
       <div class="request-card-facts"><div><small>BUDGET</small><b>${escapeHtml(budget)}</b></div><div><small>DEADLINE</small><b>${deadline?escapeHtml(formatDeadline(request.deadline)):'Not set'}${daysLeft===null?'':` · ${escapeHtml(deadlineNote)}`}</b></div><div><small>REQUIRED</small><span>${specialties.length?specialties.map(specialty=>`<i>${escapeHtml(specialty)}</i>`).join(''):'Not specified'}</span></div></div>
-      <footer class="request-card-footer"><span class="request-card-metrics"><span>◉ ${views}</span><span>♡ ${saves}</span><span>▢ ${comments}</span>${referenceCount?`<span class="request-card-new">${referenceCount} ref</span>`:''}</span><div class="request-card-actions"><button type="button" class="request-card-secondary" data-request-detail="${escapeHtml(request.id)}">More</button><button type="button" class="request-card-secondary" data-edit-request="${escapeHtml(request.id)}">Edit</button><button type="button" class="request-card-primary" data-request-action="view" data-request-id="${escapeHtml(request.id)}">View request <span aria-hidden="true">→</span></button></div></footer>
+      <footer class="request-card-footer"><span class="request-card-metrics"><span>◉ ${views}</span><span>♡ ${saves}</span><span>▢ ${comments}</span>${referenceCount?`<span class="request-card-new">${referenceCount} ref</span>`:''}</span><div class="request-card-actions"><button type="button" class="request-card-secondary" data-request-detail="${escapeHtml(request.id)}">See Details <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12h20M17 8l5 4-5 4"/></svg></button><button type="button" class="request-card-secondary" data-edit-request="${escapeHtml(request.id)}">Edit</button></div></footer>
     </article>`;
   }).join('');
 }
@@ -873,6 +874,7 @@ async function renderPrivateAttachmentLinks(request,container,statusElement,unav
 }
 function showRequestDetails(request){
   const dialog=document.getElementById('requestViewDialog');
+  activeRequestViewId=request.id;
   document.getElementById('requestViewTitle').textContent=request.title||'Untitled request';
   const meta=document.getElementById('requestViewMeta');
   const category=request.category==='Other'&&request.categoryOther?`Other · ${request.categoryOther}`:request.category||'Category not selected';
@@ -1493,7 +1495,23 @@ document.querySelectorAll('[data-request-filter]').forEach(button=>button.addEve
   if(requestFilterMenu.contains(button))closeRequestFilterMenu(true);
   renderRequests();
 }));
-document.getElementById('requestList').addEventListener('click',event=>{
+const requestList=document.getElementById('requestList');
+function closeRequestCardMenus(except=null){
+  requestList.querySelectorAll('.request-card-menu details[open]').forEach(details=>{
+    if(details!==except)details.open=false;
+  });
+}
+document.addEventListener('click',event=>{
+  if(!requestList.contains(event.target))closeRequestCardMenus();
+});
+requestList.addEventListener('click',event=>{
+  const clickedMenu=event.target.closest('.request-card-menu details');
+  const openedMenu=requestList.querySelector('.request-card-menu details[open]');
+  if(openedMenu&&openedMenu!==clickedMenu){
+    closeRequestCardMenus();
+    const clickedCard=event.target.closest('[data-request-card]');
+    if(clickedCard&&!event.target.closest('button,a,input,select,textarea,summary,[data-request-ignore-open]'))return;
+  }
   const card=event.target.closest('[data-request-card]');
   if(card&&!event.target.closest('button,a,input,select,textarea,summary,[data-request-ignore-open]')){
     const request=requests.find(item=>item.id===card.dataset.requestCard);
@@ -1591,6 +1609,11 @@ document.getElementById('requestDetailPage').addEventListener('submit',async eve
 });
 document.querySelectorAll('[data-close-request-view]').forEach(button=>button.addEventListener('click',()=>document.getElementById('requestViewDialog').close()));
 document.getElementById('requestViewDialog').addEventListener('click',event=>{if(event.target===event.currentTarget)event.currentTarget.close()});
+document.querySelector('[data-request-view-details]').addEventListener('click',()=>{
+  const request=requests.find(item=>item.id===activeRequestViewId);
+  document.getElementById('requestViewDialog').close();
+  if(request)showRequestDetailPage(request);
+});
 renderProjects();
 renderRequests();
 const requestActivityList=document.getElementById('requestActivityList');
