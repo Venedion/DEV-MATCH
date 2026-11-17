@@ -470,9 +470,7 @@
     try {
       const user = await window.devMatchBackend.ready;
       if (!user) throw new Error('Sign in with a client account to browse the developer directory.');
-      const {data: account, error: accountError} = await window.devMatchBackend.client
-        .from('profiles').select('account_role').eq('id', user.id).single();
-      if (accountError) throw accountError;
+      const account = await window.devMatchBackend.loadProfile(user);
       if (account.account_role !== 'client') throw new Error('The developer directory is available in client mode.');
       const {data: people, error} = await window.devMatchBackend.client.from('directory_people')
         .select('id,display_name,username,account_role,profile_data,published_portfolio_count')

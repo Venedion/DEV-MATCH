@@ -1,6 +1,6 @@
 const {test}=require('node:test');const assert=require('node:assert/strict');const fs=require('node:fs');const vm=require('node:vm');const path=require('node:path');
 const source=fs.readFileSync(path.join(__dirname,'../assets/js/backend.js'),'utf8');
-async function setup({verified=true,page='devmatch-settings.html',role='dev',userRole='dev',changeAccount=false,legacySensitiveCache=false,commentResults=[],notifications=[],notificationReadIds=[],metrics=[],metricsError=null,rpcResponses={},projectEngagement=null}={}){
+async function setup({verified=true,page='devmatch-settings.html',role='dev',userRole='dev',changeAccount=false,legacySensitiveCache=false,commentResults=[],notifications=[],notificationReadIds=[],metrics=[],metricsError=null,rpcResponses={},projectEngagement=null,workspaceRole=null,workspaces=[]}={}){
   let gets=0;const redirects=[],updates=[],passwords=[],rpcCalls=[];
   const user={id:'fixture',email:'owner@example.invalid',email_confirmed_at:verified?'2026-11-08':null};
   const row={id:user.id,account_role:userRole,account_verified:false,onboarding_complete:true,profile_data:{displayName:'Owner'},display_name:'Owner',username:'owner',phone:'+6281234567890'};
@@ -12,6 +12,8 @@ async function setup({verified=true,page='devmatch-settings.html',role='dev',use
     getOwnPropertyDescriptor:(target,key)=>Object.hasOwn(values,key)?{enumerable:true,configurable:true,value:values[key]}:Object.getOwnPropertyDescriptor(target,key)
   });
   const sessionValues=legacySensitiveCache?{'devmatch-profile-draft':JSON.stringify({displayName:'Owner',accountNumber:'1234567890',npwp:'09.254.891.2-121.000'})}:{};
+  if(workspaceRole)sessionValues['devmatch-workspace-'+user.id]=workspaceRole;
+  function workspaceQuery(){let selectedRole=null;let payload=null;const q={select:()=>q,eq:(key,value)=>{if(key==='role')selectedRole=value;return q;},update:changes=>{payload=changes;return q;},maybeSingle:async()=>{const data=workspaces.find(w=>w.user_id===user.id && w.role===selectedRole)||null;return {data,error:null};},single:async()=>{const data=workspaces.find(w=>w.user_id===user.id && w.role===selectedRole);if(!data)return {data:null,error:new Error('Missing workspace')};Object.assign(data,payload);return {data,error:null};}};return q;}
   const query={select:()=>query,eq:()=>query,single:async()=>({data:row,error:null}),update:payload=>{updates.push(payload);Object.assign(row,payload);return query;}};
   const commentSelects=[];
   const commentsQuery={select(columns){commentSelects.push(columns);return this;},eq(){return this;},order(){return this;},
@@ -21,7 +23,7 @@ async function setup({verified=true,page='devmatch-settings.html',role='dev',use
   const auth={getUser:async()=>({data:{user:changeAccount&&++gets>1?{...user,id:'other'}:user},error:null}),
     signInWithPassword:async args=>args.password==='Current!Password1'?{data:{user},error:null}:{data:{user:null},error:Object.assign(new Error('Wrong password'),{code:'invalid_credentials'})},
     updateUser:async args=>{passwords.push(args);return {data:{user},error:null};}};
-  const context={URLSearchParams,window:{supabase:{createClient:()=>({auth,from:table=>table==='profiles'?query:table==='comments'?commentsQuery:dataQuery(tableData[table]||[]),rpc:async(name,args)=>{rpcCalls.push({name,args});return Object.hasOwn(rpcResponses,name)?rpcResponses[name]:{data:metrics,error:metricsError};}})}},location:{pathname:'/'+page,search:'?role='+role,hash:'',replace:url=>redirects.push(url),assign:url=>redirects.push(url),reload:()=>redirects.push('reload')},
+  const context={URLSearchParams,window:{supabase:{createClient:()=>({auth,from:table=>table==='account_workspaces'?workspaceQuery():table==='profiles'?query:table==='comments'?commentsQuery:dataQuery(tableData[table]||[]),rpc:async(name,args)=>{rpcCalls.push({name,args});return Object.hasOwn(rpcResponses,name)?rpcResponses[name]:{data:metrics,error:metricsError};}})}},location:{pathname:'/'+page,search:'?role='+role,hash:'',replace:url=>redirects.push(url),assign:url=>redirects.push(url),reload:()=>redirects.push('reload')},
     localStorage:storage,sessionStorage:{getItem:key=>sessionValues[key]??null,removeItem:key=>delete sessionValues[key],setItem:(key,value)=>sessionValues[key]=value},document:{createElement:()=>({}),head:{append(){}},getElementById:()=>({remove(){}}),addEventListener(){}},fetch:async()=>({ok:true,json:async()=>({})})};
   vm.runInNewContext(source,context);const backend=context.window.devMatchBackend;await backend.ready;
   return {backend,redirects,updates,passwords,rpcCalls,values,sessionValues,row,user,commentSelects};
@@ -153,4 +155,25 @@ test('Existing project comments remain available before the reply migration is a
   assert.equal(result.comments[0].text,'Existing comment');
   assert.equal(result.comments[0].parentCommentId,null);
   assert.doesNotMatch(commentSelects[1],/parent_comment_id/);
+});
+
+test('Connected developer workspace preserves the primary client profile on save',async()=>{
+  const workspaces=[{user_id:'fixture',role:'dev',display_name:'Developer',profile_data:{displayName:'Developer',bio:'dev bio'},onboarding_complete:true}];
+  const {backend,row,user,sessionValues,values}=await setup({userRole:'client',workspaceRole:'dev',workspaces,page:'devmatch-auth.html'});
+  assert.equal((await backend.loadProfile(user)).account_role,'dev');
+  await backend.updateWorkspaceProfile({display_name:'Updated developer',profile_data:{bio:'updated dev'}});
+  assert.equal(row.display_name,'Owner');assert.equal(row.account_role,'client');
+  assert.equal(workspaces[0].display_name,'Updated developer');
+  assert.equal(sessionValues['devmatch-active-role'],'dev');
+  assert.equal(values['devmatch-active-role'],undefined);
+});
+test('Workspace selection is tab-local and cannot grant a missing role',async()=>{
+  const workspaces=[{user_id:'fixture',role:'dev',display_name:'Developer',profile_data:{},onboarding_complete:true}];
+  const tabA=await setup({userRole:'client',workspaceRole:'dev',workspaces,page:'devmatch-auth.html'});
+  const tabB=await setup({userRole:'client',workspaces,page:'devmatch-auth.html'});
+  assert.equal((await tabA.backend.loadProfile(tabA.user)).account_role,'dev');
+  assert.equal((await tabB.backend.loadProfile(tabB.user)).account_role,'client');
+  const forged=await setup({userRole:'client',workspaceRole:'dev',page:'devmatch-auth.html'});
+  assert.equal((await forged.backend.loadProfile(forged.user)).account_role,'client');
+  assert.equal(forged.sessionValues['devmatch-workspace-fixture'],undefined);
 });

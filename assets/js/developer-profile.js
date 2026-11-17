@@ -60,9 +60,7 @@
     const user=await window.devMatchBackend.ready;
     let person=null;
     if(user){
-      const {data:account,error:accountError}=await window.devMatchBackend.client.from('profiles')
-        .select('account_role').eq('id',user.id).single();
-      if(accountError)throw accountError;
+      const account = await window.devMatchBackend.loadProfile(user);
       accountRole=account.account_role;
       let personQuery=await window.devMatchBackend.client.from('directory_people')
         .select('id,display_name,username,account_role,profile_data,published_portfolio_count')

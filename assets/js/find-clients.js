@@ -583,9 +583,7 @@
     try {
       const user = await window.devMatchBackend.ready;
       if (!user) throw new Error('Sign in with a developer account to browse the client directory.');
-      const {data: account, error: accountError} = await window.devMatchBackend.client
-        .from('profiles').select('account_role').eq('id', user.id).single();
-      if (accountError) throw accountError;
+      const account = await window.devMatchBackend.loadProfile(user);
       if (account.account_role !== 'dev') throw new Error('The client directory is available in developer mode.');
       const [{data: people, error: peopleError}, {data: rows, error: projectsError}] = await Promise.all([
         window.devMatchBackend.client.from('directory_people')

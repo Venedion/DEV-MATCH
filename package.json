@@ -1,0 +1,11 @@
+{
+  "name": "dev-match",
+  "private": true,
+  "scripts": {
+    "test": "node --test tests/*.test.cjs",
+    "test:database": "node tests/workspaces.database.cjs"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "0.5.16"
+  }
+}

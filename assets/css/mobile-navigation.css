@@ -1138,3 +1138,15 @@
     display: flex;
   }
 }
+
+/* Account workspace choice, shared by desktop and mobile navigation. */
+.workspace-choice { box-sizing:border-box; background:var(--surface, #fff); }
+.workspace-choice::backdrop { background:rgba(0,0,0,.5); backdrop-filter:blur(3px); }
+.workspace-choice h2 { margin:0 0 12px; font-size:24px; line-height:1.25; }
+.workspace-choice p { color:#666; line-height:1.5; margin:12px 0 20px; }
+.workspace-choice button { display:block; width:100%; padding:14px 16px; margin-top:10px; border:1px solid #d4d4d4; border-radius:10px; background:#fff; color:#171717; font:inherit; font-weight:600; cursor:pointer; }
+.workspace-choice button[data-choice="connect"] { background:#171717; color:#fff; border-color:#171717; }
+.workspace-choice button:hover { filter:brightness(.92); }
+.workspace-choice button:focus-visible { outline:3px solid #799cfa; outline-offset:3px; }
+.workspace-choice button[data-choice="cancel"] { border-color:transparent; background:transparent; }
+.workspace-choice { margin:auto; max-height:calc(100dvh - 32px); overflow:auto; }

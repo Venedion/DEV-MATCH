@@ -44,7 +44,7 @@
 
   function getStoredRole(){
     try{
-      const activeRole=localStorage.getItem('devmatch-active-role');
+      const activeRole=sessionStorage.getItem('devmatch-active-role');
       if(activeRole==='client'||activeRole==='dev')return activeRole;
       const hasClient=Boolean(localStorage.getItem('devmatch-profile-client'));
       const hasDeveloper=Boolean(localStorage.getItem('devmatch-profile-dev'));

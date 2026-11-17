@@ -90,7 +90,7 @@
 
   async function invokeChat(action, payload = {}) {
     const {data, error} = await client.functions.invoke('chat-api', {
-      body: {action, ...payload}
+      body: {action, ...payload, workspaceRole: currentProfile?.account_role}
     });
     if (error) throw await edgeError(error, 'Chat service is unavailable.');
     if (!data || !Object.hasOwn(data, 'data')) {
@@ -220,6 +220,7 @@
     if (partnerIds.length) {
       const result = await client.from('directory_people')
         .select('id,display_name,username,account_role')
+        .eq('account_role', currentProfile.account_role === 'client' ? 'dev' : 'client')
         .in('id', partnerIds);
       if (result.error) throw result.error;
       people = result.data || [];
@@ -752,6 +753,7 @@
     if (UUID_PATTERN.test(contact || '')) {
       const result = await client.from('directory_people')
         .select('id,display_name,username,account_role')
+        .eq('account_role', currentProfile.account_role === 'client' ? 'dev' : 'client')
         .eq('id', contact)
         .maybeSingle();
       if (result.error) throw result.error;
@@ -760,6 +762,7 @@
     if (contact) {
       const result = await client.from('directory_people')
         .select('id,display_name,username,account_role')
+        .eq('account_role', currentProfile.account_role === 'client' ? 'dev' : 'client')
         .eq('username', contact.replace(/^@/, ''))
         .maybeSingle();
       if (result.error) throw result.error;
@@ -768,6 +771,7 @@
     if (UUID_PATTERN.test(fallbackId || '')) {
       const result = await client.from('directory_people')
         .select('id,display_name,username,account_role')
+        .eq('account_role', currentProfile.account_role === 'client' ? 'dev' : 'client')
         .eq('id', fallbackId)
         .maybeSingle();
       if (result.error) throw result.error;

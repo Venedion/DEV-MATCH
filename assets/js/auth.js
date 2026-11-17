@@ -105,6 +105,7 @@ $('form').addEventListener('submit',async e=>{
   const u=$('user').value.trim(),em=$('email').value.trim(),ph=$('phone').value,pw=$('pass').value;
   if(reg){
     if(!/^[A-Za-z0-9_.]{3,24}$/.test(u)){setErr('user','Use 3–24 letters, numbers, dots or underscores.');bad=true}
+    if(em.toLowerCase() === (sessionStorage.getItem('devmatch-separate-account-email') || '').toLowerCase()){setErr('email','Use a different email for a separate account, or log in to your existing account and choose Connect.');bad=true}
     if(!emailRe.test(em)){setErr('email','Enter a valid email address, like you@example.com.');bad=true}
     if(ph.length<9||ph.length>13){setErr('phone','Enter your number without the leading 0, like 812 3456 7890.');bad=true}
     if(pw.length<8){setErr('pass','Password needs at least 8 characters.');bad=true}

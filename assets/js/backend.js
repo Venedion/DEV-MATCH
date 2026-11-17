@@ -73,18 +73,60 @@
     const value = JSON.stringify(profile);
     const changed = localStorage.getItem(key) !== value;
     localStorage.setItem(key, value);
-    localStorage.setItem('devmatch-active-role', row.account_role);
+    sessionStorage.setItem('devmatch-active-role', row.account_role);
     return changed;
   }
+  const workspaceKey = user => 'devmatch-workspace-' + user.id;
   async function loadProfile(user) {
     const {data, error} = await client.from('profiles').select('*').eq('id', user.id).single();
     if (error) throw error;
+    const role = sessionStorage.getItem(workspaceKey(user));
+    if (!['client', 'dev'].includes(role) || role === data.account_role) return data;
+    const workspace = await client.from('account_workspaces').select('*')
+      .eq('user_id', user.id).eq('role', role).maybeSingle();
+    if (workspace.error) throw workspace.error;
+    if (!workspace.data) { sessionStorage.removeItem(workspaceKey(user)); return data; }
+    const {display_name, profile_data, onboarding_complete} = workspace.data;
+    return {...data, account_role: role, display_name, profile_data, onboarding_complete};
+  }
+  async function hasWorkspace(role) {
+    await currentAccount();
+    const {data, error} = await client.rpc('has_account_workspace', {p_role: role});
+    if (error) throw error;
+    return data === true;
+  }
+  async function switchWorkspace(role, create = false) {
+    const user = await currentAccount();
+    const {data, error} = await client.rpc('switch_account_workspace', {p_role: role, p_create: create});
+    if (error) throw error;
+    // Selection is per user and per tab, never written to the shared profile.
+    sessionStorage.setItem(workspaceKey(user), data.account_role);
+    sessionStorage.removeItem('devmatch-profile-draft');
+    activeAccountRole = data.account_role;
+    cache(data, user);
     return data;
+  }
+  async function updateWorkspaceProfile(changes) {
+    const user = await currentAccount();
+    const current = await loadProfile(user);
+    const primary = await client.from('profiles').select('account_role').eq('id', user.id).single();
+    if (primary.error) throw primary.error;
+    const payload = {};
+    for (const field of ['display_name', 'profile_data', 'onboarding_complete']) {
+      if (Object.hasOwn(changes, field)) payload[field] = changes[field];
+    }
+    const query = current.account_role === primary.data.account_role
+      ? client.from('profiles').update(payload).eq('id', user.id)
+      : client.from('account_workspaces').update(payload).eq('user_id', user.id).eq('role', current.account_role);
+    const {data, error} = await query.select().single();
+    if (error) throw error;
+    const updated = {...current, ...payload};
+    cache(updated, user);
+    return updated;
   }
   async function loadPrivateProfileFields() {
     const user = await currentAccount();
-    const {data, error} = await client.from('profiles').select('profile_data').eq('id', user.id).single();
-    if (error) throw error;
+    const data = await loadProfile(user);
     return Object.fromEntries(privateProfileFields
       .filter(field => Object.hasOwn(data.profile_data || {}, field))
       .map(field => [field, data.profile_data[field]]));
@@ -816,11 +858,7 @@
         delete details[field];
       }
     });
-    const {data: currentProfile, error: profileError} = await client.from('profiles')
-      .select('profile_data')
-      .eq('id', user.id)
-      .single();
-    if (profileError) throw profileError;
+    const currentProfile = await loadProfile(user);
     privateProfileFields.forEach(field => {
       if (Object.hasOwn(currentProfile.profile_data || {}, field)) {
         details[field] = currentProfile.profile_data[field];
@@ -830,8 +868,7 @@
     if (Object.hasOwn(currentProfile.profile_data, 'notificationPreferences')) {
       details.notificationPreferences = currentProfile.profile_data.notificationPreferences;
     }
-    const {data,error}=await client.from('profiles').update({display_name:String(details.displayName||''),profile_data:details}).eq('id',user.id).select().single();
-    if(error)throw error;
+    const data=await updateWorkspaceProfile({display_name:String(details.displayName||''),profile_data:details});
     cache(data,user);return data;
   }
   async function changePassword(currentPassword,password){
@@ -849,6 +886,9 @@
     profileDataForCache,
     cache,
     loadProfile,
+    hasWorkspace,
+    switchWorkspace,
+    updateWorkspaceProfile,
     loadPrivateProfileFields,
     destination,
     saveProfile,

@@ -35,9 +35,7 @@
       let developerName='DEV-MATCH member',developerLocation='Location not provided',specialty='Developer',developerBio='No biography provided.';
       const user=await window.devMatchBackend.ready;
       if(user){
-        const {data:account,error:accountError}=await window.devMatchBackend.client.from('profiles')
-          .select('account_role').eq('id',user.id).single();
-        if(accountError)throw accountError;
+        const account = await window.devMatchBackend.loadProfile(user);
         if(account.account_role==='client'){
           const {data:person,error:personError}=await window.devMatchBackend.client.from('directory_people')
             .select('display_name,username,profile_data').eq('id',row.owner_id).eq('account_role','dev').maybeSingle();

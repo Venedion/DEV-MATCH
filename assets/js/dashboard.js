@@ -79,7 +79,7 @@
   }
 
   async function loadMetrics(user) {
-    const { data, error } = await client.rpc('get_dashboard_metrics');
+    const { data, error } = await client.rpc('get_dashboard_metrics', {p_role: 'dev'});
     if (error) throw error;
     const metrics = typeof data === 'string' ? JSON.parse(data) : data;
     if (!metrics || typeof metrics !== 'object'

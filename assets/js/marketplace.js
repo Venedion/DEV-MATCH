@@ -648,9 +648,7 @@
 
       let peopleById = new Map();
       if (user && rows?.length) {
-        const {data:account,error:accountError}=await window.devMatchBackend.client.from('profiles')
-          .select('account_role').eq('id',user.id).single();
-        if(accountError)throw accountError;
+        const account = await window.devMatchBackend.loadProfile(user);
         const expectedRole=isRequestsPage?'dev':'client';
         if(account.account_role!==expectedRole)throw new Error(`This project catalog is available in ${expectedRole} mode.`);
         const {data: people, error: peopleError} = await window.devMatchBackend.client

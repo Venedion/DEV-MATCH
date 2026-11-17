@@ -240,18 +240,25 @@ async function decryptRow(row, keyring) {
   };
 }
 
-async function getAccount(supabaseUrl, serviceRoleKey, userId) {
+async function getAccount(supabaseUrl, serviceRoleKey, userId, role = null) {
   const profiles = await requestRows(supabaseUrl, serviceRoleKey, 'profiles', {
     select: 'id,account_role,onboarding_complete',
     id: `eq.${userId}`,
     limit: '1'
   });
-  return profiles[0] || null;
+  const primary = profiles[0];
+  if (!primary || !role || primary.account_role === role) return primary || null;
+  const workspaces = await requestRows(supabaseUrl, serviceRoleKey, 'account_workspaces', {
+    select: 'role,onboarding_complete', user_id: `eq.${userId}`, role: `eq.${role}`, limit: '1'
+  });
+  const workspace = workspaces[0];
+  return workspace ? {...primary, account_role: workspace.role, onboarding_complete: workspace.onboarding_complete} : null;
 }
 
-async function getPublicAccount(supabaseUrl, serviceRoleKey, userId) {
+async function getPublicAccount(supabaseUrl, serviceRoleKey, userId, role) {
   const accounts = await requestRows(supabaseUrl, serviceRoleKey, 'directory_people', {
     select: 'id,account_role',
+    account_role: `eq.${role}`,
     id: `eq.${userId}`,
     limit: '1'
   });
@@ -355,12 +362,12 @@ async function handleAction(body, user, keyring, supabaseUrl, serviceRoleKey) {
     if (!project || project.owner_id === user.id) {
       throw new ChatApiError('This project is not available for a new conversation.', 404);
     }
-    const [sender, owner] = await Promise.all([
-      getAccount(supabaseUrl, serviceRoleKey, user.id),
-      getPublicAccount(supabaseUrl, serviceRoleKey, project.owner_id)
-    ]);
     const expectedSenderRole = project.project_kind === 'portfolio' ? 'client' : 'dev';
     const expectedOwnerRole = project.project_kind === 'portfolio' ? 'dev' : 'client';
+    const [sender, owner] = await Promise.all([
+      getAccount(supabaseUrl, serviceRoleKey, user.id, expectedSenderRole),
+      getPublicAccount(supabaseUrl, serviceRoleKey, project.owner_id, expectedOwnerRole)
+    ]);
     if (!sender?.onboarding_complete || sender.account_role !== expectedSenderRole
       || owner?.account_role !== expectedOwnerRole) {
       throw new ChatApiError('Your account cannot start a conversation about this project.', 403);
@@ -374,9 +381,14 @@ async function handleAction(body, user, keyring, supabaseUrl, serviceRoleKey) {
       || participantId === user.id) {
       throw new ChatApiError('A valid contact is required.', 400);
     }
+    if (!['client', 'dev'].includes(body.workspaceRole)) {
+      // Older deployed clients use their primary role.
+      const primary = await getAccount(supabaseUrl, serviceRoleKey, user.id);
+      body.workspaceRole = primary?.account_role;
+    }
     const [sender, recipient] = await Promise.all([
-      getAccount(supabaseUrl, serviceRoleKey, user.id),
-      getPublicAccount(supabaseUrl, serviceRoleKey, participantId)
+      getAccount(supabaseUrl, serviceRoleKey, user.id, body.workspaceRole),
+      getPublicAccount(supabaseUrl, serviceRoleKey, participantId, body.workspaceRole === 'client' ? 'dev' : 'client')
     ]);
     if (!sender?.onboarding_complete || !recipient) {
       throw new ChatApiError('This contact is not available for chat.', 404);

@@ -81,7 +81,7 @@
     const activeMode = document.querySelector('.mode-switch a.active, .client-mode-switch a.active');
     if (activeMode) return activeMode.textContent.toLowerCase().includes('client mode') ? 'client' : 'developer';
     try {
-      const storedRole = localStorage.getItem('devmatch-active-role');
+      const storedRole = sessionStorage.getItem('devmatch-active-role');
       if (storedRole === 'client' || storedRole === 'dev') return storedRole === 'dev' ? 'developer' : storedRole;
     } catch (error) {
       console.warn('Unable to read the active workspace for sidebar navigation.', error);

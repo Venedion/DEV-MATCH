@@ -7,6 +7,7 @@
   const mobileNavigationBreakpoint = window.matchMedia('(max-width: 820px)');
 
   function getMode(link) {
+    if (link.dataset.workspaceMode) return link.dataset.workspaceMode;
     return link.textContent.trim().toLowerCase().includes('client mode')
       ? 'client'
       : 'developer';
@@ -19,6 +20,47 @@
       link.href = linkMode === activeMode
         ? (linkMode === 'client' ? 'devmatch-client-dashboard.html' : 'devmatch-dashboard.html')
         : `devmatch-auth.html?mode=register&role=${linkMode === 'client' ? 'client' : 'dev'}`;
+    });
+  }
+
+  let switchingWorkspace = false;
+  async function switchAccountWorkspace(role) {
+    const backend = window.devMatchBackend;
+    const user = await backend.ready;
+    if (!user) throw new Error('Please log in first.');
+    const exists = await backend.hasWorkspace(role);
+    let create = false;
+    if (!exists) {
+      const choice = await chooseWorkspace(role);
+      if (!choice) return;
+      if (choice === 'new') {
+        sessionStorage.setItem('devmatch-separate-account-email', user.email || '');
+        const result = await backend.client.auth.signOut({scope: 'local'});
+        if (result.error) throw result.error;
+        backend.clearCache();
+        location.assign(`devmatch-auth.html?mode=register&role=${role}`);
+        return;
+      }
+      create = true;
+    }
+    const profile = await backend.switchWorkspace(role, create);
+    location.assign(backend.destination(profile, user));
+  }
+
+  function chooseWorkspace(role) {
+    return new Promise(resolve => {
+      const dialog = document.createElement('dialog');
+      dialog.setAttribute('aria-labelledby', 'workspace-choice-title');
+      dialog.className = 'workspace-choice';
+      dialog.style.cssText = 'border:1px solid #ddd;border-radius:18px;padding:28px;max-width:420px;width:calc(100% - 32px);font:inherit;color:#171717';
+      const name = role === 'dev' ? 'developer' : 'client';
+      dialog.innerHTML = `<h2 id="workspace-choice-title">Switch to ${name} mode</h2><p>Connect to keep the same email and password, with a separate ${name} profile.</p><button type="button" data-choice="connect">Connect with current account</button> <button type="button" data-choice="new">Create a new ${name} account</button><p>A new account uses a different email and password.</p><button type="button" data-choice="cancel">Cancel</button>`;
+      document.body.append(dialog);
+      let finished = false;
+      const finish = value => { if (finished) return; finished = true; dialog.close(); dialog.remove(); resolve(value); };
+      dialog.addEventListener('click', event => { const button = event.target.closest('[data-choice]'); if (button) finish(button.dataset.choice === 'cancel' ? null : button.dataset.choice); });
+      dialog.addEventListener('cancel', event => { event.preventDefault(); finish(null); });
+      dialog.showModal();
     });
   }
 
@@ -642,6 +684,14 @@
     }
 
     if (modeLink && !modeLink.classList.contains('active') && !modeLink.target) {
+      event.preventDefault();
+      if (switchingWorkspace) return;
+      switchingWorkspace = true;
+      const targetRole = getMode(modeLink) === 'client' ? 'client' : 'dev';
+      switchAccountWorkspace(targetRole).catch(error => {
+        console.error('Unable to switch workspace.', error);
+        alert(error.message || 'Unable to switch accounts right now. Please try again.');
+      }).finally(() => { switchingWorkspace = false; });
       setMobileModeMenuOpen(false);
       const activeLink = modeLink.parentElement.querySelector('.active');
       if (activeLink) {

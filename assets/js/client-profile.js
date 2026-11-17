@@ -19,9 +19,7 @@
     const user=await window.devMatchBackend.ready;
     let client;
     if(user){
-      const {data:account,error:accountError}=await window.devMatchBackend.client.from('profiles')
-        .select('account_role').eq('id',user.id).single();
-      if(accountError)throw accountError;
+      const account = await window.devMatchBackend.loadProfile(user);
       if(account.account_role!=='dev'){showUnavailable('Client profiles are available in developer mode.');return;}
       const {data,error}=await window.devMatchBackend.client.from('directory_people')
         .select('id,display_name,account_role,profile_data,open_request_count')

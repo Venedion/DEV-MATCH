@@ -1732,7 +1732,7 @@ async function loadClientDashboardData(){
   try{
     const user=await backend.ready;
     if(!user)return;
-    const metricsTask=client.rpc('get_dashboard_metrics').then(({data,error})=>{
+    const metricsTask=client.rpc('get_dashboard_metrics', {p_role: 'client'}).then(({data,error})=>{
       if(error)throw error;
       requestDashboardMetrics=typeof data==='string'?JSON.parse(data):data;
       if(!requestDashboardMetrics||typeof requestDashboardMetrics!=='object'

@@ -42,9 +42,7 @@
     if(user){
       try{await window.devMatchBackend.recordProjectView(project.id);}
       catch(error){console.error('Unable to record the project request view in Supabase.',error);viewRecordFailed=true;}
-      const {data:account,error:accountError}=await window.devMatchBackend.client.from('profiles')
-        .select('account_role').eq('id',user.id).single();
-      if(accountError)throw accountError;
+      const account = await window.devMatchBackend.loadProfile(user);
       accountRole=account.account_role;
       if(accountRole==='dev'){
         const {data:person,error:personError}=await window.devMatchBackend.client.from('directory_people')

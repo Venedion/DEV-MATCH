@@ -297,10 +297,9 @@ async function finish(){
   const backend=window.devMatchBackend;
   const user=await backend.ready;
   if(!user)throw new Error('Please log in to save your profile.');
-  const {data:row,error:saveError}=await backend.client.from('profiles').update({display_name:saved.displayName,profile_data:saved,onboarding_complete:true}).eq('id',user.id).select().single();
-  if(saveError)throw saveError;
+  const row=await backend.updateWorkspaceProfile({display_name:saved.displayName,profile_data:saved,onboarding_complete:true});
   backend.cache(row,user);
-  localStorage.setItem('devmatch-active-role',role);
+  sessionStorage.setItem('devmatch-active-role',role);
   sessionStorage.removeItem(draftKey);
   window.location.href='devmatch-complete.html?role='+role;
   }catch(cause){error.textContent=cause.message||'Unable to save your profile. Please try again.';}

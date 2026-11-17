@@ -61,9 +61,7 @@
       const user=await window.devMatchBackend.ready;
       if(!user){developerGrid.innerHTML='';directoryStatus.textContent='Sign in to browse developer profiles.';return;}
       directoryStatus.textContent='Loading developer directory…';
-      const {data:account,error:accountError}=await window.devMatchBackend.client.from('profiles')
-        .select('account_role').eq('id',user.id).single();
-      if(accountError)throw accountError;
+      const account = await window.devMatchBackend.loadProfile(user);
       if(account.account_role!=='client'){
         developerGrid.innerHTML='';
         directoryStatus.textContent='Developer profiles are available to client accounts.';
