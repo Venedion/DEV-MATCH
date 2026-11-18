@@ -22,11 +22,11 @@
     try{
       await backend.ready;
       const {error}=await auth.signInWithOtp({email:nextAddress,options:{shouldCreateUser:false}});
-      if(error&&error.code!=='otp_disabled')throw error;
+      if(error)throw error;
       address=nextAddress;
       cooldownUntil=Date.now()+60000;
       $('otpEmailForm').hidden=true;$('otpCodeForm').hidden=false;
-      status('Periksa inbox dan folder spam. Akun yang belum aktif akan menerima tautan konfirmasi.');
+      status('Jika email ini terdaftar, kode login akan dikirim. Periksa inbox dan folder spam, lalu gunakan kode terbaru.');
       $('otpCode').value='';$('otpCode').focus();
     }catch(error){
       status(error.status===429?'Tunggu sebentar sebelum meminta kode lagi.':'Kode belum dapat dikirim. Coba lagi nanti.');
