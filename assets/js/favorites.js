@@ -442,9 +442,14 @@
 
     if (undoCallback) {
       toastUndoBtn.style.display = 'inline-block';
-      toastUndoBtn.onclick = () => {
-        undoCallback();
-        toastEl.classList.remove('show');
+      toastUndoBtn.onclick = async () => {
+        toastUndoBtn.disabled = true;
+        try {
+          const shouldDismiss = await undoCallback();
+          if (shouldDismiss !== false) toastEl.classList.remove('show');
+        } finally {
+          toastUndoBtn.disabled = false;
+        }
       };
     } else {
       toastUndoBtn.style.display = 'none';
@@ -465,7 +470,7 @@
     if (countBadge) countBadge.textContent = String(secondaryCount);
 
     if (favCountEl) {
-      favCountEl.textContent = currentTab === 'projects' ? `${projCount} saved` : `${secondaryCount} saved`;
+      favCountEl.textContent = `${projCount + secondaryCount} saved`;
     }
 
     // Total favorites in sidebar
@@ -1172,6 +1177,12 @@
       developer: DEVS_KEY,
       client: CLIENTS_KEY
     };
+    const favoriteIdsByType = {
+      project: favoriteProjectIds,
+      developer: favoriteDevIds,
+      client: favoriteClientIds
+    };
+    const removedIds = [...favoriteIdsByType[type]];
 
     try {
       await clearFavoriteCollection(type, storageKeys[type]);
@@ -1186,7 +1197,31 @@
     if (type === 'client') favoriteClientIds = [];
     updateCounters();
     renderCurrentTab();
-    showToast(`All saved ${labels[type]} cleared`);
+    showToast(`All saved ${labels[type]} cleared`, async () => {
+      try {
+        for (const id of removedIds) {
+          await persistFavorite(type, id, true, storageKeys[type]);
+        }
+      } catch (error) {
+        console.error(`Unable to restore ${type} favorites in Supabase.`, error);
+        const storedIds = JSON.parse(localStorage.getItem(storageKeys[type]) || '[]');
+        const restoredIds = Array.isArray(storedIds) ? storedIds : [];
+        if (type === 'project') favoriteProjectIds = restoredIds;
+        if (type === 'developer') favoriteDevIds = restoredIds;
+        if (type === 'client') favoriteClientIds = restoredIds;
+        updateCounters();
+        renderCurrentTab();
+        window.alert('Unable to restore all favorites. Please try again.');
+        return false;
+      }
+
+      if (type === 'project') favoriteProjectIds = removedIds;
+      if (type === 'developer') favoriteDevIds = removedIds;
+      if (type === 'client') favoriteClientIds = removedIds;
+      updateCounters();
+      renderCurrentTab();
+      return true;
+    });
   }
 
   // Clear all button
