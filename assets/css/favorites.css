@@ -779,32 +779,6 @@
   line-height: 1.5;
 }
 
-/* Toast message */
-.fav-toast {
-  position: fixed;
-  bottom: 24px;
-  left: 50%;
-  transform: translateX(-50%) translateY(100px);
-  background: var(--ink);
-  color: #fff;
-  padding: 10px 18px;
-  border-radius: 99px;
-  font-size: 12px;
-  font-weight: 600;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  box-shadow: 0 8px 24px rgba(0,0,0,0.18);
-  opacity: 0;
-  transition: transform .25s ease, opacity .25s ease;
-  z-index: 100;
-}
-
-.fav-toast.show {
-  transform: translateX(-50%) translateY(0);
-  opacity: 1;
-}
-
 .fav-toast-undo {
   color: #4ade80;
   background: none;

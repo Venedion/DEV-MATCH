@@ -133,6 +133,7 @@
   let searchQuery = '';
   let currentSort = 'recent';
   let lastRemovedItem = null;
+  let pendingFavoriteRemoval = null;
 
   // DOM Elements
   const favGridEl = document.getElementById('favGrid');
@@ -149,8 +150,29 @@
   const favClientDialog = document.getElementById('favClientDialog');
   const favDialogCloseBtn = document.getElementById('favDialogCloseBtn');
   const favDialogContent = document.getElementById('favDialogContent');
+  const favRemoveDialog = document.getElementById('favRemoveDialog');
+  const favRemoveTitle = document.getElementById('favRemoveTitle');
+  const favRemoveMessage = document.getElementById('favRemoveMessage');
+  const favRemoveCancel = document.getElementById('favRemoveCancel');
+  const favRemoveConfirm = document.getElementById('favRemoveConfirm');
   const toastEl = document.getElementById('favToast');
   const toastTextEl = document.getElementById('favToastText');
+
+  function confirmFavoriteRemoval(type, id, label) {
+    pendingFavoriteRemoval = {action: 'remove', type, id};
+    favRemoveTitle.textContent = 'Remove from favorites?';
+    favRemoveMessage.textContent = `Are you sure you want to remove “${label}” from your favorites?`;
+    favRemoveConfirm.textContent = 'Remove';
+    favRemoveDialog.showModal();
+  }
+
+  function confirmClearAllFavorites(type, label) {
+    pendingFavoriteRemoval = {action: 'clear-all', type};
+    favRemoveTitle.textContent = 'Clear all favorites?';
+    favRemoveMessage.textContent = `Are you sure you want to remove all saved ${label} from your favorites?`;
+    favRemoveConfirm.textContent = 'Clear All';
+    favRemoveDialog.showModal();
+  }
 
   async function loadFavoriteEntities() {
     if (!initialFavoriteRows) return;
@@ -405,7 +427,7 @@
   if (tabSecondaryBtn) {
     if (isClient) {
       tabSecondaryBtn.id = 'tabDevs';
-      tabSecondaryBtn.innerHTML = `Saved Developers <span class="fav-tab-count" id="countDevs">${favoriteDevIds.length}</span>`;
+      tabSecondaryBtn.innerHTML = `Developers <span class="fav-tab-count" id="countDevs">${favoriteDevIds.length}</span>`;
     } else {
       tabSecondaryBtn.innerHTML = `Saved Clients <span class="fav-tab-count" id="countClients">${favoriteClientIds.length}</span>`;
     }
@@ -606,7 +628,7 @@
         <footer class="fav-card-footer">
           <a class="fav-action-link primary" href="devmatch-chat.html?${isClient ? 'project' : 'request'}=${encodeURIComponent(project.id)}&role=${isClient ? 'client' : 'dev'}">
             <svg viewBox="0 0 24 24"><path d="M21 11.5a8.5 8.5 0 0 1-8.5 8.5H4l1.5-4A8.5 8.5 0 1 1 21 11.5z"/></svg>
-            ${isClient ? 'Chat with Dev' : 'Chat with Client'}
+            ${isClient ? 'Contact' : 'Chat with Client'}
           </a>
           <a class="fav-action-link" href="${escapeHtml(project.detailUrl)}">
             View Details
@@ -618,7 +640,9 @@
     favGridEl.querySelectorAll('[data-remove-fav]').forEach(btn => {
       btn.addEventListener('click', (e) => {
         e.stopPropagation();
-        removeFavoriteProject(btn.dataset.removeFav);
+        const project = savedProjects.find(item => item.id === btn.dataset.removeFav);
+        if (!project) return;
+        confirmFavoriteRemoval('project', project.id, project.title);
       });
     });
   }
@@ -737,7 +761,9 @@
     favGridEl.querySelectorAll('[data-remove-client]').forEach(btn => {
       btn.addEventListener('click', (e) => {
         e.stopPropagation();
-        removeFavoriteClient(btn.dataset.removeClient);
+        const client = savedClients.find(item => item.id === btn.dataset.removeClient);
+        if (!client) return;
+        confirmFavoriteRemoval('client', client.id, client.name);
       });
     });
 
@@ -859,7 +885,9 @@
     favGridEl.querySelectorAll('[data-remove-dev]').forEach(btn => {
       btn.addEventListener('click', (e) => {
         e.stopPropagation();
-        removeFavoriteDeveloper(btn.dataset.removeDev);
+        const developer = savedDevs.find(item => item.id === btn.dataset.removeDev);
+        if (!developer) return;
+        confirmFavoriteRemoval('developer', developer.id, developer.name);
       });
     });
   }
@@ -1133,55 +1161,47 @@
     });
   }
 
+  async function clearAllFavorites(type) {
+    const labels = {
+      project: 'projects',
+      developer: 'developers',
+      client: 'clients'
+    };
+    const storageKeys = {
+      project: PROJECTS_KEY,
+      developer: DEVS_KEY,
+      client: CLIENTS_KEY
+    };
+
+    try {
+      await clearFavoriteCollection(type, storageKeys[type]);
+    } catch (error) {
+      console.error(`Unable to clear ${type} favorites in Supabase.`, error);
+      window.alert('Unable to clear favorites. Please try again.');
+      return;
+    }
+
+    if (type === 'project') favoriteProjectIds = [];
+    if (type === 'developer') favoriteDevIds = [];
+    if (type === 'client') favoriteClientIds = [];
+    updateCounters();
+    renderCurrentTab();
+    showToast(`All saved ${labels[type]} cleared`);
+  }
+
   // Clear all button
   const clearAllBtn = document.getElementById('favClearAllBtn');
   if (clearAllBtn) {
-    clearAllBtn.addEventListener('click', async () => {
+    clearAllBtn.addEventListener('click', () => {
       if (currentTab === 'projects') {
         if (favoriteProjectIds.length === 0) return;
-        if (confirm('Are you sure you want to clear all saved projects?')) {
-          try {
-            await clearFavoriteCollection('project', PROJECTS_KEY);
-            favoriteProjectIds = [];
-          } catch (error) {
-            console.error('Unable to clear project favorites in Supabase.', error);
-            window.alert('Unable to clear favorites. Please try again.');
-            return;
-          }
-          updateCounters();
-          renderCurrentTab();
-          showToast('All saved projects cleared');
-        }
+        confirmClearAllFavorites('project', 'projects');
       } else if (isClient) {
         if (favoriteDevIds.length === 0) return;
-        if (confirm('Are you sure you want to clear all saved developers?')) {
-          try {
-            await clearFavoriteCollection('developer', DEVS_KEY);
-            favoriteDevIds = [];
-          } catch (error) {
-            console.error('Unable to clear developer favorites in Supabase.', error);
-            window.alert('Unable to clear favorites. Please try again.');
-            return;
-          }
-          updateCounters();
-          renderCurrentTab();
-          showToast('All saved developers cleared');
-        }
+        confirmClearAllFavorites('developer', 'developers');
       } else {
         if (favoriteClientIds.length === 0) return;
-        if (confirm('Are you sure you want to clear all saved clients?')) {
-          try {
-            await clearFavoriteCollection('client', CLIENTS_KEY);
-            favoriteClientIds = [];
-          } catch (error) {
-            console.error('Unable to clear client favorites in Supabase.', error);
-            window.alert('Unable to clear favorites. Please try again.');
-            return;
-          }
-          updateCounters();
-          renderCurrentTab();
-          showToast('All saved clients cleared');
-        }
+        confirmClearAllFavorites('client', 'clients');
       }
     });
   }
@@ -1200,6 +1220,28 @@
       }
     });
   }
+
+  favRemoveCancel.addEventListener('click', () => favRemoveDialog.close());
+  favRemoveDialog.addEventListener('close', () => {
+    pendingFavoriteRemoval = null;
+    favRemoveTitle.textContent = 'Remove from favorites?';
+    favRemoveConfirm.textContent = 'Remove';
+  });
+  favRemoveDialog.addEventListener('click', event => {
+    if (event.target === favRemoveDialog) favRemoveDialog.close();
+  });
+  favRemoveConfirm.addEventListener('click', () => {
+    const pending = pendingFavoriteRemoval;
+    favRemoveDialog.close();
+    if (!pending) return;
+    if (pending.action === 'clear-all') {
+      clearAllFavorites(pending.type);
+      return;
+    }
+    if (pending.type === 'project') removeFavoriteProject(pending.id);
+    if (pending.type === 'client') removeFavoriteClient(pending.id);
+    if (pending.type === 'developer') removeFavoriteDeveloper(pending.id);
+  });
 
   // Load user profile details in topbar
   function loadUserProfile() {

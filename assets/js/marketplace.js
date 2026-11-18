@@ -17,6 +17,9 @@
   const grid = document.getElementById('projectGrid');
   const emptyState = document.getElementById('emptyState');
   const dialog = document.getElementById('projectDialog');
+  const favoriteToast = document.getElementById('favoriteActionToast');
+  const favoriteRemoveDialog = document.getElementById('favoriteRemoveDialog');
+  const favoriteRemoveMessage = document.getElementById('favoriteRemoveMessage');
   const summary = document.getElementById('resultsSummary');
   const categoryButtons = [...document.querySelectorAll('[data-category]')];
   const loadMoreButton = document.getElementById('loadMore');
@@ -607,6 +610,14 @@
       if (authenticated === null) return;
       const id = favoriteButton.dataset.favorite;
       const saved = favoriteIds.includes(id);
+      if (saved) {
+        const project = selectedItem(id);
+        if (!project || !await window.DEVMATCH_FAVORITE_FEEDBACK.confirmRemoval(
+          favoriteRemoveDialog,
+          favoriteRemoveMessage,
+          project.title
+        )) return;
+      }
       if (authenticated) {
         try {
           await window.devMatchBackend.setFavorite('project', id, !saved);
@@ -619,6 +630,10 @@
       favoriteIds = saved ? favoriteIds.filter(value => value !== id) : [...favoriteIds, id];
       saveFavorites();
       render();
+      window.DEVMATCH_FAVORITE_FEEDBACK.showToast(
+        favoriteToast,
+        saved ? 'Project removed from your favorites' : 'Project added to your favorites'
+      );
       return;
     }
     const detailButton = event.target.closest('[data-detail]');

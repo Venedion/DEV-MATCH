@@ -40,7 +40,9 @@
   const statusDropdown = document.getElementById('statusDropdown');
   const sortBtns = document.querySelectorAll('.sort-btn');
   const pagination = document.querySelector('.devs-pagination');
-  const toastEl = document.getElementById('fdToast');
+  const toastEl = document.getElementById('favoriteActionToast');
+  const favoriteRemoveDialog = document.getElementById('favoriteRemoveDialog');
+  const favoriteRemoveMessage = document.getElementById('favoriteRemoveMessage');
   const sidebarFavBadge = document.getElementById('favoriteCount');
   const favoriteStateReady = window.devMatchBackend.ready.then(user => user
     ? window.devMatchBackend.loadFavorites()
@@ -86,13 +88,7 @@
   }
 
   function showToast(msg) {
-    if (!toastEl) return;
-    toastEl.textContent = msg;
-    toastEl.classList.add('show');
-    clearTimeout(toastEl._timer);
-    toastEl._timer = setTimeout(() => {
-      toastEl.classList.remove('show');
-    }, 2400);
+    window.DEVMATCH_FAVORITE_FEEDBACK.showToast(toastEl, msg);
   }
 
   function updateSidebarFavoriteBadge() {
@@ -197,7 +193,7 @@
         const profileUrl = new URL(dev.profileUrl, location.href);
 
         return `
-          <article class="dev-card" data-dev-id="${escapeHtml(dev.id)}">
+          <article class="dev-card" tabindex="0" aria-label="Open developer profile: ${escapeHtml(dev.name)}" data-dev-id="${escapeHtml(dev.id)}" data-profile-url="${escapeHtml(profileUrl.href)}">
             <div class="dev-card-top">
               <div class="dev-profile-group">
                 <div class="dev-avatar-badge">${escapeHtml(dev.initials)}</div>
@@ -440,6 +436,14 @@
           if (authenticated === null) return;
           const id = favBtn.dataset.favoriteId;
           const saved = favoriteIds.includes(id);
+          if (saved) {
+            const developer = DEVELOPERS_DATA.find(item => item.id === id);
+            if (!developer || !await window.DEVMATCH_FAVORITE_FEEDBACK.confirmRemoval(
+              favoriteRemoveDialog,
+              favoriteRemoveMessage,
+              developer.name
+            )) return;
+          }
           if (authenticated) {
             try {
               await window.devMatchBackend.setFavorite('developer', id, !saved);
@@ -451,15 +455,27 @@
           }
           if (saved) {
             favoriteIds = favoriteIds.filter(item => item !== id);
-            showToast('Developer dihapus dari Favorites');
+            showToast('Developer removed from your favorites');
           } else {
             favoriteIds = [...favoriteIds, id];
-            showToast('Developer ditambahkan ke Favorites');
+            showToast('Developer added to your favorites');
           }
           saveFavorites(favoriteIds);
           renderDevelopers();
           return;
         }
+
+        const card = e.target.closest('.dev-card[data-profile-url]');
+        if (card && !e.target.closest('a, button, input, select, textarea, [contenteditable="true"]')) {
+          window.location.href = card.dataset.profileUrl;
+        }
+      });
+
+      devsGrid.addEventListener('keydown', e => {
+        const card = e.target.closest('.dev-card[data-profile-url]');
+        if (!card || e.target !== card || e.key !== 'Enter') return;
+        e.preventDefault();
+        window.location.href = card.dataset.profileUrl;
       });
     }
 
@@ -521,9 +537,18 @@
       if (!user) throw new Error('Sign in with a client account to browse the developer directory.');
       const account = await window.devMatchBackend.loadProfile(user);
       if (account.account_role !== 'client') throw new Error('The developer directory is available in client mode.');
-      const {data: people, count: totalDevelopers, error} = await window.devMatchBackend.client.from('directory_people')
-        .select('id,display_name,username,account_role,profile_data,published_portfolio_count', {count:'exact'})
-        .eq('account_role','dev');
+      const directory = window.devMatchBackend.client.from('directory_people');
+      const metricColumns = 'id,display_name,username,account_role,profile_data,published_portfolio_count,published_portfolio_views_count,published_portfolio_favorites_count';
+      const legacyColumns = 'id,display_name,username,account_role,profile_data,published_portfolio_count';
+      let engagementMetricsAvailable = true;
+      let result = await directory.select(metricColumns, {count:'exact'}).eq('account_role','dev');
+      if (result.error &&
+          ['42703', 'PGRST204'].includes(result.error.code) &&
+          /published_portfolio_(views|favorites)_count/.test(result.error.message || '')) {
+        engagementMetricsAvailable = false;
+        result = await directory.select(legacyColumns, {count:'exact'}).eq('account_role','dev');
+      }
+      const {data: people, count: totalDevelopers, error} = result;
       if (error) throw error;
       developerTabCount.textContent = totalDevelopers === null ? '0' : String(totalDevelopers);
       DEVELOPERS_DATA = (people || []).map(person => {
@@ -533,11 +558,16 @@
         const specialization=String(profile.specialtyOther || profile.specialty || 'Developer');
         const availability=String(profile.availability || '');
         const statusType=/available|open|hiring/i.test(availability)?'open':/busy/i.test(availability)?'busy':'freelance';
+        const viewsCount=Number(person.published_portfolio_views_count)||0;
+        const favoritesCount=Number(person.published_portfolio_favorites_count)||0;
         return {id:person.id,handle:person.username?`@${String(person.username).replace(/^@/,'')}`:'',contactId:person.id,
           initials:(name.match(/\b\p{L}/gu)||[]).slice(0,2).join('').toUpperCase()||'DM',name,
           location:String(profile.city || 'Location not provided'),city:String(profile.city || ''),status:availability || 'Availability not provided',statusType,
           specialization,gender:'',bio:String(profile.bio || 'No biography provided.'),skills,
-          projectsCount:Number(person.published_portfolio_count)||0,views:'Not available',viewsCount:0,favoritesCount:'Not available',
+          projectsCount:Number(person.published_portfolio_count)||0,
+          views:engagementMetricsAvailable?String(viewsCount):'Not available',
+          viewsCount:engagementMetricsAvailable?viewsCount:0,
+          favoritesCount:engagementMetricsAvailable?favoritesCount:'Not available',
           profileUrl:`devmatch-developer-profile.html?developer=${encodeURIComponent(person.id)}`};
       });
       if(genderDropdown)genderDropdown.hidden=true;
