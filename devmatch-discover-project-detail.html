@@ -13,6 +13,7 @@
   <link rel="stylesheet" href="assets/css/mode-switch-animation.css?v=20261030-active-indicator">
   <link rel="stylesheet" href="assets/css/mobile-navigation.css?v=20261118-workspaces">
   <link rel="stylesheet" href="assets/css/discover-project-detail.css?v=20261109-reference-layout">
+  <link rel="stylesheet" href="assets/css/arrow-motion.css?v=20261118-arrow-motion-global-v2">
   <script src="assets/js/i18n.js?v=20261102-profile-details"></script>
   <script src="assets/vendor/supabase-2.119.0.js"></script>
   <script src="assets/js/backend.js?v=20261118-workspaces"></script>
@@ -125,7 +126,7 @@
           <p class="discover-developer-bio" id="detailDeveloperBio"></p>
           <div class="discover-developer-location"><svg viewBox="0 0 24 24"><path d="M20 10c0 5-8 12-8 12S4 15 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="2"/></svg><span id="asideDeveloperLocation"></span><span>Specialty: <b id="asideDeveloperSpecialty"></b></span></div>
           <div class="discover-developer-stats"><div><strong id="detailDeveloperProjects"></strong><small>Projects</small></div><div><strong id="detailDeveloperViews"></strong><small>Views</small></div><div><strong id="detailDeveloperFavorites"></strong><small>Favorites</small></div></div>
-          <a class="discover-developer-profile" id="developerProfileLink" href="#">View developer profile <span aria-hidden="true">→</span></a>
+          <a class="discover-developer-profile arrow-action" id="developerProfileLink" href="#">View developer profile <svg class="arrow-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12h20M17 8l5 4-5 4"/></svg></a>
         </section>
         <p class="discover-detail-disclaimer">Agree on scope, timeline, and payment terms in writing before you start. DEV-MATCH never asks for payment.</p>
       </aside>

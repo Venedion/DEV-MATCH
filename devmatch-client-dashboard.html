@@ -7,10 +7,12 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=optional" rel="stylesheet">
-  <link rel="stylesheet" href="assets/css/client-dashboard.css?v=20261118-pink-nav-badges">
-  <link rel="stylesheet" href="assets/css/project-detail.css">
+  <link rel="stylesheet" href="assets/css/client-dashboard.css?v=20261118-arrow-motion-global">
+  <link rel="stylesheet" href="assets/css/project-detail.css?v=20261118-arrow-motion-global">
+  <link rel="stylesheet" href="assets/css/favorite-feedback.css?v=20261118-shared">
   <link rel="stylesheet" href="assets/css/mode-switch-animation.css?v=20261030-active-indicator">
   <link rel="stylesheet" href="assets/css/mobile-navigation.css?v=20261118-workspaces">
+  <link rel="stylesheet" href="assets/css/arrow-motion.css?v=20261118-arrow-motion-global-v2">
   <script>
     (() => {
       const storageKey = 'devmatch-mode-switch-navigation';
@@ -209,7 +211,7 @@
       <div class="request-breadcrumb"><button type="button" data-back-to-requests>My Requests</button><span>/</span><span>New</span></div>
       <header class="request-page-heading">
         <div><h1 id="requestPageTitle">Post a project request</h1><p>Describe what you need — developers will comment and contact you.</p></div>
-        <div class="request-page-actions"><button class="request-secondary-button" type="button" data-save-request-draft>Save draft</button><button class="request-primary-button" type="button" data-post-request>Post Project Request <span aria-hidden="true">→</span></button></div>
+        <div class="request-page-actions"><button class="request-secondary-button" type="button" data-save-request-draft>Save draft</button><button class="request-primary-button arrow-action" type="button" data-post-request>Post Project Request <svg class="arrow-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12h20M17 8l5 4-5 4"/></svg></button></div>
       </header>
       <div class="request-composer-layout">
         <form class="request-composer-form" id="requestComposerForm" novalidate>
@@ -289,7 +291,7 @@
     </section>
 
     <section class="client-projects" id="projects">
-      <div class="section-heading"><div><h2>Latest projects</h2><p id="resultsLabel">Explore ready-to-build ideas from independent developers.</p></div><a href="#discover" data-discover-nav>Discover all <svg viewBox="0 0 24 24"><path d="M5 12h14m-7-7 7 7-7 7"/></svg></a></div>
+      <div class="section-heading"><div><h2>Latest projects</h2><p id="resultsLabel">Explore ready-to-build ideas from independent developers.</p></div><a class="arrow-action" href="#discover" data-discover-nav>Discover all <svg class="arrow-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12h20M17 8l5 4-5 4"/></svg></a></div>
       <div class="client-project-grid" id="projectGrid"></div>
       <p class="empty-state" id="emptyState" hidden>No projects match your search. Try another keyword or category.</p>
     </section>
@@ -303,7 +305,7 @@
     <p class="request-view-description" id="requestViewDescription"></p>
     <dl class="request-view-facts"><div><dt>Budget</dt><dd id="requestViewBudget"></dd></div><div><dt>Deadline</dt><dd id="requestViewDeadline"></dd></div><div><dt>Target start</dt><dd id="requestViewStart"></dd></div><div><dt>Required specialization</dt><dd id="requestViewSpecialties"></dd></div></dl>
     <section class="request-view-references" id="requestViewReferences" hidden><h3>References</h3><div id="requestViewLinks"></div><ul id="requestViewAttachments"></ul><p id="requestViewAttachmentStatus" role="status" aria-live="polite" hidden></p></section>
-    <div class="request-view-footer"><span id="requestViewStatus"></span><button class="request-primary-button" type="button" data-request-view-details>See Details <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12h20M17 8l5 4-5 4"/></svg></button></div>
+    <div class="request-view-footer"><span id="requestViewStatus"></span><button class="request-primary-button arrow-action" type="button" data-request-view-details>See Details <svg class="arrow-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12h20M17 8l5 4-5 4"/></svg></button></div>
   </dialog>
 
   <dialog class="request-activity-dialog" id="requestActivityDialog" aria-labelledby="requestActivityTitle">
@@ -378,7 +380,7 @@
               <div><dt>Views</dt><dd id="developerViews"></dd></div>
               <div><dt>Favorites</dt><dd id="developerFavorites"></dd></div>
             </dl>
-            <a class="view-developer-profile" id="viewDeveloperProfile" href="devmatch-developer-profile.html?developer=restaurant">View full profile <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14m-7-7 7 7-7 7"/></svg></a>
+            <a class="view-developer-profile arrow-action" id="viewDeveloperProfile" href="devmatch-developer-profile.html?developer=restaurant">View full profile <svg class="arrow-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12h20M17 8l5 4-5 4"/></svg></a>
             <a class="chat-developer chat-developer-secondary" id="chatDeveloperLink" href="devmatch-chat.html?role=client">
               <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.5 11.5a8 8 0 0 1-8 8H6l-2.5 1.5.8-4.1a8 8 0 1 1 16.2-5.4Z"/><path d="M8.5 12h.01M12.5 12h.01M16.5 12h.01"/></svg>
               Chat with developer
@@ -393,8 +395,18 @@
     <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5c-5 0-9 3.65-9 8.15 0 2.24 1.04 4.27 2.73 5.74L4.7 21l5.24-1.28c.67.12 1.36.18 2.06.18 5 0 9-3.65 9-8.15S17 3.5 12 3.5Z"/><circle cx="8.5" cy="11.7" r="1" fill="currentColor" stroke="none"/><circle cx="12" cy="11.7" r="1" fill="currentColor" stroke="none"/><circle cx="15.5" cy="11.7" r="1" fill="currentColor" stroke="none"/></svg>
 
   </a>
+  <div class="fav-toast" id="favoriteActionToast" role="status" aria-live="polite"></div>
+  <dialog class="fav-remove-dialog" id="favoriteRemoveDialog" aria-labelledby="favoriteRemoveTitle" aria-describedby="favoriteRemoveMessage">
+    <h2 id="favoriteRemoveTitle">Remove from favorites?</h2>
+    <p id="favoriteRemoveMessage"></p>
+    <form class="fav-remove-dialog-actions" method="dialog">
+      <button class="fav-remove-cancel" type="submit" value="cancel" autofocus>Cancel</button>
+      <button class="fav-remove-confirm" type="submit" value="remove">Remove</button>
+    </form>
+  </dialog>
+  <script src="assets/js/favorite-feedback.js?v=20261118-shared"></script>
   <script src="assets/js/project-detail.js?v=20261118-workspaces"></script>
-  <script src="assets/js/client-dashboard.js?v=20261118-workspaces"></script>
+  <script src="assets/js/client-dashboard.js?v=20261118-arrow-motion-global"></script>
   <script src="assets/js/nav-behavior.js?v=20261118-merge-workspaces-realtime"></script>
 </body>
 </html>

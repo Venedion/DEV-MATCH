@@ -344,7 +344,7 @@
     document.getElementById('projectGrid').innerHTML=projects.length?projects.map(renderProjectCard).join(''):`<p class="empty-state">${isDeveloper?'You have no published projects yet. Add a project to build your showcase.':'You have no open requests yet. Open project requests will appear here.'}</p>`;
     if(!isDeveloper){
       const manage=document.getElementById('allProjectsLink');
-      manage.textContent='View requests →';
+      manage.innerHTML='View requests <svg class="arrow-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12h20M17 8l5 4-5 4"/></svg>';
     }
   }
 

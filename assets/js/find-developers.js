@@ -168,7 +168,7 @@
       }
     });
     buttons.push(
-      `<button class="page-btn nav-arrow" type="button" data-page="${currentPage + 1}" aria-label="Next page" ${currentPage === pageCount ? 'disabled' : ''}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m9 18 6-6-6-6"/></svg></button>`
+      `<button class="page-btn nav-arrow arrow-action" type="button" data-page="${currentPage + 1}" aria-label="Next page" ${currentPage === pageCount ? 'disabled' : ''}><svg class="arrow-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12h20M17 8l5 4-5 4"/></svg></button>`
     );
     pagination.innerHTML = buttons.join('');
   }

@@ -16,6 +16,7 @@
   }
 </script>
 <link rel="stylesheet" href="assets/css/landing.css?v=20261110-final-cta-font">
+<link rel="stylesheet" href="assets/css/arrow-motion.css?v=20261118-arrow-motion-global-v2">
 <script src="assets/js/i18n.js?v=20261102-profile-details"></script>
 <script src="assets/vendor/supabase-2.119.0.js"></script>
 <script src="assets/js/backend.js?v=20261118-workspaces"></script>
@@ -47,7 +48,7 @@
       <div class="top"><div class="ico"><svg viewBox="0 0 24 24"><path d="m16 18 6-6-6-6M8 6l-6 6 6 6"/></svg></div><span class="tag">FOR BUILDERS</span></div>
       <div><h2>I am a developer</h2><p style="margin-top:10px">Showcase your best work, discover meaningful projects, and connect with your next client.</p></div>
       <div class="stage"><div class="shot a">Building<br>better futures.<div style="margin-top:8px;height:8px;width:40px;border-radius:9px;background:#6366f1"></div></div><div class="shot b"><small>Published projects</small><div class="bar"><i style="height:30%"></i><i style="height:50%"></i><i style="height:40%"></i><i style="height:80%"></i><i style="height:60%"></i><i style="height:95%"></i></div><b style="font-size:12px">Catalog preview</b></div><div class="shot c">Savor every<br>moment.<div style="margin:8px 0;height:8px;width:50px;border-radius:9px;background:#e0622b"></div></div></div>
-      <div class="cta-row"><a class="btn btn-arrow btn-hover-lift" href="devmatch-auth.html?mode=register&amp;role=dev">Start showcasing <svg viewBox="0 0 24 24"><path d="M2 12h20M15 5l7 7-7 7"/></svg></a><small>Free for developers</small></div>
+      <div class="cta-row"><a class="btn btn-arrow btn-hover-lift arrow-action" href="devmatch-auth.html?mode=register&amp;role=dev">Start showcasing <svg class="arrow-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12h20M17 8l5 4-5 4"/></svg></a><small>Free for developers</small></div>
     </article>
     <article class="path" id="p-cli">
       <div class="top"><div class="ico"><svg viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg></div><span class="tag">FOR VISIONARIES</span></div>
@@ -57,7 +58,7 @@
         <div class="row"><div class="av">DM</div><div>Published portfolios<span>Explore recent work</span></div><em class="status s-free" style="font-style:normal">Live listings</em></div>
         <div class="row"><div class="av">DM</div><div>Project requests<span>Connect with clients</span></div><em class="status s-ok" style="font-style:normal">Developer access</em></div>
       </div></div>
-      <div class="cta-row"><a class="btn btn-arrow btn-hover-lift" href="devmatch-auth.html?mode=register&amp;role=client">Find your developer <svg viewBox="0 0 24 24"><path d="M2 12h20M15 5l7 7-7 7"/></svg></a><small>No signup fees</small></div>
+      <div class="cta-row"><a class="btn btn-arrow btn-hover-lift arrow-action" href="devmatch-auth.html?mode=register&amp;role=client">Find your developer <svg class="arrow-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12h20M17 8l5 4-5 4"/></svg></a><small>No signup fees</small></div>
     </article>
   </div>
   <div class="stats"><div><b>Published</b><span>project catalog</span></div><div><b>Authenticated</b><span>people directory</span></div><div><b>Two roles</b><span>one DEV-MATCH account</span></div></div>
@@ -78,14 +79,14 @@
 </div></section>
 
 <section class="alt" id="projects"><div class="wrap">
-  <div class="head"><div><span class="sm">Featured projects</span><h2>Ready-to-build projects, priced upfront</h2><p>Every listing shows what’s included and what it costs — no guessing.</p></div><a class="btn btn-arrow btn-hover-color" href="devmatch-discover-projects.html">Explore all projects <svg viewBox="0 0 24 24"><path d="M2 12h20M15 5l7 7-7 7"/></svg></a></div>
+  <div class="head"><div><span class="sm">Featured projects</span><h2>Ready-to-build projects, priced upfront</h2><p>Every listing shows what’s included and what it costs — no guessing.</p></div><a class="btn btn-arrow btn-hover-color arrow-action" href="devmatch-discover-projects.html">Explore all projects <svg class="arrow-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12h20M17 8l5 4-5 4"/></svg></a></div>
   <p id="landingProjectStatus" role="status" aria-live="polite">Loading published projects…</p>
   <div class="chips" id="chips"></div>
   <div class="grid4" id="projGrid"></div>
 </div></section>
 
 <section id="developers"><div class="wrap">
-  <div class="head"><div><span class="sm">Featured developers</span><h2>Meet developers clients trust</h2></div><a class="btn btn-arrow btn-hover-color" href="devmatch-find-developers.html">Browse developers <svg viewBox="0 0 24 24"><path d="M2 12h20M15 5l7 7-7 7"/></svg></a></div>
+  <div class="head"><div><span class="sm">Featured developers</span><h2>Meet developers clients trust</h2></div><a class="btn btn-arrow btn-hover-color arrow-action" href="devmatch-find-developers.html">Browse developers <svg class="arrow-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12h20M17 8l5 4-5 4"/></svg></a></div>
   <p id="landingDirectoryStatus" role="status" aria-live="polite">Sign in to browse developer profiles.</p>
   <div class="grid4" id="devGrid"></div>
 </div></section>
@@ -106,10 +107,10 @@
   <div class="two">
     <div class="bcard"><span class="badge">&lt;&gt; Developer Mode</span><h3>Turn your portfolio into a storefront</h3>
       <ul><li><svg viewBox="0 0 24 24"><path d="m5 12 5 5 9-10"/></svg>List projects with prices and included services</li><li><svg viewBox="0 0 24 24"><path d="m5 12 5 5 9-10"/></svg>Track views, favorites and comments per project</li><li><svg viewBox="0 0 24 24"><path d="m5 12 5 5 9-10"/></svg>Discover client project requests that match your skills</li><li><svg viewBox="0 0 24 24"><path d="m5 12 5 5 9-10"/></svg>Get notified when clients favorite, comment or message</li><li><svg viewBox="0 0 24 24"><path d="m5 12 5 5 9-10"/></svg>Build your reputation with client ratings</li></ul>
-      <a class="btn btn-arrow btn-hover-color" href="devmatch-auth.html?mode=register&amp;role=dev">Create developer account <svg viewBox="0 0 24 24"><path d="M2 12h20M15 5l7 7-7 7"/></svg></a></div>
+      <a class="btn btn-arrow btn-hover-color arrow-action" href="devmatch-auth.html?mode=register&amp;role=dev">Create developer account <svg class="arrow-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12h20M17 8l5 4-5 4"/></svg></a></div>
     <div class="bcard"><span class="badge">Client Mode</span><h3>Hire with confidence, not guesswork</h3>
       <ul><li><svg viewBox="0 0 24 24"><path d="m5 12 5 5 9-10"/></svg>Browse real projects with transparent prices</li><li><svg viewBox="0 0 24 24"><path d="m5 12 5 5 9-10"/></svg>Filter developers by specialization, price and popularity</li><li><svg viewBox="0 0 24 24"><path d="m5 12 5 5 9-10"/></svg>Post a project request and let developers come to you</li><li><svg viewBox="0 0 24 24"><path d="m5 12 5 5 9-10"/></svg>Save favorites, chat in-app or contact on WhatsApp</li><li><svg viewBox="0 0 24 24"><path d="m5 12 5 5 9-10"/></svg>Check ratings and reviews from other clients</li></ul>
-      <a class="btn btn-arrow btn-hover-color" href="devmatch-auth.html?mode=register&amp;role=client">Create client account <svg viewBox="0 0 24 24"><path d="M2 12h20M15 5l7 7-7 7"/></svg></a></div>
+      <a class="btn btn-arrow btn-hover-color arrow-action" href="devmatch-auth.html?mode=register&amp;role=client">Create client account <svg class="arrow-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12h20M17 8l5 4-5 4"/></svg></a></div>
   </div>
 </div></section>
 

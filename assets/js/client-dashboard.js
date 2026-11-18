@@ -31,7 +31,7 @@ const favoriteStateReady=window.devMatchBackend.ready.then(user=>user
 }).catch(error=>{
   console.error('Unable to load project favorites from Supabase.',error);
   window.alert('Unable to load favorites. Check your connection and try again.');
-  return false;
+  return null;
 });
 let requests=JSON.parse(localStorage.getItem(requestsKey)||'[]');
 let requestDashboardMetrics=null;
@@ -139,7 +139,7 @@ function projectCardMarkup(project,discover=false){
         <h3>${escapeHtml(project.title)}</h3><p>${escapeHtml(project.description)}</p>
         ${discover?`<div class="discover-card-price"><span>STARTING FROM</span><strong>${escapeHtml(project.price)}</strong><span class="discover-card-arrow" aria-hidden="true">→</span></div>`:`<div class="project-price">${escapeHtml(project.price)}</div>`}
         <div class="project-by"><span class="developer-avatar">${escapeHtml(project.initials)}</span>${escapeHtml(project.developer)}<span class="developer-location">${escapeHtml(project.location)}</span></div>
-        <button class="project-card-view" type="button" data-project-open="${escapeHtml(project.id)}">View details <span aria-hidden="true">→</span></button>
+        <button class="project-card-view arrow-action" type="button" data-project-open="${escapeHtml(project.id)}">View details <svg class="arrow-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12h20M17 8l5 4-5 4"/></svg></button>
       </div>
     </article>`;
 }
@@ -216,7 +216,9 @@ async function loadPublicProjects(){
         developer:displayName,
         initials:(displayName.match(/\b\p{L}/gu)||[]).slice(0,2).join('').toUpperCase()||'DM',
         location:[profile.city,profile.country].filter(Boolean).join(', ')||'Location not provided',
-        age:Number.isNaN(createdAt.getTime())?'Recently published':createdAt.toLocaleDateString(),
+        age:Number.isNaN(createdAt.getTime())
+          ?'Recently published'
+          :new Intl.DateTimeFormat(undefined,{dateStyle:'medium'}).format(createdAt),
         coverImage:safeProjectCover(row.cover_image||data.coverImage),
         art:'dashboard-art'
       };
@@ -291,7 +293,7 @@ function renderRequests(){
       <div class="request-card-menu"><details><summary aria-label="More actions for request">•••</summary><div><button type="button" data-request-action="${moreAction}" data-request-id="${escapeHtml(request.id)}">${moreLabel}</button>${status!=='draft'?`<button type="button" data-request-action="draft" data-request-id="${escapeHtml(request.id)}">Save as draft</button>`:''}<button class="danger" type="button" data-request-action="delete" data-request-id="${escapeHtml(request.id)}">Delete request</button></div></details></div></div>
       <h2>${escapeHtml(request.title||'Untitled request')}</h2>
       <div class="request-card-facts"><div><small>BUDGET</small><b>${escapeHtml(budget)}</b></div><div><small>DEADLINE</small><b>${deadline?escapeHtml(formatDeadline(request.deadline)):'Not set'}${daysLeft===null?'':` · ${escapeHtml(deadlineNote)}`}</b></div><div><small>REQUIRED</small><span>${specialties.length?specialties.map(specialty=>`<i>${escapeHtml(specialty)}</i>`).join(''):'Not specified'}</span></div></div>
-      <footer class="request-card-footer"><span class="request-card-metrics"><span>◉ ${views}</span><span>♡ ${saves}</span><span>▢ ${comments}</span>${referenceCount?`<span class="request-card-new">${referenceCount} ref</span>`:''}</span><div class="request-card-actions"><button type="button" class="request-card-secondary" data-edit-request="${escapeHtml(request.id)}">Edit</button><button type="button" class="request-card-secondary" data-request-detail="${escapeHtml(request.id)}">See Details <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12h20M17 8l5 4-5 4"/></svg></button></div></footer>
+      <footer class="request-card-footer"><span class="request-card-metrics"><span>◉ ${views}</span><span>♡ ${saves}</span><span>▢ ${comments}</span>${referenceCount?`<span class="request-card-new">${referenceCount} ref</span>`:''}</span><div class="request-card-actions"><button type="button" class="request-card-secondary" data-edit-request="${escapeHtml(request.id)}">Edit</button><button type="button" class="request-card-secondary arrow-action" data-request-detail="${escapeHtml(request.id)}">See Details <svg class="arrow-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12h20M17 8l5 4-5 4"/></svg></button></div></footer>
     </article>`;
   }).join('');
 }
@@ -304,19 +306,35 @@ async function handleProjectGridClick(event){
   }
   const button=event.target.closest('[data-favorite]');
   if(button){
-    if(!await favoriteStateReady)return;
+    const authenticated=await favoriteStateReady;
+    if(authenticated===null)return;
     const id=button.dataset.favorite;
     const saved=favorites.includes(id);
-    try{
-      await window.devMatchBackend.setFavorite('project',id,!saved);
-    }catch(error){
-      console.error('Unable to update project favorite in Supabase.',error);
-      window.alert('Unable to save this favorite. Please try again.');
-      return;
+    if(saved){
+      const project=marketplaceProjects.find(item=>item.id===id);
+      if(!project||!await window.DEVMATCH_FAVORITE_FEEDBACK.confirmRemoval(
+        document.getElementById('favoriteRemoveDialog'),
+        document.getElementById('favoriteRemoveMessage'),
+        project.title
+      ))return;
+    }
+    if(authenticated){
+      try{
+        await window.devMatchBackend.setFavorite('project',id,!saved);
+      }catch(error){
+        console.error('Unable to update project favorite in Supabase.',error);
+        window.alert('Unable to save this favorite. Please try again.');
+        return;
+      }
     }
     favorites=saved?favorites.filter(item=>item!==id):[...favorites,id];
     localStorage.setItem(favoritesKey,JSON.stringify(favorites));
     renderProjects();
+    window.DEVMATCH_NAV_BADGES?.updateFavorites();
+    window.DEVMATCH_FAVORITE_FEEDBACK.showToast(
+      document.getElementById('favoriteActionToast'),
+      saved?'Project removed from your favorites':'Project added to your favorites'
+    );
     return;
   }
   const card=event.target.closest('[data-project]');
@@ -799,7 +817,7 @@ function openRequestComposer(request=null){
   retainedAttachments=savedAttachments.filter(item=>item&&typeof item.path==='string'&&item.path);
   removedAttachmentIds=new Set();
   document.getElementById('requestPageTitle').textContent=request?'Edit project request':'Post a project request';
-  document.querySelector('[data-post-request]').innerHTML=request?'Update Project Request <span aria-hidden="true">→</span>':'Post Project Request <span aria-hidden="true">→</span>';
+  document.querySelector('[data-post-request]').innerHTML=request?'Update Project Request <svg class="arrow-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12h20M17 8l5 4-5 4"/></svg>':'Post Project Request <svg class="arrow-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12h20M17 8l5 4-5 4"/></svg>';
   document.getElementById('requestComposerMessage').textContent=legacyAttachmentCount
     ?'Some older attachments were saved only in this browser and are no longer available. Reattach them if needed.'
     :'';

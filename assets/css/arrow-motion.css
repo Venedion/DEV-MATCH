@@ -1,0 +1,26 @@
+a.arrow-action>svg.arrow-icon,
+button.arrow-action>svg.arrow-icon{
+  display:block;
+  width:15px;
+  height:15px;
+  flex:none;
+  fill:none;
+  stroke:currentColor;
+  stroke-width:1.8;
+  stroke-linecap:round;
+  stroke-linejoin:round;
+  transform:translateY(2px);
+  transition:transform .18s ease;
+}
+
+a.arrow-action:hover>.arrow-icon,
+a.arrow-action:focus-visible>.arrow-icon,
+button.arrow-action:not(:disabled):hover>.arrow-icon,
+button.arrow-action:focus-visible>.arrow-icon{
+  transform:translate(3px,2px);
+}
+
+@media(prefers-reduced-motion:reduce){
+  a.arrow-action>svg.arrow-icon,
+  button.arrow-action>svg.arrow-icon{transition:none}
+}
