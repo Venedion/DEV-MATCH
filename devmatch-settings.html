@@ -165,7 +165,13 @@
               <div class="settings-field">
                 <label class="settings-label" for="settingsPhone">Account phone number</label>
                 <input class="settings-input" id="settingsPhone" type="tel" readonly>
-                <span class="settings-hint">Shared by both modes. SMS verification is not enabled yet.</span>
+                <span class="settings-hint" id="phoneVerificationStatus" role="status">Checking phone verification…</span>
+                <div><button class="settings-btn" id="sendPhoneCode" type="button" disabled>Send SMS code</button></div>
+                <div id="phoneCodeField" hidden>
+                  <label class="settings-label" for="phoneCode">SMS verification code</label>
+                  <input class="settings-input" id="phoneCode" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="6">
+                  <button class="settings-btn" id="verifyPhoneCode" type="button" disabled>Verify code</button>
+                </div>
               </div>
 
               <div class="settings-field">
@@ -820,6 +826,7 @@
 
   </a>
 
+  <script src="assets/js/phone-verification.js?v=20261119-sms"></script>
   <script src="assets/js/settings.js?v=20261119-experience-edit-reset"></script>
   <script src="assets/js/custom-select.js?v=20261028-custom-dropdowns-v3"></script>
   <script src="assets/js/nav-behavior.js?v=20261119-rebase-merge"></script>
