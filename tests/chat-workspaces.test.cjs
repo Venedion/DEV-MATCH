@@ -55,3 +55,12 @@ test('Invalid roles are rejected instead of falling back to another inbox',async
   const x=setup();await assert.rejects(x.run({action:'list-conversations',workspaceRole:'admin'}),e=>e.status===400);
   assert.equal(x.calls.length,0);
 });
+test('Reads use the caller token so RLS applies; partner names still use the service role',async()=>{
+  const x=setup();
+  await x.context.handleAction({action:'list-conversations',workspaceRole:'client'},{id:A},{},'https://test.invalid','service-key','user-jwt','anon-key');
+  const conversationRead=x.calls.find(c=>c.u.pathname.endsWith('/conversations'));
+  assert.equal(conversationRead.options.headers.Authorization,'Bearer user-jwt');
+  assert.equal(conversationRead.options.headers.apikey,'anon-key');
+  const partnerRead=x.calls.find(c=>c.u.pathname.endsWith('/profiles')&&c.u.searchParams.get('id')?.startsWith('in.'));
+  assert.equal(partnerRead.options.headers.Authorization,'Bearer service-key');
+});

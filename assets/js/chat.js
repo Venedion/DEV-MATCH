@@ -4,6 +4,9 @@
   const backend = window.devMatchBackend;
   const client = backend.client;
   const LEGACY_CHAT_STORAGE_KEY = 'devmatch_chat_conversations_v2';
+  // chat-api returns the newest 200 messages; older pages hold 100 each.
+  const MESSAGE_PAGE_SIZE = 200;
+  const OLDER_PAGE_SIZE = 100;
   const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
   const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, character => ({
     '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
@@ -500,8 +503,20 @@
         </div>`;
     }).join('');
     if (chatMessagesEl) {
-      chatMessagesEl.innerHTML = messagesHtml || '<p class="chat-conv-empty">No messages yet. Send the first message.</p>';
-      scrollThreadToBottom();
+      const loadOlderHtml = conversation.hasOlder
+        ? `<div class="chat-date-separator"><button type="button" class="btn-secondary" data-chat-load-older${conversation.loadingOlder ? ' disabled' : ''}>${conversation.loadingOlder ? 'Loading…' : 'Load older messages'}</button></div>`
+        : '';
+      const keepPosition = conversation.keepScrollPosition && threadContainerEl;
+      const distanceFromBottom = keepPosition ? threadContainerEl.scrollHeight - threadContainerEl.scrollTop : 0;
+      chatMessagesEl.innerHTML = messagesHtml
+        ? loadOlderHtml + messagesHtml
+        : '<p class="chat-conv-empty">No messages yet. Send the first message.</p>';
+      if (keepPosition) {
+        threadContainerEl.scrollTop = threadContainerEl.scrollHeight - distanceFromBottom;
+        conversation.keepScrollPosition = false;
+      } else {
+        scrollThreadToBottom();
+      }
     }
     updateDetailPaneVisibility();
   }
@@ -593,12 +608,45 @@
     threadContainerEl?.scrollTo({top: threadContainerEl.scrollHeight, behavior: 'auto'});
   }
 
+  async function loadOlderMessages(conversationId) {
+    const conversation = conversations.find(item => item.id === conversationId);
+    const oldest = conversation?.messages?.[0];
+    if (!conversation || !oldest || conversation.loadingOlder) return;
+    conversation.loadingOlder = true;
+    renderMessagesThread();
+    try {
+      const older = await invokeChat('list-messages', {
+        conversationId,
+        before: oldest.created_at,
+        limit: OLDER_PAGE_SIZE
+      });
+      if (!Array.isArray(older)) throw new Error('Chat service returned an invalid message list.');
+      const known = new Set(conversation.messages.map(message => message.id));
+      conversation.messages = [...older.filter(message => !known.has(message.id)), ...conversation.messages];
+      conversation.hasOlder = older.length >= OLDER_PAGE_SIZE;
+    } catch (error) {
+      console.error('Unable to load older messages.', error);
+      setStatus('Older messages could not be loaded. Try again.');
+    } finally {
+      conversation.loadingOlder = false;
+      conversation.keepScrollPosition = true;
+      if (conversationId === activeConvId) renderMessagesThread();
+    }
+  }
+
   async function loadMessages(conversationId) {
     const messages = await invokeChat('list-messages', {conversationId});
     if (!Array.isArray(messages)) throw new Error('Chat service returned an invalid message list.');
     const conversation = conversations.find(item => item.id === conversationId);
     if (!conversation) return;
-    conversation.messages = messages;
+    // Keep any older pages already loaded; a refresh only returns the newest page.
+    const newestIds = new Set(messages.map(message => message.id));
+    const olderLoaded = messages.length
+      ? (conversation.messages || []).filter(message => !newestIds.has(message.id)
+        && Date.parse(message.created_at) < Date.parse(messages[0].created_at))
+      : [];
+    if (!olderLoaded.length) conversation.hasOlder = messages.length >= MESSAGE_PAGE_SIZE;
+    conversation.messages = [...olderLoaded, ...messages];
     conversation.lastMessage = messages[messages.length - 1] || null;
     if (conversation.lastMessage?.sender_id !== currentUser.id && conversationId !== activeConvId) {
       if (!wasReadAfterLastMessage(conversation)) conversation.unreadCount = 1;
@@ -960,6 +1008,11 @@
       setStatus('Attachment ready. Files are encrypted before storage.');
     });
     chatMessagesEl?.addEventListener('click', event => {
+      const loadOlder = event.target.closest('[data-chat-load-older]');
+      if (loadOlder && chatMessagesEl.contains(loadOlder)) {
+        if (activeConvId) void loadOlderMessages(activeConvId);
+        return;
+      }
       const button = event.target.closest('[data-chat-download]');
       if (button && chatMessagesEl.contains(button)) void downloadAttachment(button);
     });

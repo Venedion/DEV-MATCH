@@ -62,10 +62,14 @@ function loadKeyring() {
   return {keys, activeVersion};
 }
 
-function supabaseHeaders(serviceRoleKey, extra = {}) {
+// `credential` is either the service-role key (string) or, for reads that RLS
+// already allows, the caller's own session: {apikey, token}. Reads made with
+// the caller's token can only ever return rows that user may see.
+function supabaseHeaders(credential, extra = {}) {
+  const isUser = credential && typeof credential === 'object';
   return {
-    apikey: serviceRoleKey,
-    Authorization: `Bearer ${serviceRoleKey}`,
+    apikey: isUser ? credential.apikey : credential,
+    Authorization: `Bearer ${isUser ? credential.token : credential}`,
     'Content-Type': 'application/json',
     ...extra
   };
@@ -388,11 +392,17 @@ async function startConversation(supabaseUrl, serviceRoleKey, userId, participan
   }
 }
 
-async function handleAction(body, user, keyring, supabaseUrl, serviceRoleKey) {
+async function handleAction(body, user, keyring, supabaseUrl, serviceRoleKey, userToken = null, anonKey = null) {
   if (body.workspaceRole != null && !['client', 'dev'].includes(body.workspaceRole)) {
     throw new ChatApiError('Invalid workspace.', 400);
   }
-  const account = await getAccount(supabaseUrl, serviceRoleKey, user.id, body.workspaceRole);
+  // Conversations, messages, the caller's own profile/workspaces, projects and
+  // the directory are read with the caller's token so RLS applies. The service
+  // role is only used for what users may not do themselves: reading the other
+  // participant's name, creating conversations, writing encrypted messages,
+  // storage and the rate-limit RPC.
+  const reader = userToken ? {apikey: anonKey || serviceRoleKey, token: userToken} : serviceRoleKey;
+  const account = await getAccount(supabaseUrl, reader, user.id, body.workspaceRole);
   if (!account) throw new ChatApiError('Workspace not found.', 403);
   const workspaceRole = account.account_role;
 
@@ -409,7 +419,7 @@ async function handleAction(body, user, keyring, supabaseUrl, serviceRoleKey) {
       limit: String(MAX_CONVERSATION_ROWS)
     };
     if (before) conversationQuery.updated_at = `lt.${before}`;
-    const conversations = await requestRows(supabaseUrl, serviceRoleKey, 'conversations', conversationQuery);
+    const conversations = await requestRows(supabaseUrl, reader, 'conversations', conversationQuery);
 
     const ids = [...new Set(conversations.map(c => c.participant_a_id === user.id ? c.participant_b_id : c.participant_a_id))];
     const [identities, workspaces] = ids.length ? await Promise.all([
@@ -436,14 +446,14 @@ async function handleAction(body, user, keyring, supabaseUrl, serviceRoleKey) {
     if (typeof projectId !== 'string' || !/^[A-Za-z0-9_-]{1,160}$/.test(projectId)) {
       throw new ChatApiError('A valid project is required.', 400);
     }
-    let projectRows = await requestRows(supabaseUrl, serviceRoleKey, 'projects', {
+    let projectRows = await requestRows(supabaseUrl, reader, 'projects', {
       select: 'id,owner_id,project_kind,status',
       id: `eq.${projectId}`,
       status: 'in.(published,open)',
       limit: '1'
     });
     if (!projectRows.length) {
-      projectRows = await requestRows(supabaseUrl, serviceRoleKey, 'projects', {
+      projectRows = await requestRows(supabaseUrl, reader, 'projects', {
         select: 'id,owner_id,project_kind,status',
         legacy_id: `eq.${projectId}`,
         status: 'in.(published,open)',
@@ -458,8 +468,8 @@ async function handleAction(body, user, keyring, supabaseUrl, serviceRoleKey) {
     const expectedOwnerRole = project.project_kind === 'portfolio' ? 'dev' : 'client';
     if (workspaceRole !== expectedSenderRole) throw new ChatApiError('Switch to the project contact workspace first.', 403);
     const [sender, owner] = await Promise.all([
-      getAccount(supabaseUrl, serviceRoleKey, user.id, expectedSenderRole),
-      getPublicAccount(supabaseUrl, serviceRoleKey, project.owner_id, expectedOwnerRole)
+      getAccount(supabaseUrl, reader, user.id, expectedSenderRole),
+      getPublicAccount(supabaseUrl, reader, project.owner_id, expectedOwnerRole)
     ]);
     if (!sender?.onboarding_complete || sender.account_role !== expectedSenderRole
       || owner?.account_role !== expectedOwnerRole) {
@@ -476,12 +486,12 @@ async function handleAction(body, user, keyring, supabaseUrl, serviceRoleKey) {
     }
     if (!['client', 'dev'].includes(body.workspaceRole)) {
       // Older deployed clients use their primary role.
-      const primary = await getAccount(supabaseUrl, serviceRoleKey, user.id);
+      const primary = await getAccount(supabaseUrl, reader, user.id);
       body.workspaceRole = primary?.account_role;
     }
     const [sender, recipient] = await Promise.all([
-      getAccount(supabaseUrl, serviceRoleKey, user.id, body.workspaceRole),
-      getPublicAccount(supabaseUrl, serviceRoleKey, participantId, body.workspaceRole === 'client' ? 'dev' : 'client')
+      getAccount(supabaseUrl, reader, user.id, body.workspaceRole),
+      getPublicAccount(supabaseUrl, reader, participantId, body.workspaceRole === 'client' ? 'dev' : 'client')
     ]);
     if (!sender?.onboarding_complete || !recipient) {
       throw new ChatApiError('This contact is not available for chat.', 404);
@@ -498,7 +508,7 @@ async function handleAction(body, user, keyring, supabaseUrl, serviceRoleKey) {
     || body.action === 'send-message'
     || body.action === 'download-attachment') {
     const conversation = await getConversation(
-      supabaseUrl, serviceRoleKey, body.conversationId
+      supabaseUrl, reader, body.conversationId
     );
     if (!userIsParticipant(conversation, user.id, workspaceRole)) {
       throw new ChatApiError('Conversation not found.', 404);
@@ -520,7 +530,7 @@ async function handleAction(body, user, keyring, supabaseUrl, serviceRoleKey) {
         limit: String(limit)
       };
       if (before) messageQuery.created_at = `lt.${before}`;
-      const rows = await requestRows(supabaseUrl, serviceRoleKey, 'messages', messageQuery);
+      const rows = await requestRows(supabaseUrl, reader, 'messages', messageQuery);
       return Promise.all(rows.reverse().map(row => decryptRowSafely(row, keyring)));
     }
 
@@ -528,7 +538,7 @@ async function handleAction(body, user, keyring, supabaseUrl, serviceRoleKey) {
       if (!UUID_PATTERN.test(body.messageId || '') || !UUID_PATTERN.test(body.attachmentId || '')) {
         throw new ChatApiError('A valid chat attachment is required.', 400);
       }
-      const rows = await requestRows(supabaseUrl, serviceRoleKey, 'messages', {
+      const rows = await requestRows(supabaseUrl, reader, 'messages', {
         select: 'id,conversation_id,sender_id,ciphertext,nonce,key_version,created_at',
         id: `eq.${body.messageId}`,
         conversation_id: `eq.${conversation.id}`,
@@ -740,8 +750,9 @@ Deno.serve(async request => {
   }
 
   try {
+    const userToken = request.headers.get('authorization')?.replace(/^Bearer\s+/i, '') || null;
     const result = await handleAction(
-      body, user, keyring, supabaseUrl, serviceRoleKey
+      body, user, keyring, supabaseUrl, serviceRoleKey, userToken, Deno.env.get('SUPABASE_ANON_KEY') || null
     );
     return jsonResponse({data: result}, 200, cors);
   } catch (error) {

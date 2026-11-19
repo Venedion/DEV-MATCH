@@ -125,7 +125,10 @@ the new challenge difficulty.
   images must be `https://` URLs, `created_at`/`updated_at` are set by the
   server, favorites must point at an existing project or profile.
 * **Chat**: messages are encrypted at rest with AES-GCM by `chat-api` (the
-  server holds the keys, so this is not end-to-end encryption). Pagination:
+  server holds the keys, so this is not end-to-end encryption). `chat-api` reads
+  conversations, messages, projects and the directory with the caller's own
+  token (RLS applies); the service role is only used for partner names,
+  creating conversations, writing messages, storage and rate limits. Pagination:
   `list-messages` and `list-conversations` accept `before` (ISO timestamp).
   Messages are marked read only through `sync_chat_activity`. Attachments are
   checked against their file signature, not just the declared MIME type.
