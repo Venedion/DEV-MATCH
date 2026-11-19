@@ -10,11 +10,13 @@
   <link rel="stylesheet" href="assets/css/dashboard.css?v=20261118-pink-nav-badges">
   <link rel="stylesheet" href="assets/css/client-shell.css?v=20261030-header-size-match">
   <link rel="stylesheet" href="assets/css/mode-switch-animation.css?v=20261030-active-indicator">
-  <link rel="stylesheet" href="assets/css/find-developers.css?v=20261118-developer-pagination">
+  <link rel="stylesheet" href="assets/css/find-developers.css?v=20261118-developer-card-click">
+  <link rel="stylesheet" href="assets/css/favorite-feedback.css?v=20261118-shared">
   <link rel="stylesheet" href="assets/css/mobile-navigation.css?v=20261118-workspaces">
+  <link rel="stylesheet" href="assets/css/arrow-motion.css?v=20261118-arrow-motion-global-v2">
   <script src="assets/js/i18n.js?v=20261102-profile-details"></script>
 <script src="assets/vendor/supabase-2.119.0.js"></script>
-<script src="assets/js/backend.js?v=20261118-workspace-isolation"></script>
+<script src="assets/js/backend.js?v=20261119-workspace-isolation"></script>
 </head>
 <body class="client-shell-page client-nav-home-layout page-scroll-shell">
   <!-- Topbar Header -->
@@ -23,7 +25,6 @@
     <label class="search top-search">
       <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
       <input id="topSearchInput" type="search" placeholder="Search" aria-label="Search projects, developers, skills">
-      <kbd>⌘K</kbd>
     </label>
     <div class="top-actions">
       <div class="mode-switch" role="group" aria-label="Workspace mode">
@@ -171,7 +172,7 @@
 
     <!-- Developers Grid -->
     <section class="devs-grid" id="devsGrid" aria-label="Developer list">
-      <!-- Cards rendered dynamically by assets/js/find-developers.js?v=20261118-developer-pagination -->
+      <!-- Cards rendered dynamically by assets/js/find-developers.js?v=20261118-developer-card-click -->
     </section>
 
     <!-- Empty State -->
@@ -191,8 +192,15 @@
     <nav class="devs-pagination" aria-label="Developers pagination" hidden></nav>
   </main>
 
-  <!-- Toast Notification -->
-  <div class="fd-toast" id="fdToast" role="status" aria-live="polite">Developer ditambahkan ke Favorites</div>
+  <div class="fav-toast" id="favoriteActionToast" role="status" aria-live="polite"></div>
+  <dialog class="fav-remove-dialog" id="favoriteRemoveDialog" aria-labelledby="favoriteRemoveTitle" aria-describedby="favoriteRemoveMessage">
+    <h2 id="favoriteRemoveTitle">Remove from favorites?</h2>
+    <p id="favoriteRemoveMessage"></p>
+    <form class="fav-remove-dialog-actions" method="dialog">
+      <button class="fav-remove-cancel" type="submit" value="cancel" autofocus>Cancel</button>
+      <button class="fav-remove-confirm" type="submit" value="remove">Remove</button>
+    </form>
+  </dialog>
 
   <!-- Floating Chat Link -->
   <a class="floating-chat" href="devmatch-chat.html?role=client" aria-label="Messages &amp; Chat" title="Open Messages &amp; Chat">
@@ -201,7 +209,8 @@
   </a>
 
   <!-- Scripts -->
-  <script src="assets/js/find-developers.js?v=20261118-workspaces"></script>
-  <script src="assets/js/nav-behavior.js?v=20261118-workspace-isolation"></script>
+  <script src="assets/js/favorite-feedback.js?v=20261118-shared"></script>
+  <script src="assets/js/find-developers.js?v=20261118-arrow-motion-global"></script>
+  <script src="assets/js/nav-behavior.js?v=20261119-workspace-isolation"></script>
 </body>
 </html>

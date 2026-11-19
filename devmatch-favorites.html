@@ -8,7 +8,8 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=optional" rel="stylesheet">
   <link rel="stylesheet" href="assets/css/dashboard.css?v=20261118-pink-nav-badges">
-  <link rel="stylesheet" href="assets/css/favorites.css?v=20261112-storage-media">
+  <link rel="stylesheet" href="assets/css/favorites.css?v=20261118-centered-remove-confirm">
+  <link rel="stylesheet" href="assets/css/favorite-feedback.css?v=20261118-shared">
   <link rel="stylesheet" href="assets/css/find-clients.css?v=20261030-scroll-area">
   <link rel="stylesheet" href="assets/css/client-shell.css?v=20261030-header-size-match">
   <link rel="stylesheet" href="assets/css/mode-switch-animation.css?v=20261030-client-mode-route">
@@ -16,7 +17,7 @@
   <script src="assets/js/mode-switch-state.js?v=20261030-client-mode-indicator"></script>
   <script src="assets/js/i18n.js?v=20261102-profile-details"></script>
 <script src="assets/vendor/supabase-2.119.0.js"></script>
-<script src="assets/js/backend.js?v=20261118-workspace-isolation"></script>
+<script src="assets/js/backend.js?v=20261119-workspace-isolation"></script>
 </head>
 <body class="client-nav-home-layout page-scroll-shell">
   <!-- Topbar -->
@@ -25,7 +26,6 @@
     <label class="search">
       <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
       <input id="searchInput" type="search" placeholder="Search">
-      <kbd>⌘K</kbd>
     </label>
     <div class="top-actions">
       <div class="mode-switch" role="group" aria-label="Workspace mode">
@@ -79,7 +79,7 @@
     <!-- Tabs: Projects & Clients -->
     <div class="fav-tabs" role="tablist" aria-label="Saved items">
       <button class="fav-tab-btn active" id="tabProjects" type="button" role="tab" aria-selected="true">
-        Saved Projects
+        Projects
         <span class="fav-tab-count" id="countProjects">0</span>
       </button>
       <button class="fav-tab-btn" id="tabClients" type="button" role="tab" aria-selected="false">
@@ -140,6 +140,15 @@
     <div id="favDialogContent"></div>
   </dialog>
 
+  <dialog class="fav-remove-dialog" id="favRemoveDialog" aria-labelledby="favRemoveTitle" aria-describedby="favRemoveMessage">
+    <h2 id="favRemoveTitle">Remove from favorites?</h2>
+    <p id="favRemoveMessage"></p>
+    <div class="fav-remove-dialog-actions">
+      <button class="fav-remove-cancel" id="favRemoveCancel" type="button" autofocus>Cancel</button>
+      <button class="fav-remove-confirm" id="favRemoveConfirm" type="button">Remove</button>
+    </div>
+  </dialog>
+
   <!-- Undo Toast Notification -->
   <div class="fav-toast" id="favToast" role="status" aria-live="polite">
     <span id="favToastText">Item removed from favorites</span>
@@ -152,7 +161,7 @@
 
   </a>
 
-  <script src="assets/js/favorites.js?v=20261118-workspace-isolation"></script>
-  <script src="assets/js/nav-behavior.js?v=20261118-workspace-isolation"></script>
+  <script src="assets/js/favorites.js?v=20261119-workspace-isolation"></script>
+  <script src="assets/js/nav-behavior.js?v=20261119-workspace-isolation"></script>
 </body>
 </html>

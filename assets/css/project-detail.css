@@ -109,7 +109,7 @@ svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.8;stroke
 .project-detail-dialog .view-developer-profile{min-height:42px;display:flex;align-items:center;justify-content:center;gap:8px;border:1px solid var(--line);border-radius:10px;background:#fff;font-size:14px;font-weight:600;cursor:pointer}
 .project-detail-dialog a.view-developer-profile{text-decoration:none;color:inherit}
 .project-detail-dialog .view-developer-profile:hover{background:#f7f7f8}
-.project-detail-dialog .view-developer-profile svg{width:17px;height:17px}
+.project-detail-dialog .view-developer-profile .arrow-icon{width:15px;height:15px}
 .project-detail-dialog .chat-developer-secondary{width:100%;min-height:43px}
 .project-detail-dialog .detail-error{margin:32px}
 @media(max-width:780px){.project-detail-dialog[open]{width:calc(100vw - 28px);height:calc(100dvh - 28px);border-radius:15px}.detail-dialog-bar{height:54px;padding:0 16px}.detail-dialog-bar .detail-brand{flex:none;white-space:nowrap}.project-detail-dialog .detail-page{height:calc(100% - 54px);padding:25px 22px 40px;overflow-x:hidden}.project-detail-dialog .project-detail-grid{grid-template-columns:minmax(0,1fr);gap:0}.project-detail-dialog .detail-main-column,.project-detail-dialog .developer-card{width:100%;min-width:0}.project-detail-dialog .developer-card{grid-row:1;margin-bottom:22px;padding:20px}.project-detail-dialog .project-heading{align-items:flex-start;flex-direction:column;gap:15px}.project-detail-dialog .project-heading .chat-developer{width:100%}.project-detail-dialog .project-cover{height:220px}}

@@ -17,6 +17,9 @@
   const grid = document.getElementById('projectGrid');
   const emptyState = document.getElementById('emptyState');
   const dialog = document.getElementById('projectDialog');
+  const favoriteToast = document.getElementById('favoriteActionToast');
+  const favoriteRemoveDialog = document.getElementById('favoriteRemoveDialog');
+  const favoriteRemoveMessage = document.getElementById('favoriteRemoveMessage');
   const summary = document.getElementById('resultsSummary');
   const categoryButtons = [...document.querySelectorAll('[data-category]')];
   const loadMoreButton = document.getElementById('loadMore');
@@ -417,14 +420,14 @@
         <span class="developer-info"><b>${escapeHtml(item.developer)}</b></span>
         <span class="rating" aria-label="Rating 4.9 out of 5"><span>★</span> 4.9</span>
       </div>
-      <div class="catalog-actions"><button class="catalog-detail-link" type="button" data-detail="${escapeHtml(item.id)}">View details <span aria-hidden="true">→</span></button></div>`;
+      <div class="catalog-actions"><button class="catalog-detail-link arrow-action" type="button" data-detail="${escapeHtml(item.id)}">View details <svg class="arrow-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12h20M17 8l5 4-5 4"/></svg></button></div>`;
     const requestContent = `<div class="project-meta"><span class="project-type-pill">${escapeHtml(item.type)}</span><span class="open-pill">Open · ${escapeHtml(item.days)}</span></div>
       <button class="project-title" type="button" data-detail="${escapeHtml(item.id)}">${escapeHtml(item.title)}</button>
       <p class="project-description">${escapeHtml(item.description)}</p>
       <strong class="request-budget">${escapeHtml(item.budgetLabel)}</strong>
       <div class="request-detail-row"><span><svg viewBox="0 0 24 24"><path d="M20 10c0 5-8 12-8 12S4 15 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="2"/></svg>${escapeHtml(item.location)}</span><span>${escapeHtml(item.client)}</span></div>
       <div class="tech-tags">${stack.map(value => `<span>${escapeHtml(value)}</span>`).join('')}</div>
-      <div class="card-actions"><a class="button-primary" href="devmatch-chat.html?role=dev&amp;request=${encodeURIComponent(item.id)}">Submit proposal <span aria-hidden="true">→</span></a></div>`;
+      <div class="card-actions"><a class="button-primary arrow-action" href="devmatch-chat.html?role=dev&amp;request=${encodeURIComponent(item.id)}">Submit proposal <svg class="arrow-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12h20M17 8l5 4-5 4"/></svg></a></div>`;
     return `<article class="project-card${isRequestsPage ? '' : ' catalog-card'}" data-card-detail="${escapeHtml(item.id)}" tabindex="0" aria-label="Open details for ${escapeHtml(item.title)}">
       ${artwork(item)}
       <div class="project-body">
@@ -607,6 +610,14 @@
       if (authenticated === null) return;
       const id = favoriteButton.dataset.favorite;
       const saved = favoriteIds.includes(id);
+      if (saved) {
+        const project = selectedItem(id);
+        if (!project || !await window.DEVMATCH_FAVORITE_FEEDBACK.confirmRemoval(
+          favoriteRemoveDialog,
+          favoriteRemoveMessage,
+          project.title
+        )) return;
+      }
       if (authenticated) {
         try {
           await window.devMatchBackend.setFavorite('project', id, !saved);
@@ -619,6 +630,10 @@
       favoriteIds = saved ? favoriteIds.filter(value => value !== id) : [...favoriteIds, id];
       saveFavorites();
       render();
+      window.DEVMATCH_FAVORITE_FEEDBACK.showToast(
+        favoriteToast,
+        saved ? 'Project removed from your favorites' : 'Project added to your favorites'
+      );
       return;
     }
     const detailButton = event.target.closest('[data-detail]');

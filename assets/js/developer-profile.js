@@ -6,6 +6,15 @@
   const columns=document.querySelector('.profile-columns');
   const escapeHtml=value=>String(value??'').replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
   const initials=name=>(String(name||'').match(/\b\p{L}/gu)||[]).slice(0,2).join('').toUpperCase()||'DM';
+  const specialtyDetails={
+    'Full-stack':{description:'Front + back end',icon:'<path d="m16 18 6-6-6-6M8 6l-6 6 6 6"/>'},
+    Frontend:{description:'Web interfaces',icon:'<rect x="4" y="4" width="6" height="6" rx="1"/><rect x="14" y="4" width="6" height="6" rx="1"/><rect x="4" y="14" width="6" height="6" rx="1"/><rect x="14" y="14" width="6" height="6" rx="1"/>'},
+    Backend:{description:'APIs & databases',icon:'<path d="M6 3v6m0 4v8M12 3v3m0 4v11M18 3v9m0 4v5M3 9h6m0 1h6m0 2h6m-6 4h6"/>'},
+    'UI/UX':{description:'Design & research',icon:'<path d="m15 5 4 4M4 20l4-.8L19.2 8a2.8 2.8 0 0 0-4-4L4 15.2 4 20z"/>'},
+    Mobile:{description:'Android & iOS',icon:'<rect x="5" y="2" width="14" height="20" rx="2"/><path d="M11 18h2"/>'},
+    'Game Dev':{description:'Unity, Roblox...',icon:'<path d="m7 7 10 0a4 4 0 0 1 3.8 5.2l-1.2 4a2 2 0 0 1-3.3.9L14 15H10l-2.3 2.1a2 2 0 0 1-3.3-.9l-1.2-4A4 4 0 0 1 7 7z"/><path d="M7 10v4m-2-2h4m7-1h.01M17 13h.01"/>'},
+    Other:{description:'Custom specialization',icon:'<path d="M12 5v14m-7-7h14"/>'}
+  };
   let projects=[],favoriteDeveloper=false,accountRole=null,publicProfileProjects=null;
   let activeFilter='All',activeQuery='';
   const filters=['All','Website','Web App','Android / iOS','Desktop App'];
@@ -53,6 +62,15 @@
       return;
     }
     reviewsPanel.innerHTML=reviews.length?reviews.map(review=>`<article class="review-item"><span class="review-avatar">${escapeHtml(review.reviewerInitials||'CL')}</span><div class="review-copy"><h3>${escapeHtml(review.reviewerName)}</h3><small>${escapeHtml(review.projectTitle||'Completed project')}</small><p>${escapeHtml(review.text)}</p></div><span class="review-rating" aria-label="${review.rating} out of 5 stars">${'★'.repeat(review.rating)}</span></article>`).join(''):'<p class="empty-state">No reviews yet.</p>';
+  }
+  function updateTabIndicator(button=document.querySelector('.portfolio-tabs .profile-tab.active')){
+    const tabs=document.querySelector('.portfolio-tabs');
+    if(!tabs||!button)return;
+    const tabBounds=button.getBoundingClientRect();
+    const tabsBounds=tabs.getBoundingClientRect();
+    const left=tabBounds.left-tabsBounds.left-tabs.clientLeft+tabs.scrollLeft;
+    tabs.style.setProperty('--profile-tab-indicator-left',`${left}px`);
+    tabs.style.setProperty('--profile-tab-indicator-width',`${tabBounds.width}px`);
   }
   if(!requestedId){showError('Developer profile not found.');return;}
   status.hidden=false;status.textContent='Loading developer profile…';
@@ -125,7 +143,11 @@
     const profile=person.profile_data||{};
     const name=String(person.display_name||'DEV-MATCH member');
     const location=String(profile.city||'Location not provided');
-    const specialties=[profile.specialtyOther,profile.specialty].filter((value,index,all)=>value&&all.indexOf(value)===index).map(String);
+    const specialtyValues=Array.isArray(profile.specialty)?profile.specialty:typeof profile.specialty==='string'?[profile.specialty]:[];
+    const selectedSpecialties=specialtyValues.map(value=>String(value).trim()).filter(Boolean);
+    const customSpecialty=typeof profile.specialtyOther==='string'?profile.specialtyOther.trim():'';
+    if(customSpecialty&&!selectedSpecialties.some(value=>value.toLowerCase()==='other'))selectedSpecialties.push('Other');
+    const specialties=[...new Set(selectedSpecialties.map(value=>value.toLowerCase()==='other'&&customSpecialty?customSpecialty:value))];
     const skills=Array.isArray(profile.skills)?profile.skills.map(String):[];
     document.title=`${name} — DEV-MATCH`;
     document.getElementById('breadcrumbName').textContent=name;
@@ -154,7 +176,14 @@
     document.getElementById('portfolioCount').textContent=String(projects.length);
     document.getElementById('contactDeveloper').href=user&&accountRole==='client'?`devmatch-chat.html?contact=${encodeURIComponent(person.id)}&role=client`:'devmatch-auth.html?mode=login';
     document.getElementById('sidebarContactDeveloper').href=document.getElementById('contactDeveloper').href;
-    document.getElementById('developerSpecialties').innerHTML=specialties.length?specialties.map(value=>`<div class="profile-specialty-card"><b>${escapeHtml(value)}</b></div>`).join(''):'<span>No specialization added yet.</span>';
+    document.getElementById('developerSpecialties').innerHTML=selectedSpecialties.length?selectedSpecialties.map(value=>{
+      if(value.toLowerCase()==='other'){
+        return `<div class="profile-specialty-card"><svg viewBox="0 0 24 24" aria-hidden="true">${specialtyDetails.Other.icon}</svg><b>Other</b><small>${escapeHtml(customSpecialty)}</small></div>`;
+      }
+      const details=specialtyDetails[value]||Object.entries(specialtyDetails)
+        .find(([name])=>name.toLowerCase()===value.toLowerCase())?.[1]||specialtyDetails.Other;
+      return `<div class="profile-specialty-card"><svg viewBox="0 0 24 24" aria-hidden="true">${details.icon}</svg><b>${escapeHtml(value)}</b><small>${escapeHtml(details.description)}</small></div>`;
+    }).join(''):'<span>No specialization added yet.</span>';
     document.getElementById('developerSkills').innerHTML=skills.length?skills.map(value=>`<span>${escapeHtml(value)}</span>`).join(''):'<span>No skills added yet.</span>';
     document.getElementById('developerExperienceList').innerHTML='<li class="empty-state">No public experience added.</li>';
     document.getElementById('developerLinks').innerHTML='<p class="empty-state">No public links added.</p>';
@@ -177,6 +206,7 @@
       const showProjects=button.dataset.tab==='projects';
       const showReviews=button.dataset.tab==='reviews';
       document.querySelectorAll('[data-tab]').forEach(tab=>{const selected=tab===button;tab.classList.toggle('active',selected);tab.setAttribute('aria-selected',String(selected));});
+      updateTabIndicator(button);
       filtersRoot.hidden=!showProjects;grid.hidden=!showProjects;sortSelect.parentElement.hidden=!showProjects;
       reviewsPanel.hidden=!showReviews;commentsPanel.hidden=showProjects||showReviews;
       empty.hidden=!showProjects||projects.length>0;
@@ -201,6 +231,10 @@
     });
     renderProjects();
     status.hidden=true;identity.hidden=false;columns.hidden=false;
+    requestAnimationFrame(()=>updateTabIndicator());
+    window.addEventListener('resize',()=>updateTabIndicator());
+    document.querySelector('.portfolio-tabs').addEventListener('scroll',()=>updateTabIndicator(),{passive:true});
+    if(document.fonts&&document.fonts.ready)document.fonts.ready.then(()=>updateTabIndicator());
   }catch(error){
     console.error('Unable to load the developer profile from Supabase.',error);
     showError('The developer profile could not be loaded. Check your connection and try again.');

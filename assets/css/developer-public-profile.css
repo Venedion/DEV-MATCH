@@ -14,11 +14,7 @@
 .profile-identity-card .profile-actions .button{min-height:36px;padding:0 12px}
 .profile-identity-card .profile-actions .button[aria-pressed=true]{border-color:#f0d7dc;background:#fff7f8;color:#ad283e}
 .profile-identity-card .profile-actions .button-primary{border-color:var(--profile-ink);background:var(--profile-ink);color:#fff}
-.profile-details{gap:13px}
-.profile-card{padding:17px}
-.profile-card .card-heading{margin-bottom:12px}
 .profile-card .role-info-grid{margin-top:13px}
-.profile-specialty-grid .profile-specialty-card{min-height:46px;justify-content:center}
 .public-links{display:grid;gap:9px}
 .public-links>a{display:flex;align-items:center;gap:9px;min-width:0;padding:9px;border:1px solid var(--profile-line);border-radius:9px}
 .public-links>a:hover{background:#f8f8f9}
@@ -33,8 +29,6 @@
 .portfolio-tabs{align-items:center}
 .portfolio-tabs .sort-control{display:flex;align-items:center;margin-left:auto}
 .portfolio-tabs .sort-control select{max-width:118px;padding:6px 8px;border:1px solid var(--profile-line);border-radius:7px;background:#fff;color:#555761;font-size:11px}
-.portfolio-tabs:after{display:none}
-.portfolio-tabs .profile-tab.active:after{background:var(--profile-ink)}
 .portfolio-filters{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:13px}
 .portfolio-filters button{min-height:29px;padding:0 9px;border:1px solid var(--profile-line);border-radius:99px;background:#fff;color:#656770;font-size:10px;font-weight:600;cursor:pointer}
 .portfolio-filters button.active{border-color:#202024;background:#202024;color:#fff}
@@ -48,7 +42,6 @@
 #publicReviewsPanel[hidden],#commentsPanel[hidden]{display:none}
 .comments-panel .empty-state{grid-column:auto}
 .comments-panel .review-item:last-child{border-bottom:0}
-.profile-page .contact-card .contact-message{font-size:13px}
 .sidebar nav a{min-height:42px;display:flex;align-items:center;gap:11px;padding:0 11px;border-radius:8px;color:#4c4e55;font-size:14px;font-weight:500}
 .sidebar nav a:hover,.sidebar nav a.active,.sidebar nav a.selected{background:#f2f2f3;color:var(--profile-ink)}
 .sidebar nav a svg{width:19px;height:19px;color:#6f7179}

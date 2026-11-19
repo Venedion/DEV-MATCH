@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=optional" rel="stylesheet">
-  <link rel="stylesheet" href="assets/css/dashboard.css?v=20261118-pink-nav-badges">
+  <link rel="stylesheet" href="assets/css/dashboard.css?v=20261119-dashboard-date-range-v16">
   <link rel="stylesheet" href="assets/css/mode-switch-animation.css?v=20261030-active-indicator">
   <link rel="stylesheet" href="assets/css/mobile-navigation.css?v=20261118-workspaces">
   <script>
@@ -31,9 +31,9 @@
       }
     })();
   </script>
-  <script src="assets/js/i18n.js?v=20261102-profile-details"></script>
+  <script src="assets/js/i18n.js?v=20261119-dashboard-date-range-v2"></script>
 <script src="assets/vendor/supabase-2.119.0.js"></script>
-<script src="assets/js/backend.js?v=20261118-workspace-isolation"></script>
+<script src="assets/js/backend.js?v=20261119-workspace-isolation"></script>
 </head>
 <body class="page-scroll-shell">
   <header class="topbar">
@@ -41,7 +41,6 @@
     <label class="search">
       <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
       <input id="searchInput" type="search" placeholder="Search">
-      <kbd>⌘K</kbd>
     </label>
     <div class="top-actions">
       <div class="mode-switch" role="group" aria-label="Workspace mode">
@@ -68,22 +67,66 @@
 
   <main class="dashboard" id="overview">
     <section class="welcome">
-      <div><p class="eyebrow">Developer workspace</p><h1>Welcome, <span id="welcomeName">Developer</span></h1><p id="rangeDescription">Your account-wide project metrics and recent activity.</p></div>
-      <div class="welcome-actions"><span>All-time metrics</span></div>
+      <div><p class="eyebrow">Developer workspace</p><h1>Welcome, <span id="welcomeName">Developer</span></h1><p id="rangeDescription">Loading your selected date range…</p></div>
+      <div class="welcome-actions">
+        <div class="period-select" id="periodSelect">
+          <button class="period-trigger" id="periodTrigger" type="button" aria-label="Dashboard date range" aria-haspopup="dialog" aria-expanded="false" aria-controls="periodOptions">
+            <span class="period-icon-wrap" aria-hidden="true"><svg class="period-icon" viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="16" rx="2.5"/><path d="M8 3.5v4M16 3.5v4M3.5 10h17M7.5 13h3m3 0h3m-9 4h3"/></svg></span>
+            <span id="periodValue" aria-live="polite">Last 30 days</span>
+            <svg class="chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="m7 10 5 5 5-5"/></svg>
+          </button>
+          <div class="period-options" id="periodOptions" role="dialog" aria-label="Dashboard date range" hidden>
+            <div class="period-picker">
+              <nav class="period-presets" aria-label="Date range presets">
+                <button type="button" aria-pressed="false" data-preset="custom">Custom</button>
+                <button type="button" aria-pressed="false" data-preset="this-week">This week</button>
+                <button type="button" aria-pressed="false" data-preset="last-week">Last week</button>
+                <button type="button" aria-pressed="false" data-preset="this-month">This month</button>
+                <button type="button" aria-pressed="false" data-preset="last-month">Last month</button>
+                <button type="button" aria-pressed="false" data-preset="7">Last 7 days</button>
+                <button type="button" aria-pressed="true" data-preset="30">Last 30 days</button>
+                <button type="button" aria-pressed="false" data-preset="90">Last 90 days</button>
+                <button type="button" aria-pressed="false" data-preset="180">Last 180 days</button>
+                <button type="button" aria-pressed="false" data-preset="365">Last 365 days</button>
+                <button type="button" aria-pressed="false" data-preset="5-years">Last 5 years</button>
+                <button type="button" aria-pressed="false" data-preset="lifetime">Lifetime</button>
+                <div class="period-day-presets">
+                  <label><input id="daysThroughToday" type="number" min="1" max="3650" value="30" aria-label="Number of days up to today"><span>days up to today</span></label>
+                  <label><input id="daysThroughYesterday" type="number" min="1" max="3650" value="30" aria-label="Number of days up to yesterday"><span>days up to yesterday</span></label>
+                </div>
+              </nav>
+              <div class="period-calendar-pane">
+                <div class="period-date-fields">
+                  <label>Start date<input id="rangeStart" type="text" inputmode="numeric" placeholder="MM/DD/YYYY" maxlength="10" autocomplete="off" spellcheck="false" aria-label="Start date"></label>
+                  <span class="period-date-separator" aria-hidden="true">—</span>
+                  <label>End date<input id="rangeEnd" type="text" inputmode="numeric" placeholder="MM/DD/YYYY" maxlength="10" autocomplete="off" spellcheck="false" aria-label="End date"></label>
+                </div>
+                <p class="period-range-hint" id="periodRangeHint" aria-live="polite">Choose a start date</p>
+                <div class="period-calendar" id="periodCalendar" aria-label="Choose a date range"></div>
+                <p class="period-error" id="rangeError" role="alert" hidden></p>
+              </div>
+              <footer class="period-picker-footer">
+                <button id="periodCancel" type="button">Cancel</button>
+                <button id="periodApply" type="button">Apply</button>
+              </footer>
+            </div>
+          </div>
+        </div>
+      </div>
     </section>
     <p id="dashboardStatus" role="status" aria-live="polite">Loading your dashboard…</p>
 
     <section class="stats" aria-label="Project statistics">
-      <article class="stat-card"><div class="stat-top"><span>Total Projects</span><span class="stat-icon"><svg viewBox="0 0 24 24"><path d="M3 6a2 2 0 0 1 2-2h5l2 2h7a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg></span></div><strong id="totalProjects">—</strong><p><span class="comparison">All time</span></p></article>
-      <article class="stat-card"><div class="stat-top"><span>Total Views</span><span class="stat-icon"><svg viewBox="0 0 24 24"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg></span></div><strong id="totalViews">—</strong><p><span class="comparison">All time</span></p></article>
-      <article class="stat-card"><div class="stat-top"><span>Total Favorites</span><span class="stat-icon"><svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></span></div><strong id="totalFavorites">—</strong><p><span class="comparison">All time</span></p></article>
-      <article class="stat-card"><div class="stat-top"><span>Total Comments</span><span class="stat-icon"><svg viewBox="0 0 24 24"><path d="M21 11.5a8.5 8.5 0 0 1-8.5 8.5H4l1.5-4A8.5 8.5 0 1 1 21 11.5z"/></svg></span></div><strong id="totalComments">—</strong><p><span class="comparison">All time</span></p></article>
+      <article class="stat-card"><div class="stat-top"><span>Total Projects</span><span class="stat-icon"><svg viewBox="0 0 24 24"><path d="M3 6a2 2 0 0 1 2-2h5l2 2h7a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg></span></div><strong id="totalProjects">—</strong><p><span class="comparison">Last 30 days</span></p></article>
+      <article class="stat-card"><div class="stat-top"><span>Total Views</span><span class="stat-icon"><svg viewBox="0 0 24 24"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg></span></div><strong id="totalViews">—</strong><p><span class="comparison">Last 30 days</span></p></article>
+      <article class="stat-card"><div class="stat-top"><span>Total Favorites</span><span class="stat-icon"><svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></span></div><strong id="totalFavorites">—</strong><p><span class="comparison">Last 30 days</span></p></article>
+      <article class="stat-card"><div class="stat-top"><span>Total Comments</span><span class="stat-icon"><svg viewBox="0 0 24 24"><path d="M21 11.5a8.5 8.5 0 0 1-8.5 8.5H4l1.5-4A8.5 8.5 0 1 1 21 11.5z"/></svg></span></div><strong id="totalComments">—</strong><p><span class="comparison">Last 30 days</span></p></article>
     </section>
 
     <section class="content-grid">
       <article class="panel performance-panel">
-        <div class="panel-heading"><div><h2>Project performance</h2><div class="chart-summary"><strong id="chartViews">—</strong><span>Total views</span></div></div></div>
-        <p id="dashboardChartState" role="status">Views are provided as an account-wide total.</p>
+        <div class="panel-heading"><div><h2>Project performance</h2><div class="chart-summary"><strong id="chartViews">—</strong><span id="chartViewsLabel">Views in range</span></div></div></div>
+        <p id="dashboardChartState" role="status">Views within the selected date range.</p>
       </article>
       <article class="panel viewed-panel" id="projects">
         <div class="panel-heading"><h2>Your projects</h2><a href="devmatch-my-projects.html">View all</a></div>
@@ -108,7 +151,7 @@
   <a class="floating-chat" href="devmatch-chat.html" aria-label="Messages &amp; Chat" title="Open Messages &amp; Chat">
     <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5c-5 0-9 3.65-9 8.15 0 2.24 1.04 4.27 2.73 5.74L4.7 21l5.24-1.28c.67.12 1.36.18 2.06.18 5 0 9-3.65 9-8.15S17 3.5 12 3.5Z"/><circle cx="8.5" cy="11.7" r="1" fill="currentColor" stroke="none"/><circle cx="12" cy="11.7" r="1" fill="currentColor" stroke="none"/><circle cx="15.5" cy="11.7" r="1" fill="currentColor" stroke="none"/></svg>
   </a>
-  <script src="assets/js/dashboard.js?v=20261118-workspace-isolation"></script>
-  <script src="assets/js/nav-behavior.js?v=20261118-workspace-isolation"></script>
+  <script src="assets/js/dashboard.js?v=20261119-workspace-isolation"></script>
+  <script src="assets/js/nav-behavior.js?v=20261119-workspace-isolation"></script>
 </body>
 </html>
