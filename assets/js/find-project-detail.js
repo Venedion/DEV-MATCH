@@ -1,6 +1,13 @@
 (async function(){
   'use strict';
-  const projectId=new URLSearchParams(location.search).get('request');
+  const params=new URLSearchParams(location.search);
+  const projectId=params.get('request');
+  if(params.get('modal')==='1'){
+    document.body.classList.add('is-modal-detail');
+    const base=document.createElement('base');
+    base.target='_top';
+    document.head.prepend(base);
+  }
   const layout=document.getElementById('requestDetailLayout');
   const notFound=document.getElementById('requestNotFound');
   const status=document.getElementById('requestStatus');
@@ -77,7 +84,8 @@
     const data=row.data&&typeof row.data==='object'?row.data:{};
     project={...data,id:row.id,title:row.title,type:row.project_type,category:row.category,
       budgetLabel:row.price||data.budgetLabel||data.budget||'Budget not specified',
-      description:String(data.description||data.overview||''),stack:Array.isArray(data.stack)?data.stack:String(data.stack||''),
+      description:String(data.description||data.overview||''),overview:String(data.overview||data.description||''),
+      stack:Array.isArray(data.stack)?data.stack:String(data.stack||''),
       features:Array.isArray(data.features)?data.features:[],location:String(data.location||'Location not provided'),
       popularity:0,ownerId:row.owner_id,createdAt:row.created_at||row.updated_at};
     let clientName='DEV-MATCH member',profileLocation='Location not provided',accountRole=null;
@@ -108,27 +116,29 @@
     document.title=`${project.title} — Find Projects | DEV-MATCH`;
     document.getElementById('requestCategory').textContent=project.category;
     document.getElementById('requestBreadcrumbTitle').textContent=project.title;
-    document.getElementById('requestClientAvatar').textContent=project.initials;
+    document.getElementById('requestTypeLabel').textContent=project.category;
+    document.getElementById('requestPreviewCategory').textContent=[project.category,project.type].filter(Boolean).join(' · ');
+    document.getElementById('requestPreviewTitle').textContent=project.title;
+    document.getElementById('requestPreviewDescription').textContent=project.description;
     document.getElementById('asideClientAvatar').textContent=project.initials;
-    document.getElementById('requestClientName').textContent=clientName;
     document.getElementById('asideClientName').textContent=clientName;
     const clientProfileUrl=`devmatch-client-profile.html?client=${encodeURIComponent(row.owner_id)}&from=find-projects`;
-    document.getElementById('requestClientAvatarLink').href=clientProfileUrl;
-    document.getElementById('requestClientAvatarLink').setAttribute('aria-label',`View ${clientName} profile`);
-    document.getElementById('requestClientNameLink').href=clientProfileUrl;
     document.getElementById('asideClientAvatarLink').href=clientProfileUrl;
     document.getElementById('asideClientAvatarLink').setAttribute('aria-label',`View ${clientName} profile`);
     document.getElementById('asideClientNameLink').href=clientProfileUrl;
-    document.getElementById('requestClientMeta').textContent=`${clientName} · ${project.location} · Posted ${date}`;
     document.getElementById('asideClientLocation').textContent=project.location;
+    document.getElementById('asideClientMeta').textContent=`Posted ${date}`;
     document.getElementById('asideClientRequestCount').textContent=String(clientRequestCount??0);
     document.getElementById('requestTags').innerHTML=[project.category,project.type].filter(Boolean).map(value=>`<span>${escapeHtml(value)}</span>`).join('');
     document.getElementById('requestTitle').textContent=project.title;
     document.getElementById('requestDescription').textContent=project.description;
     document.getElementById('requestBudget').textContent=project.budgetLabel;
-    document.getElementById('requestOverview').textContent=project.description;
+    document.getElementById('requestOverview').textContent=project.overview;
     document.getElementById('requestFeatures').innerHTML=project.features.map(feature=>`<li>${escapeHtml(feature)}</li>`).join('');
-    document.getElementById('requestStack').innerHTML=(Array.isArray(project.stack)?project.stack:String(project.stack).split(/\s+(?:and|,)\s+/)).filter(Boolean).map(value=>`<span>${escapeHtml(value)}</span>`).join('');
+    document.getElementById('requestRequirementsSection').hidden=project.features.length===0;
+    const stackValues=(Array.isArray(project.stack)?project.stack:String(project.stack).split(/\s+(?:and|,)\s+/)).filter(Boolean);
+    document.getElementById('requestStack').innerHTML=stackValues.map(value=>`<span>${escapeHtml(value)}</span>`).join('');
+    document.getElementById('requestSpecialtySection').hidden=stackValues.length===0;
     document.getElementById('requestPopularity').textContent='';
     document.getElementById('contactClient').href=user&&accountRole==='dev'?`devmatch-chat.html?role=dev&request=${encodeURIComponent(project.id)}`:'devmatch-auth.html?mode=login';
     const saveButton=document.getElementById('saveRequestButton');

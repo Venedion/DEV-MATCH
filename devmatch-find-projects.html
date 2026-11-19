@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=optional" rel="stylesheet">
   <link rel="stylesheet" href="assets/css/dashboard.css?v=20261118-hide-favorites-nav-badge">
-  <link rel="stylesheet" href="assets/css/marketplace.css?v=20261119-request-card-metrics">
+  <link rel="stylesheet" href="assets/css/marketplace.css?v=20261119-request-modal-wide">
   <link rel="stylesheet" href="assets/css/mode-switch-animation.css?v=20261030-active-indicator">
   <link rel="stylesheet" href="assets/css/mobile-navigation.css?v=20261118-workspaces">
   <link rel="stylesheet" href="assets/css/arrow-motion.css?v=20261118-arrow-motion-global-v2">
@@ -95,6 +95,20 @@
     </section>
   </main>
 
+  <dialog class="request-detail-dialog" id="requestDetailDialog" aria-label="Project request details">
+    <header class="request-detail-dialog-bar">
+      <a class="request-detail-dialog-brand" href="devmatch-find-projects.html">
+        <img class="brand-mark" src="assets/images/devmatch-logo.png" width="35" height="35" alt="" aria-hidden="true">
+        <span>DEV-MATCH</span>
+      </a>
+      <span class="request-detail-dialog-label">Project details</span>
+      <button class="request-detail-dialog-close" id="closeRequestDetail" type="button" aria-label="Close project details">
+        <svg viewBox="0 0 16 16" aria-hidden="true"><path d="m3 3 10 10M13 3 3 13"/></svg>
+      </button>
+    </header>
+    <iframe class="request-detail-dialog-frame" id="requestDetailFrame" title="Project request details" src="about:blank"></iframe>
+  </dialog>
+
   <dialog class="project-dialog" id="projectDialog" aria-labelledby="dialogTitle">
     <button class="dialog-close" type="button" data-close-dialog aria-label="Close details">×</button>
     <div class="dialog-content" id="dialogContent"></div>
@@ -103,7 +117,7 @@
   <a class="floating-chat" href="devmatch-chat.html" aria-label="Messages &amp; Chat" title="Open Messages &amp; Chat">
     <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5c-5 0-9 3.65-9 8.15 0 2.24 1.04 4.27 2.73 5.74L4.7 21l5.24-1.28c.67.12 1.36.18 2.06.18 5 0 9-3.65 9-8.15S17 3.5 12 3.5Z"/><circle cx="8.5" cy="11.7" r="1" fill="currentColor" stroke="none"/><circle cx="12" cy="11.7" r="1" fill="currentColor" stroke="none"/><circle cx="15.5" cy="11.7" r="1" fill="currentColor" stroke="none"/></svg>
   </a>
-  <script src="assets/js/marketplace.js?v=20261119-rebase-merge"></script>
+  <script src="assets/js/marketplace.js?v=20261119-request-modal"></script>
   <script src="assets/js/nav-behavior.js?v=20261119-rebase-merge"></script>
 <script src="assets/js/presence.js?v=20261119-global"></script>
 </body>

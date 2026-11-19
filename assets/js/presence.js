@@ -1,5 +1,6 @@
 (function(){
   'use strict';
+  if(new URLSearchParams(location.search).get('modal')==='1')return;
   const backend=window.devMatchBackend;
   if(!backend)return;
   let timer=null,pending=false,stopped=false;

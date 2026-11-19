@@ -18,6 +18,8 @@
   const grid = document.getElementById('projectGrid');
   const emptyState = document.getElementById('emptyState');
   const dialog = document.getElementById('projectDialog');
+  const requestDetailDialog = document.getElementById('requestDetailDialog');
+  const requestDetailFrame = document.getElementById('requestDetailFrame');
   const favoriteToast = document.getElementById('favoriteActionToast');
   const favoriteRemoveDialog = document.getElementById('favoriteRemoveDialog');
   const favoriteRemoveMessage = document.getElementById('favoriteRemoveMessage');
@@ -573,7 +575,13 @@
       return;
     }
     if (isRequestsPage) {
-      window.location.href = `devmatch-find-project-detail.html?request=${encodeURIComponent(item.id)}`;
+      if (requestDetailDialog && requestDetailFrame) {
+        requestDetailFrame.title = `Project request: ${item.title}`;
+        requestDetailFrame.src = `devmatch-find-project-detail.html?request=${encodeURIComponent(item.id)}&modal=1`;
+        if (!requestDetailDialog.open) requestDetailDialog.showModal();
+      } else {
+        window.location.href = `devmatch-find-project-detail.html?request=${encodeURIComponent(item.id)}`;
+      }
     } else {
       window.location.href = `devmatch-discover-project-detail.html?project=${encodeURIComponent(item.id)}`;
     }
@@ -712,6 +720,15 @@
     if (event.target.closest('[data-close-dialog]')) dialog.close();
     if (event.target === dialog) dialog.close();
   });
+  if (requestDetailDialog && requestDetailFrame) {
+    document.getElementById('closeRequestDetail').addEventListener('click', () => requestDetailDialog.close());
+    requestDetailDialog.addEventListener('click', event => {
+      if (event.target === requestDetailDialog) requestDetailDialog.close();
+    });
+    requestDetailDialog.addEventListener('close', () => {
+      requestDetailFrame.src = 'about:blank';
+    });
+  }
   document.addEventListener('keydown', event => {
     if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') {
       event.preventDefault();

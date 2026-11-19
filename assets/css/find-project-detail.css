@@ -169,3 +169,62 @@
   .find-comment-form textarea{padding-right:10px;padding-bottom:46px}
   .find-comment-form button{right:8px}
 }
+
+.find-project-detail-page.is-modal-detail{min-height:100%;background:#f7f7f8}
+.find-project-detail-page.is-modal-detail .topbar,
+.find-project-detail-page.is-modal-detail .sidebar,
+.find-project-detail-page.is-modal-detail #requestStatus,
+.find-project-detail-page.is-modal-detail .find-detail-breadcrumb{display:none!important}
+.find-project-detail-page.is-modal-detail .find-detail-main{width:100%;max-width:none;margin:0;padding:34px 32px 56px}
+.find-project-detail-page.is-modal-detail .find-detail-layout{grid-template-columns:minmax(0,1.65fr) minmax(270px,.82fr);gap:24px}
+.find-project-detail-page.is-modal-detail .find-detail-main-column{gap:14px}
+.find-project-detail-page.is-modal-detail .find-detail-card{padding:22px;border-radius:15px}
+.find-project-detail-page.is-modal-detail .find-detail-aside{position:sticky;top:22px;gap:14px}
+.find-request-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:16px}
+.find-request-heading-copy{min-width:0}
+.find-request-heading .find-detail-eyebrow{margin-bottom:8px}
+.find-request-heading .find-detail-tags{margin-top:0}
+.find-request-heading h1{margin-top:12px;font-size:clamp(25px,3vw,34px);line-height:1.2;letter-spacing:-.04em}
+.find-request-heading .find-detail-description{margin-top:8px}
+.find-request-heading .find-detail-save{flex:none;margin:0}
+.find-request-budget{display:grid;gap:4px;margin-top:14px}
+.find-request-budget small{color:#858891;font-size:10px;font-weight:800;letter-spacing:.05em}
+.find-request-budget strong{font-size:20px;line-height:1.35}
+.find-request-preview{height:245px;position:relative;display:grid;place-items:center;overflow:hidden;margin:22px 0 25px;border:1px solid #e5e5e8;border-radius:13px;background:linear-gradient(135deg,#e7e8f7,#efefff)}
+.find-request-preview-window{width:82%;height:80%;overflow:hidden;border:1px solid #e0e0e5;border-radius:10px;background:#fff;box-shadow:0 12px 30px #17171914}
+.find-request-preview-bar{height:23px;display:flex;align-items:center;gap:5px;padding:0 10px;border-bottom:1px solid #eeeef0}
+.find-request-preview-bar i{width:6px;height:6px;border-radius:50%;background:#d7d8dd}
+.find-request-preview-bar span{width:32%;height:6px;margin-left:9px;border-radius:99px;background:#f0f0f2}
+.find-request-preview-content{height:calc(100% - 23px);position:relative;display:flex;flex-direction:column;justify-content:center;overflow:hidden;padding:clamp(15px,3vw,30px)}
+.find-request-preview-content small,.find-request-preview-content strong,.find-request-preview-content>span{position:relative;z-index:1;display:block}
+.find-request-preview-content small{color:#777982;font-size:10px;font-weight:700}
+.find-request-preview-content strong{max-width:52%;margin-top:9px;font-size:clamp(18px,2.4vw,28px);line-height:1.15}
+.find-request-preview-content>span{max-width:48%;margin-top:8px;color:#777982;font-size:10px;line-height:1.5}
+.find-request-preview-art{position:absolute;top:17%;right:8%;width:35%;height:68%;border-radius:10px;background:radial-gradient(circle at 50% 50%,#d16739 0 12%,#f0c458 13% 20%,#85a45f 21% 42%,#eee5d9 43% 53%,transparent 54%);opacity:.85}
+.find-project-detail-page.is-modal-detail .find-detail-section{margin-top:22px}
+.find-project-detail-page.is-modal-detail .find-detail-section h2{font-size:16px}
+.find-project-detail-page.is-modal-detail .find-detail-section p,
+.find-project-detail-page.is-modal-detail .find-detail-section li{font-size:13px}
+.find-project-detail-page.is-modal-detail .find-detail-stats{margin-top:20px;padding-top:15px;font-size:12px}
+.find-project-detail-page.is-modal-detail .find-client-card{gap:15px}
+.find-project-detail-page.is-modal-detail .find-client-profile .find-detail-avatar{width:50px;height:50px}
+.find-project-detail-page.is-modal-detail .find-client-profile strong{font-size:15px}
+.find-project-detail-page.is-modal-detail #asideClientMeta{margin-top:2px;color:#8a8d95;font-size:11px}
+.find-project-detail-page.is-modal-detail .find-contact-button{min-height:44px}
+.find-project-detail-page.is-modal-detail .find-similar-card h2{font-size:16px}
+@media(max-width:780px){
+  .find-project-detail-page.is-modal-detail .find-detail-main{padding:25px 22px 40px}
+  .find-project-detail-page.is-modal-detail .find-detail-layout{grid-template-columns:minmax(0,1fr);gap:0}
+  .find-project-detail-page.is-modal-detail .find-detail-aside{position:static;grid-row:1;margin-bottom:22px}
+  .find-project-detail-page.is-modal-detail .find-request-preview{height:220px}
+}
+@media(max-width:480px){
+  .find-project-detail-page.is-modal-detail .find-detail-main{padding:20px 15px 32px}
+  .find-project-detail-page.is-modal-detail .find-detail-card{padding:16px}
+  .find-project-detail-page.is-modal-detail .find-request-heading h1{font-size:25px}
+  .find-project-detail-page.is-modal-detail .find-request-budget strong{font-size:17px}
+  .find-project-detail-page.is-modal-detail .find-request-preview{height:175px;margin:17px 0 21px}
+  .find-project-detail-page.is-modal-detail .find-request-preview-window{width:86%;height:78%}
+  .find-project-detail-page.is-modal-detail .find-request-preview-content{padding:14px}
+  .find-project-detail-page.is-modal-detail .find-detail-section h2{font-size:15px}
+}

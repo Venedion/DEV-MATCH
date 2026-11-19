@@ -296,3 +296,27 @@
   .request-card-view{height:36px;padding:0 10px;font-size:11.5px}
   .marketplace-main[data-marketplace="requests"] .project-grid.is-list .request-card-body{grid-template-columns:1fr;grid-template-areas:"header" "title" "description" "budget" "required" "footer";gap:0}
 }
+.request-detail-dialog:not([open]){display:none}
+.request-detail-dialog[open]{width:min(1280px,calc(100vw - 32px));height:min(920px,calc(100dvh - 28px));max-width:none;max-height:none;display:flex;flex-direction:column;position:fixed;inset:0;margin:auto;padding:0;overflow:hidden;border:1px solid #dcdce0;border-radius:18px;background:#f7f7f8;color:#171719;box-shadow:0 28px 100px #0004}
+.request-detail-dialog::backdrop{background:#17171970;backdrop-filter:blur(4px)}
+.request-detail-dialog-bar{height:60px;display:flex;align-items:center;gap:24px;flex:none;padding:0 24px;border-bottom:1px solid #e5e5e8;background:#fff}
+.request-detail-dialog-brand{display:flex;align-items:center;gap:9px;font-size:16px;font-weight:800;letter-spacing:-.04em}
+.request-detail-dialog-brand .brand-mark{width:32px;height:32px}
+.request-detail-dialog-label{color:#777982;font-size:13px;font-weight:600}
+.request-detail-dialog-close{width:32px;height:32px;display:grid;place-items:center;margin-left:auto;padding:0;border:0;border-radius:7px;background:transparent;color:#626772;cursor:pointer}
+.request-detail-dialog-close:hover{background:#f2f2f4}
+.request-detail-dialog-close svg{width:14px;height:14px}
+.request-detail-dialog-close svg path{fill:none;stroke:currentColor;stroke-width:1.6}
+.request-detail-dialog-frame{width:100%;min-height:0;flex:1;border:0;background:#f7f7f8}
+@media(max-width:780px){
+  .request-detail-dialog[open]{width:calc(100vw - 24px);height:calc(100dvh - 24px);border-radius:15px}
+  .request-detail-dialog-bar{height:54px;padding:0 16px}
+}
+@media(max-width:480px){
+  .request-detail-dialog[open]{width:calc(100vw - 16px);height:calc(100dvh - 16px);border-radius:13px}
+  .request-detail-dialog-bar{height:50px;gap:12px;padding:0 12px}
+  .request-detail-dialog-brand{font-size:15px}
+  .request-detail-dialog-brand .brand-mark{width:27px;height:27px}
+  .request-detail-dialog-label{font-size:11px}
+  .request-detail-dialog-close{width:30px;height:30px}
+}
