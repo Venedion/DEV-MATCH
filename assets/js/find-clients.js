@@ -15,7 +15,7 @@
   let searchScope = 'name';
   let selectedBusinessType = 'all';
   let selectedLocation = 'all';
-  let hasOpenRequestsOnly = true; // Enabled by default per PDF design (solid dark pill)
+  let hasOpenRequestsOnly = false;
   let sortOrder = 'az';
   let favoriteIds = getSavedFavorites();
 
@@ -467,6 +467,7 @@
       btnToggleOpenRequests.addEventListener('click', () => {
         hasOpenRequestsOnly = !hasOpenRequestsOnly;
         btnToggleOpenRequests.classList.toggle('inactive', !hasOpenRequestsOnly);
+        btnToggleOpenRequests.setAttribute('aria-pressed', String(hasOpenRequestsOnly));
         renderClients();
       });
     }
@@ -556,7 +557,10 @@
         hasOpenRequestsOnly = false;
         if (searchInput) searchInput.value = '';
         if (topSearchInput) topSearchInput.value = '';
-        if (btnToggleOpenRequests) btnToggleOpenRequests.classList.add('inactive');
+        if (btnToggleOpenRequests) {
+          btnToggleOpenRequests.classList.add('inactive');
+          btnToggleOpenRequests.setAttribute('aria-pressed', 'false');
+        }
 
         const btTrigger = businessTypeDropdown ? businessTypeDropdown.querySelector('.filter-label-text') : null;
         if (btTrigger) btTrigger.textContent = 'Business type';
