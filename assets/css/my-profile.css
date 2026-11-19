@@ -70,14 +70,22 @@
 .experience-item{position:relative;display:grid;grid-template-columns:15px 1fr;gap:9px;padding-bottom:16px}
 .experience-item:last-child{padding-bottom:0}
 .experience-marker{position:relative;display:flex;justify-content:center}
-.experience-marker:before{width:8px;height:8px;margin-top:4px;border:2px solid #b8bac0;border-radius:50%;background:#fff;content:""}
-.experience-item:not(:last-child) .experience-marker:after{position:absolute;top:15px;bottom:-2px;width:1px;background:#e5e5e8;content:""}
+.experience-marker:before{width:6px;height:6px;margin-top:4px;border:1.5px solid #b8bac0;border-radius:50%;background:#fff;content:""}
+.experience-marker:after{position:absolute;top:11px;bottom:0;left:calc(50% - .5px);width:1px;background:#e5e5e8;content:""}
 .experience-copy b,.experience-copy span{display:block}
 .experience-copy b{font-size:10px}
 .experience-copy span{margin-top:4px;color:var(--profile-muted);font-size:9px;line-height:1.5}
 .experience-copy a{display:inline-flex;align-items:center;gap:3px;margin-top:5px;color:#4f5159;font-size:9px;font-weight:700}
 .experience-copy a:hover{text-decoration:underline}
-.experience-copy .experience-files{display:block;margin-top:4px;color:var(--profile-muted);font-size:9px;line-height:1.4;overflow-wrap:anywhere}
+.experience-copy .experience-proof-link{overflow-wrap:anywhere;transition:color .15s ease}
+.experience-copy .experience-proof-link:hover{color:var(--profile-ink)}
+.experience-file-list{display:grid;gap:3px;margin-top:1px}
+.experience-file-download{display:inline-flex;align-items:center;gap:4px;max-width:100%;padding:0;border:0;background:transparent;color:var(--profile-muted);font:inherit;font-size:9px;font-weight:600;text-align:left;cursor:pointer;transition:color .18s ease}
+.experience-file-download:hover{color:var(--profile-ink)}
+.experience-file-download span,.experience-file-name{display:inline;margin:0;color:inherit;font-size:9px;line-height:1.4;overflow-wrap:anywhere}
+.experience-file-download span{text-decoration:underline;text-underline-offset:2px}
+.experience-file-download svg{flex:none;width:12px;height:12px;fill:none;stroke:currentColor;stroke-linecap:round;stroke-linejoin:round;stroke-width:1.8}
+.experience-file-download:focus-visible{outline:2px solid var(--profile-ink);outline-offset:2px}
 .connected-list{display:grid;gap:10px}
 .connected-app-manage{display:inline-flex;align-items:center;gap:5px;color:#666872;font-size:10px;font-weight:700;text-decoration:underline;text-underline-offset:2px;transition:color .15s ease}
 .connected-app-manage:hover{color:var(--profile-ink)}
@@ -239,6 +247,8 @@ body{font-size:16px;line-height:1.55}
 .experience-copy b{font-size:14px;line-height:1.45}
 .experience-copy span{margin-top:5px;color:#5f626b;font-size:13px;line-height:1.55}
 .experience-copy a{gap:4px;margin-top:7px;font-size:12px}
+.experience-copy .experience-file-download{font-size:12px;line-height:1.55}
+.experience-copy .experience-file-download span{display:inline;margin:0;color:inherit;font-size:inherit;line-height:inherit}
 .connected-list{gap:12px}
 .connected-app{gap:10px}
 .connected-app-info{gap:10px}

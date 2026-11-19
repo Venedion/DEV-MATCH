@@ -166,7 +166,7 @@
     if (!protectedPage) return user;
     if(['devmatch-settings.html','devmatch-my-profile.html','devmatch-favorites.html','devmatch-chat.html'].includes(page)){
       const query=new URLSearchParams(location.search);
-      if(query.get('role')!==row.account_role){query.set('role',row.account_role);location.replace(page+'?'+query);return null;}
+      if(query.get('role')!==row.account_role){query.set('role',row.account_role);location.replace(page+'?'+query+location.hash);return null;}
     }
     const changed = cache(row, user);
     if (page === 'devmatch-profile.html' && new URLSearchParams(location.search).get('role') !== row.account_role) {
@@ -813,7 +813,10 @@
       'image/png',
       'image/webp'
     ];
-    validateUpload(file, allowedTypes, 10 * 1024 * 1024);
+    const maximumBytes = kind === 'experience'
+      ? 5 * 1024 * 1024
+      : 10 * 1024 * 1024;
+    validateUpload(file, allowedTypes, maximumBytes);
     const user = await currentAccount();
     let path;
     if (kind === 'experience') {

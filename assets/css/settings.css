@@ -559,6 +559,17 @@
   margin-top: 10px;
 }
 
+.settings-experience-add-bottom {
+  display: flex;
+  justify-content: center;
+  margin: 8px 0 12px;
+}
+
+.settings-experience-add-bottom .settings-add-experience {
+  padding: 8px 16px;
+  font-size: 13px;
+}
+
 .settings-experience-fields {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -632,11 +643,39 @@
   border: 1px solid var(--line);
   border-radius: 10px;
   background: #fafafc;
+  scroll-margin-bottom: 16px;
 }
 
-.settings-experience-entry-footer {
+.settings-card-footer.settings-experience-entry-footer {
+  gap: 16px;
   margin-top: 14px;
   padding-top: 12px;
+}
+
+.settings-experience-entry-footer .settings-btn.primary {
+  min-width: 76px;
+}
+
+.settings-experience-cancel {
+  padding: 8px 0;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.settings-experience-cancel:hover {
+  color: var(--ink);
+}
+
+.settings-experience-cancel:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 3px;
 }
 
 .settings-experience-entry-heading {
@@ -665,7 +704,8 @@
 }
 
 .settings-experience-remove:hover {
-  background: #fee2e2;
+  background: transparent;
+  color: #7f1d1d;
 }
 
 .settings-experience-remove svg {
@@ -686,15 +726,152 @@
   opacity: 1;
 }
 
-.settings-experience-entry .settings-input[type="file"] {
-  height: auto;
-  min-height: 38px;
-  padding: 7px 9px;
-  font-size: 11px;
+.settings-experience-file-picker {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  min-height: 40px;
+  padding: 5px 10px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: #fafafc;
+  color: var(--muted);
+  font-size: 12px;
+  transition: border-color .15s, background .15s;
 }
 
-.settings-experience-files {
-  overflow-wrap: anywhere;
+.settings-experience-file-picker:focus-within {
+  border-color: var(--ink);
+  background: #fff;
+  box-shadow: 0 0 0 1px var(--ink);
+}
+
+.settings-experience-file-picker.is-disabled {
+  background: #f3f3f5;
+  color: #5d5f67;
+}
+
+.settings-experience-file-action {
+  flex: none;
+  padding: 6px 10px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: #fff;
+  color: var(--ink);
+  font: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.settings-experience-file-action:disabled {
+  color: #5d5f67;
+  cursor: not-allowed;
+}
+
+.settings-experience-file-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.settings-experience-file-input {
+  display: none;
+}
+
+.settings-experience-file-row {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 4px;
+  min-width: 0;
+  min-height: 24px;
+}
+
+.settings-experience-file-row-name {
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: 100%;
+  font-size: 11px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  white-space: nowrap;
+}
+
+.settings-experience-file-download {
+  min-width: 0;
+  max-width: calc(100% - 28px);
+  flex: 0 1 auto;
+  width: auto;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: color .18s ease;
+}
+
+.settings-experience-file-download svg {
+  width: 14px;
+  height: 14px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.8;
+}
+
+.settings-experience-file-download:hover {
+  color: var(--ink);
+}
+
+.settings-experience-file-download:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+}
+
+.settings-experience-file-remove {
+  width: 24px;
+  height: 24px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: #111;
+  cursor: pointer;
+}
+
+.settings-experience-file-remove:hover {
+  background: transparent;
+  color: #000;
+}
+
+.settings-experience-file-remove:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+}
+
+.settings-experience-file-remove svg {
+  width: 14px;
+  height: 14px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.8;
 }
 
 .password-strength {
@@ -1241,8 +1418,24 @@
 }
 
 .app-confirm-dialog .app-edit-actions {
+  gap: 16px;
   padding-top: 16px;
   border-top: 1px solid #f0f0f2;
+}
+
+.app-confirm-dialog #cancelExperienceDelete {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.app-confirm-dialog #cancelExperienceDelete:hover {
+  border-color: transparent;
+  background: transparent;
+  color: var(--ink);
 }
 
 .app-edit-header {
@@ -1301,6 +1494,25 @@
 .settings-toast.show {
   transform: translateX(-50%) translateY(0);
   opacity: 1;
+}
+
+.settings-toast-undo {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: #4ade80;
+  font: inherit;
+  font-weight: 700;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.settings-toast-undo:hover {
+  color: #86efac;
+}
+
+.settings-toast-undo:disabled {
+  cursor: wait;
 }
 
 /* Responsive */

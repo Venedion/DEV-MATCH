@@ -7,14 +7,14 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=optional" rel="stylesheet">
-  <link rel="stylesheet" href="assets/css/dashboard.css?v=20261118-hide-favorites-nav-badge">
-  <link rel="stylesheet" href="assets/css/settings.css?v=20261109-specialty-other-validation">
+  <link rel="stylesheet" href="assets/css/dashboard.css?v=20261118-pink-nav-badges">
+  <link rel="stylesheet" href="assets/css/settings.css?v=20261119-experience-delete-undo">
   <link rel="stylesheet" href="assets/css/custom-select.css?v=20261028-custom-dropdowns-v4">
   <link rel="stylesheet" href="assets/css/client-shell.css?v=20261030-header-size-match">
   <link rel="stylesheet" href="assets/css/mode-switch-animation.css?v=20261030-client-mode-route">
   <link rel="stylesheet" href="assets/css/mobile-navigation.css?v=20261118-workspaces">
   <script src="assets/js/mode-switch-state.js?v=20261030-client-mode-indicator"></script>
-  <script src="assets/js/i18n.js?v=20261103-skill-edit-v2"></script>
+  <script src="assets/js/i18n.js?v=20261119-experience-delete-undo"></script>
 <script src="assets/vendor/supabase-2.119.0.js"></script>
 <script src="assets/js/backend.js?v=20261119-rebase-merge"></script>
 </head>
@@ -247,8 +247,11 @@
               </header>
               <section class="settings-field settings-experience-section">
                 <div class="settings-experience-list" id="settingsExperienceEntries"></div>
+                <div class="settings-experience-add-bottom">
+                  <button class="settings-add-experience" id="addProfileExperienceBottom" type="button">+ Add experience</button>
+                </div>
                 <span class="settings-hint">Add your job title, company, period and optional supporting files.</span>
-                <span class="settings-hint">In this demo, selected file names are saved; file contents are not uploaded.</span>
+                <span class="settings-hint">Supporting files are uploaded securely and linked to this experience.</span>
               </section>
             </section>
           </form>
@@ -808,6 +811,7 @@
   <div class="settings-toast" id="settingsToast" role="status" aria-live="polite">
     <svg viewBox="0 0 24 24" style="width:16px;height:16px;stroke:#4ade80;fill:none;stroke-width:2;"><polyline points="20 6 9 17 4 12"/></svg>
     <span id="settingsToastText">Settings updated successfully</span>
+    <button class="settings-toast-undo" id="settingsToastUndo" type="button" hidden>Undo</button>
   </div>
 
   <!-- Floating Chat Link -->
@@ -816,7 +820,7 @@
 
   </a>
 
-  <script src="assets/js/settings.js?v=20261119-rebase-merge"></script>
+  <script src="assets/js/settings.js?v=20261119-experience-edit-reset"></script>
   <script src="assets/js/custom-select.js?v=20261028-custom-dropdowns-v3"></script>
   <script src="assets/js/nav-behavior.js?v=20261119-rebase-merge"></script>
 <script src="assets/js/presence.js?v=20261119-global"></script>

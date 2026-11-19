@@ -1,7 +1,7 @@
 const {test}=require('node:test');const assert=require('node:assert/strict');const fs=require('node:fs');const vm=require('node:vm');const path=require('node:path');
 const source=fs.readFileSync(path.join(__dirname,'../assets/js/backend.js'),'utf8');
 async function setup({verified=true,page='devmatch-settings.html',role='dev',userRole='dev',changeAccount=false,legacySensitiveCache=false,commentResults=[],directoryPeople=[],notifications=[],favorites=[],notificationReadIds=[],metrics=[],metricsError=null,rpcResponses={},projectEngagement=null,workspaceRole=null,workspaces=[]}={}){
-  let gets=0;const redirects=[],updates=[],passwords=[],rpcCalls=[],tableCalls=[];
+  let gets=0;const redirects=[],updates=[],passwords=[],rpcCalls=[],tableCalls=[],uploads=[];
   const user={id:'fixture',email:'owner@example.invalid',email_confirmed_at:verified?'2026-11-08':null};
   const row={id:user.id,account_role:userRole,account_verified:false,onboarding_complete:true,profile_data:{displayName:'Owner'},display_name:'Owner',username:'owner',phone:'+6281234567890'};
   const cachedProfile={...row.profile_data,username:row.username,displayName:row.display_name,phone:row.phone,email:user.email,role:userRole,googleConnected:false};
@@ -36,14 +36,32 @@ async function setup({verified=true,page='devmatch-settings.html',role='dev',use
     rpc:async(name,args)=>{rpcCalls.push({name,args});return Object.hasOwn(rpcResponses,name)?rpcResponses[name]:{data:metrics,error:metricsError};},
     realtime:{setAuth:async()=>{}},
     channel:(topic,options)=>{const channel={topic,options,subscribe:callback=>{callback('SUBSCRIBED');return channel;},track:async state=>{presenceTracks.push(state);return 'ok';}};presenceChannels.push(channel);return channel;},
-    removeChannel:async()=>{removedPresenceChannels+=1;return 'ok';}};
-  const context={URLSearchParams,window:{supabase:{createClient:()=>client},addEventListener(){}},location:{pathname:'/'+page,search:'?role='+role,hash:'',replace:url=>redirects.push(url),assign:url=>redirects.push(url),reload:()=>redirects.push('reload')},
+    removeChannel:async()=>{removedPresenceChannels+=1;return 'ok';},
+    storage:{from:bucket=>({upload:async(path,file,options)=>{uploads.push({bucket,path,file,options});return {error:null};}})}};
+  const context={URLSearchParams,Blob,crypto:{randomUUID:()=>`upload-${uploads.length+1}`},window:{supabase:{createClient:()=>client},addEventListener(){}},location:{pathname:'/'+page,search:'?role='+role,hash:'',replace:url=>redirects.push(url),assign:url=>redirects.push(url),reload:()=>redirects.push('reload')},
     localStorage:storage,sessionStorage:{getItem:key=>sessionValues[key]??null,removeItem:key=>delete sessionValues[key],setItem:(key,value)=>sessionValues[key]=value},document:{createElement:()=>({}),head:{append(){}},getElementById:()=>({remove(){}}),addEventListener(){}},fetch:async()=>({ok:true,json:async()=>({})})};
   vm.runInNewContext(source,context);const backend=context.window.devMatchBackend;await backend.ready;
   await new Promise(resolve=>setImmediate(resolve));
   return {backend,redirects,updates,passwords,rpcCalls,tableCalls,values,sessionValues,row,user,commentSelects,
-    authChangeHandler,removedPresenceChannels:()=>removedPresenceChannels,presenceChannels,presenceTracks};
+    authChangeHandler,removedPresenceChannels:()=>removedPresenceChannels,presenceChannels,presenceTracks,uploads};
 }
+test('Experience supporting files are limited to 5 MB without changing request upload limits',async()=>{
+  const {backend,uploads}=await setup();
+  const maximumBytes=5*1024*1024;
+  const makeFile=size=>{
+    const file=new Blob([new Uint8Array(size)],{type:'application/pdf'});
+    Object.defineProperty(file,'name',{value:'experience.pdf'});
+    return file;
+  };
+  const uploaded=await backend.uploadPrivateFile('experience','',makeFile(maximumBytes));
+  assert.equal(uploaded.size,maximumBytes);
+  assert.equal(uploads.length,1);
+  await assert.rejects(backend.uploadPrivateFile('experience','',makeFile(maximumBytes+1)),/upload size limit/);
+  assert.equal(uploads.length,1);
+  const requestUpload=await backend.uploadPrivateFile('request','request-id',makeFile(10*1024*1024));
+  assert.equal(requestUpload.size,10*1024*1024);
+  assert.equal(uploads.length,2);
+});
 test('Unconfirmed email accounts are routed to email verification',async()=>{
   const {redirects}=await setup({verified:false});assert.deepEqual(redirects,['devmatch-verify-email.html']);
 });

@@ -19,7 +19,24 @@
   const title=isDeveloper?(specialty.length?`${specialty.slice(0,2).join(' & ')} Developer`:'Developer'):'Client';
   const bio=String(profile.bio||'').trim();
   const skills=Array.isArray(profile.skills)?profile.skills.map(skill=>String(skill).trim()).filter(Boolean):normalizeList(profile.skills,[]);
-  const experiences=Array.isArray(profile.experiences)?profile.experiences.filter(item=>item&&typeof item==='object'&&(item.title||item.company)):[];
+  const experiences=Array.isArray(profile.experiences)
+    ?profile.experiences.filter(item=>item&&typeof item==='object'&&(item.title||item.company)).sort((left,right)=>{
+      const getPeriodOrder=experience=>{
+        const period=String(experience.period||'');
+        const years=period.match(/\d{4}/g)||[];
+        return {
+          current:/\b(present|sekarang|current)\b/i.test(period),
+          endYear:Number(years[years.length-1]||years[0]||0),
+          startYear:Number(years[0]||0)
+        };
+      };
+      const leftOrder=getPeriodOrder(left);
+      const rightOrder=getPeriodOrder(right);
+      return Number(rightOrder.current)-Number(leftOrder.current)
+        ||rightOrder.endYear-leftOrder.endYear
+        ||rightOrder.startYear-leftOrder.startYear;
+    })
+    :[];
   const projects=isDeveloper?loadDeveloperProjects():loadClientRequests();
   const toast=document.getElementById('profileToast');
   let toastTimer;
@@ -86,8 +103,10 @@
 
   function configureRole(){
     const profileUrl=`devmatch-my-profile.html?role=${role}`;
-    const settingsBaseUrl=`devmatch-settings.html?role=${role}`;
-    const settingsUrl=`${settingsBaseUrl}#account`;
+    const settingsUrl=`devmatch-settings.html${isDeveloper?'':'?role=client'}#account`;
+    const specializationUrl=`devmatch-settings.html${isDeveloper?'?role=dev&edit=specialization':'?role=client&edit=specialization'}#profile-details`;
+    const skillsUrl=`devmatch-settings.html${isDeveloper?'?role=dev&edit=skills':'?role=client&edit=skills'}#profile-details`;
+    const experienceUrl=`devmatch-settings.html${isDeveloper?'?role=dev&edit=experience':'?role=client&edit=experience'}#profile-details`;
     const dashboardUrl=isDeveloper?'devmatch-dashboard.html':'devmatch-client-dashboard.html';
     const notificationsUrl=isDeveloper?'devmatch-developer-notifications.html':'devmatch-notifications.html';
     const chatUrl=isDeveloper?'devmatch-chat.html':'devmatch-chat.html?role=client';
@@ -106,15 +125,14 @@
     setLink('userMenu',profileUrl);
     setLink('profileNavLink',profileUrl);
     setLink('settingsLink',settingsUrl.replace('#account',''));
-    setLink('editSkillsLink',`${settingsBaseUrl}#settingsSkillsCard`);
-    setLink('editExperienceLink',`${settingsBaseUrl}#settingsExperienceCard`);
-    setLink('manageConnectedAppsLink',`${settingsBaseUrl}#integrations`);
+    setLink('editSkillsLink',skillsUrl);
+    setLink('editExperienceLink',experienceUrl);
     setLink('messagesLink',chatUrl);
     setLink('projectsLink',isDeveloper?'devmatch-my-projects.html':`${dashboardUrl}#requests`);
     setLink('findProjectsLink',isDeveloper?'devmatch-find-projects.html':'devmatch-discover-projects.html');
     setLink('findClientsLink',isDeveloper?'devmatch-find-clients.html':'devmatch-find-developers.html');
     setLink('favoritesLink',`devmatch-favorites.html${isDeveloper?'':'?role=client'}`);
-    setLink('editSpecializationLink',`${settingsBaseUrl}#settingsSpecialtyCard`);
+    setLink('editSpecializationLink',specializationUrl);
     setLink('createAction',isDeveloper?'devmatch-my-projects.html?create=1':`${dashboardUrl}#requests`);
     setLink('allProjectsLink',isDeveloper?'devmatch-my-projects.html':`${dashboardUrl}#requests`);
     setText('overviewLinkLabel',isDeveloper?'Overview':'Home');
@@ -303,11 +321,24 @@
       root.innerHTML='<li class="empty-state">Experience will appear here when it is added to your profile.</li>';
       return;
     }
-    root.innerHTML=experiences.map(item=>{
+    root.innerHTML=experiences.map((item,experienceIndex)=>{
       const companyLine=[item.company,item.period].filter(Boolean).join(' · ');
-      const href=safeExternalUrl(item.link);
-      const supportingFiles=Array.isArray(item.files)?item.files.map(String).filter(Boolean):[];
-      return `<li class="experience-item"><span class="experience-marker" aria-hidden="true"></span><div class="experience-copy"><b class="profile-experience-value">${escapeHtml(item.title||'Experience')}</b>${companyLine?`<span class="profile-experience-value">${escapeHtml(companyLine)}</span>`:''}${href?`<a href="${escapeHtml(href)}" target="_blank" rel="noopener noreferrer">View proof <span aria-hidden="true">↗</span></a>`:''}${supportingFiles.length?`<small class="experience-files profile-experience-value">${escapeHtml(supportingFiles.join(', '))}</small>`:''}</div></li>`;
+      const linkLabel=String(item.link||'').trim();
+      const href=safeExternalUrl(linkLabel);
+      const filePaths=Array.isArray(item.filePaths)?item.filePaths.map(path=>typeof path==='string'?path:''):[];
+      const supportingFiles=Array.isArray(item.files)
+        ? item.files.map((file,fileIndex)=>({
+          name:typeof file==='string'?file:String(file?.name||''),
+          fileIndex
+        })).filter(file=>file.name)
+        : [];
+      const fileMarkup=supportingFiles.map(({name,fileIndex})=>{
+        const escapedFileName=escapeHtml(name);
+        return filePaths[fileIndex]
+          ? `<button class="experience-file-download" type="button" data-download-experience-file data-experience-index="${experienceIndex}" data-file-index="${fileIndex}" aria-label="Download ${escapedFileName}" title="Download ${escapedFileName}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 19v2h14v-2"/></svg><span>${escapedFileName}</span></button>`
+          : `<span class="experience-file-name">${escapedFileName}</span>`;
+      }).join('');
+      return `<li class="experience-item"><span class="experience-marker" aria-hidden="true"></span><div class="experience-copy"><b class="profile-experience-value">${escapeHtml(item.title||'Experience')}</b>${companyLine?`<span class="profile-experience-value">${escapeHtml(companyLine)}</span>`:''}${href?`<a class="experience-proof-link" href="${escapeHtml(href)}" target="_blank" rel="noopener noreferrer">${escapeHtml(linkLabel)}</a>`:''}${fileMarkup?`<div class="experience-file-list">${fileMarkup}</div>`:''}</div></li>`;
     }).join('');
   }
 
@@ -471,6 +502,35 @@
   renderSpecialization();
   renderSkills();
   renderExperience();
+  document.getElementById('experienceList').addEventListener('click',async event=>{
+    const button=event.target.closest('[data-download-experience-file]');
+    if(!button)return;
+    const experienceIndex=Number(button.dataset.experienceIndex);
+    const fileIndex=Number(button.dataset.fileIndex);
+    const experience=experiences[experienceIndex];
+    const path=Array.isArray(experience?.filePaths)?experience.filePaths[fileIndex]:'';
+    const file=experience?.files?.[fileIndex];
+    const fileName=typeof file==='string'?file:String(file?.name||'');
+    if(!Number.isInteger(experienceIndex)||!Number.isInteger(fileIndex)||!path||!fileName){
+      console.error('Unable to access the selected profile experience file.');
+      showToast('Unable to download this supporting file.',true);
+      return;
+    }
+    button.disabled=true;
+    try{
+      const url=await window.devMatchBackend.createPrivateFileUrl(path,fileName);
+      const link=document.createElement('a');
+      link.href=url;
+      link.target='_blank';
+      link.rel='noopener noreferrer';
+      link.click();
+    }catch(error){
+      console.error('Unable to access the private experience file.',error);
+      showToast(error.message||'Unable to download this supporting file.',true);
+    }finally{
+      button.disabled=false;
+    }
+  });
   renderConnectedApps();
   renderProjects();
   void renderReviews();

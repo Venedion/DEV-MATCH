@@ -51,6 +51,7 @@
   let isEditingSkills = false;
   let experienceDraft = [];
   let nextExperienceId = 0;
+  const MAX_EXPERIENCE_FILE_SIZE = 5 * 1024 * 1024;
   const skillTags = document.getElementById('settingsSkillTags');
   const skillInput = document.getElementById('settingsSkills');
   const skillEditor = document.getElementById('settingsSkillEditor');
@@ -58,6 +59,7 @@
   const skillActions = document.getElementById('settingsSkillsActions');
   const editSkillsButton = document.getElementById('editProfileSkills');
   const experienceEntries = document.getElementById('settingsExperienceEntries');
+  const addExperienceBottomButton = document.getElementById('addProfileExperienceBottom');
   const specialtyGrid = document.getElementById('settingsSpecialtyGrid');
   const editSpecialtiesButton = document.getElementById('editProfileSpecialties');
   const specialtyActions = document.getElementById('settingsSpecialtyActions');
@@ -174,7 +176,13 @@
 
   function renderExperienceEntries() {
     if (!experienceEntries) return;
-    experienceEntries.innerHTML = experienceDraft.map((entry, index) => `
+    if (addExperienceBottomButton) addExperienceBottomButton.hidden = experienceDraft.length === 0;
+    experienceEntries.innerHTML = experienceDraft.map((entry, index) => {
+      const selectedFiles = entry.pendingFiles?.length
+        ? entry.pendingFiles.map(file => file.name)
+        : entry.files;
+      const selectedFileNames = selectedFiles.join(', ') || 'No file chosen';
+      return `
       <fieldset class="settings-experience-entry" data-experience-id="${entry.id}">
         <div class="settings-experience-entry-heading"><b>Experience <span>${index + 1}</span></b>${entry.editing
           ? `<button class="settings-experience-remove" type="button" data-remove-experience="${entry.id}" aria-label="Remove experience ${index + 1}" title="Remove experience"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18"/><path d="M8 6V4h8v2m3 0-.9 14H5.9L5 6"/><path d="M10 11v5m4-5v5"/></svg></button>`
@@ -183,27 +191,45 @@
           <label class="settings-field"><span class="settings-label"><span>Job title</span><span class="settings-required-mark" aria-hidden="true">*</span></span><input class="settings-input" data-experience-field="title" aria-describedby="settingsExperience-${entry.id}-title-error" maxlength="80" placeholder="e.g. Frontend Developer" value="${escapeHtml(entry.title)}"${entry.editing ? '' : ' disabled'} required><span class="settings-field-error" id="settingsExperience-${entry.id}-title-error" data-experience-error="title" role="alert" hidden></span></label>
           <label class="settings-field"><span class="settings-label"><span>Company</span><span class="settings-required-mark" aria-hidden="true">*</span></span><input class="settings-input" data-experience-field="company" aria-describedby="settingsExperience-${entry.id}-company-error" maxlength="80" placeholder="Company name" value="${escapeHtml(entry.company)}"${entry.editing ? '' : ' disabled'} required><span class="settings-field-error" id="settingsExperience-${entry.id}-company-error" data-experience-error="company" role="alert" hidden></span></label>
           <div class="settings-field"><span class="settings-label"><span>Period</span><span class="settings-required-mark" aria-hidden="true">*</span></span><div class="settings-experience-period-control"><div class="settings-experience-year-field"><input class="settings-input" data-experience-year="startYear" aria-label="Start year" aria-describedby="settingsExperience-${entry.id}-startYear-error" inputmode="numeric" pattern="[0-9]{4}" placeholder="YYYY" value="${escapeHtml(entry.startYear)}"${entry.editing ? '' : ' disabled'} required><span class="settings-field-error" id="settingsExperience-${entry.id}-startYear-error" data-experience-error="startYear" role="alert" hidden></span></div><span class="settings-experience-period-separator" aria-hidden="true">–</span><div class="settings-experience-year-field"><input class="settings-input" data-experience-year="endYear" aria-label="End year" aria-describedby="settingsExperience-${entry.id}-endYear-error" inputmode="numeric" pattern="[0-9]{4}" placeholder="YYYY" value="${escapeHtml(entry.endYear)}"${entry.editing ? '' : ' disabled'} required></div><span class="settings-field-error settings-experience-period-error" id="settingsExperience-${entry.id}-endYear-error" data-experience-error="endYear" role="alert" hidden></span></div></div>
-          <label class="settings-field"><span class="settings-label"><span>Portfolio link</span><small>(Optional)</small></span><input class="settings-input" data-experience-field="link" type="url" placeholder="https://example.com" value="${escapeHtml(entry.link)}"${entry.editing ? '' : ' disabled'}></label>
-          <label class="settings-field span-2"><span class="settings-label"><span>Upload supporting files</span><small>(Optional)</small></span><input class="settings-input" data-experience-file type="file" accept=".pdf,.doc,.docx,.png,.jpg,.jpeg" multiple${entry.editing ? '' : ' disabled'}><span class="settings-hint settings-experience-files${entry.files.length?' settings-experience-file-value':''}">${escapeHtml(entry.files.join(', ') || 'PDF, DOC, DOCX, JPG, or PNG')}</span>${entry.filePaths.map((_, fileIndex) => `<button class="settings-hint settings-experience-file-download" type="button" data-download-experience-file="${entry.id}" data-file-index="${fileIndex}">Download ${escapeHtml(entry.files[fileIndex] || `file ${fileIndex + 1}`)}</button>`).join('')}</label>
+          <label class="settings-field"><span class="settings-label"><span>Portfolio link</span><small>(Optional)</small></span><input class="settings-input" data-experience-field="link" type="url" placeholder="${entry.editing ? 'https://example.com' : (entry.link ? '' : '-')}" value="${escapeHtml(entry.link)}"${entry.editing ? '' : ' disabled'}></label>
+          <div class="settings-field span-2"><span class="settings-label"><span>Upload supporting files</span><small>(Optional)</small></span><div class="settings-experience-file-picker${entry.editing ? '' : ' is-disabled'}"><button class="settings-experience-file-action" type="button" data-choose-experience-file aria-describedby="settingsExperience-${entry.id}-file-size settingsExperience-${entry.id}-file-error"${entry.editing ? '' : ' disabled'}>Choose file</button><span class="settings-experience-file-name" data-experience-file-name title="${escapeHtml(selectedFileNames)}">${escapeHtml(selectedFileNames)}</span><input class="settings-experience-file-input" data-experience-file type="file" aria-label="Upload supporting files" accept=".pdf,.doc,.docx,.png,.jpg,.jpeg"${entry.editing ? '' : ' disabled'}></div><span class="settings-hint" id="settingsExperience-${entry.id}-file-size">Maximum file size: 5 MB.</span><span class="settings-field-error" id="settingsExperience-${entry.id}-file-error" data-experience-file-error role="alert" hidden></span>${entry.filePaths.map((_, fileIndex) => {
+            const fileName = escapeHtml(entry.files[fileIndex] || `file ${fileIndex + 1}`);
+            return `<div class="settings-experience-file-row"><button class="settings-hint settings-experience-file-download" type="button" data-download-experience-file="${entry.id}" data-file-index="${fileIndex}" aria-label="Download ${fileName}" title="Download ${fileName}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 19v2h14v-2"/></svg><span class="settings-experience-file-row-name">${fileName}</span></button>${entry.editing ? `<button class="settings-experience-file-remove" type="button" data-remove-experience-file="${entry.id}" data-file-index="${fileIndex}" aria-label="Remove supporting file" title="Remove supporting file"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18"/><path d="M8 6V4h8v2m3 0-.9 14H5.9L5 6"/><path d="M10 11v5m4-5v5"/></svg></button>` : ''}</div>`;
+          }).join('')}</div>
         </div>
-        ${entry.editing ? `<footer class="settings-card-footer settings-experience-entry-footer"><button class="settings-btn primary" type="button" data-save-experience="${entry.id}">Save Experience</button></footer>` : ''}
+        ${entry.editing ? `<footer class="settings-card-footer settings-experience-entry-footer"><button class="settings-experience-cancel" type="button" data-cancel-experience="${entry.id}">Cancel</button><button class="settings-btn primary" type="button" data-save-experience="${entry.id}">Save</button></footer>` : ''}
       </fieldset>`
-    ).join('');
+    }).join('');
   }
 
   // Toast Helper
   const toastEl = document.getElementById('settingsToast');
   const toastTextEl = document.getElementById('settingsToastText');
+  const toastUndoButton = document.getElementById('settingsToastUndo');
   let toastTimeout = null;
 
-  function showToast(msg) {
+  function showToast(msg, undoCallback, duration = 3500) {
     if (!toastEl) return;
     clearTimeout(toastTimeout);
     toastTextEl.textContent = msg;
+    if (toastUndoButton) {
+      toastUndoButton.hidden = !undoCallback;
+      toastUndoButton.onclick = undoCallback
+        ? async () => {
+            toastUndoButton.disabled = true;
+            try {
+              const shouldDismiss = await undoCallback();
+              if (shouldDismiss !== false) toastEl.classList.remove('show');
+            } finally {
+              toastUndoButton.disabled = false;
+            }
+          }
+        : null;
+    }
     toastEl.classList.add('show');
     toastTimeout = setTimeout(() => {
       toastEl.classList.remove('show');
-    }, 3500);
+    }, duration);
   }
 
   function priceDigits(value) {
@@ -221,9 +247,13 @@
   const userAvatarEl = document.getElementById('userAvatar');
   const topUserNameEl = document.getElementById('topUserName');
   const settingsAvatarPreview = document.getElementById('settingsAvatarPreview');
+  let closeExperienceEditors = () => {};
 
   // Tab switching
   function switchTab(tabId, updateLocation = true) {
+    const activeTab = Array.from(navBtns).find(btn => btn.classList.contains('active'))?.dataset.tab;
+    if (activeTab === 'profile-details' && tabId !== activeTab) closeExperienceEditors();
+
     navBtns.forEach(btn => {
       btn.classList.toggle('active', btn.dataset.tab === tabId);
     });
@@ -257,6 +287,24 @@
         : 'account';
     switchTab(panelTab, false);
     return target && targetPanel && target !== targetPanel ? target : null;
+  }
+
+  function openProfileDetailsTarget() {
+    if (params.get('edit') !== null && window.location.hash.replace('#', '') === 'profile-details') {
+      switchTab('profile-details');
+    }
+    const target = params.get('edit');
+    if (target === 'specialization') {
+      setSpecialtiesEditing(true);
+      document.getElementById('settingsSpecialtyCard')?.scrollIntoView({ block: 'start' });
+      editSpecialtiesButton?.focus();
+    } else if (target === 'skills') {
+      setSkillsEditing(true);
+      document.getElementById('settingsSkillsCard')?.scrollIntoView({ block: 'start' });
+      skillInput?.focus();
+    } else if (target === 'experience') {
+      document.getElementById('settingsExperienceCard')?.scrollIntoView({ block: 'start' });
+    }
   }
 
   // Populate Profile Inputs
@@ -299,6 +347,7 @@
           link: String(item.link || ''),
           files: Array.isArray(item.files) ? item.files.map(file => typeof file === 'string' ? file : String(file?.name || '')) : [],
           filePaths: Array.isArray(item.filePaths) ? item.filePaths.map(String) : [],
+          removedFilePaths: [],
           pendingFiles: []
         }));
     renderExperienceEntries();
@@ -575,6 +624,8 @@
 
       entry.showValidationErrors = false;
       const uploadedFiles = [];
+      const replacedFilePaths = [...(entry.filePaths || [])];
+      const removedFilePaths = [...(entry.removedFilePaths || [])];
       try {
         for (const file of entry.pendingFiles || []) {
           uploadedFiles.push(await window.devMatchBackend.uploadPrivateFile('experience', '', file));
@@ -584,8 +635,8 @@
           company: entry.company.trim(),
           period: `${entry.startYear.trim()} – ${entry.endYear.trim()}`,
           link: entry.link.trim(),
-          files: [...entry.files, ...uploadedFiles.map(file => file.name)],
-          filePaths: [...(entry.filePaths || []), ...uploadedFiles.map(file => file.path)]
+          files: uploadedFiles.length ? uploadedFiles.map(file => file.name) : [...entry.files],
+          filePaths: uploadedFiles.length ? uploadedFiles.map(file => file.path) : [...(entry.filePaths || [])]
         };
         const savedExperiences = Array.isArray(profileData.experiences)
           ? [...profileData.experiences]
@@ -613,11 +664,25 @@
           link: String(savedEntry.link || ''),
           files: Array.isArray(savedEntry.files) ? savedEntry.files.map(String) : [],
           filePaths: Array.isArray(savedEntry.filePaths) ? savedEntry.filePaths.map(String) : [],
+          removedFilePaths: [],
           pendingFiles: [],
           editing: false
         }));
         nextExperienceId = experienceDraft.length;
         renderExperienceEntries();
+        const cleanupPaths = [...new Set([
+          ...removedFilePaths,
+          ...(uploadedFiles.length ? replacedFilePaths : [])
+        ])];
+        if (cleanupPaths.length) {
+          try {
+            await window.devMatchBackend.removeUploadedFiles('private-uploads', cleanupPaths);
+          } catch (cleanupError) {
+            console.error('Experience was saved, but supporting files could not be deleted.', cleanupError);
+            showToast('Experience saved, but some supporting files could not be deleted.');
+            return;
+          }
+        }
         showToast('Experience saved successfully!');
       } catch (error) {
         if (uploadedFiles.length) {
@@ -654,12 +719,16 @@
       skillInput.focus();
     });
 
-    document.getElementById('addProfileExperience').addEventListener('click', () => {
-      experienceDraft.push({ id: String(++nextExperienceId), persistedIndex: null, title: '', company: '', startYear: '', endYear: 'Present', link: '', files: [], editing: true });
+    function addProfileExperience() {
+      experienceDraft.push({ id: String(++nextExperienceId), persistedIndex: null, title: '', company: '', startYear: '', endYear: 'Present', link: '', files: [], filePaths: [], removedFilePaths: [], pendingFiles: [], editing: true });
       renderExperienceEntries();
       const lastEntry = experienceEntries.lastElementChild;
-      lastEntry.querySelector('[data-experience-field="title"]').focus();
-    });
+      lastEntry.scrollIntoView({ behavior: 'smooth', block: 'end' });
+      lastEntry.querySelector('[data-experience-field="title"]').focus({ preventScroll: true });
+    }
+
+    document.getElementById('addProfileExperience').addEventListener('click', addProfileExperience);
+    document.getElementById('addProfileExperienceBottom').addEventListener('click', addProfileExperience);
 
     experienceEntries.addEventListener('focusin', event => {
       const input = event.target.closest('[data-experience-year="endYear"]');
@@ -667,26 +736,117 @@
     });
 
     let pendingExperienceDeleteId = null;
+    let pendingExperienceDeletion = null;
     const experienceDeleteDialog = document.getElementById('experienceDeleteDialog');
     const experienceDeleteTitle = document.getElementById('experienceDeleteTitle');
     const experienceDeleteDescription = document.getElementById('experienceDeleteDescription');
+    const EXPERIENCE_UNDO_DURATION = 4500;
+
+    async function finalizeExperienceDeletion(deletion = pendingExperienceDeletion) {
+      if (!deletion || pendingExperienceDeletion !== deletion) return;
+      clearTimeout(deletion.timeout);
+      pendingExperienceDeletion = null;
+      if (!deletion.cleanupPaths.length) return;
+
+      try {
+        await window.devMatchBackend.removeUploadedFiles('private-uploads', deletion.cleanupPaths);
+      } catch (error) {
+        console.error('Experience was removed, but supporting files could not be deleted.', error);
+        showToast('Experience removed, but some stored files could not be deleted.');
+      }
+    }
+
+    async function undoExperienceDeletion(deletion) {
+      if (pendingExperienceDeletion !== deletion) return false;
+      clearTimeout(deletion.timeout);
+      const restoreIndex = Number.isInteger(deletion.persistedIndex)
+        ? Math.min(deletion.persistedIndex, (profileData.experiences || []).length)
+        : null;
+
+      if (deletion.savedExperience) {
+        const savedExperiences = Array.isArray(profileData.experiences)
+          ? [...profileData.experiences]
+          : [];
+        savedExperiences.splice(restoreIndex, 0, deletion.savedExperience);
+        const updatedProfile = {...profileData, experiences: savedExperiences};
+        try {
+          await persistProfile(updatedProfile);
+          profileData = updatedProfile;
+          localStorage.setItem(storageKey, JSON.stringify(updatedProfile));
+        } catch (error) {
+          console.error('Unable to restore the deleted profile experience.', error);
+          deletion.timeout = setTimeout(
+            () => finalizeExperienceDeletion(deletion),
+            EXPERIENCE_UNDO_DURATION
+          );
+          showToast(
+            'Unable to restore experience. Please try again.',
+            () => undoExperienceDeletion(deletion),
+            EXPERIENCE_UNDO_DURATION
+          );
+          return false;
+        }
+
+        experienceDraft.forEach(item => {
+          if (Number.isInteger(item.persistedIndex) && item.persistedIndex >= restoreIndex) {
+            item.persistedIndex += 1;
+          }
+        });
+      }
+
+      const restoredEntry = {
+        ...deletion.entry,
+        files: [...deletion.entry.files],
+        filePaths: [...deletion.entry.filePaths],
+        removedFilePaths: [...deletion.entry.removedFilePaths],
+        pendingFiles: [...deletion.entry.pendingFiles]
+      };
+      if (restoreIndex !== null) restoredEntry.persistedIndex = restoreIndex;
+      const draftIndex = restoreIndex === null
+        ? experienceDraft.length
+        : experienceDraft.findIndex(item =>
+            Number.isInteger(item.persistedIndex) && item.persistedIndex >= restoreIndex
+          );
+      experienceDraft.splice(draftIndex < 0 ? experienceDraft.length : draftIndex, 0, restoredEntry);
+      nextExperienceId = experienceDraft.reduce((max, entry) => Math.max(max, Number(entry.id) || 0), 0);
+      pendingExperienceDeletion = null;
+      renderExperienceEntries();
+
+      const retainedPaths = new Set(
+        (deletion.savedExperience?.filePaths || []).map(String)
+      );
+      const cleanupPaths = deletion.cleanupPaths.filter(path => !retainedPaths.has(String(path)));
+      if (cleanupPaths.length) {
+        try {
+          await window.devMatchBackend.removeUploadedFiles('private-uploads', cleanupPaths);
+        } catch (error) {
+          console.error('Experience was restored, but removed supporting files could not be deleted.', error);
+          showToast('Experience restored, but some removed files could not be deleted.');
+          return false;
+        }
+      }
+      return true;
+    }
 
     async function removeExperience(entryId) {
       const entryIndex = experienceDraft.findIndex(entry => entry.id === entryId);
       if (entryIndex < 0) return;
+      if (pendingExperienceDeletion) {
+        await finalizeExperienceDeletion();
+      }
       const entry = experienceDraft[entryIndex];
-      let cleanupPaths = [];
+      let savedExperience = null;
       if (Number.isInteger(entry.persistedIndex)) {
         const savedExperiences = Array.isArray(profileData.experiences)
           ? [...profileData.experiences]
           : [];
+        savedExperience = savedExperiences[entry.persistedIndex];
         savedExperiences.splice(entry.persistedIndex, 1);
         try {
           const updatedProfile = {...profileData, experiences: savedExperiences};
           await persistProfile(updatedProfile);
           profileData = updatedProfile;
           localStorage.setItem(storageKey, JSON.stringify(updatedProfile));
-          cleanupPaths = Array.isArray(entry.filePaths) ? entry.filePaths : [];
           experienceDraft.forEach(item => {
             if (Number.isInteger(item.persistedIndex) && item.persistedIndex > entry.persistedIndex) {
               item.persistedIndex -= 1;
@@ -698,18 +858,77 @@
           return;
         }
       }
-      if (cleanupPaths.length) {
-        try {
-          await window.devMatchBackend.removeUploadedFiles('private-uploads', cleanupPaths);
-        } catch (error) {
-          console.error('Experience was removed, but supporting files could not be deleted.', error);
-          showToast('Experience removed, but some stored files could not be deleted.');
-        }
-      }
+      const deletion = {
+        entry: {
+          ...entry,
+          files: [...entry.files],
+          filePaths: [...entry.filePaths],
+          removedFilePaths: [...entry.removedFilePaths],
+          pendingFiles: [...entry.pendingFiles]
+        },
+        savedExperience: savedExperience && typeof savedExperience === 'object'
+          ? {...savedExperience}
+          : null,
+        persistedIndex: entry.persistedIndex,
+        cleanupPaths: [...new Set([
+          ...(Array.isArray(entry.filePaths) ? entry.filePaths : []),
+          ...(Array.isArray(entry.removedFilePaths) ? entry.removedFilePaths : [])
+        ])],
+        timeout: null
+      };
       experienceDraft.splice(entryIndex, 1);
       nextExperienceId = experienceDraft.reduce((max, entry) => Math.max(max, Number(entry.id) || 0), 0);
       renderExperienceEntries();
+      pendingExperienceDeletion = deletion;
+      showToast(
+        'Experience removed successfully!',
+        () => undoExperienceDeletion(deletion),
+        EXPERIENCE_UNDO_DURATION
+      );
+      deletion.timeout = setTimeout(
+        () => finalizeExperienceDeletion(deletion),
+        EXPERIENCE_UNDO_DURATION
+      );
     }
+
+    function cancelExperienceEdit(entryId) {
+      const entryIndex = experienceDraft.findIndex(entry => entry.id === entryId);
+      if (entryIndex < 0) return;
+      const entry = experienceDraft[entryIndex];
+      if (!Number.isInteger(entry.persistedIndex)) {
+        experienceDraft.splice(entryIndex, 1);
+        nextExperienceId = experienceDraft.reduce((max, item) => Math.max(max, Number(item.id) || 0), 0);
+        renderExperienceEntries();
+        return;
+      }
+
+      const savedEntry = profileData.experiences?.[entry.persistedIndex];
+      if (!savedEntry || typeof savedEntry !== 'object') {
+        console.error('Unable to restore the saved profile experience.');
+        showToast('Unable to cancel experience changes. Please reload and try again.');
+        return;
+      }
+      Object.assign(entry, {
+        title: String(savedEntry.title || ''),
+        company: String(savedEntry.company || ''),
+        ...parseExperiencePeriod(savedEntry.period),
+        link: String(savedEntry.link || ''),
+        files: Array.isArray(savedEntry.files) ? savedEntry.files.map(String) : [],
+        filePaths: Array.isArray(savedEntry.filePaths) ? savedEntry.filePaths.map(String) : [],
+        removedFilePaths: [],
+        pendingFiles: [],
+        editing: false,
+        showValidationErrors: false
+      });
+      renderExperienceEntries();
+    }
+
+    closeExperienceEditors = exceptId => {
+      experienceDraft
+        .filter(entry => entry.editing && entry.id !== exceptId)
+        .map(entry => entry.id)
+        .forEach(cancelExperienceEdit);
+    };
 
     document.getElementById('confirmExperienceDelete').addEventListener('click', async () => {
       if (pendingExperienceDeleteId) await removeExperience(pendingExperienceDeleteId);
@@ -729,6 +948,32 @@
     });
 
     experienceEntries.addEventListener('click', async event => {
+      const chooseFileButton = event.target.closest('[data-choose-experience-file]');
+      if (chooseFileButton) {
+        const input = chooseFileButton.closest('.settings-experience-file-picker')?.querySelector('[data-experience-file]');
+        if (!input) {
+          console.error('Unable to open the experience file picker.');
+          showToast('Unable to open the file picker. Please try again.');
+          return;
+        }
+        input.click();
+        return;
+      }
+
+      const removeFileButton = event.target.closest('[data-remove-experience-file]');
+      if (removeFileButton) {
+        const entry = experienceDraft.find(item => item.id === removeFileButton.dataset.removeExperienceFile);
+        const fileIndex = Number(removeFileButton.dataset.fileIndex);
+        if (!entry?.editing || !Number.isInteger(fileIndex) || fileIndex < 0) return;
+        const [removedPath] = entry.filePaths.splice(fileIndex, 1);
+        entry.files.splice(fileIndex, 1);
+        if (removedPath) entry.removedFilePaths.push(removedPath);
+        renderExperienceEntries();
+        const entryElement = experienceEntries.querySelector(`[data-experience-id="${entry.id}"]`);
+        (entryElement.querySelector('[data-remove-experience-file]') || entryElement.querySelector('[data-experience-file]')).focus();
+        return;
+      }
+
       const downloadButton = event.target.closest('[data-download-experience-file]');
       if (downloadButton) {
         const entry = experienceDraft.find(item => item.id === downloadButton.dataset.downloadExperienceFile);
@@ -754,7 +999,9 @@
 
       const editButton = event.target.closest('[data-edit-experience]');
       if (editButton) {
-        const entry = experienceDraft.find(item => item.id === editButton.dataset.editExperience);
+        const entryId = editButton.dataset.editExperience;
+        closeExperienceEditors(entryId);
+        const entry = experienceDraft.find(item => item.id === entryId);
         if (!entry) return;
         entry.editing = true;
         renderExperienceEntries();
@@ -769,6 +1016,12 @@
         return;
       }
 
+      const cancelButton = event.target.closest('[data-cancel-experience]');
+      if (cancelButton) {
+        cancelExperienceEdit(cancelButton.dataset.cancelExperience);
+        return;
+      }
+
       const button = event.target.closest('[data-remove-experience]');
       if (!button) return;
       const entryIndex = experienceDraft.findIndex(entry => entry.id === button.dataset.removeExperience);
@@ -777,8 +1030,8 @@
       const isIndonesian = window.devMatchI18n?.getLanguage() === 'id';
       experienceDeleteTitle.textContent = isIndonesian ? 'Hapus pengalaman?' : 'Delete experience?';
       experienceDeleteDescription.textContent = isIndonesian
-        ? `Apakah Anda yakin ingin menghapus pengalaman nomor ${entryIndex + 1}? Tindakan ini tidak dapat dibatalkan.`
-        : `Are you sure you want to delete experience ${entryIndex + 1}? This cannot be undone.`;
+        ? `Apakah Anda yakin ingin menghapus pengalaman nomor ${entryIndex + 1}?`
+        : `Are you sure you want to delete experience ${entryIndex + 1}?`;
       experienceDeleteDialog.showModal();
     });
 
@@ -816,11 +1069,40 @@
       if (!input) return;
       const entry = experienceDraft.find(item => item.id === input.closest('[data-experience-id]').dataset.experienceId);
       if (!entry) return;
-      entry.pendingFiles = Array.from(input.files || []);
-      const fileNames = input.nextElementSibling;
-      const names = [...entry.files, ...entry.pendingFiles.map(file => file.name)];
-      fileNames.textContent = names.join(', ') || 'PDF, DOC, DOCX, JPG, or PNG';
-      fileNames.classList.toggle('settings-experience-file-value', names.length > 0);
+      const fileError = input.closest('.settings-field')?.querySelector('[data-experience-file-error]');
+      if (!fileError) {
+        console.error('Unable to display experience file validation errors.');
+        showToast('Unable to validate the selected file. Please try again.');
+        return;
+      }
+      const selectedFiles = Array.from(input.files || []);
+      if (selectedFiles.length > 1) {
+        input.value = '';
+        fileError.textContent = '';
+        fileError.hidden = true;
+        showToast('Only one supporting file can be selected per experience.');
+        return;
+      }
+      if (selectedFiles[0]?.size > MAX_EXPERIENCE_FILE_SIZE) {
+        input.value = '';
+        fileError.textContent = 'Supporting file must be 5 MB or smaller.';
+        fileError.hidden = false;
+        return;
+      }
+      fileError.textContent = '';
+      fileError.hidden = true;
+      entry.pendingFiles = selectedFiles;
+      const names = entry.pendingFiles.length
+        ? entry.pendingFiles.map(file => file.name)
+        : entry.files;
+      const fileNames = input.closest('.settings-experience-file-picker')?.querySelector('[data-experience-file-name]');
+      if (!fileNames) {
+        console.error('Unable to display the selected experience files.');
+        showToast('Unable to display the selected files. Please try again.');
+        return;
+      }
+      fileNames.textContent = names.join(', ') || 'No file chosen';
+      fileNames.title = fileNames.textContent;
     });
   }
 
@@ -1517,9 +1799,11 @@
       Object.assign(profileData, await window.devMatchBackend.loadPrivateProfileFields());
       privateProfileFieldsLoaded = true;
       populateForm();
+      openProfileDetailsTarget();
     } catch (error) {
       console.error('Unable to load private payout and tax details.', error);
       populateForm();
+      openProfileDetailsTarget();
       showToast('Unable to load private payout and tax details. Reload the page and try again.');
     } finally {
       if (hashScrollTarget && window.location.hash === `#${hashScrollTarget.id}`) {
