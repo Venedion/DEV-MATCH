@@ -333,7 +333,21 @@ async function handleProjectGridClick(event){
     window.DEVMATCH_NAV_BADGES?.updateFavorites();
     window.DEVMATCH_FAVORITE_FEEDBACK.showToast(
       document.getElementById('favoriteActionToast'),
-      saved?'Project removed from your favorites':'Project added to your favorites'
+      saved?'Project removed from your favorites':'Project added to your favorites',
+      saved?async()=>{
+        try{
+          if(authenticated)await window.devMatchBackend.setFavorite('project',id,true);
+        }catch(error){
+          console.error('Unable to restore project favorite in Supabase.',error);
+          window.alert('Unable to restore this favorite. Please try again.');
+          return false;
+        }
+        if(!favorites.includes(id))favorites=[...favorites,id];
+        localStorage.setItem(favoritesKey,JSON.stringify(favorites));
+        renderProjects();
+        window.DEVMATCH_NAV_BADGES?.updateFavorites();
+        return true;
+      }:null
     );
     return;
   }

@@ -691,9 +691,24 @@
       favoriteIds = saved ? favoriteIds.filter(value => value !== id) : [...favoriteIds, id];
       saveFavorites();
       render();
+      window.DEVMATCH_NAV_BADGES?.updateFavorites();
       window.DEVMATCH_FAVORITE_FEEDBACK.showToast(
         favoriteToast,
-        saved ? 'Project removed from your favorites' : 'Project added to your favorites'
+        saved ? 'Project removed from your favorites' : 'Project added to your favorites',
+        saved ? async () => {
+          try {
+            if (authenticated) await window.devMatchBackend.setFavorite('project', id, true);
+          } catch (error) {
+            console.error('Unable to restore project favorite in Supabase.', error);
+            window.alert('Unable to restore this favorite. Please try again.');
+            return false;
+          }
+          if (!favoriteIds.includes(id)) favoriteIds = [...favoriteIds, id];
+          saveFavorites();
+          render();
+          window.DEVMATCH_NAV_BADGES?.updateFavorites();
+          return true;
+        } : null
       );
       return;
     }

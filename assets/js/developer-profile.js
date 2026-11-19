@@ -4,6 +4,9 @@
   const status=document.getElementById('profileStatus');
   const identity=document.querySelector('.profile-identity-card');
   const columns=document.querySelector('.profile-columns');
+  const favoriteToast=document.getElementById('favoriteActionToast');
+  const favoriteRemoveDialog=document.getElementById('favoriteRemoveDialog');
+  const favoriteRemoveMessage=document.getElementById('favoriteRemoveMessage');
   const escapeHtml=value=>String(value??'').replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
   const initials=name=>(String(name||'').match(/\b\p{L}/gu)||[]).slice(0,2).join('').toUpperCase()||'DM';
   const specialtyDetails={
@@ -247,9 +250,31 @@
     });
     document.getElementById('favoriteDeveloper').addEventListener('click',async()=>{
       const userNow=await window.devMatchBackend.ready;if(!userNow){location.href='devmatch-auth.html?mode=login';return;}
+      const saved=favoriteDeveloper;
+      if(saved&&!await window.DEVMATCH_FAVORITE_FEEDBACK.confirmRemoval(
+        favoriteRemoveDialog,
+        favoriteRemoveMessage,
+        person.display_name||'this developer'
+      ))return;
       try{
-        await window.devMatchBackend.setFavorite('developer',person.id,!favoriteDeveloper);
-        favoriteDeveloper=!favoriteDeveloper;renderFavoriteButton();
+        await window.devMatchBackend.setFavorite('developer',person.id,!saved);
+        favoriteDeveloper=!saved;renderFavoriteButton();
+        window.DEVMATCH_NAV_BADGES?.updateFavorites();
+        window.DEVMATCH_FAVORITE_FEEDBACK.showToast(
+          favoriteToast,
+          saved?'Developer removed from your favorites':'Developer added to your favorites',
+          saved?async()=>{
+            try{await window.devMatchBackend.setFavorite('developer',person.id,true);}
+            catch(error){
+              console.error('Unable to restore developer favorite in Supabase.',error);
+              window.alert('Unable to restore this favorite. Please try again.');
+              return false;
+            }
+            favoriteDeveloper=true;renderFavoriteButton();
+            window.DEVMATCH_NAV_BADGES?.updateFavorites();
+            return true;
+          }:null
+        );
       }catch(error){console.error('Unable to update developer favorite in Supabase.',error);window.alert('Unable to save this favorite. Please try again.');}
     });
     document.getElementById('copyProfileLink').addEventListener('click',async()=>{

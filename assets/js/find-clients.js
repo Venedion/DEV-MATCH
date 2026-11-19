@@ -38,7 +38,9 @@
   const clientDialog = document.getElementById('clientDialog');
   const dialogContent = document.getElementById('dialogContent');
   const dialogCloseBtn = document.getElementById('dialogCloseBtn');
-  const toastEl = document.getElementById('fcToast');
+  const favoriteToastEl = document.getElementById('favoriteActionToast');
+  const favoriteRemoveDialog = document.getElementById('favoriteRemoveDialog');
+  const favoriteRemoveMessage = document.getElementById('favoriteRemoveMessage');
   const favoriteCountEl = document.getElementById('favoriteCount');
   const favoriteStateReady = window.devMatchBackend.ready.then(user => user
     ? window.devMatchBackend.loadFavorites()
@@ -83,14 +85,8 @@
     }[c]));
   }
 
-  function showToast(msg) {
-    if (!toastEl) return;
-    toastEl.textContent = msg;
-    toastEl.classList.add('show');
-    clearTimeout(toastEl._timer);
-    toastEl._timer = setTimeout(() => {
-      toastEl.classList.remove('show');
-    }, 2400);
+  function showToast(msg, undoCallback) {
+    window.DEVMATCH_FAVORITE_FEEDBACK.showToast(favoriteToastEl, msg, undoCallback);
   }
 
   function updateFavoriteBadge() {
@@ -498,6 +494,12 @@
           if (authenticated === null) return;
           const id = favBtn.dataset.favoriteId;
           const saved = favoriteIds.includes(id);
+          const client = CLIENTS_DATA.find(item => item.id === id);
+          if (saved && !await window.DEVMATCH_FAVORITE_FEEDBACK.confirmRemoval(
+            favoriteRemoveDialog,
+            favoriteRemoveMessage,
+            client?.name || 'this client'
+          )) return;
           if (authenticated) {
             try {
               await window.devMatchBackend.setFavorite('client', id, !saved);
@@ -509,13 +511,27 @@
           }
           if (saved) {
             favoriteIds = favoriteIds.filter(item => item !== id);
-            showToast('Dihapus dari Favorites');
           } else {
             favoriteIds = [...favoriteIds, id];
-            showToast('Ditambahkan ke Favorites');
           }
           saveFavorites(favoriteIds);
           renderClients();
+          showToast(
+            saved ? 'Client removed from your favorites' : 'Client added to your favorites',
+            saved ? async () => {
+              try {
+                if (authenticated) await window.devMatchBackend.setFavorite('client', id, true);
+              } catch (error) {
+                console.error('Unable to restore client favorite in Supabase.', error);
+                window.alert('Unable to restore this favorite. Please try again.');
+                return false;
+              }
+              if (!favoriteIds.includes(id)) favoriteIds = [...favoriteIds, id];
+              saveFavorites(favoriteIds);
+              renderClients();
+              return true;
+            } : null
+          );
           return;
         }
 

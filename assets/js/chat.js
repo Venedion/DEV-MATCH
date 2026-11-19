@@ -903,7 +903,21 @@
       const sideAdd = document.querySelector('.side-add');
       if (sideAdd) {
         sideAdd.href = 'devmatch-client-dashboard.html#requests';
-        sideAdd.textContent = 'Post a Request';
+        let actionLabel = sideAdd.querySelector('.sidebar-action-label');
+        if (!actionLabel) {
+          actionLabel = Array.from(sideAdd.children).find(child => child.tagName === 'SPAN');
+          if (actionLabel) actionLabel.classList.add('sidebar-action-label');
+        }
+        if (!actionLabel) {
+          Array.from(sideAdd.childNodes)
+            .filter(node => node.nodeType === Node.TEXT_NODE)
+            .forEach(node => node.remove());
+          actionLabel = document.createElement('span');
+          actionLabel.className = 'sidebar-action-label';
+          sideAdd.append(actionLabel);
+        }
+        actionLabel.textContent = 'Post a Request';
+        sideAdd.classList.add('post-request');
       }
       const topNotifications = document.querySelector('.notification-button');
       if (topNotifications) topNotifications.href = 'devmatch-notifications.html';

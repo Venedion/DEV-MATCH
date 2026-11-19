@@ -87,8 +87,8 @@
     }[c]));
   }
 
-  function showToast(msg) {
-    window.DEVMATCH_FAVORITE_FEEDBACK.showToast(toastEl, msg);
+  function showToast(msg, undoCallback) {
+    window.DEVMATCH_FAVORITE_FEEDBACK.showToast(toastEl, msg, undoCallback);
   }
 
   function updateSidebarFavoriteBadge() {
@@ -455,7 +455,20 @@
           }
           if (saved) {
             favoriteIds = favoriteIds.filter(item => item !== id);
-            showToast('Developer removed from your favorites');
+            showToast('Developer removed from your favorites', async () => {
+              try {
+                if (authenticated) await window.devMatchBackend.setFavorite('developer', id, true);
+              } catch (error) {
+                console.error('Unable to restore developer favorite in Supabase.', error);
+                window.alert('Unable to restore this favorite. Please try again.');
+                return false;
+              }
+              if (!favoriteIds.includes(id)) favoriteIds = [...favoriteIds, id];
+              saveFavorites(favoriteIds);
+              renderDevelopers();
+              updateSidebarFavoriteBadge();
+              return true;
+            });
           } else {
             favoriteIds = [...favoriteIds, id];
             showToast('Developer added to your favorites');

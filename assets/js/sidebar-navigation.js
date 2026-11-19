@@ -126,7 +126,8 @@
         `class="${itemClass}${active ? ' active' : ''}"`,
         `id="${item.id}"`,
         `data-nav-key="${item.key}"`,
-        `href="${getItemHref(item, role)}"`
+        `href="${getItemHref(item, role)}"`,
+        `title="${item.label}"`
       ];
       if (item.request) attributes.push('data-request-nav');
       if (active) attributes.push('aria-current="page"');
@@ -136,9 +137,101 @@
         findProjectsLink: 'findProjectsLinkLabel',
         findClientsLink: 'findClientsLinkLabel'
       }[item.id];
-      const label = labelId ? `<span id="${labelId}">${item.label}</span>` : item.label;
-      return `<a ${attributes.join(' ')}>${icons[item.icon]}${label}${getBadgeMarkup(item, role, itemClass)}</a>`;
+      return `<a ${attributes.join(' ')}>${icons[item.icon]}<span class="nav-item-label"${labelId ? ` id="${labelId}"` : ''}>${item.label}</span>${getBadgeMarkup(item, role, itemClass)}</a>`;
     }).join('');
+  }
+
+  function initializeSidebarActionLabels() {
+    const actions = document.querySelectorAll('body > .sidebar > .side-add, body > .sidebar > .post-request, body > .client-sidebar > .post-request');
+    actions.forEach(action => {
+      const existingLabel = Array.from(action.children).find(child => child.tagName === 'SPAN');
+      if (existingLabel) {
+        existingLabel.classList.add('sidebar-action-label');
+        return;
+      }
+
+      const textNodes = Array.from(action.childNodes).filter(node => node.nodeType === Node.TEXT_NODE && node.textContent.trim());
+      if (!textNodes.length) return;
+
+      const label = document.createElement('span');
+      label.className = 'sidebar-action-label';
+      label.textContent = textNodes.map(node => node.textContent.trim()).join(' ');
+      textNodes.forEach(node => node.remove());
+      action.append(label);
+    });
+  }
+
+  function initializeSidebarPin() {
+    const sidebars = document.querySelectorAll('body > .sidebar, body > .client-sidebar');
+    if (!sidebars.length) return;
+
+    let pinned = false;
+    try {
+      pinned = localStorage.getItem('devmatch-sidebar-pinned') === 'true';
+    } catch (error) {
+      console.warn('Unable to read the saved sidebar preference.', error);
+    }
+
+    function updateButtons() {
+      const isPinned = document.body.classList.contains('sidebar-pinned');
+      sidebars.forEach(sidebar => {
+        const button = sidebar.querySelector('.sidebar-pin-toggle');
+        if (!button) return;
+        button.setAttribute('aria-pressed', String(isPinned));
+        button.setAttribute('aria-label', isPinned ? 'Unpin navigation' : 'Pin navigation');
+        button.title = isPinned ? 'Unpin navigation' : 'Pin navigation';
+      });
+    }
+
+    document.body.classList.toggle('sidebar-pinned', pinned);
+    sidebars.forEach(sidebar => {
+      const button = document.createElement('button');
+      button.className = 'sidebar-pin-toggle';
+      button.type = 'button';
+      button.setAttribute('aria-pressed', String(pinned));
+      button.setAttribute('aria-label', pinned ? 'Unpin navigation' : 'Pin navigation');
+      button.title = pinned ? 'Unpin navigation' : 'Pin navigation';
+      button.innerHTML = '<svg viewBox="0 0 40 28" fill="none" stroke="#111" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2.5" y="2.5" width="35" height="23" rx="4.5"/><path d="M14.5 2.5v23"/><path class="sidebar-pin-arrow" d="M7.5 10l3 4-3 4"/></svg>';
+      button.addEventListener('click', () => {
+        const nextPinned = !document.body.classList.contains('sidebar-pinned');
+        document.body.classList.toggle('sidebar-pinned', nextPinned);
+        try {
+          localStorage.setItem('devmatch-sidebar-pinned', String(nextPinned));
+        } catch (error) {
+          console.warn('Unable to save the sidebar preference.', error);
+        }
+        updateButtons();
+      });
+      sidebar.prepend(button);
+    });
+  }
+
+  function initializeSidebarBrandPlacement() {
+    const brand = document.querySelector(
+      'body > .topbar > .brand, body > .profile-topbar > .brand, body > .client-topbar > .client-brand'
+    );
+    const sidebar = document.querySelector('body > .sidebar, body > .client-sidebar');
+    if (!brand || !sidebar) return;
+
+    const header = brand.parentElement;
+    const desktop = window.matchMedia('(min-width: 821px)');
+    let placeholder = null;
+
+    function updatePlacement() {
+      if (desktop.matches && brand.parentElement !== sidebar) {
+        placeholder = document.createElement('span');
+        placeholder.className = 'sidebar-brand-placeholder';
+        placeholder.setAttribute('aria-hidden', 'true');
+        header.replaceChild(placeholder, brand);
+        sidebar.insertBefore(brand, sidebar.firstChild);
+      } else if (!desktop.matches && brand.parentElement === sidebar) {
+        header.replaceChild(brand, placeholder);
+        placeholder = null;
+      }
+    }
+
+    updatePlacement();
+    window.addEventListener('resize', updatePlacement);
   }
 
   let currentWorkspace = '';
@@ -161,5 +254,8 @@
   }
 
   window.DEVMATCH_SIDEBAR_NAVIGATION = { setWorkspace };
+  initializeSidebarActionLabels();
+  initializeSidebarPin();
+  initializeSidebarBrandPlacement();
   setWorkspace(getInitialWorkspace());
 })();

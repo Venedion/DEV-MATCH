@@ -11,6 +11,9 @@
   const layout=document.getElementById('requestDetailLayout');
   const notFound=document.getElementById('requestNotFound');
   const status=document.getElementById('requestStatus');
+  const favoriteToast=document.getElementById('favoriteActionToast');
+  const favoriteRemoveDialog=document.getElementById('favoriteRemoveDialog');
+  const favoriteRemoveMessage=document.getElementById('favoriteRemoveMessage');
   const favoritesKey='devmatch-developer-project-favorites';
   const escapeHtml=value=>String(value??'').replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
   const initials=name=>(String(name||'').match(/\b\p{L}/gu)||[]).slice(0,2).join('').toUpperCase()||'CL';
@@ -149,10 +152,32 @@
       const activeUser=await window.devMatchBackend.ready;
       if(!activeUser){location.href='devmatch-auth.html?mode=login';return;}
       const saved=favorites.includes(project.id);
+      if(saved&&!await window.DEVMATCH_FAVORITE_FEEDBACK.confirmRemoval(
+        favoriteRemoveDialog,
+        favoriteRemoveMessage,
+        project.title
+      ))return;
       try{
         await window.devMatchBackend.setFavorite('project',project.id,!saved);
         favorites=saved?favorites.filter(id=>id!==project.id):[...favorites,project.id];
         updateSaveButton(!saved);
+        window.DEVMATCH_NAV_BADGES?.updateFavorites();
+        window.DEVMATCH_FAVORITE_FEEDBACK.showToast(
+          favoriteToast,
+          saved?'Request removed from your favorites':'Request added to your favorites',
+          saved?async()=>{
+            try{await window.devMatchBackend.setFavorite('project',project.id,true);}
+            catch(error){
+              console.error('Unable to restore saved project request in Supabase.',error);
+              window.alert('Unable to restore this favorite. Please try again.');
+              return false;
+            }
+            if(!favorites.includes(project.id))favorites=[...favorites,project.id];
+            updateSaveButton(true);
+            window.DEVMATCH_NAV_BADGES?.updateFavorites();
+            return true;
+          }:null
+        );
       }catch(error){console.error('Unable to update saved project requests in Supabase.',error);window.alert('Unable to save this request. Please try again.');}
     });
     const {data:similar,error:similarError}=await window.devMatchBackend.client.from('projects')

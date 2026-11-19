@@ -54,7 +54,7 @@ body.client-shell-page .sidebar-foot span{
 body.client-shell-page .sidebar-foot b,
 body.client-shell-page .sidebar-foot a{display:none}
 @media(max-width:1220px){
-  body.client-shell-page{--sidebar:230px}
+  body.client-shell-page{--sidebar-expanded:230px}
   body.client-shell-page .topbar,
   body.client-shell-page .profile-topbar{
     grid-template-columns:var(--sidebar) minmax(180px,280px) 1fr;
