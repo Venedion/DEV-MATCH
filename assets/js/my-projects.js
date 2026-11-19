@@ -610,9 +610,9 @@ function addMedia(files){
   for(const file of files){
     const image=['image/jpeg','image/png','image/webp','image/gif'].includes(file.type);
     const video=['video/mp4','video/webm'].includes(file.type);
-    const sizeLimit=image?5*1024*1024:50*1024*1024;
+    const sizeLimit=image?5*1024*1024:20*1024*1024;
     if((!image&&!video)||file.size>sizeLimit){
-      message.textContent=`${file.name} wasn't added. Use PNG, JPG, or WebP up to 5 MB, or MP4/WebM up to 50 MB.`;
+      message.textContent=`${file.name} wasn't added. Use PNG, JPG, or WebP up to 5 MB, or MP4/WebM up to 20 MB.`;
       continue;
     }
     if(selectedMedia.length+accepted.length>=8){

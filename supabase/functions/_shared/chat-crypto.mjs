@@ -1,20 +1,18 @@
 const encoder = new TextEncoder();
 
+// Messages are stored and returned as plain text and the chat UI escapes them
+// before rendering, so markup such as `<div>` or `a < b` is kept verbatim.
+// Only control characters are removed, line endings are normalised and
+// trailing spaces trimmed; indentation is preserved for code snippets.
 export function sanitizeMessageText(value) {
   if (typeof value !== 'string') return '';
   return value
-    .replace(/<script\b[^>]*>[\s\S]*?(?:<\/script\s*>|$)/gi, ' ')
-    .replace(/<style\b[^>]*>[\s\S]*?(?:<\/style\s*>|$)/gi, ' ')
-    .replace(/<!--[\s\S]*?-->/g, ' ')
-    .replace(/<br\s*\/?>/gi, '\n')
-    .replace(/<\/(?:p|div|li|h[1-6]|blockquote)\s*>/gi, '\n')
-    .replace(/<[^>]*>/g, ' ')
     .replace(/\r\n?/g, '\n')
     .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, '')
     .split('\n')
-    .map(line => line.replace(/[ \t]+/g, ' ').trim())
+    .map(line => line.replace(/[ \t]+$/g, ''))
     .join('\n')
-    .trim();
+    .replace(/^\n+|\n+$/g, '');
 }
 
 function encodeBase64Url(bytes) {

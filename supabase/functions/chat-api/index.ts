@@ -10,6 +10,9 @@ import {
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const MAX_MESSAGE_LENGTH = 5000;
 const MAX_MESSAGE_ROWS = 200;
+const DEFAULT_MESSAGE_PAGE = 100;
+const MAX_CONVERSATION_ROWS = 100;
+const ISO_TIMESTAMP_PATTERN = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,6})?(?:Z|[+-]\d{2}:\d{2})$/;
 const MAX_ATTACHMENT_BYTES = 2 * 1024 * 1024;
 const ALLOWED_ATTACHMENT_TYPES = new Set([
   'application/pdf',
@@ -97,6 +100,36 @@ function encodeBase64(bytes) {
   return btoa(binary);
 }
 
+// The browser-supplied MIME type is only a claim; check the file signature.
+function matchesFileSignature(bytes, type) {
+  const startsWith = (...signature) => signature.every((byte, index) => bytes[index] === byte);
+  switch (type) {
+    case 'application/pdf':
+      return startsWith(0x25, 0x50, 0x44, 0x46);
+    case 'image/png':
+      return startsWith(0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a);
+    case 'image/jpeg':
+      return startsWith(0xff, 0xd8, 0xff);
+    case 'image/webp':
+      return startsWith(0x52, 0x49, 0x46, 0x46) && bytes[8] === 0x57 && bytes[9] === 0x45
+        && bytes[10] === 0x42 && bytes[11] === 0x50;
+    case 'application/msword':
+      return startsWith(0xd0, 0xcf, 0x11, 0xe0, 0xa1, 0xb1, 0x1a, 0xe1);
+    case 'application/vnd.openxmlformats-officedocument.wordprocessingml.document':
+      return startsWith(0x50, 0x4b, 0x03, 0x04);
+    default:
+      return false;
+  }
+}
+
+function optionalTimestamp(value) {
+  if (value === undefined || value === null) return null;
+  if (typeof value !== 'string' || !ISO_TIMESTAMP_PATTERN.test(value) || Number.isNaN(Date.parse(value))) {
+    throw new ChatApiError('Invalid pagination cursor.', 400);
+  }
+  return value;
+}
+
 function safeAttachmentName(value) {
   if (typeof value !== 'string') throw new ChatApiError('The attachment name is invalid.', 400);
   const name = value.split(/[\\/]/).pop()?.replace(/[\u0000-\u001f\u007f]/g, '').trim();
@@ -156,10 +189,14 @@ async function requestRows(supabaseUrl, serviceRoleKey, path, query, init = {}) 
     ...init,
     headers: supabaseHeaders(serviceRoleKey, init.headers)
   });
+  if (response.status === 429) {
+    throw new ChatApiError('You are sending too fast. Please wait a moment and try again.', 429);
+  }
   if (!response.ok) {
     console.error(`Chat database request failed (${response.status}).`);
     throw new ChatApiError('Chat service is temporarily unavailable.', 503);
   }
+  if (response.status === 204) return [];
   const rows = await response.json();
   if (!Array.isArray(rows)) throw new ChatApiError('Chat service returned an invalid response.');
   return rows;
@@ -238,8 +275,28 @@ async function decryptRow(row, keyring) {
     text: sanitizeMessageText(text),
     attachments,
     created_at: row.created_at,
-    read_at: row.read_at
+    read_at: row.read_at ?? null
   };
+}
+
+// One unreadable message (missing key version, corrupted row) must not break
+// the whole inbox or thread: it is returned as a placeholder instead.
+async function decryptRowSafely(row, keyring) {
+  try {
+    return await decryptRow(row, keyring);
+  } catch (error) {
+    console.error(`Unable to decrypt chat message ${row?.id}.`, error);
+    return {
+      id: row.id,
+      conversation_id: row.conversation_id,
+      sender_id: row.sender_id,
+      text: '',
+      attachments: [],
+      unavailable: true,
+      created_at: row.created_at,
+      read_at: row.read_at ?? null
+    };
+  }
 }
 
 async function getAccount(supabaseUrl, serviceRoleKey, userId, role = null) {
@@ -281,6 +338,19 @@ async function startConversation(supabaseUrl, serviceRoleKey, userId, participan
     supabaseUrl, serviceRoleKey, userId, participantId, projectId, userRole, recipientRole
   );
   if (existing) return existing;
+
+  const limit = await fetch(`${supabaseUrl.replace(/\/$/, '')}/rest/v1/rpc/consume_chat_rate_limit`, {
+    method: 'POST',
+    headers: supabaseHeaders(serviceRoleKey),
+    body: JSON.stringify({p_user: userId, p_action: 'start-conversation'})
+  });
+  if (limit.status === 429) {
+    throw new ChatApiError('You started too many conversations. Please try again later.', 429);
+  }
+  if (!limit.ok) {
+    console.error(`Chat rate limit check failed (${limit.status}).`);
+    throw new ChatApiError('Chat service is temporarily unavailable.', 503);
+  }
 
   const [participantA, participantB] = [userId, participantId].sort();
   try {
@@ -327,14 +397,19 @@ async function handleAction(body, user, keyring, supabaseUrl, serviceRoleKey) {
   const workspaceRole = account.account_role;
 
   if (body.action === 'list-conversations') {
-    const conversations = await requestRows(supabaseUrl, serviceRoleKey, 'conversations', {
-      select: 'id,participant_a_id,participant_b_id,participant_a_role,participant_b_role,project_id,updated_at,last_message_at,messages(id,conversation_id,sender_id,ciphertext,nonce,key_version,created_at)',
+    // Cursor pagination: pass the updated_at of the last conversation received
+    // as `before` to load the next page.
+    const before = optionalTimestamp(body.before);
+    const conversationQuery = {
+      select: 'id,participant_a_id,participant_b_id,participant_a_role,participant_b_role,project_id,updated_at,last_message_at,messages(id,conversation_id,sender_id,ciphertext,nonce,key_version,created_at,read_at)',
       or: `(and(participant_a_id.eq.${user.id},participant_a_role.eq.${workspaceRole}),and(participant_b_id.eq.${user.id},participant_b_role.eq.${workspaceRole}))`,
       'messages.order': 'created_at.desc',
       'messages.limit': '1',
-      order: 'last_message_at.desc.nullslast,updated_at.desc',
-      limit: '100'
-    });
+      order: 'updated_at.desc',
+      limit: String(MAX_CONVERSATION_ROWS)
+    };
+    if (before) conversationQuery.updated_at = `lt.${before}`;
+    const conversations = await requestRows(supabaseUrl, serviceRoleKey, 'conversations', conversationQuery);
 
     const ids = [...new Set(conversations.map(c => c.participant_a_id === user.id ? c.participant_b_id : c.participant_a_id))];
     const [identities, workspaces] = ids.length ? await Promise.all([
@@ -351,7 +426,7 @@ async function handleAction(body, user, keyring, supabaseUrl, serviceRoleKey) {
       return {
         ...details,
         contact: {id:partnerId, account_role:partnerRole, username:identity?.username || '', display_name:profile?.display_name || ''},
-        last_message: last ? await decryptRow(last, keyring) : null
+        last_message: last ? await decryptRowSafely(last, keyring) : null
       };
     }));
   }
@@ -430,23 +505,23 @@ async function handleAction(body, user, keyring, supabaseUrl, serviceRoleKey) {
     }
 
     if (body.action === 'list-messages') {
-      await requestRows(supabaseUrl, serviceRoleKey, 'messages', {
-        select: 'id',
-        conversation_id: `eq.${conversation.id}`,
-        sender_id: `neq.${user.id}`,
-        read_at: 'is.null'
-      }, {
-        method: 'PATCH',
-        headers: {Prefer: 'return=representation'},
-        body: JSON.stringify({read_at: new Date().toISOString()})
-      });
-      const rows = await requestRows(supabaseUrl, serviceRoleKey, 'messages', {
+      // Fetching no longer marks messages as read; the chat page reports what
+      // the user actually saw through the sync_chat_activity RPC.
+      // Pagination: pass the created_at of the oldest message as `before`.
+      const before = optionalTimestamp(body.before);
+      const requestedLimit = Number(body.limit);
+      const limit = Number.isInteger(requestedLimit) && requestedLimit > 0
+        ? Math.min(requestedLimit, MAX_MESSAGE_ROWS)
+        : (before ? DEFAULT_MESSAGE_PAGE : MAX_MESSAGE_ROWS);
+      const messageQuery = {
         select: 'id,conversation_id,sender_id,ciphertext,nonce,key_version,created_at,read_at',
         conversation_id: `eq.${conversation.id}`,
         order: 'created_at.desc',
-        limit: String(MAX_MESSAGE_ROWS)
-      });
-      return Promise.all(rows.reverse().map(row => decryptRow(row, keyring)));
+        limit: String(limit)
+      };
+      if (before) messageQuery.created_at = `lt.${before}`;
+      const rows = await requestRows(supabaseUrl, serviceRoleKey, 'messages', messageQuery);
+      return Promise.all(rows.reverse().map(row => decryptRowSafely(row, keyring)));
     }
 
     if (body.action === 'download-attachment') {
@@ -545,6 +620,9 @@ async function handleAction(body, user, keyring, supabaseUrl, serviceRoleKey) {
       }
       const name = safeAttachmentName(body.attachment.name);
       const bytes = decodeAttachmentBase64(body.attachment.base64);
+      if (!matchesFileSignature(bytes, body.attachment.type)) {
+        throw new ChatApiError('The file content does not match its type.', 400);
+      }
       const id = crypto.randomUUID();
       const keyVersion = keyring.activeVersion;
       const attachmentContext = {

@@ -11,7 +11,8 @@ const C = '33333333-3333-4333-8333-333333333333';
   await db.exec(`
     create role anon; create role authenticated; create role service_role bypassrls;
     create schema auth; create schema storage; create schema extensions; create schema realtime;
-    create table auth.users (id uuid primary key, email text, email_confirmed_at timestamptz, raw_user_meta_data jsonb default '{}');
+    create table auth.users (id uuid primary key, email text, email_confirmed_at timestamptz, raw_user_meta_data jsonb default '{}',
+      raw_app_meta_data jsonb default '{}', phone text, phone_confirmed_at timestamptz, invited_at timestamptz, is_sso_user boolean default false);
     create function auth.uid() returns uuid language sql stable as $$ select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid $$;
     grant usage on schema auth,storage,realtime to anon,authenticated;
     create table realtime.messages(topic text not null);
@@ -28,14 +29,13 @@ const C = '33333333-3333-4333-8333-333333333333';
   const dir = path.join(__dirname, '../supabase/migrations');
   let isolationMigration; let activityMigration;
   let commentAuthorMigration;
+  // Audit fixes run last, after the legacy-data scenario below. The private
+  // profile details migration needs pgcrypto and Supabase Vault (not in PGlite).
+  const auditMigrations = [];
   for (const file of fs.readdirSync(dir).filter(f => f.endsWith('.sql')).sort()) {
     // Registration uses external proof-of-work and pgcrypto, tested separately.
     if (file.includes('registration_protection')) continue;
-    if (/^2026110(8070937|8071658|8092159|8100953)/.test(file)) continue;
-    if (/^20261114(131159|162904)/.test(file)) continue;
-    if (file === '20261117170424_account_workspaces_and_latest_features.sql') continue;
-    if (file === '20261118085659_realtime_notifications.sql') continue;
-    if (file === '202611190002_public_developer_work_terms.sql') continue;
+    if (file >= '20261119200000') { if (!file.includes('private_profile_details')) auditMigrations.push(file); continue; }
     if (file.includes('chat_presence_and_receipts')) {activityMigration=fs.readFileSync(path.join(dir,file),'utf8');continue;}
     if (file.includes('workspace_data_isolation')) { isolationMigration=fs.readFileSync(path.join(dir,file),'utf8'); continue; }
     if (file === '202611190001_sync_project_comment_display_names.sql') {commentAuthorMigration=fs.readFileSync(path.join(dir,file),'utf8');continue;}
@@ -203,6 +203,56 @@ const C = '33333333-3333-4333-8333-333333333333';
   assert.equal((await scalar('select public.is_whatsapp_phone_verified() ok')).ok,true);
   await asUser(B);
   assert.equal((await scalar('select public.is_whatsapp_phone_verified() ok')).ok,false);
-  console.log('PASS: full schema, legacy history retained, shared identity, workspace profile isolation, dual-role projects/directory/metrics/reviews, role-aware chat/presence, favorites/notifications/read preferences, RLS and comment features');
+
+  // Audit fixes, applied on top of the existing data.
+  await db.exec('reset role');
+  for (const file of auditMigrations) {
+    try { await db.exec(fs.readFileSync(path.join(dir, file), 'utf8')); }
+    catch (error) { throw new Error(`${file}: ${error.message}`); }
+  }
+  // Directory keeps the engagement columns the Find Developers page reads.
+  await db.query('select published_portfolio_views_count,published_portfolio_favorites_count from public.directory_people');
+  // WhatsApp verification now also fills the profile verification columns.
+  row = await scalar(`select phone_verified_at,verified_phone from public.profiles where id='${A}'`);
+  assert.ok(row.phone_verified_at); assert.equal(row.verified_phone,'+6281234567890');
+  // A verified number cannot be verified again by another account.
+  await db.exec(`update public.profiles set phone='+6281234567890' where id='${B}'`);
+  await asUser(B);
+  await assert.rejects(db.query('select public.start_whatsapp_phone_verification()'),/another account/);
+  // Signup trigger: email sign-ups need a permit, OAuth and admin-created users do not.
+  await db.exec('reset role');
+  await assert.rejects(db.query(`insert into auth.users(id,email) values ('44444444-4444-4444-8444-444444444444','d@example.invalid')`),/Registration verification is required/);
+  await db.exec(`insert into auth.users(id,email,raw_app_meta_data) values ('55555555-5555-4555-8555-555555555555','e@example.invalid','{"provider":"google"}')`);
+  await db.exec(`insert into auth.users(id,email,email_confirmed_at) values ('66666666-6666-4666-8666-666666666666','f@example.invalid',now())`);
+  await assert.rejects(db.query(`insert into auth.users(id,email,email_confirmed_at,raw_user_meta_data) values ('77777777-7777-4777-8777-777777777777','g@example.invalid',now(),'{"username":"SHARED_A"}')`),/already taken/);
+  assert.equal((await scalar("select public.is_username_available('shared_a') ok")).ok,false);
+  assert.equal((await scalar("select public.is_username_available('brand_new') ok")).ok,true);
+  // Comments are rate limited and get server timestamps.
+  await asUser(A);
+  for (let index = 0; index < 5; index += 1) {
+    await db.exec(`insert into public.comments(project_id,user_id,text,created_at) values ('request-a','${A}','Comment ${index}','2000-01-01')`);
+  }
+  await assert.rejects(db.exec(`insert into public.comments(project_id,user_id,text) values ('request-a','${A}','Too fast')`),/Too many requests/);
+  assert.equal((await scalar(`select count(*)::int n from public.comments where created_at < '2020-01-01'`)).n,0);
+  // Favorites must point at something that exists.
+  await assert.rejects(db.exec(`insert into public.favorites(user_id,item_type,item_id) values ('${A}','project','missing-project')`),/not available/);
+  // Visitors who are not logged in cannot read comment author IDs.
+  await db.exec('reset role; set role anon');
+  await assert.rejects(db.query('select user_id from public.comments'));
+  await db.query('select id,text,author_name from public.comments');
+  // One message notification per conversation; reading marks messages read.
+  await db.exec(`reset role;
+    insert into public.messages(conversation_id,sender_id,ciphertext,nonce,key_version) values
+      ('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb','${B}',repeat('a',22),repeat('b',16),1);
+    insert into public.messages(conversation_id,sender_id,ciphertext,nonce,key_version) values
+      ('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb','${B}',repeat('a',22),repeat('b',16),1);`);
+  assert.equal((await scalar(`select count(*)::int n from public.notifications where recipient_id='${A}' and kind='message' and conversation_id='bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'`)).n,1);
+  await asUser(A);
+  await db.exec("select public.sync_chat_activity('client','bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',now())");
+  await db.exec('reset role');
+  assert.equal((await scalar(`select count(*)::int n from public.messages where conversation_id='bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb' and sender_id='${B}' and read_at is null`)).n,0);
+  // Old function versions that ignored the workspace are gone.
+  await assert.rejects(db.query("select public.save_notification_preferences('{}'::jsonb)"));
+  console.log('PASS: full schema, legacy history retained, shared identity, workspace profile isolation, dual-role projects/directory/metrics/reviews, role-aware chat/presence, favorites/notifications/read preferences, RLS and comment features, audit fixes');
   await db.close();
 })().catch(error => { console.error(error.message); process.exitCode = 1; });

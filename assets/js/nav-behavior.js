@@ -687,7 +687,7 @@
       const awaitedRole = await backend.getWorkspaceRole();
       unreadCount = data.data.filter(conversation => {
         const lastMessage = conversation.last_message;
-        if (!lastMessage || lastMessage.sender_id === user.id) return false;
+        if (!lastMessage || lastMessage.sender_id === user.id || lastMessage.read_at) return false;
         try {
           const readAt = Number(localStorage.getItem(
             `devmatch-chat-read:${user.id}:${awaitedRole}:${conversation.id}`

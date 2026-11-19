@@ -1,12 +1,17 @@
 import {
+  clientIp,
   encodeBase64Url,
   getCorsHeaders,
   hasValidProof,
   jsonResponse,
+  POW_DIFFICULTY,
+  sha256Hex,
   verifyPayload
 } from '../_shared/registration.mjs';
 
-const MAX_CHALLENGE_AGE_MS = 60 * 60 * 1000;
+// A challenge is only valid for 10 minutes and can be redeemed once (see
+// issue_registration_permit), so a solved proof cannot be replayed.
+const MAX_CHALLENGE_AGE_MS = 10 * 60 * 1000;
 const MIN_CHALLENGE_AGE_MS = 2000;
 
 Deno.serve(async request => {
@@ -57,11 +62,11 @@ Deno.serve(async request => {
   if (age < MIN_CHALLENGE_AGE_MS) {
     return jsonResponse({error: 'Please wait a moment before submitting the form.'}, 400, cors);
   }
-  if (age > MAX_CHALLENGE_AGE_MS || !await hasValidProof(`${payload}.${signature}`, counter)) {
+  if (age > MAX_CHALLENGE_AGE_MS || !await hasValidProof(`${payload}.${signature}`, counter, POW_DIFFICULTY)) {
     return jsonResponse({error: 'Unable to verify registration. Reload the page and try again.'}, 400, cors);
   }
 
-  const forwardedIp = request.headers.get('x-forwarded-for')?.split(/\s*,\s*/)[0];
+  const forwardedIp = clientIp(request.headers);
   if (!forwardedIp) {
     console.error('Registration request did not include a platform client IP.');
     return jsonResponse({error: 'Unable to verify your network. Please try again later.'}, 503, cors);
@@ -70,8 +75,8 @@ Deno.serve(async request => {
   const permit = new Uint8Array(32);
   crypto.getRandomValues(permit);
   const permitToken = encodeBase64Url(permit);
-  const tokenDigest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(permitToken));
-  const tokenHash = Array.from(new Uint8Array(tokenDigest), byte => byte.toString(16).padStart(2, '0')).join('');
+  const tokenHash = await sha256Hex(permitToken);
+  const challengeHash = await sha256Hex(`${payload}.${signature}`);
 
   let response;
   try {
@@ -82,13 +87,21 @@ Deno.serve(async request => {
         Authorization: `Bearer ${serviceRoleKey}`,
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify({p_email: email, p_ip: forwardedIp, p_token_hash: tokenHash})
+      body: JSON.stringify({
+        p_email: email,
+        p_ip: forwardedIp,
+        p_token_hash: tokenHash,
+        p_challenge_hash: challengeHash
+      })
     });
   } catch (error) {
     console.error('Failed to reach the registration rate-limit RPC.', error);
     return jsonResponse({error: 'Unable to verify registration right now. Please try again.'}, 503, cors);
   }
 
+  if (response.status === 409) {
+    return jsonResponse({error: 'This verification was already used. Reload the page and try again.'}, 409, cors);
+  }
   if (!response.ok) {
     console.error('Supabase rejected the registration rate-limit RPC.', response.status);
     return jsonResponse({error: 'Unable to verify registration right now. Please try again.'}, 503, cors);

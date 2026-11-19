@@ -1,5 +1,41 @@
 project_id = "yxwktllqbmhustmhdaqi"
 
+# Auth settings the app depends on. They are applied to the hosted project only
+# with `supabase config push`; compare with the Dashboard (Authentication >
+# Settings) before pushing so nothing configured there is overwritten.
+[auth]
+site_url = "https://devm4tch.vercel.app"
+additional_redirect_urls = [
+  "https://devm4tch.vercel.app/**",
+  "https://dev-match-vincent.vercel.app/**",
+  "http://localhost:3000/**",
+]
+enable_signup = true
+enable_anonymous_sign_ins = false
+minimum_password_length = 8
+jwt_expiry = 3600
+enable_refresh_token_rotation = true
+
+[auth.email]
+enable_signup = true
+# Must stay on: the registration trigger trusts users that are created already
+# confirmed (Dashboard / admin API), so self sign-ups must start unconfirmed.
+enable_confirmations = true
+double_confirm_changes = true
+secure_password_change = true
+
+[auth.email.template.magic_link]
+subject = "Kode login DEV-MATCH"
+content_path = "./supabase/templates/email-otp.html"
+
+[auth.sms]
+enable_signup = false
+
+[auth.rate_limit]
+email_sent = 30
+sign_in_sign_ups = 30
+token_verifications = 30
+
 [functions.register-challenge]
 verify_jwt = false
 
@@ -9,27 +45,7 @@ verify_jwt = false
 [functions.chat-api]
 verify_jwt = true
 
-[functions.hello-world]
-enabled = true
-verify_jwt = false
-import_map = "./functions/hello-world/deno.json"
-# Uncomment to specify a custom file path to the entrypoint.
-# Supported file extensions are: .ts, .js, .mjs, .jsx, .tsx
-entrypoint = "./functions/hello-world/index.ts"
-# Specifies static files to be bundled with the function. Supports glob patterns.
-# For example, if you want to serve static HTML pages in your function:
-# static_files = [ "./functions/hello-world/*.html" ]
-
-[functions.DEV-MATCH]
-enabled = true
-verify_jwt = false
-import_map = "./functions/DEV-MATCH/deno.json"
-# Uncomment to specify a custom file path to the entrypoint.
-# Supported file extensions are: .ts, .js, .mjs, .jsx, .tsx
-entrypoint = "./functions/DEV-MATCH/index.ts"
-# Specifies static files to be bundled with the function. Supports glob patterns.
-# For example, if you want to serve static HTML pages in your function:
-# static_files = [ "./functions/DEV-MATCH/*.html" ]
-
+# Called by Meta's webhook, which cannot send a Supabase JWT; requests are
+# authenticated with the x-hub-signature-256 HMAC instead.
 [functions.whatsapp-verification]
 verify_jwt = false

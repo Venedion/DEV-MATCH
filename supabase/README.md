@@ -1,290 +1,135 @@
-# DEV-MATCH: ready account features
+# DEV-MATCH backend (Supabase)
 
-Branch: codex/ready-auth. Project: yxwktllqbmhustmhdaqi (Singapore).
+Hosted project: `yxwktllqbmhustmhdaqi` (Singapore).
 
-Included: email/password registration, confirmation links and resend screen,
-email-confirmed login, login by email code, profile onboarding/storage, profile settings persistence,
-password recovery and change, session logout, recovery styling, and direct
-birthday month/year selection. Published project listings, directories,
-dashboard metrics, notifications, and media now use Supabase. The secure chat
-backend is implemented locally but still needs the migration, secrets, and Edge
-Function deployment below.
+Everything the backend needs lives in this folder:
 
-Phone numbers are stored as contact data only. This release does not prove phone
-ownership and does not require SMS verification to complete onboarding.
-Email ownership is checked using trusted Supabase Auth confirmation.
+| Path | Contents |
+| --- | --- |
+| `migrations/` | The complete database schema, in order. One file per change, every version unique. |
+| `functions/` | Edge Functions: `register-challenge`, `register-permit`, `chat-api`, `whatsapp-verification`. |
+| `templates/email-otp.html` | Body of the "Kode login DEV-MATCH" email (magic link / OTP template). |
+| `config.toml` | Auth settings and Edge Function settings. |
 
-Email-code login is for existing accounts. In Supabase Auth, set the Magic link
-or OTP subject to `Kode login DEV-MATCH` and use `email-otp.html` for its body.
-The form accepts the configured email OTP length from six to ten digits.
-Use the configured custom SMTP relay.
-Registration and password recovery use their separate link templates.
+The old standalone SQL files (`account-registration.sql`, `email-onboarding.sql`)
+were removed: their content is part of the migrations.
 
-The private profiles table uses RLS. Password hashes are managed by Supabase Auth;
-no password or privileged service key belongs in application profile data.
-
-Accounts: https://supabase.com/dashboard/project/yxwktllqbmhustmhdaqi/auth/users
-Profiles: https://supabase.com/dashboard/project/yxwktllqbmhustmhdaqi/editor
-
-The initial migration, account-registration.sql, and email-onboarding.sql are
-already applied to the hosted project. Do not reapply those files there. On a
-fresh project, apply `migrations/202611080001_account_profiles.sql`, then
-`migrations/202611090001_profile_account_fields.sql`, and then
-`email-onboarding.sql`. The profile migration adds the account and onboarding
-columns used by later migrations and creates new profiles from signup metadata,
-including the selected account role. `account-registration.sql` is retained as
-a rerunnable legacy equivalent for existing setups. Existing projects that
-already ran that legacy script should still apply the new profile migration
-once; its idempotent schema changes and trigger replacement keep the migration
-history aligned. The email-onboarding guard replaces the experimental
-phone-required guard without marking a phone as verified.
-
-The user favorites and notification state migration
-(`migrations/202611110001_user_preferences_and_favorites.sql`) must also be
-applied to the hosted project before deploying the matching frontend changes.
-On a fresh project, run it after the profile migration and email-onboarding SQL.
-It creates RLS-protected favorites and notification-read tables; notification
-preferences are stored in `profiles.profile_data`. On the first authenticated
-load, legacy favorites and read-state values are imported once for that account
-if its new database table is empty; browser storage then serves only as a local
-cache.
-
-The projects/comments migration
-(`migrations/202611110002_projects_and_comments.sql`) is required for the
-client request composer, developer portfolio manager, and shared project
-comments. Apply it after the favorites/notification migration. It creates one
-owner-scoped projects table for portfolio items and client requests plus
-publicly readable comments with authenticated, profile-derived author names.
-On the first authenticated load, a user's own legacy requests and portfolio
-items are imported once only when that account has no matching rows. Legacy
-comments are not imported because their original authors cannot be verified.
-
-The conversations/directory migration
-(`migrations/202611120001_conversations_and_directory.sql`) completes the next
-large-level backend step for chat and discovery. It adds authenticated chat
-conversations and message tables with RLS and a directory view for logged-in
-users. Apply `migrations/202611120003_private_profiles_and_public_directory.sql`
-after the other migrations to reset profile-table policies and grants to
-owner-only access and recreate the authenticated directory view with an
-allowlist of public fields. The view does not expose phone or private
-`profile_data` keys such as bank-account or tax identifiers. Do not query
-`profiles` for directory listings.
-Conversation participants cannot directly change or delete a thread, preventing
-one participant from exposing or deleting the other participant's message
-history. Chat now uses the encrypted Edge Function and Supabase Realtime;
-published project catalogs and public directories load from Supabase instead
-of prototype arrays.
-
-Apply `migrations/202611120002_public_project_comments.sql` after the
-conversations/directory migration. It limits new comments to published projects
-and open requests and only exposes comments for those public projects (plus a
-user's own existing comments). Conversation uniqueness is per participant pair
-and project, so the same users can have separate threads for separate projects.
-
-The hosted DEV-MATCH project already received the November 17 metrics, replies,
-reviews, and workspace changes in the combined migration
-`account_workspaces_and_latest_features` (`20261117170424`). The separate
-migration files below describe those changes for fresh/local databases; do not
-apply them again to the hosted project. The hosted project also contains older
-bundled migration versions; fetch their SQL into `supabase/migrations` with
-`supabase migration fetch --remote` before pushing from a checkout that does not
-contain them. Reconcile individual local migrations as applied only after
-verifying their changes are present; do not mark hosted bundles as reverted.
-The read-receipt and presence migrations are ordered before the latest hosted
-bundle, so include earlier pending versions when applying them with
-`supabase db push --remote --include-all`.
-
-For a fresh/local database, apply
-`migrations/202611170003_project_comment_replies.sql` after the project comments
-and notification migrations. It adds threaded replies for project comments,
-lets request owners read comments on their own requests and reply even when a
-request is no longer public, and notifies the original commenter. Reply
-notifications are included in the developer notification feed and dashboard
-activity.
-
-Apply `migrations/202611190001_sync_project_comment_display_names.sql` after
-the project comment migrations. It updates existing comment author names to
-each account's primary profile display name and keeps them synchronized when
-that display name changes. Workspace-specific display names do not affect
-comment authors.
-
-Apply `migrations/202611190002_public_developer_work_terms.sql` after
-`migrations/20261117164331_account_workspaces.sql` to include account-owned
-`contractTypes` in the authenticated developer directory projection. It
-retains the existing public field allowlist and does not expose private payout
-or tax data.
-
-Apply `migrations/202611190003_public_request_card_metrics.sql` after the
-favorites, project-comments, and account-workspaces migrations. It exposes only
-aggregated favorite and comment counts for open requests to authenticated
-developer workspaces; it does not return view counts or individual favorite
-records.
-
-After applying the profile/directory migration in the Supabase SQL Editor (or
-through the project's migration workflow), verify that authenticated users can
-read only their own `profiles` row and that `directory_people` returns only its
-public projection. Configure authentication endpoint limits in the Supabase
-Dashboard under Authentication > Rate Limits. These cover signup/sign-in and
-related Auth endpoints; they do not automatically rate-limit arbitrary
-application API requests, which need separate endpoint or gateway protections.
-
-Dashboard and profile mutations use the Supabase client's bearer-token
-authentication, with ownership enforced by database RLS; this app does not use
-an application session cookie. A server-issued CSRF token is therefore not part
-of this flow. Adding a token only in browser JavaScript would not create a
-server-side CSRF guarantee. If authentication moves to HttpOnly cookies later,
-route mutations through a backend that validates a CSRF token.
-
-Registration anti-abuse runs entirely in Supabase Edge Functions and the
-`migrations/202611120004_registration_protection.sql` migration. To avoid
-blocking new signups during cutover, configure secrets and deploy the functions
-before applying the migration:
-
-- `REGISTRATION_HMAC_SECRET`: a randomly generated secret with at least 32
-  bytes. Keep it server-side and never commit it.
-- `APP_ORIGINS`: comma-separated, exact browser origins allowed to call the
-  functions, such as `https://dev-match.example` and
-  `http://localhost:3000`. Do not include URL paths or a trailing slash.
-
-Supabase supplies the project URL and server service-role key to Edge Functions;
-the key must never be exposed in frontend code. Deploy both functions with the
-Supabase CLI:
+## Fresh / local database
 
 ```text
-supabase secrets set REGISTRATION_HMAC_SECRET="replace-with-a-random-secret" APP_ORIGINS="https://your-domain.example,http://localhost:3000"
-supabase functions deploy register-challenge
-supabase functions deploy register-permit
+supabase start
+supabase db reset          # applies every file in migrations/ in order
+npm ci && npm test && npm run test:database
 ```
 
-Then apply `migrations/202611120004_registration_protection.sql` after the other
-migrations and deploy the updated frontend.
+`npm run test:database` runs the real migrations in PGlite (embedded Postgres)
+and checks workspaces, RLS, chat, notifications and the audit fixes.
 
-The public functions are configured with `verify_jwt = false` because they must
-be callable before signup; they enforce an explicit origin allowlist and use the
-server-only key only when calling the rate-limit RPC. Vercel may still host the
-static site and apply its security headers, but it does not run registration
-backend code.
+## Secrets (Edge Functions)
 
-The migration requires a valid, one-time permit for every new `auth.users`
-record; signup through Supabase Auth's browser API remains in use, but direct
-signup requests without a permit are rejected. This also applies to accounts
-created through Supabase Dashboard/admin APIs; use the protected registration
-flow to create new users after applying the migration. The permit function limits
-successful registration permits to five per IPv4 `/24` or IPv6 `/64` network
-per rolling hour, stored in the project's Postgres database (no external Redis).
-The HMAC challenge, honeypot and proof-of-work are checked by the server.
-Keep Supabase's own Auth rate limits enabled as an additional layer. This
-integration does not change email verification or login-by-email-code flows.
+| Secret | Used by | Notes |
+| --- | --- | --- |
+| `REGISTRATION_HMAC_SECRET` | register-challenge, register-permit | Random, at least 32 bytes. |
+| `APP_ORIGINS` | all browser-facing functions | Comma separated exact origins. Defaults to the two Vercel domains when unset. |
+| `ALLOW_LOCAL_ORIGINS` | same | `true` only on a local/dev project to allow `localhost`. |
+| `REGISTRATION_POW_DIFFICULTY` | register-challenge, register-permit | Optional, 12–24, default 17. |
+| `CHAT_ENCRYPTION_KEYS` | chat-api | JSON `{"1":"<base64 32-byte key>"}`. Keep old versions to read old messages. |
+| `CHAT_ACTIVE_ENCRYPTION_KEY_VERSION` | chat-api | e.g. `1`. |
+| `WHATSAPP_APP_SECRET`, `WHATSAPP_WEBHOOK_VERIFY_TOKEN`, `WHATSAPP_PHONE_NUMBER_ID` | whatsapp-verification | From Meta. |
+| `WHATSAPP_BUSINESS_NUMBER` | whatsapp-verification | Digits only, e.g. `6285373117073`. Required (no longer hard-coded). |
 
-Secure chat is implemented by
-`migrations/202611120005_encrypted_realtime_chat.sql` and the
-`functions/chat-api` Edge Function. Apply the migration after
-`202611120004_registration_protection.sql`. It replaces the unused plaintext
-message column with AES-GCM ciphertext, a random nonce, and a key version;
-authenticated participants can read ciphertext for Realtime, but only the
-Edge Function can write messages or decrypt them. The migration stops without
-changing data if `public.messages` already contains rows; export and encrypt
-those rows before retrying it.
+The bank/NPWP encryption key is created automatically in Supabase Vault
+(`profile_private_details_key`) by migration `20261119200100`. Do not delete it:
+without it the stored details cannot be decrypted.
 
-Set these additional Supabase secrets before deploying the chat function:
+## Updating the hosted project (one-time, after the audit fixes)
 
-- `CHAT_ENCRYPTION_KEYS`: JSON object mapping key versions to base64-encoded
-  cryptographically random 32-byte keys, for example `{"1":"replace-with-a-base64-key"}`.
-- `CHAT_ACTIVE_ENCRYPTION_KEY_VERSION`: active positive integer version, such
-  as `1`. Keep previous keys in the keyring to decrypt messages encrypted with
-  older versions.
-- `APP_ORIGINS`: the same exact-origin allowlist used by the registration
-  functions.
+The migration history was cleaned up: duplicate copies of the same change were
+removed and two pairs of colliding versions were renumbered. The hosted
+database already contains every change older than `20261119200000`, so only the
+history table has to be aligned. `migration repair` only edits that history; it
+does not run or undo SQL.
 
-Configure secrets, apply `migrations/202611120005_encrypted_realtime_chat.sql`,
-deploy `chat-api` with `supabase functions deploy chat-api`, and then deploy the
-updated static frontend. Supabase Realtime uses the authenticated Supabase
-session token over WSS; this app does not use a session cookie. Message content
-is sanitized on the server before encryption and before being returned to either
-participant. The old device-only demo conversations are not associated with
-account IDs and are cleared from local storage when the new chat page loads;
-they are not imported.
+1. Compare local and hosted history:
 
-Apply `migrations/202611120006_live_data_metrics_notifications_storage.sql`
-after migration `202611120005`. It adds:
+   ```text
+   supabase migration list
+   ```
 
-- `get_dashboard_metrics()` and `record_project_view()` RPCs. View counts are
-  unique authenticated viewers per project per UTC day; anonymous views and
-  the owner's own views are not counted.
-- An RLS-protected notification feed populated for project comments,
-  project favorites, and encrypted chat messages. Notification preferences
-  suppress matching events when disabled.
-- A public `project-media` bucket for project images/video and avatars, where
-  only authenticated owners can upload or change objects. A private
-  `private-uploads` bucket restricts experience documents to their owner and
-  request attachments to the request owner or authenticated developers while
-  the request is open. The separate private `chat-attachments` bucket is
-  readable only by conversation participants and has no authenticated upload
-  policy; only the Edge Function writes its encrypted objects.
+2. For every version that appears **only under Remote** (expected:
+   `20261114131159`, `20261114162904`, `20261117170424`, `20261118085659`,
+   `20261118142224`, and any old `202611080001` / `202611090001` /
+   `202611180001`–`202611180003` / `202611190002` entries):
 
-Chat attachments use the `chat-attachments` bucket only as encrypted object storage.
-`chat-api` encrypts attachments with AES-GCM before upload, stores attachment
-metadata inside the encrypted message, and returns decrypted bytes only to
-conversation participants. Supported files are PDF, DOC, DOCX, JPG, PNG, or
-WebP up to 2 MB. Redeploy `chat-api` after updating it. Do not upload chat
-attachments directly from the browser.
+   ```text
+   supabase migration repair --status reverted <version>
+   ```
 
-Apply `migrations/202611180001_realtime_notifications.sql` after
-`202611120006_live_data_metrics_notifications_storage.sql` to add the
-notification table to Supabase Realtime. This allows the app's notification
-badge to update while a user is on another page.
+3. For every version that appears **only under Local** and is older than
+   `20261119200000` (its change is already in production):
 
-Apply `migrations/202611180002_chat_message_read_receipts.sql` after
-`migrations/202611180001_realtime_notifications.sql` (the encrypted chat
-migration must already be applied), then deploy the updated `chat-api` Edge
-Function and frontend. Opening a conversation marks incoming messages as read;
-the sender sees “Read” beside the sent message and receives updates in real time.
+   ```text
+   supabase migration repair --status applied <version>
+   ```
 
-Apply `migrations/202611180003_chat_global_presence.sql` after the encrypted
-chat migration and deploy the updated frontend to enable chat contact presence
-across the site. If also applying read receipts, apply
-`migrations/202611180002_chat_message_read_receipts.sql` first. A verified
-user's active Realtime connection publishes only that user's ID while they use
-any page; other users can read that status only when they share a conversation.
-A stored login session by itself does not count as online, and the status clears
-when all of the user's tabs/devices disconnect. No Edge Function deployment or
-new secret is required for presence. All participants need the updated frontend
-for the indicator to work.
+4. Apply the audit fixes (the six `20261119200…` files):
 
-The migration and frontend changes are local until the migration is applied
-and the updated `chat-api` is deployed to the hosted project. Apply database
-migrations in order; do not mark a feature live until its Supabase operation
-has been verified.
+   ```text
+   supabase db push
+   ```
 
-Two-way project reviews use
-`migrations/202611170002_project_engagement_reviews.sql`, after
-`migrations/202611170001_owned_project_metrics.sql`. In a project-linked chat,
-either participant can confirm completion; reviews unlock only after both the
-client and developer confirm. Each participant can submit one 1–5 rating and
-an optional comment per conversation. Review tables have no direct client write
-or read grants; authenticated RPCs enforce participant and completion checks,
-and the public profile RPC returns only display-safe review fields. Apply the
-migration before deploying the matching frontend. Chat participants retain
-read access to the project metadata associated with their conversation even
-after a request is closed, so they can finish the confirmation flow.
+5. Deploy the frontend (it accepts both the old and the new registration
+   difficulty).
 
-Supabase Auth continues to manage password hashing and credentials; the app
-does not store password hashes itself. Argon2id migration and recovery codes
-are not included in this implementation.
+6. Set `WHATSAPP_BUSINESS_NUMBER`, then redeploy the functions:
 
-Local callback origin is http://localhost:3000. Set Site URL and allowed redirect
-URLs for the real deployment, including /devmatch-reset-password.html. Supabase
-may fall back to Site URL, so index.html waits for Auth before routing callbacks.
+   ```text
+   supabase secrets set WHATSAPP_BUSINESS_NUMBER=6285373117073
+   supabase functions deploy register-challenge register-permit chat-api whatsapp-verification
+   supabase functions delete DEV-MATCH    # leftover template function, if it was deployed
+   ```
 
-The built-in email sender is for development: its quota is two emails per hour
-per project and recipient restrictions apply. Reset/confirmation requests may
-be rejected when this quota is exhausted. Configure an email provider before
-public production signup. No sender credentials are present in this repository.
+7. Check that the signup trigger is active:
 
-Run node --test tests/*.test.cjs. The browser-independent tests cover session
-guards, settings persistence, password changes, recovery routing/errors, and
-chat message sanitization and encryption.
-They mock SDK requests and do not prove delivery to a real inbox. A database
-transaction test confirmed that unconfirmed email cannot finish onboarding,
-confirmed email can finish without a verified phone, and phone status stays
-unverified. Fixture changes were rolled back.
+   ```sql
+   select tgname from pg_trigger where tgrelid = 'auth.users'::regclass;
+   -- must include require_registration_permit_before_signup
+   ```
+
+This order keeps signups working at every step: the database accepts both the
+old and the new `register-permit`, and the new frontend accepts both the old and
+the new challenge difficulty.
+
+## What the backend enforces
+
+* **Registration**: every email sign-up needs a one-time permit from
+  `register-permit` (HMAC challenge + proof-of-work + honeypot, max 5 permits per
+  IPv4 /24 or IPv6 /64 per hour, each challenge usable once). OAuth/SSO
+  sign-ups, invited users and users an administrator creates already confirmed
+  (Dashboard "Add user") skip the permit. Email confirmation must stay enabled.
+* **Usernames**: `is_username_available()` lets the signup form check first; a
+  taken username fails with "Username is already taken".
+* **Bank account and NPWP**: stored encrypted in
+  `private.profile_private_details`, readable only by the owner through
+  `get_private_profile_details(role)` / `save_private_profile_details(role, details)`.
+  A trigger removes these keys from `profile_data` if anything tries to write them.
+* **Phone**: verified over WhatsApp. One verified number belongs to one
+  account; changing the phone number invalidates the verification.
+* **Rate limits** (HTTP 429): messages 30/min and 2000/day, comments 5/min and
+  200/day, favorites 120/hour, projects 30/day, new conversations 20/hour,
+  storage uploads 60/hour and 500 MB per account per bucket.
+* **Reviews**: only after both sides confirmed completion, at least 24 hours
+  after the collaboration started, at least 3 messages from each side, and
+  both accounts have a verified phone.
+* **Validation**: size limits for `profile_data` and project `data`, cover
+  images must be `https://` URLs, `created_at`/`updated_at` are set by the
+  server, favorites must point at an existing project or profile.
+* **Chat**: messages are encrypted at rest with AES-GCM by `chat-api` (the
+  server holds the keys, so this is not end-to-end encryption). Pagination:
+  `list-messages` and `list-conversations` accept `before` (ISO timestamp).
+  Messages are marked read only through `sync_chat_activity`. Attachments are
+  checked against their file signature, not just the declared MIME type.
+* **Notifications**: one message notification per conversation; a daily
+  `pg_cron` job (`private.cleanup_old_data()`) removes notifications older than
+  90 days and expired rate-limit/registration rows.
+* **Anonymous visitors** can read public comments but not their authors' user IDs.

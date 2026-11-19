@@ -176,15 +176,23 @@ test('Previously cached payout and tax values are scrubbed from local and sessio
     for(const field of ['accountNumber','npwp'])assert.equal(Object.hasOwn(profile,field),false);
   }
 });
-test('Ordinary profile saves preserve payout details unless explicitly updated',async()=>{
-  const {backend,updates,row}=await setup();
-  row.profile_data={displayName:'Owner',accountNumber:'1234567890',npwp:'09.254.891.2-121.000'};
+test('Payout details never go into profile_data and are only saved when explicitly updated',async()=>{
+  const {backend,updates,rpcCalls}=await setup({rpcResponses:{save_private_profile_details:{data:{},error:null}}});
   await backend.saveProfile({displayName:'Updated',accountNumber:'changed',npwp:'changed'});
-  assert.equal(updates[0].profile_data.accountNumber,'1234567890');
-  assert.equal(updates[0].profile_data.npwp,'09.254.891.2-121.000');
-  await backend.saveProfile({displayName:'Updated',accountNumber:'0987654321',npwp:'new'}, {includePrivateFields:true});
-  assert.equal(updates[1].profile_data.accountNumber,'0987654321');
-  assert.equal(updates[1].profile_data.npwp,'new');
+  assert.equal(Object.hasOwn(updates[0].profile_data,'accountNumber'),false);
+  assert.equal(rpcCalls.some(call=>call.name==='save_private_profile_details'),false);
+  await backend.saveProfile({displayName:'Updated',accountNumber:'0987654321',npwp:'0925489121210000'}, {includePrivateFields:true});
+  assert.equal(Object.hasOwn(updates[1].profile_data,'accountNumber'),false);
+  assert.equal(Object.hasOwn(updates[1].profile_data,'npwp'),false);
+  const saved=rpcCalls.find(call=>call.name==='save_private_profile_details');
+  assert.equal(saved.args.p_role,'dev');
+  assert.equal(saved.args.p_details.accountNumber,'0987654321');
+  assert.equal(saved.args.p_details.npwp,'0925489121210000');
+});
+test('Payout details load from the encrypted RPC for the active workspace',async()=>{
+  const {backend,rpcCalls}=await setup({rpcResponses:{get_private_profile_details:{data:{accountNumber:'123456',npwp:'0925489121210000'},error:null}}});
+  assert.deepEqual(await backend.loadPrivateProfileFields(),{accountNumber:'123456',npwp:'0925489121210000'});
+  assert.equal(rpcCalls.find(call=>call.name==='get_private_profile_details').args.p_role,'dev');
 });
 test('Incorrect current password cannot update the password',async()=>{
   const {backend,passwords}=await setup();await assert.rejects(backend.changePassword('wrong','Next!Password1'),/Wrong password/);assert.equal(passwords.length,0);

@@ -3,11 +3,11 @@ const assert = require('node:assert/strict');
 const {webcrypto} = require('node:crypto');
 const chatCrypto = import('../supabase/functions/_shared/chat-crypto.mjs');
 
-test('Message sanitizer removes active markup while retaining plain text', async () => {
+test('Message sanitizer keeps code and angle brackets but drops control characters', async () => {
   const {sanitizeMessageText} = await chatCrypto;
   assert.equal(
-    sanitizeMessageText('<script>alert(1)</script><b>Hello</b><br>world'),
-    'Hello\nworld'
+    sanitizeMessageText('\n<div class="x">a < b</div>\u0007\r\n  indented   \n'),
+    '<div class="x">a < b</div>\n  indented'
   );
 });
 

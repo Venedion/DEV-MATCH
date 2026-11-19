@@ -124,16 +124,28 @@
     cache(updated, user);
     return updated;
   }
+  // Bank account and NPWP details are stored encrypted in their own table and
+  // are only available through these RPCs, never through profile_data.
   async function loadPrivateProfileFields() {
-    const user = await currentAccount();
-    const data = await loadProfile(user);
+    const role = await getWorkspaceRole();
+    const {data, error} = await client.rpc('get_private_profile_details', {p_role: role});
+    if (error) throw error;
+    const details = data && typeof data === 'object' && !Array.isArray(data) ? data : {};
     return Object.fromEntries(privateProfileFields
-      .filter(field => Object.hasOwn(data.profile_data || {}, field))
-      .map(field => [field, data.profile_data[field]]));
+      .filter(field => typeof details[field] === 'string')
+      .map(field => [field, details[field]]));
+  }
+  async function savePrivateProfileFields(fields) {
+    const role = await getWorkspaceRole();
+    const payload = Object.fromEntries(privateProfileFields
+      .map(field => [field, typeof fields[field] === 'string' ? fields[field].trim() : '']));
+    const {data, error} = await client.rpc('save_private_profile_details', {p_role: role, p_details: payload});
+    if (error) throw error;
+    return data || {};
   }
   function destination(row,user) {
     if(!user?.email_confirmed_at)return 'devmatch-verify-email.html';
-    if (!row.onboarding_complete && /^\+[1-9]\d{7,14}$/.test(row.phone || '')
+    if (!row.onboarding_complete && /^\+[1-9]\d{8,14}$/.test(row.phone || '')
       && !(row.phone_verified_at && row.verified_phone === row.phone)) {
       return 'devmatch-verify-phone.html';
     }
@@ -501,8 +513,11 @@
     if (typeof projectId !== 'string' || !projectId) {
       throw new TypeError('A project ID is required.');
     }
+    // Visitors who are not logged in may not read comment author IDs.
+    const {data: sessionData} = await client.auth.getSession();
+    const authorColumn = sessionData?.session ? 'user_id,' : '';
     let result = await client.from('comments')
-      .select('id,project_id,parent_comment_id,user_id,text,author_name,author_initials,created_at')
+      .select(`id,project_id,parent_comment_id,${authorColumn}text,author_name,author_initials,created_at`)
       .eq('project_id', projectId)
       .order('created_at', {ascending: true});
     let repliesSupported = true;
@@ -513,7 +528,7 @@
     )) {
       repliesSupported = false;
       result = await client.from('comments')
-        .select('id,project_id,user_id,text,author_name,author_initials,created_at')
+        .select(`id,project_id,${authorColumn}text,author_name,author_initials,created_at`)
         .eq('project_id', projectId)
         .order('created_at', {ascending: true});
     }
@@ -779,7 +794,7 @@
     const videoTypes = ['video/mp4', 'video/webm'];
     const allowedTypes = file?.type?.startsWith('video/') ? videoTypes : imageTypes;
     validateUpload(file, allowedTypes, file?.type?.startsWith('video/')
-      ? 50 * 1024 * 1024
+      ? 20 * 1024 * 1024
       : 10 * 1024 * 1024);
     const user = await currentAccount();
     const path = `${user.id}/${projectId}/${crypto.randomUUID()}-${safeFileName(file.name)}`;
@@ -876,13 +891,8 @@
       }
     });
     const currentProfile = await loadProfile(user);
-    privateProfileFields.forEach(field => {
-      if (Object.hasOwn(currentProfile.profile_data || {}, field)) {
-        details[field] = currentProfile.profile_data[field];
-      }
-    });
-    if (includePrivateFields) Object.assign(details, suppliedPrivateFields);
-    if (Object.hasOwn(currentProfile.profile_data, 'notificationPreferences')) {
+    if (includePrivateFields) await savePrivateProfileFields(suppliedPrivateFields);
+    if (Object.hasOwn(currentProfile.profile_data || {}, 'notificationPreferences')) {
       details.notificationPreferences = currentProfile.profile_data.notificationPreferences;
     }
     const data=await updateWorkspaceProfile({display_name:String(details.displayName||''),profile_data:details});

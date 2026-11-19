@@ -44,7 +44,8 @@ for(const action of ['list-messages','send-message','download-attachment']){
 }
 test('A new direct conversation persists both workspace roles',async()=>{
   const x=setup();await x.run({action:'start-user',workspaceRole:'dev',participantId:B});
-  const posted=x.calls.find(c=>c.options.method==='POST');
+  const posted=x.calls.find(c=>c.options.method==='POST'&&c.u.pathname.endsWith('/conversations'));
+  assert(x.calls.some(c=>c.u.pathname.endsWith('/rpc/consume_chat_rate_limit')),'new conversations are rate limited');
   const row=JSON.parse(posted.options.body)[0];
   assert.equal(row.participant_a_role,'dev');assert.equal(row.participant_b_role,'client');
   const lookup=x.calls.find(c=>c.u.pathname.endsWith('/conversations')&&!c.options.method);

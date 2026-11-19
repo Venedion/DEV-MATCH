@@ -130,7 +130,7 @@
 
   function wasReadAfterLastMessage(conversation) {
     const last = conversation.lastMessage;
-    if (!last || last.sender_id === currentUser.id) return true;
+    if (!last || last.sender_id === currentUser.id || last.read_at) return true;
     try {
       const readAt = Number(localStorage.getItem(readAtKey(conversation.id)) || 0);
       return Date.parse(last.created_at) <= readAt;
@@ -491,6 +491,7 @@
             <div class="chat-msg-body-row">
               <div class="chat-msg-body">
                 ${message.text ? `<div class="chat-msg-bubble">${escapeHtml(message.text).replace(/\n/g, '<br>')}</div>` : ''}
+                ${message.unavailable ? '<div class="chat-msg-bubble"><em>This message cannot be shown.</em></div>' : ''}
                 ${attachmentCards}
               </div>
             </div>

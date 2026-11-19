@@ -31,7 +31,8 @@ function loadRegistrationChallenge(){
       .invoke('register-challenge',{method:'GET'})
       .then(async({data:challenge,error})=>{
         if(error)throw await registrationFunctionError(error,'Unable to initialize registration protection.');
-        if(typeof challenge.payload!=='string'||typeof challenge.signature!=='string'||challenge.difficulty!==14)
+        if(typeof challenge.payload!=='string'||typeof challenge.signature!=='string'
+          ||!Number.isInteger(challenge.difficulty)||challenge.difficulty<12||challenge.difficulty>24)
           throw new Error('Unable to initialize registration protection. Reload the page and try again.');
         return challenge;
       })
@@ -58,9 +59,12 @@ async function requestRegistrationPermit(email){
       worker.postMessage({input:`${challenge.payload}.${challenge.signature}`,difficulty:challenge.difficulty});
     });
   }finally{worker.terminate();}
+  // A challenge can be redeemed only once; the next attempt needs a new one.
+  registrationChallengePromise=null;
   const {data:result,error}=await window.devMatchBackend.client.functions.invoke('register-permit',{
     body:{email,challenge,counter,website:$('website').value}
   });
+  warmRegistrationChallenge();
   if(error)throw await registrationFunctionError(error,'Unable to verify registration. Please try again.');
   if(typeof result.registrationPermit!=='string')throw new Error('Unable to verify registration. Please try again.');
   return result.registrationPermit;
@@ -124,11 +128,19 @@ $('form').addEventListener('submit',async e=>{
     await backend.ready;
     const activeRole=role==='dev'?'dev':'client';
     if(reg){
+      const availability=await backend.client.rpc('is_username_available',{p_username:u});
+      if(!availability.error&&availability.data===false){
+        setErr('user','This username is already taken. Choose another one.');
+        $('user').focus();
+        return;
+      }
       const registrationPermit=await requestRegistrationPermit(em);
       const {data,error}=await backend.client.auth.signUp({
         email:em,password:pw,
         options:{data:{username:u,phone:'+62'+ph,account_role:activeRole,registration_permit:registrationPermit}}
       });
+      if(error&&/database error saving new user/i.test(error.message||''))
+        throw new Error('Unable to create the account. The username may already be taken; try another one.');
       if(error)throw error;
       $('pass').value='';
       if(!data.session){

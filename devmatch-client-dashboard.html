@@ -13,29 +13,10 @@
   <link rel="stylesheet" href="assets/css/mode-switch-animation.css?v=20261030-active-indicator">
   <link rel="stylesheet" href="assets/css/mobile-navigation.css?v=20261118-workspaces">
   <link rel="stylesheet" href="assets/css/arrow-motion.css?v=20261118-arrow-motion-global-v2">
-  <script>
-    (() => {
-      const storageKey = 'devmatch-mode-switch-navigation';
-      try {
-        const stored = sessionStorage.getItem(storageKey);
-        if (!stored) return;
-        sessionStorage.removeItem(storageKey);
-        const [previousMode, timestamp] = stored.split(':');
-        const currentMode = location.pathname.endsWith('devmatch-client-dashboard.html')
-          ? 'client'
-          : 'developer';
-        if (Date.now() - Number(timestamp) >= 5000 || previousMode === currentMode) return;
-        if (previousMode === 'client' || previousMode === 'developer') {
-          document.documentElement.classList.add(`mode-switch-arrive-from-${previousMode}`);
-        }
-      } catch (error) {
-        console.warn('Could not restore the previous workspace mode.', error);
-      }
-    })();
-  </script>
+  <script src="assets/js/mode-switch-arrival.js?v=20261119-audit"></script>
   <script src="assets/js/i18n.js?v=20261102-profile-details"></script>
 <script src="assets/vendor/supabase-2.119.0.js"></script>
-<script src="assets/js/backend.js?v=20261119-phone-onboarding"></script>
+<script src="assets/js/backend.js?v=20261119-audit"></script>
 </head>
 <body class="page-scroll-shell">
   <header class="client-topbar">
@@ -407,7 +388,7 @@
   <script src="assets/js/favorite-feedback.js?v=20261118-shared"></script>
   <script src="assets/js/project-detail.js?v=20261119-rebase-merge"></script>
   <script src="assets/js/client-dashboard.js?v=20261119-rebase-merge"></script>
-  <script src="assets/js/nav-behavior.js?v=20261119-rebase-merge"></script>
+  <script src="assets/js/nav-behavior.js?v=20261119-audit"></script>
 <script src="assets/js/presence.js?v=20261119-global"></script>
 </body>
 </html>

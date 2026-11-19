@@ -1315,7 +1315,7 @@
     'Feedback from people I’ve worked with.': 'Umpan balik dari orang-orang yang pernah bekerja sama dengan saya.',
     'Recent updates from this profile.': 'Pembaruan terbaru dari profil ini.',
     'Media': 'Media',
-    'PNG, JPG up to 5 MB · MP4 up to 50 MB · max 8 files': 'PNG, JPG maksimal 5 MB · MP4 maksimal 50 MB · maksimal 8 file',
+    'PNG, JPG up to 5 MB · MP4 up to 20 MB · max 8 files': 'PNG, JPG maksimal 5 MB · MP4 maksimal 20 MB · maksimal 8 file',
     'Android / iOS App': 'Aplikasi Android / iOS',
     'Desktop App': 'Aplikasi Desktop',
     'One clear price': 'Satu harga pasti',
