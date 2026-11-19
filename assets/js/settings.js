@@ -223,7 +223,7 @@
   const settingsAvatarPreview = document.getElementById('settingsAvatarPreview');
 
   // Tab switching
-  function switchTab(tabId) {
+  function switchTab(tabId, updateLocation = true) {
     navBtns.forEach(btn => {
       btn.classList.toggle('active', btn.dataset.tab === tabId);
     });
@@ -234,7 +234,7 @@
     });
 
     // Update URL hash without jumping
-    if (history.replaceState) {
+    if (updateLocation && history.replaceState) {
       history.replaceState(null, '', `#${tabId}`);
     }
   }
@@ -248,11 +248,15 @@
   // Check URL Hash on load
   function initHashTab() {
     const hash = window.location.hash.replace('#', '');
-    if (hash && document.getElementById(`panel-${hash}`)) {
-      switchTab(hash);
-    } else {
-      switchTab('account');
-    }
+    const target = hash ? document.getElementById(hash) : null;
+    const targetPanel = target?.closest('.settings-panel');
+    const panelTab = targetPanel?.id.startsWith('panel-')
+      ? targetPanel.id.slice('panel-'.length)
+      : hash && document.getElementById(`panel-${hash}`)
+        ? hash
+        : 'account';
+    switchTab(panelTab, false);
+    return target && targetPanel && target !== targetPanel ? target : null;
   }
 
   // Populate Profile Inputs
@@ -1506,7 +1510,7 @@
 
   // Initialize
   setupWorkspaceLinks();
-  initHashTab();
+  const hashScrollTarget = initHashTab();
   (async () => {
     ['bankName', 'accountNumber', 'accountHolder', 'npwp'].forEach(field => delete profileData[field]);
     try {
@@ -1517,6 +1521,10 @@
       console.error('Unable to load private payout and tax details.', error);
       populateForm();
       showToast('Unable to load private payout and tax details. Reload the page and try again.');
+    } finally {
+      if (hashScrollTarget && window.location.hash === `#${hashScrollTarget.id}`) {
+        requestAnimationFrame(() => hashScrollTarget.scrollIntoView({block: 'start', behavior: 'instant'}));
+      }
     }
   })();
 

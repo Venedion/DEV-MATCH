@@ -545,6 +545,7 @@
   place-items: center;
   flex-shrink: 0;
   letter-spacing: 0.02em;
+  text-decoration: none;
 }
 
 .client-name-business {

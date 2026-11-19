@@ -64,6 +64,11 @@
       if (page === 'devmatch-my-projects.html') return 'projects';
       if (page === 'devmatch-find-projects.html' || page === 'devmatch-find-project-detail.html') return 'findProjects';
       if (page === 'devmatch-find-clients.html') return 'findClients';
+      if (page === 'devmatch-client-profile.html') {
+        const source = new URLSearchParams(location.search).get('from');
+        if (source === 'find-projects') return 'findProjects';
+        if (source === 'find-clients') return 'findClients';
+      }
       if (page === 'devmatch-developer-notifications.html') return 'notifications';
     }
     if (page === 'devmatch-chat.html') return 'messages';

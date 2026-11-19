@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=optional" rel="stylesheet">
-  <link rel="stylesheet" href="assets/css/dashboard.css?v=20261118-pink-nav-badges">
+  <link rel="stylesheet" href="assets/css/dashboard.css?v=20261118-hide-favorites-nav-badge">
   <link rel="stylesheet" href="assets/css/settings.css?v=20261109-specialty-other-validation">
   <link rel="stylesheet" href="assets/css/custom-select.css?v=20261028-custom-dropdowns-v4">
   <link rel="stylesheet" href="assets/css/client-shell.css?v=20261030-header-size-match">
@@ -16,7 +16,7 @@
   <script src="assets/js/mode-switch-state.js?v=20261030-client-mode-indicator"></script>
   <script src="assets/js/i18n.js?v=20261103-skill-edit-v2"></script>
 <script src="assets/vendor/supabase-2.119.0.js"></script>
-<script src="assets/js/backend.js?v=20261119-workspace-isolation"></script>
+<script src="assets/js/backend.js?v=20261119-rebase-merge"></script>
 </head>
 <body class="page-scroll-shell">
   <!-- Topbar -->
@@ -218,7 +218,7 @@
               </section>
             </section>
 
-            <section class="settings-card settings-profile-detail-card" aria-labelledby="settingsSkillsHeading">
+            <section class="settings-card settings-profile-detail-card" id="settingsSkillsCard" aria-labelledby="settingsSkillsHeading">
               <header class="settings-card-header settings-profile-detail-header">
                 <h2 id="settingsSkillsHeading">Skills &amp; Tech Stacks</h2>
                 <button class="settings-inline-edit" id="editProfileSkills" type="button" aria-label="Edit Skills &amp; Tech Stacks">
@@ -239,7 +239,7 @@
               </section>
             </section>
 
-            <section class="settings-card settings-profile-detail-card" aria-labelledby="settingsExperienceHeading">
+            <section class="settings-card settings-profile-detail-card" id="settingsExperienceCard" aria-labelledby="settingsExperienceHeading">
               <header class="settings-card-header settings-profile-detail-header">
                 <h2 id="settingsExperienceHeading">Experience</h2>
                 <button class="settings-add-experience" id="addProfileExperience" type="button">+ Add experience</button>
@@ -816,9 +816,9 @@
 
   </a>
 
-  <script src="assets/js/settings.js?v=20261119-workspace-isolation"></script>
+  <script src="assets/js/settings.js?v=20261119-rebase-merge"></script>
   <script src="assets/js/custom-select.js?v=20261028-custom-dropdowns-v3"></script>
-  <script src="assets/js/nav-behavior.js?v=20261119-workspace-isolation"></script>
+  <script src="assets/js/nav-behavior.js?v=20261119-rebase-merge"></script>
 <script src="assets/js/presence.js?v=20261119-global"></script>
 </body>
 </html>

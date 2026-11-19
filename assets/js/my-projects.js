@@ -152,13 +152,12 @@ function render(){
   currentPage=Math.min(currentPage,pageCount);
   visibleProjects=filtered.slice((currentPage-1)*perPage,currentPage*perPage);
   rows.innerHTML=visibleProjects.map(project=>`
-    <tr>
-      <td><div class="project-cell">${thumbnail(project)}<div><h2 class="project-title">${escapeHtml(project.title)}</h2><p class="project-subtitle">${escapeHtml(displayProjectChoice(project.type,project.typeOther,'Project type'))} · ${escapeHtml(displayProjectChoice(project.category,project.categoryOther,'Project category'))}</p></div></div></td>
+    <tr data-project-id="${escapeHtml(project.id)}">
+      <td><div class="project-cell">${thumbnail(project)}<div><h2 class="project-title"><button class="project-preview-trigger" type="button" data-action="view" data-id="${escapeHtml(project.id)}" aria-label="Preview ${escapeHtml(project.title)}">${escapeHtml(project.title)}</button></h2><p class="project-subtitle">${escapeHtml(displayProjectChoice(project.type,project.typeOther,'Project type'))} · ${escapeHtml(displayProjectChoice(project.category,project.categoryOther,'Project category'))}</p></div></div></td>
       <td><span class="price-type">${escapeHtml(project.priceType)}</span><span class="price-value">${escapeHtml(project.price||'Contact for price')}</span></td>
       <td><span class="status-badge${project.status==='draft'?' draft':''}">${project.status==='draft'?'Draft':'Published'}</span></td>
       <td class="metric">${formatMetric(project.views)}</td><td class="metric">${formatMetric(project.favorites)}</td><td class="metric">${formatMetric(project.comments)}</td>
       <td><div class="row-actions">
-        <button class="row-action" type="button" data-action="view" data-id="${escapeHtml(project.id)}" aria-label="View ${escapeHtml(project.title)}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg></button>
         <button class="row-action" type="button" data-action="edit" data-id="${escapeHtml(project.id)}" aria-label="Edit ${escapeHtml(project.title)}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m14 6 4 4M4 20l4-.8L19 8a2.8 2.8 0 0 0-4-4L4 15z"/></svg></button>
         <button class="row-action delete" type="button" data-action="delete" data-id="${escapeHtml(project.id)}" aria-label="Delete ${escapeHtml(project.title)}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16m-10 4v6m4-6v6M6 7l1 14h10l1-14M9 7V4h6v3"/></svg></button>
       </div></td>
@@ -841,9 +840,11 @@ document.querySelector('[data-status="all"]').parentElement.addEventListener('cl
 });
 rows.addEventListener('click',async event=>{
   const button=event.target.closest('[data-action]');
-  if(!button)return;
-  const project=projects.find(item=>item.id===button.dataset.id);
+  const row=event.target.closest('tr[data-project-id]');
+  if(!row)return;
+  const project=projects.find(item=>item.id===(button?.dataset.id||row.dataset.projectId));
   if(!project)return;
+  if(!button){openPreview(project);return;}
   if(button.dataset.action==='view')openPreview(project);
   if(button.dataset.action==='edit')showEditor(project);
   if(button.dataset.action==='delete'){

@@ -25,6 +25,10 @@
   const PROJECTS_KEY = isClient ? 'devmatch-client-project-favorites' : 'devmatch-developer-project-favorites';
   const CLIENTS_KEY = 'devmatch-favorite-clients';
   const DEVS_KEY = 'devmatch-client-dev-favorites';
+  const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+  const validFavoriteIds = ids => Array.isArray(ids)
+    ? [...new Set(ids.filter(id => typeof id === 'string' && UUID_PATTERN.test(id)))]
+    : [];
   if (!await window.devMatchBackend.ready) return;
   let initialFavoriteRows = null;
   try {
@@ -35,7 +39,7 @@
     return;
   }
   if (initialFavoriteRows) {
-    const idsFor = type => initialFavoriteRows.filter(item => item.type === type).map(item => item.id);
+    const idsFor = type => validFavoriteIds(initialFavoriteRows.filter(item => item.type === type).map(item => item.id));
     localStorage.setItem(PROJECTS_KEY, JSON.stringify(idsFor('project')));
     localStorage.setItem(CLIENTS_KEY, JSON.stringify(idsFor('client')));
     localStorage.setItem(DEVS_KEY, JSON.stringify(idsFor('developer')));
@@ -122,9 +126,9 @@
   }
 
   // State
-  let favoriteProjectIds = initialFavoriteRows ? loadProjectFavorites() : [];
-  let favoriteClientIds = initialFavoriteRows ? loadClientFavorites() : [];
-  let favoriteDevIds = initialFavoriteRows ? loadDevFavorites() : [];
+  let favoriteProjectIds = initialFavoriteRows ? validFavoriteIds(loadProjectFavorites()) : [];
+  let favoriteClientIds = initialFavoriteRows ? validFavoriteIds(loadClientFavorites()) : [];
+  let favoriteDevIds = initialFavoriteRows ? validFavoriteIds(loadDevFavorites()) : [];
   let currentTab = 'projects'; // 'projects' or ('clients' in dev mode / 'developers' in client mode)
   let currentCategory = 'all';
   let searchQuery = '';
@@ -459,8 +463,10 @@
 
   // Update counters across page and sidebar
   function updateCounters() {
-    const projCount = favoriteProjectIds.length;
-    const secondaryCount = isClient ? favoriteDevIds.length : favoriteClientIds.length;
+    const projCount = favoriteProjects.filter(project => favoriteProjectIds.includes(project.id)).length;
+    const secondaryCount = isClient
+      ? favoriteDevelopers.filter(developer => favoriteDevIds.includes(developer.id)).length
+      : favoriteClients.filter(client => favoriteClientIds.includes(client.id)).length;
 
     if (countProjectsEl) countProjectsEl.textContent = String(projCount);
     const countBadge = document.getElementById(isClient ? 'countDevs' : 'countClients') || countSecondaryEl;
@@ -577,13 +583,18 @@
 
     if (savedProjects.length === 0) {
       const exploreUrl = isClient ? 'devmatch-discover-projects.html' : 'devmatch-find-projects.html';
+      const emptyMessage = favoriteProjectIds.length === 0
+        ? 'You haven’t saved any projects yet. Browse projects and click the heart icon to save your favorites.'
+        : currentCategory !== 'all' || searchQuery
+          ? 'No saved projects match your filter or search query.'
+          : 'Your saved projects aren’t available in this workspace or are no longer published.';
       favGridEl.innerHTML = `
         <div class="fav-empty-state">
           <div class="fav-empty-icon">
             <svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
           </div>
           <h3>No saved projects found</h3>
-          <p>${favoriteProjectIds.length === 0 ? 'You haven’t saved any projects yet. Browse developer projects and click the heart icon to save your favorites.' : 'No saved projects match your filter or search query.'}</p>
+          <p>${emptyMessage}</p>
           <a class="fav-btn primary" href="${exploreUrl}" style="margin:0 auto;display:inline-flex;">
             <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="m15.5 8.5-2 5-5 2 2-5z"/></svg>
             Explore Projects
@@ -594,7 +605,7 @@
     }
 
     favGridEl.innerHTML = savedProjects.map(project => `
-      <article class="fav-card" data-project-id="${escapeHtml(project.id)}">
+      <article class="fav-card${isClient ? '' : ' fav-card-clickable'}" data-project-id="${escapeHtml(project.id)}" ${isClient ? '' : `data-detail-url="${escapeHtml(project.detailUrl)}"`}>
         <div class="fav-card-art ${escapeHtml(project.art || '')}">
           <span class="fav-card-badge">${escapeHtml(project.category)}</span>
           <button class="fav-remove-btn" type="button" data-remove-fav="${escapeHtml(project.id)}" title="Remove from favorites" aria-label="Remove ${escapeHtml(project.title)} from favorites">
@@ -615,15 +626,18 @@
 
         <div class="fav-card-body">
           <span class="fav-card-type">${escapeHtml(project.type)}</span>
-          <h3 class="fav-card-title">${escapeHtml(project.title)}</h3>
+          <h3 class="fav-card-title">${isClient
+            ? escapeHtml(project.title)
+            : `<a class="fav-project-title-link" href="${escapeHtml(project.detailUrl)}">${escapeHtml(project.title)}</a>`}</h3>
           <p class="fav-card-desc">${escapeHtml(project.description)}</p>
 
-          <div class="fav-card-meta">
+          <div class="fav-card-meta${isClient ? '' : ' fav-card-meta-developer'}">
+            ${!isClient ? `<span class="fav-card-price">${escapeHtml(project.price)}</span>` : ''}
             <a class="fav-dev-pill" href="${escapeHtml(project.profileUrl)}">
               <span class="fav-dev-avatar">${escapeHtml(project.initials)}</span>
               <span class="fav-dev-name">${escapeHtml(project.developer)}</span>
             </a>
-            <span class="fav-card-price">${escapeHtml(project.price)}</span>
+            ${isClient ? `<span class="fav-card-price">${escapeHtml(project.price)}</span>` : ''}
           </div>
         </div>
 
@@ -632,9 +646,7 @@
             <svg viewBox="0 0 24 24"><path d="M21 11.5a8.5 8.5 0 0 1-8.5 8.5H4l1.5-4A8.5 8.5 0 1 1 21 11.5z"/></svg>
             ${isClient ? 'Contact' : 'Chat with Client'}
           </a>
-          <a class="fav-action-link" href="${escapeHtml(project.detailUrl)}">
-            View Details
-          </a>
+          ${isClient ? `<a class="fav-action-link" href="${escapeHtml(project.detailUrl)}">View Details</a>` : ''}
         </footer>
       </article>
     `).join('');
@@ -647,6 +659,14 @@
         confirmFavoriteRemoval('project', project.id, project.title);
       });
     });
+    if (!isClient) {
+      favGridEl.querySelectorAll('.fav-card-clickable').forEach(card => {
+        card.addEventListener('click', event => {
+          if (event.target.closest('a,button')) return;
+          window.location.assign(card.dataset.detailUrl);
+        });
+      });
+    }
   }
 
   // Render Saved Clients Grid (Developer Mode: from Find Clients tab)

@@ -10,10 +10,14 @@ const C = '33333333-3333-4333-8333-333333333333';
   const db = new PGlite();
   await db.exec(`
     create role anon; create role authenticated; create role service_role bypassrls;
-    create schema auth; create schema storage; create schema extensions;
+    create schema auth; create schema storage; create schema extensions; create schema realtime;
     create table auth.users (id uuid primary key, email text, email_confirmed_at timestamptz, raw_user_meta_data jsonb default '{}');
     create function auth.uid() returns uuid language sql stable as $$ select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid $$;
-    grant usage on schema auth,storage to anon,authenticated;
+    grant usage on schema auth,storage,realtime to anon,authenticated;
+    create table realtime.messages(topic text not null);
+    alter table realtime.messages enable row level security;
+    grant select,insert on realtime.messages to authenticated;
+    create function realtime.topic() returns text language sql stable as $$ select current_setting('request.realtime.topic',true) $$;
     create table storage.buckets(id text primary key,name text,public boolean,file_size_limit bigint,allowed_mime_types text[]);
     create table storage.objects(id uuid primary key default gen_random_uuid(),bucket_id text,name text,owner uuid);
     alter table storage.objects enable row level security;
@@ -23,11 +27,18 @@ const C = '33333333-3333-4333-8333-333333333333';
   `);
   const dir = path.join(__dirname, '../supabase/migrations');
   let isolationMigration; let activityMigration;
+  let commentAuthorMigration;
   for (const file of fs.readdirSync(dir).filter(f => f.endsWith('.sql')).sort()) {
     // Registration uses external proof-of-work and pgcrypto, tested separately.
     if (file.includes('registration_protection')) continue;
+    if (/^2026110(8070937|8071658|8092159|8100953)/.test(file)) continue;
+    if (/^20261114(131159|162904)/.test(file)) continue;
+    if (file === '20261117170424_account_workspaces_and_latest_features.sql') continue;
+    if (file === '20261118085659_realtime_notifications.sql') continue;
+    if (file === '202611190002_public_developer_work_terms.sql') continue;
     if (file.includes('chat_presence_and_receipts')) {activityMigration=fs.readFileSync(path.join(dir,file),'utf8');continue;}
     if (file.includes('workspace_data_isolation')) { isolationMigration=fs.readFileSync(path.join(dir,file),'utf8'); continue; }
+    if (file === '202611190001_sync_project_comment_display_names.sql') {commentAuthorMigration=fs.readFileSync(path.join(dir,file),'utf8');continue;}
     try { await db.exec(fs.readFileSync(path.join(dir, file), 'utf8')); }
     catch (error) { throw new Error(`${file}: ${error.message}`); }
   }
@@ -62,7 +73,7 @@ const C = '33333333-3333-4333-8333-333333333333';
   assert.equal(row.account_role, 'dev'); assert.equal(row.onboarding_complete, false); assert.deepEqual(row.profile_data, {});
   await db.exec("select public.switch_account_workspace('dev',true)");
   assert.equal((await scalar('select count(*)::int n from public.account_workspaces')).n, 1);
-  await db.exec(`update public.account_workspaces set display_name='Developer A',onboarding_complete=true,profile_data='{"bio":"developer data","npwp":"PRIVATE"}' where user_id='${A}' and role='dev';`);
+  await db.exec(`update public.account_workspaces set display_name='Developer A',onboarding_complete=true,profile_data='{"bio":"developer data","npwp":"PRIVATE","hourlyRate":"Rp 150.000","minProjectPrice":"Rp 1.000.000","contractTypes":["Fixed-price","Hourly"]}' where user_id='${A}' and role='dev';`);
   row = await scalar("select account_role,profile_data from public.switch_account_workspace('client',false)");
   assert.equal(row.account_role, 'client'); assert.equal(row.profile_data.bio, 'client data');
   row = await scalar(`select account_role,profile_data from public.profiles where id='${A}'`);
@@ -71,6 +82,10 @@ const C = '33333333-3333-4333-8333-333333333333';
   assert.equal(row.profile_data.bio, 'developer data');
   const directory = await db.query(`select account_role,profile_data from public.directory_people where id='${A}'`);
   assert.equal(directory.rows.length, 2);
+  const developerDirectory = directory.rows.find(person => person.account_role === 'dev');
+  assert.equal(developerDirectory.profile_data.hourlyRate, 'Rp 150.000');
+  assert.equal(developerDirectory.profile_data.minProjectPrice, 'Rp 1.000.000');
+  assert.deepEqual(developerDirectory.profile_data.contractTypes, ['Fixed-price', 'Hourly']);
   for (const person of directory.rows) { assert.equal(person.profile_data.accountNumber, undefined); assert.equal(person.profile_data.npwp, undefined); }
   await db.exec(`insert into public.projects(id,owner_id,project_kind,status) values ('portfolio-a','${A}','portfolio','published'),('request-a','${A}','request','open')`);
   for (const role of ['client','dev']) assert.equal((await scalar(`select public.get_dashboard_metrics('${role}') m`)).m.projects, 1);
@@ -83,10 +98,57 @@ const C = '33333333-3333-4333-8333-333333333333';
   await db.exec("select public.switch_account_workspace('client',true)");
   await db.exec(`update public.account_workspaces set onboarding_complete=true where user_id='${B}' and role='client'`);
   await db.exec(`reset role; insert into public.conversations(id,participant_a_id,participant_b_id,project_id) values ('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa','${A}','${B}','portfolio-a')`);
+  await db.exec(`insert into realtime.messages(topic) values ('devmatch-user-presence:${B}'),('devmatch-user-presence:${C}')`);
   await asUser(A);
+  await db.exec(`select set_config('request.realtime.topic','devmatch-user-presence:${B}',false)`);
+  assert.equal((await scalar(`select count(*)::int n from realtime.messages where topic='devmatch-user-presence:${B}'`)).n, 1);
+  await db.exec(`select set_config('request.realtime.topic','devmatch-user-presence:${C}',false)`);
+  assert.equal((await scalar(`select count(*)::int n from realtime.messages where topic='devmatch-user-presence:${C}'`)).n, 0);
+  await db.exec(`select set_config('request.realtime.topic','devmatch-user-presence:${A}',false)`);
+  await db.exec(`insert into realtime.messages(topic) values ('devmatch-user-presence:${A}')`);
+  await db.exec(`select set_config('request.realtime.topic','devmatch-user-presence:${B}',false)`);
+  await assert.rejects(db.exec(`insert into realtime.messages(topic) values ('devmatch-user-presence:${B}')`));
+  await db.exec(`select set_config('request.realtime.topic','',false)`);
   const engagement = await scalar("select public.start_project_engagement('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa') id");
   row = await scalar(`select client_id,developer_id from public.project_engagements where id='${engagement.id}'`);
   assert.equal(row.developer_id,A); assert.equal(row.client_id,B);
+  await db.exec(`reset role;
+    insert into public.comments(id,project_id,user_id,text,author_name,author_initials)
+    values ('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb','request-a','${A}','Existing comment','old username','OU');
+    update public.comments
+    set author_name='old username',author_initials='OU'
+    where id='bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
+  `);
+  await db.exec(commentAuthorMigration);
+  row = await scalar(`select author_name,author_initials from public.comments where id='bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'`);
+  assert.equal(row.author_name, 'Original client');
+  assert.equal(row.author_initials, 'OC');
+  await asUser(A);
+  await db.exec(`update public.profiles set display_name='Updated Client' where id='${A}'`);
+  row = await scalar(`select author_name,author_initials from public.comments where id='bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'`);
+  assert.equal(row.author_name, 'Updated Client');
+  assert.equal(row.author_initials, 'UC');
+  await db.exec(`insert into public.comments(id,project_id,parent_comment_id,user_id,workspace_role,text,author_name,author_initials)
+    values ('dddddddd-dddd-4ddd-8ddd-dddddddddddd','request-a','bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb','${A}','client','Reply to my own comment','Updated Client','UC')`);
+  row = await scalar(`select parent_comment_id,user_id,text from public.comments where id='dddddddd-dddd-4ddd-8ddd-dddddddddddd'`);
+  assert.equal(row.parent_comment_id, 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb');
+  assert.equal(row.user_id, A);
+  assert.equal(row.text, 'Reply to my own comment');
+  await db.exec(`reset role;
+    insert into public.favorites(user_id,item_type,item_id)
+    values ('${B}','project','request-a'),('${B}','project','portfolio-a');
+  `);
+  await asUser(B);
+  row = await scalar(`select project_id,favorite_count,comment_count
+    from public.get_public_request_card_metrics(array['request-a','portfolio-a'])
+    where project_id='request-a'`);
+  assert.equal(row.project_id, 'request-a');
+  assert.equal(Number(row.favorite_count), 1);
+  assert.equal(Number(row.comment_count), 2);
+  assert.equal((await scalar(`select count(*)::int n
+    from public.get_public_request_card_metrics(array['request-a','portfolio-a'])`)).n, 1);
+  await asUser(C);
+  await assert.rejects(db.query(`select * from public.get_public_request_card_metrics(array['request-a'])`));
   await asUser(C);
   await assert.rejects(db.query("select public.switch_account_workspace('dev',true)"));
   await asUser('');
@@ -113,8 +175,8 @@ const C = '33333333-3333-4333-8333-333333333333';
       ('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb','${B}',repeat('a',22),repeat('b',16),1),
       ('dddddddd-dddd-4ddd-8ddd-dddddddddddd','${B}',repeat('a',22),repeat('b',16),1);
   `);
-  assert.equal((await scalar(`select count(*)::int n from public.notifications where recipient_id='${A}' and recipient_role='client'`)).n,1);
-  assert.equal((await scalar(`select count(*)::int n from public.notifications where recipient_id='${A}' and recipient_role='dev'`)).n,1);
+  assert.equal((await scalar(`select count(*)::int n from public.notifications where recipient_id='${A}' and recipient_role='client'`)).n,2);
+  assert.equal((await scalar(`select count(*)::int n from public.notifications where recipient_id='${A}' and recipient_role='dev'`)).n,2);
   await asUser(B);
   assert.equal((await scalar(`select count(*)::int n from public.favorites where user_id='${A}'`)).n,0);
   await asUser(C);
@@ -128,6 +190,6 @@ const C = '33333333-3333-4333-8333-333333333333';
   await assert.rejects(db.query("select public.sync_chat_activity('client','bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',now())"));
   await asUser(C);
   await assert.rejects(db.query("select public.sync_chat_activity('client','bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',now())"));
-  console.log('PASS: legacy history retained, shared identity, isolated workspace profiles/favorites/notifications/preferences, role-aware conversations, RLS and existing project features');
+  console.log('PASS: full schema, legacy history retained, shared identity, workspace profile isolation, dual-role projects/directory/metrics/reviews, role-aware chat/presence, favorites/notifications/read preferences, RLS and comment features');
   await db.close();
 })().catch(error => { console.error(error.message); process.exitCode = 1; });

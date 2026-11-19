@@ -23,6 +23,7 @@ kbd{padding:2px 5px;border:1px solid var(--line);border-radius:5px;background:#f
 .icon-button{width:38px;height:38px;position:relative;display:grid;place-items:center;border:1px solid var(--line);border-radius:50%;background:#fff;cursor:pointer}
 .icon-button svg{width:17px;height:17px}
 .notification-button i{position:absolute;top:7px;right:8px;width:6px;height:6px;border-radius:50%;background:#ef4444}
+.notification-button i[hidden]{display:none!important}
 .user-menu{width:170px;flex:0 0 170px;display:flex;align-items:center;gap:8px}
 .user-avatar,.comment-avatar{width:32px;height:32px;flex:0 0 32px;aspect-ratio:1;border-radius:50%;display:grid;place-items:center;background:#e9e9eb;font-size:11px;font-weight:800}
 .user-avatar{position:relative;overflow:hidden}
@@ -52,6 +53,7 @@ kbd{padding:2px 5px;border:1px solid var(--line);border-radius:5px;background:#f
 .nav-item.active{font-weight:700}
 .nav-count{min-width:17px;height:17px;margin-left:auto;display:grid;place-items:center;border-radius:99px;background:#fce4ec;color:#c2185b;font-size:10px;font-weight:700}
 .nav-count-message,.nav-count-favorites,.nav-count-notifications{background:#fce4ec;color:#c2185b}
+nav a[href^="devmatch-favorites.html"] .favorites-count-badge{display:none!important}
 .sidebar nav a[href^="devmatch-chat.html"] .nav-count:not(.nav-count-message),.sidebar nav a[href^="devmatch-chat.html"] .client-nav-count:not(.nav-count-message){display:none!important}
 .nav-count[hidden],.client-nav-count[hidden],.client-notification-count[hidden]{display:none}
 .account-label{margin-top:22px}
@@ -181,6 +183,10 @@ kbd{padding:2px 5px;border:1px solid var(--line);border-radius:5px;background:#f
 .comment-avatar{width:29px;height:29px;background:#e9e9eb;font-size:9px}
 .comment-avatar.purple{background:#ece9fb;color:#5f56a0}
 .comment-avatar.peach{background:#f9e9e1;color:#a26144}
+.comment-profile-avatar-link{display:inline-flex;color:inherit;text-decoration:none}
+.comment-profile-avatar-link:focus-visible{outline:2px solid #171719;outline-offset:3px;border-radius:50%}
+.comment-profile-name-link{color:inherit;text-decoration:none}
+.comment-profile-name-link:hover{text-decoration:underline;text-underline-offset:2px}
 .comment p{font-size:10px;line-height:1.5}
 .comment p b,.comment p strong{font-weight:700}
 .comment p strong{margin-left:3px}

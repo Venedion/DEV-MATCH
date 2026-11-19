@@ -52,6 +52,7 @@
 .subtle-label{color:var(--profile-muted);font-size:9px}
 .about-copy{color:#5d5f67;font-size:11px;line-height:1.75;white-space:pre-line}
 .role-info-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.role-info-grid+.empty-state{margin-top:14px}
 .role-info-item{min-width:0;padding:11px;border-radius:10px;background:#f7f7f8}
 .role-info-item small,.role-info-item strong{display:block}
 .role-info-item small{margin-bottom:6px;color:var(--profile-muted);font-size:9px}

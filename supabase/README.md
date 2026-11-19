@@ -81,12 +81,44 @@ and open requests and only exposes comments for those public projects (plus a
 user's own existing comments). Conversation uniqueness is per participant pair
 and project, so the same users can have separate threads for separate projects.
 
-Apply `migrations/202611170001_project_comment_replies.sql` after the project
-comments and notification migrations. It adds threaded replies for project
-comments, lets request owners read comments on their own requests and reply
-even when a request is no longer public, and notifies the original commenter.
-Reply notifications are included in the developer notification feed and
-dashboard activity.
+The hosted DEV-MATCH project already received the November 17 metrics, replies,
+reviews, and workspace changes in the combined migration
+`account_workspaces_and_latest_features` (`20261117170424`). The separate
+migration files below describe those changes for fresh/local databases; do not
+apply them again to the hosted project. The hosted project also contains older
+bundled migration versions; fetch their SQL into `supabase/migrations` with
+`supabase migration fetch --remote` before pushing from a checkout that does not
+contain them. Reconcile individual local migrations as applied only after
+verifying their changes are present; do not mark hosted bundles as reverted.
+The read-receipt and presence migrations are ordered before the latest hosted
+bundle, so include earlier pending versions when applying them with
+`supabase db push --remote --include-all`.
+
+For a fresh/local database, apply
+`migrations/202611170003_project_comment_replies.sql` after the project comments
+and notification migrations. It adds threaded replies for project comments,
+lets request owners read comments on their own requests and reply even when a
+request is no longer public, and notifies the original commenter. Reply
+notifications are included in the developer notification feed and dashboard
+activity.
+
+Apply `migrations/202611190001_sync_project_comment_display_names.sql` after
+the project comment migrations. It updates existing comment author names to
+each account's primary profile display name and keeps them synchronized when
+that display name changes. Workspace-specific display names do not affect
+comment authors.
+
+Apply `migrations/202611190002_public_developer_work_terms.sql` after
+`migrations/20261117164331_account_workspaces.sql` to include account-owned
+`contractTypes` in the authenticated developer directory projection. It
+retains the existing public field allowlist and does not expose private payout
+or tax data.
+
+Apply `migrations/202611190003_public_request_card_metrics.sql` after the
+favorites, project-comments, and account-workspaces migrations. It exposes only
+aggregated favorite and comment counts for open requests to authenticated
+developer workspaces; it does not return view counts or individual favorite
+records.
 
 After applying the profile/directory migration in the Supabase SQL Editor (or
 through the project's migration workflow), verify that authenticated users can
@@ -201,6 +233,23 @@ Apply `migrations/202611180001_realtime_notifications.sql` after
 `202611120006_live_data_metrics_notifications_storage.sql` to add the
 notification table to Supabase Realtime. This allows the app's notification
 badge to update while a user is on another page.
+
+Apply `migrations/202611180002_chat_message_read_receipts.sql` after
+`migrations/202611180001_realtime_notifications.sql` (the encrypted chat
+migration must already be applied), then deploy the updated `chat-api` Edge
+Function and frontend. Opening a conversation marks incoming messages as read;
+the sender sees “Read” beside the sent message and receives updates in real time.
+
+Apply `migrations/202611180003_chat_global_presence.sql` after the encrypted
+chat migration and deploy the updated frontend to enable chat contact presence
+across the site. If also applying read receipts, apply
+`migrations/202611180002_chat_message_read_receipts.sql` first. A verified
+user's active Realtime connection publishes only that user's ID while they use
+any page; other users can read that status only when they share a conversation.
+A stored login session by itself does not count as online, and the status clears
+when all of the user's tabs/devices disconnect. No Edge Function deployment or
+new secret is required for presence. All participants need the updated frontend
+for the indicator to work.
 
 The migration and frontend changes are local until the migration is applied
 and the updated `chat-api` is deployed to the hosted project. Apply database

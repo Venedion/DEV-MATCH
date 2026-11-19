@@ -153,14 +153,15 @@
       clientsGrid.innerHTML = clients.map(client => {
         const isFav = favoriteIds.includes(client.id);
         const reqText = client.openRequestsCount === 1 ? '1 open request' : `${client.openRequestsCount} open requests`;
+        const clientProfileUrl = `devmatch-client-profile.html?client=${encodeURIComponent(client.id)}&from=find-clients`;
 
         return `
           <article class="client-card" data-client-id="${escapeHtml(client.id)}">
             <div class="client-card-top">
               <div class="client-profile-group">
-                <div class="client-avatar-badge">${escapeHtml(client.initials)}</div>
+                <a class="client-avatar-badge" href="${clientProfileUrl}" aria-label="View ${escapeHtml(client.name)} profile">${escapeHtml(client.initials)}</a>
                 <div class="client-name-business">
-                  <h2 class="client-name-title"><a href="devmatch-client-profile.html?client=${encodeURIComponent(client.id)}" aria-label="View ${escapeHtml(client.name)} profile">${escapeHtml(client.name)}</a></h2>
+                  <h2 class="client-name-title"><a href="${clientProfileUrl}" aria-label="View ${escapeHtml(client.name)} profile">${escapeHtml(client.name)}</a></h2>
                   <p class="client-business-tag">${escapeHtml(client.business)}</p>
                 </div>
               </div>

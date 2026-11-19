@@ -1,6 +1,6 @@
 const {test}=require('node:test');const assert=require('node:assert/strict');const fs=require('node:fs');const vm=require('node:vm');const path=require('node:path');
 const source=fs.readFileSync(path.join(__dirname,'../assets/js/backend.js'),'utf8');
-async function setup({verified=true,page='devmatch-settings.html',role='dev',userRole='dev',changeAccount=false,legacySensitiveCache=false,commentResults=[],notifications=[],favorites=[],notificationReadIds=[],metrics=[],metricsError=null,rpcResponses={},projectEngagement=null,workspaceRole=null,workspaces=[]}={}){
+async function setup({verified=true,page='devmatch-settings.html',role='dev',userRole='dev',changeAccount=false,legacySensitiveCache=false,commentResults=[],directoryPeople=[],notifications=[],favorites=[],notificationReadIds=[],metrics=[],metricsError=null,rpcResponses={},projectEngagement=null,workspaceRole=null,workspaces=[]}={}){
   let gets=0;const redirects=[],updates=[],passwords=[],rpcCalls=[],tableCalls=[];
   const user={id:'fixture',email:'owner@example.invalid',email_confirmed_at:verified?'2026-11-08':null};
   const row={id:user.id,account_role:userRole,account_verified:false,onboarding_complete:true,profile_data:{displayName:'Owner'},display_name:'Owner',username:'owner',phone:'+6281234567890'};
@@ -21,18 +21,28 @@ async function setup({verified=true,page='devmatch-settings.html',role='dev',use
   function dataQuery(data,table){
     const filters=[];const call={table,filters};tableCalls.push(call);
     const rows=()=>data.filter(row=>filters.every(([key,value])=>!Object.hasOwn(row,key)||row[key]===value));
-    const result={select:()=>result,eq:(key,value)=>{filters.push([key,value]);return result;},order:()=>result,
+    const result={select:()=>result,eq:(key,value)=>{filters.push([key,value]);return result;},in:()=>result,order:()=>result,
       delete:()=>{call.deleted=true;return result;},upsert:(payload,options)=>{call.payload=payload;call.options=options;return result;},
       maybeSingle:async()=>({data:rows()[0]||null,error:null}),then:(resolve,reject)=>Promise.resolve({data:rows(),error:null}).then(resolve,reject)};return result;
   }
-  const tableData={notifications,favorites,notification_reads:notificationReadIds.map(notification_id=>({notification_id})),project_engagements:projectEngagement?[projectEngagement]:[]};
+  const tableData={directory_people:directoryPeople,notifications,favorites,notification_reads:notificationReadIds.map(notification_id=>({notification_id})),project_engagements:projectEngagement?[projectEngagement]:[]};
+  let authChangeHandler;let removedPresenceChannels=0;const presenceChannels=[],presenceTracks=[];
   const auth={getUser:async()=>({data:{user:changeAccount&&++gets>1?{...user,id:'other'}:user},error:null}),
+    getSession:async()=>({data:{session:{user,access_token:'fixture-token'}},error:null}),
+    onAuthStateChange:callback=>{authChangeHandler=callback;return {data:{subscription:{unsubscribe(){}}}};},
     signInWithPassword:async args=>args.password==='Current!Password1'?{data:{user},error:null}:{data:{user:null},error:Object.assign(new Error('Wrong password'),{code:'invalid_credentials'})},
     updateUser:async args=>{passwords.push(args);return {data:{user},error:null};}};
-  const context={URLSearchParams,window:{supabase:{createClient:()=>({auth,from:table=>table==='account_workspaces'?workspaceQuery():table==='profiles'?query:table==='comments'?commentsQuery:dataQuery(tableData[table]||[],table),rpc:async(name,args)=>{rpcCalls.push({name,args});return Object.hasOwn(rpcResponses,name)?rpcResponses[name]:{data:metrics,error:metricsError};}})}},location:{pathname:'/'+page,search:'?role='+role,hash:'',replace:url=>redirects.push(url),assign:url=>redirects.push(url),reload:()=>redirects.push('reload')},
+  const client={auth,from:table=>table==='account_workspaces'?workspaceQuery():table==='profiles'?query:table==='comments'?commentsQuery:dataQuery(tableData[table]||[],table),
+    rpc:async(name,args)=>{rpcCalls.push({name,args});return Object.hasOwn(rpcResponses,name)?rpcResponses[name]:{data:metrics,error:metricsError};},
+    realtime:{setAuth:async()=>{}},
+    channel:(topic,options)=>{const channel={topic,options,subscribe:callback=>{callback('SUBSCRIBED');return channel;},track:async state=>{presenceTracks.push(state);return 'ok';}};presenceChannels.push(channel);return channel;},
+    removeChannel:async()=>{removedPresenceChannels+=1;return 'ok';}};
+  const context={URLSearchParams,window:{supabase:{createClient:()=>client},addEventListener(){}},location:{pathname:'/'+page,search:'?role='+role,hash:'',replace:url=>redirects.push(url),assign:url=>redirects.push(url),reload:()=>redirects.push('reload')},
     localStorage:storage,sessionStorage:{getItem:key=>sessionValues[key]??null,removeItem:key=>delete sessionValues[key],setItem:(key,value)=>sessionValues[key]=value},document:{createElement:()=>({}),head:{append(){}},getElementById:()=>({remove(){}}),addEventListener(){}},fetch:async()=>({ok:true,json:async()=>({})})};
   vm.runInNewContext(source,context);const backend=context.window.devMatchBackend;await backend.ready;
-  return {backend,redirects,updates,passwords,rpcCalls,tableCalls,values,sessionValues,row,user,commentSelects};
+  await new Promise(resolve=>setImmediate(resolve));
+  return {backend,redirects,updates,passwords,rpcCalls,tableCalls,values,sessionValues,row,user,commentSelects,
+    authChangeHandler,removedPresenceChannels:()=>removedPresenceChannels,presenceChannels,presenceTracks};
 }
 test('Unconfirmed email accounts are routed to email verification',async()=>{
   const {redirects}=await setup({verified:false});assert.deepEqual(redirects,['devmatch-verify-email.html']);
@@ -43,6 +53,20 @@ test('Recovery page remains accessible before email verification',async()=>{
 test('Confirmed email can use settings while the contact phone remains unverified',async()=>{
   const {redirects,backend}=await setup();assert.equal((await backend.ready).id,'fixture');assert.deepEqual(redirects,[]);
 });
+test('A verified user publishes private presence on any authenticated page',async()=>{
+  const {presenceChannels,presenceTracks}=await setup({page:'devmatch-find-projects.html'});
+  assert.equal(presenceChannels.length,1);
+  assert.equal(presenceChannels[0].topic,'devmatch-user-presence:fixture');
+  assert.equal(presenceChannels[0].options.config.private,true);
+  assert.equal(presenceTracks.length,1);
+  assert.equal(presenceTracks[0].userId,'fixture');
+});
+test('Signing out removes the active presence channel',async()=>{
+  const {authChangeHandler,removedPresenceChannels}=await setup();
+  authChangeHandler('SIGNED_OUT',null);
+  await new Promise(resolve=>setImmediate(resolve));
+  assert.equal(removedPresenceChannels(),1);
+});
 test('Settings role follows the authenticated account',async()=>{
   const {redirects}=await setup({role:'client'});assert.deepEqual(redirects,['devmatch-settings.html?role=dev']);
 });
@@ -50,6 +74,17 @@ test('A developer account cannot open client-only notifications',async()=>{
   const {backend,redirects}=await setup({page:'devmatch-notifications.html',userRole:'dev'});
   assert.equal(await backend.ready,null);
   assert.deepEqual(redirects,['devmatch-dashboard.html']);
+});
+test('Comment profile links resolve an author role from their matching directory profile',async()=>{
+  const {backend}=await setup({directoryPeople:[
+    {id:'fixture',display_name:'Owner',account_role:'dev'},
+    {id:'fixture',display_name:'Client workspace',account_role:'client'}
+  ]});
+  const roles=await backend.loadCommentAuthorRoles([{userId:'fixture',name:'Client workspace'}]);
+  assert.equal(roles.get('fixture'),'client');
+  assert.equal(backend.publicProfileUrl('user id','dev'),'devmatch-developer-profile.html?developer=user%20id');
+  assert.equal(backend.publicProfileUrl('user id','client'),'devmatch-client-profile.html?client=user%20id');
+  assert.equal(backend.publicProfileUrl('user id','unknown'),null);
 });
 test('A client account cannot open the developer dashboard',async()=>{
   const {backend,redirects}=await setup({page:'devmatch-dashboard.html',userRole:'client'});

@@ -40,6 +40,8 @@
 .project-table th:last-child{min-width:116px}
 .project-table td{height:74px;padding:9px 13px;border-bottom:1px solid #eceef2;color:#303544;font-size:14px;white-space:nowrap}
 .project-table tr:last-child td{border-bottom:0}
+.project-table tbody tr{cursor:pointer}
+.project-table tbody tr:hover{background:#fafbfc}
 .project-cell{display:flex;align-items:center;gap:13px;min-width:0}
 .project-thumb{width:72px;height:50px;position:relative;display:block;flex:none;overflow:hidden;border:1px solid #e7e9ef;border-radius:8px;background:#f5e9d9}
 .project-thumb>img{width:100%;height:100%;object-fit:cover}
@@ -78,6 +80,9 @@
 .project-thumb.art-store .mock-block{background:#edb7ca}
 .project-thumb.art-store:after{border-color:#ca718f;background:#f4d7e1}
 .project-title{max-width:360px;overflow:hidden;color:#252a38;font-size:15px;font-weight:700;text-overflow:ellipsis}
+.project-preview-trigger{max-width:100%;padding:0;border:0;background:none;color:inherit;font:inherit;text-align:left;text-overflow:ellipsis;white-space:nowrap;cursor:pointer}
+.project-preview-trigger:hover{text-decoration:underline}
+.project-preview-trigger:focus-visible{border-radius:3px;outline:2px solid #6d63e8;outline-offset:3px}
 .project-subtitle{margin-top:5px;overflow:hidden;color:#777d8c;font-size:12px;text-overflow:ellipsis}
 .price-type{display:block;margin-bottom:5px;color:#858a98;font-size:11px;font-weight:600;text-transform:uppercase}
 .price-value{color:#252a38;font-size:14px;font-weight:700}

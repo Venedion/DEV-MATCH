@@ -256,6 +256,10 @@ body.chat-body {
   background: var(--green);
 }
 
+.chat-online-dot.online {
+  background: var(--green);
+}
+
 .chat-online-dot.offline {
   background: #a1a1aa;
 }
@@ -794,6 +798,33 @@ body.chat-body {
   display: flex;
   flex-direction: column;
   gap: 4px;
+}
+
+.chat-msg-body-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  max-width: 100%;
+}
+
+.chat-msg-row.sent .chat-msg-body-row {
+  justify-content: flex-end;
+}
+
+.chat-msg-body {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.chat-msg-read-receipt {
+  flex: none;
+  padding-bottom: 3px;
+  color: #777b86;
+  font-size: 12px;
+  line-height: 1;
+  white-space: nowrap;
 }
 
 .chat-msg-row.sent .chat-msg-content {

@@ -596,7 +596,7 @@
       return;
     }
     let query = client.from('comments')
-      .select('id,project_id,text,author_name,created_at')
+      .select('id,project_id,user_id,text,author_name,created_at')
       .in('project_id', projects.map(project => project.id));
     query = filterByRange(query, range);
     const { data, error } = await query
@@ -609,6 +609,15 @@
       return;
     }
     const titles = new Map(projects.map(project => [project.id, project.title || 'Project']));
+    let commenterRoles=new Map();
+    try {
+      commenterRoles=await backend.loadCommentAuthorRoles(data.map(comment=>({
+        userId:comment.user_id,
+        name:comment.author_name
+      })));
+    } catch (profileError) {
+      console.error('Unable to load dashboard commenter profiles from Supabase.', profileError);
+    }
     commentsList.replaceChildren();
     data.forEach(comment => {
       const item = document.createElement('article');
@@ -616,18 +625,33 @@
       const avatar = document.createElement('span');
       avatar.className = 'comment-avatar';
       avatar.textContent = initials(comment.author_name);
+      const profileUrl=backend.publicProfileUrl(comment.user_id,commenterRoles.get(comment.user_id));
+      const avatarLink=profileUrl?document.createElement('a'):avatar;
+      if(profileUrl){
+        avatarLink.className='comment-profile-avatar-link';
+        avatarLink.href=profileUrl;
+        avatarLink.setAttribute('aria-label',`View ${comment.author_name||'member'} profile`);
+        avatarLink.append(avatar);
+      }
       const copy = document.createElement('p');
       const name = document.createElement('b');
       name.textContent = comment.author_name || 'A member';
+      const nameLink=profileUrl?document.createElement('a'):name;
+      if(profileUrl){
+        nameLink.className='comment-profile-name-link';
+        nameLink.href=profileUrl;
+        nameLink.setAttribute('aria-label',`View ${comment.author_name||'member'} profile`);
+        nameLink.append(name);
+      }
       const projectTitle = document.createElement('strong');
       projectTitle.textContent = titles.get(comment.project_id) || 'Project';
       const body = document.createElement('span');
       body.textContent = comment.text || '';
-      copy.append(name, document.createTextNode(' on '), projectTitle, body);
+      copy.append(nameLink, document.createTextNode(' on '), projectTitle, body);
       const time = document.createElement('time');
       time.dateTime = comment.created_at;
       time.textContent = timeAgo(comment.created_at);
-      item.append(avatar, copy, time);
+      item.append(avatarLink, copy, time);
       commentsList.append(item);
     });
   }

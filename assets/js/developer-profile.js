@@ -15,7 +15,7 @@
     'Game Dev':{description:'Unity, Roblox...',icon:'<path d="m7 7 10 0a4 4 0 0 1 3.8 5.2l-1.2 4a2 2 0 0 1-3.3.9L14 15H10l-2.3 2.1a2 2 0 0 1-3.3-.9l-1.2-4A4 4 0 0 1 7 7z"/><path d="M7 10v4m-2-2h4m7-1h.01M17 13h.01"/>'},
     Other:{description:'Custom specialization',icon:'<path d="M12 5v14m-7-7h14"/>'}
   };
-  let projects=[],favoriteDeveloper=false,accountRole=null,publicProfileProjects=null;
+  let projects=[],favoriteDeveloper=false,accountRole=null,publicProfileProjects=null,commenterRoles=new Map();
   let activeFilter='All',activeQuery='';
   const filters=['All','Website','Web App','Android / iOS','Desktop App'];
   const filtersRoot=document.getElementById('portfolioFilters');
@@ -33,6 +33,10 @@
     return {...data,id:row.id,title:String(row.title||data.title||''),type:String(row.project_type||data.projectType||data.type||''),
       category:String(row.category||data.category||''),description:String(data.description||data.overview||''),
       price:String(row.price||data.price||''),views:'—',favorites:'—',created:row.created_at||row.updated_at};
+  }
+  function normalizeList(value){
+    const items=Array.isArray(value)?value:typeof value==='string'?value.split(/[,;\n]/):[];
+    return items.map(item=>String(item).trim()).filter(Boolean);
   }
   function renderFavoriteButton(){
     const button=document.getElementById('favoriteDeveloper');
@@ -54,7 +58,19 @@
     empty.hidden=filtered.length>0;
   }
   function renderComments(comments){
-    commentsPanel.innerHTML=comments.length?comments.map(comment=>`<article class="review-item"><span class="review-avatar">${escapeHtml(comment.initials||'CL')}</span><div class="review-copy"><h3>${escapeHtml(comment.name||'DEV-MATCH member')}</h3><small>on ${escapeHtml(comment.project)}</small><p>${escapeHtml(comment.text)}</p></div></article>`).join(''):'<p class="empty-state">No comments yet.</p>';
+    commentsPanel.innerHTML=comments.length?comments.map(comment=>{
+      const name=comment.name||'DEV-MATCH member';
+      const profileUrl=window.devMatchBackend.publicProfileUrl(comment.userId,commenterRoles.get(comment.userId));
+      const avatar=`<span class="review-avatar">${escapeHtml(comment.initials||'CL')}</span>`;
+      const author=escapeHtml(name);
+      const linkedAvatar=profileUrl?`<a class="comment-profile-avatar-link" href="${escapeHtml(profileUrl)}" aria-label="View ${escapeHtml(name)} profile">${avatar}</a>`:avatar;
+      const linkedAuthor=profileUrl?`<a class="comment-profile-name-link" href="${escapeHtml(profileUrl)}">${author}</a>`:author;
+      return `<article class="review-item">${linkedAvatar}<div class="review-copy"><h3>${linkedAuthor}</h3><small>on ${escapeHtml(comment.project)}</small><p>${escapeHtml(comment.text)}</p></div></article>`;
+    }).join(''):'<p class="empty-state">No comments yet.</p>';
+  }
+  async function loadCommenterRoles(comments){
+    try{commenterRoles=await window.devMatchBackend.loadCommentAuthorRoles(comments);}
+    catch(error){console.error('Unable to load public commenter profiles from Supabase.',error);commenterRoles=new Map();}
   }
   function renderProfileReviews(reviews,loadFailed=false){
     if(loadFailed){
@@ -147,7 +163,9 @@
     const selectedSpecialties=specialtyValues.map(value=>String(value).trim()).filter(Boolean);
     const customSpecialty=typeof profile.specialtyOther==='string'?profile.specialtyOther.trim():'';
     if(customSpecialty&&!selectedSpecialties.some(value=>value.toLowerCase()==='other'))selectedSpecialties.push('Other');
-    const specialties=[...new Set(selectedSpecialties.map(value=>value.toLowerCase()==='other'&&customSpecialty?customSpecialty:value))];
+    const specialties=window.devMatchProfileSpecialties
+      ?window.devMatchProfileSpecialties.normalize(profile)
+      :[...new Set(selectedSpecialties.map(value=>value.toLowerCase()==='other'&&customSpecialty?customSpecialty:value))];
     const skills=Array.isArray(profile.skills)?profile.skills.map(String):[];
     document.title=`${name} — DEV-MATCH`;
     document.getElementById('breadcrumbName').textContent=name;
@@ -155,13 +173,22 @@
     document.getElementById('developerInitials').textContent=initials(name);
     document.getElementById('developerHandle').textContent=person.username?`@${String(person.username).replace(/^@/,'')}`:'';
     document.getElementById('developerLocation').textContent=location;
-    document.getElementById('developerRole').textContent=specialties.join(' & ')||'Developer';
+    document.getElementById('developerRole').textContent=specialties.join(', ')||'Developer';
     document.querySelector('.availability-badge span').textContent=String(profile.availability||'Availability not provided');
     document.getElementById('developerJoined').textContent='';
     document.getElementById('developerAbout').textContent=String(profile.bio||'No biography provided.');
     document.getElementById('developerAboutCard').textContent=String(profile.bio||'No biography provided.');
     document.getElementById('developerExperience').textContent='Not provided';
     document.getElementById('developerLocationCard').textContent=location;
+    document.getElementById('developerHourlyRate').textContent=profile.hourlyRate?`${String(profile.hourlyRate).trim()} / hour`:'Not provided';
+    document.getElementById('developerMinimumProject').textContent=String(profile.minProjectPrice||'Not provided');
+    const workTerms=normalizeList(profile.contractTypes);
+    const workTermsRoot=document.getElementById('developerWorkTerms');
+    workTermsRoot.classList.toggle('empty-state',workTerms.length===0);
+    workTermsRoot.classList.toggle('contract-list',workTerms.length>0);
+    workTermsRoot.innerHTML=workTerms.length
+      ?workTerms.map(term=>`<span>${escapeHtml(term)}</span>`).join('')
+      :'No work terms added yet.';
     document.getElementById('statProjects').textContent=String(projects.length);
     document.getElementById('statProjectFavorites').textContent='—';
     document.getElementById('statViews').textContent='—';
@@ -176,12 +203,10 @@
     document.getElementById('portfolioCount').textContent=String(projects.length);
     document.getElementById('contactDeveloper').href=user&&accountRole==='client'?`devmatch-chat.html?contact=${encodeURIComponent(person.id)}&role=client`:'devmatch-auth.html?mode=login';
     document.getElementById('sidebarContactDeveloper').href=document.getElementById('contactDeveloper').href;
-    document.getElementById('developerSpecialties').innerHTML=selectedSpecialties.length?selectedSpecialties.map(value=>{
-      if(value.toLowerCase()==='other'){
-        return `<div class="profile-specialty-card"><svg viewBox="0 0 24 24" aria-hidden="true">${specialtyDetails.Other.icon}</svg><b>Other</b><small>${escapeHtml(customSpecialty)}</small></div>`;
-      }
-      const details=specialtyDetails[value]||Object.entries(specialtyDetails)
-        .find(([name])=>name.toLowerCase()===value.toLowerCase())?.[1]||specialtyDetails.Other;
+    document.getElementById('developerSpecialties').innerHTML=specialties.length?specialties.map(value=>{
+      const details=window.devMatchProfileSpecialties
+        ?window.devMatchProfileSpecialties.getDetails(value)
+        :specialtyDetails[value]||Object.entries(specialtyDetails).find(([name])=>name.toLowerCase()===value.toLowerCase())?.[1]||specialtyDetails.Other;
       return `<div class="profile-specialty-card"><svg viewBox="0 0 24 24" aria-hidden="true">${details.icon}</svg><b>${escapeHtml(value)}</b><small>${escapeHtml(details.description)}</small></div>`;
     }).join(''):'<span>No specialization added yet.</span>';
     document.getElementById('developerSkills').innerHTML=skills.length?skills.map(value=>`<span>${escapeHtml(value)}</span>`).join(''):'<span>No skills added yet.</span>';
@@ -214,7 +239,9 @@
         commentsPanel.innerHTML='<p class="empty-state">Loading comments…</p>';
         try{
           const groups=await Promise.all(projects.map(async item=>(await window.devMatchBackend.loadProjectComments(item.id)).comments.map(comment=>({...comment,project:item.title}))));
-          renderComments(groups.flat());
+          const comments=groups.flat();
+          await loadCommenterRoles(comments);
+          renderComments(comments);
         }catch(error){console.error('Unable to load public portfolio comments from Supabase.',error);commentsPanel.textContent='Comments could not be loaded. Check your connection and try again.';}
       }
     });

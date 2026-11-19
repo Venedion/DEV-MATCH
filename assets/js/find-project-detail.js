@@ -12,13 +12,53 @@
     const date=new Date(value);
     return Number.isNaN(date.getTime())?'':new Intl.DateTimeFormat(undefined,{dateStyle:'medium',timeStyle:'short'}).format(date);
   }
-  let project=null,comments=[],favorites=[],viewRecordFailed=false;
+  let project=null,comments=[],favorites=[],viewRecordFailed=false,commenterRoles=new Map();
+  let currentUserId=null,repliesSupported=true,replyTo=null;
+  async function loadCommenterRoles(){
+    try{commenterRoles=await window.devMatchBackend.loadCommentAuthorRoles(comments);}
+    catch(error){console.error('Unable to load project commenter profiles from Supabase.',error);commenterRoles=new Map();}
+  }
+  function profileAnchor(comment,content,className){
+    const profileUrl=window.devMatchBackend.publicProfileUrl(comment.userId,commenterRoles.get(comment.userId));
+    if(!profileUrl)return content;
+    const name=comment.name||'DEV-MATCH member';
+    return `<a class="${className}" href="${escapeHtml(profileUrl)}" aria-label="View ${escapeHtml(name)} profile">${content}</a>`;
+  }
   function renderComments(){
     const ordered=document.getElementById('commentSort').value==='newest'?[...comments].reverse():comments;
     document.getElementById('commentsCount').textContent=String(comments.length);
     document.getElementById('requestCommentCount').textContent=`▢ ${comments.length} comments`;
     document.getElementById('commentsEmpty').hidden=comments.length>0;
-    document.getElementById('requestComments').innerHTML=ordered.map(comment=>`<article class="find-comment"><span class="find-detail-avatar">${escapeHtml(comment.initials||'CL')}</span><div><strong>${escapeHtml(comment.name||'DEV-MATCH member')}</strong><time datetime="${escapeHtml(comment.time||'')}">${escapeHtml(formatCommentTime(comment.time))}</time><p>${escapeHtml(comment.text||'')}</p></div></article>`).join('');
+    const commentIds=new Set(ordered.map(comment=>comment.id));
+    const repliesByParent=new Map();
+    ordered.forEach(comment=>{
+      if(!comment.parentCommentId||!commentIds.has(comment.parentCommentId))return;
+      if(!repliesByParent.has(comment.parentCommentId))repliesByParent.set(comment.parentCommentId,[]);
+      repliesByParent.get(comment.parentCommentId).push(comment);
+    });
+    const renderComment=comment=>{
+      const name=escapeHtml(comment.name||'DEV-MATCH member');
+      const avatar=profileAnchor(comment,`<span class="find-detail-avatar">${escapeHtml(comment.initials||'CL')}</span>`,'comment-profile-avatar-link');
+      const author=profileAnchor(comment,name,'comment-profile-name-link');
+      const replyButton=currentUserId&&repliesSupported
+        ?`<button class="find-comment-reply" type="button" data-comment-reply="${escapeHtml(comment.id)}">Reply</button>`
+        :'';
+      const replyBadge=comment.parentCommentId?'<small class="find-comment-reply-badge">Reply</small>':'';
+      const replies=repliesByParent.get(comment.id)||[];
+      return `<article class="find-comment"><div>${avatar}</div><div class="find-comment-body"><strong>${author} ${replyBadge}</strong><time datetime="${escapeHtml(comment.time||'')}">${escapeHtml(formatCommentTime(comment.time))}</time><p>${escapeHtml(comment.text||'')}</p>${replyButton}</div></article>${replies.length?`<div class="find-comment-replies">${replies.map(renderComment).join('')}</div>`:''}`;
+    };
+    document.getElementById('requestComments').innerHTML=ordered
+      .filter(comment=>!comment.parentCommentId||!commentIds.has(comment.parentCommentId))
+      .map(renderComment).join('');
+  }
+  function clearReplyTarget(){
+    replyTo=null;
+    document.getElementById('findReplyContext').hidden=true;
+    document.getElementById('findReplyTarget').textContent='';
+    const input=document.getElementById('commentInput');
+    input.placeholder='Ask the client a question about this project...';
+    input.setAttribute('aria-label','Your comment');
+    document.querySelector('#commentForm button[type="submit"]').textContent='Post comment';
   }
   function renderSimilarRequests(rows){
     document.getElementById('similarRequests').innerHTML=rows.filter(row=>row.id!==project.id).slice(0,3).map(row=>`<a class="find-similar-request" href="devmatch-find-project-detail.html?request=${encodeURIComponent(row.id)}"><strong>${escapeHtml(row.title)}</strong><small>${escapeHtml(row.price||'Budget not specified')}</small></a>`).join('');
@@ -31,6 +71,9 @@
       .eq('id',projectId).eq('project_kind','request').eq('status','open').maybeSingle();
     if(error)throw error;
     if(!row){status.hidden=true;notFound.hidden=false;return;}
+    const {count:clientRequestCount,error:clientRequestCountError}=await window.devMatchBackend.client.from('projects')
+      .select('id',{count:'exact',head:true}).eq('owner_id',row.owner_id).eq('project_kind','request').eq('status','open');
+    if(clientRequestCountError)throw clientRequestCountError;
     const data=row.data&&typeof row.data==='object'?row.data:{};
     project={...data,id:row.id,title:row.title,type:row.project_type,category:row.category,
       budgetLabel:row.price||data.budgetLabel||data.budget||'Budget not specified',
@@ -39,6 +82,7 @@
       popularity:0,ownerId:row.owner_id,createdAt:row.created_at||row.updated_at};
     let clientName='DEV-MATCH member',profileLocation='Location not provided',accountRole=null;
     const user=await window.devMatchBackend.ready;
+    currentUserId=user?.id||null;
     if(user){
       try{await window.devMatchBackend.recordProjectView(project.id);}
       catch(error){console.error('Unable to record the project request view in Supabase.',error);viewRecordFailed=true;}
@@ -68,15 +112,20 @@
     document.getElementById('asideClientAvatar').textContent=project.initials;
     document.getElementById('requestClientName').textContent=clientName;
     document.getElementById('asideClientName').textContent=clientName;
+    const clientProfileUrl=`devmatch-client-profile.html?client=${encodeURIComponent(row.owner_id)}&from=find-projects`;
+    document.getElementById('requestClientAvatarLink').href=clientProfileUrl;
+    document.getElementById('requestClientAvatarLink').setAttribute('aria-label',`View ${clientName} profile`);
+    document.getElementById('requestClientNameLink').href=clientProfileUrl;
+    document.getElementById('asideClientAvatarLink').href=clientProfileUrl;
+    document.getElementById('asideClientAvatarLink').setAttribute('aria-label',`View ${clientName} profile`);
+    document.getElementById('asideClientNameLink').href=clientProfileUrl;
     document.getElementById('requestClientMeta').textContent=`${clientName} · ${project.location} · Posted ${date}`;
     document.getElementById('asideClientLocation').textContent=project.location;
-    document.getElementById('asideClientCategory').textContent=project.category;
+    document.getElementById('asideClientRequestCount').textContent=String(clientRequestCount??0);
     document.getElementById('requestTags').innerHTML=[project.category,project.type].filter(Boolean).map(value=>`<span>${escapeHtml(value)}</span>`).join('');
     document.getElementById('requestTitle').textContent=project.title;
     document.getElementById('requestDescription').textContent=project.description;
     document.getElementById('requestBudget').textContent=project.budgetLabel;
-    document.getElementById('requestPosted').textContent=date;
-    document.getElementById('requestLocation').textContent=project.location;
     document.getElementById('requestOverview').textContent=project.description;
     document.getElementById('requestFeatures').innerHTML=project.features.map(feature=>`<li>${escapeHtml(feature)}</li>`).join('');
     document.getElementById('requestStack').innerHTML=(Array.isArray(project.stack)?project.stack:String(project.stack).split(/\s+(?:and|,)\s+/)).filter(Boolean).map(value=>`<span>${escapeHtml(value)}</span>`).join('');
@@ -102,19 +151,48 @@
     if(similarError)throw similarError;
     renderSimilarRequests(similar||[]);
     let commentsFailed=false;
-    try{comments=(await window.devMatchBackend.loadProjectComments(project.id)).comments;}
+    try{
+      const result=await window.devMatchBackend.loadProjectComments(project.id);
+      comments=result.comments;
+      repliesSupported=result.repliesSupported;
+    }
     catch(error){console.error('Unable to load public project comments from Supabase.',error);status.textContent='Project details loaded, but comments could not be loaded.';commentsFailed=true;}
+    await loadCommenterRoles();
     renderComments();
     if(commentsFailed)status.textContent='Project details loaded, but comments could not be loaded.';
     else if(viewRecordFailed)status.textContent='Project details loaded, but the view could not be recorded.';
     status.hidden=!commentsFailed&&!viewRecordFailed;layout.hidden=false;
     document.getElementById('commentSort').addEventListener('change',renderComments);
+    document.getElementById('requestComments').addEventListener('click',event=>{
+      const button=event.target.closest('[data-comment-reply]');
+      if(!button||!currentUserId)return;
+      const parent=comments.find(comment=>comment.id===button.dataset.commentReply);
+      if(!parent)return;
+      replyTo=parent.id;
+      document.getElementById('findReplyTarget').textContent=parent.name||'member';
+      document.getElementById('findReplyContext').hidden=false;
+      const input=document.getElementById('commentInput');
+      input.placeholder=`Reply to ${parent.name||'member'}…`;
+      input.setAttribute('aria-label',`Reply to ${parent.name||'member'}`);
+      document.querySelector('#commentForm button[type="submit"]').textContent='Post reply';
+      input.focus();
+    });
+    document.getElementById('cancelFindReply').addEventListener('click',clearReplyTarget);
     document.getElementById('commentForm').addEventListener('submit',async event=>{
       event.preventDefault();const input=document.getElementById('commentInput');const text=input.value.trim();
-      if(!await window.devMatchBackend.ready){location.href='devmatch-auth.html?mode=login';return;}
+      const user=await window.devMatchBackend.ready;
+      if(!user){location.href='devmatch-auth.html?mode=login';return;}
       if(!text){input.setCustomValidity('Please enter a comment before posting.');input.reportValidity();return;}
       input.setCustomValidity('');
-      try{comments.push(await window.devMatchBackend.addProjectComment(project.id,text));input.value='';renderComments();}
+      try{
+        comments.push(await (replyTo
+          ?window.devMatchBackend.addProjectCommentReply(project.id,replyTo,text)
+          :window.devMatchBackend.addProjectComment(project.id,text)));
+        await loadCommenterRoles();
+        input.value='';
+        clearReplyTarget();
+        renderComments();
+      }
       catch(error){console.error('Unable to save the project request comment to Supabase.',error);window.alert('Unable to post your comment. Please log in and try again.');}
     });
     document.getElementById('commentInput').addEventListener('input',event=>event.target.setCustomValidity(''));

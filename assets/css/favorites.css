@@ -396,6 +396,20 @@
   box-shadow: 0 10px 24px rgba(0,0,0,0.06);
 }
 
+.fav-card-clickable {
+  cursor: pointer;
+}
+
+.fav-project-title-link {
+  color: inherit;
+  text-decoration: none;
+}
+
+.fav-project-title-link:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
 .fav-card-art {
   height: 160px;
   position: relative;
@@ -594,6 +608,31 @@
   font-size: 13px;
   font-weight: 800;
   color: var(--ink);
+}
+
+.fav-card-meta-developer {
+  align-items: flex-start;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.fav-card-meta-developer .fav-card-price {
+  font-size: 17px;
+  line-height: 1.35;
+}
+
+.fav-card-meta-developer .fav-dev-pill {
+  gap: 10px;
+}
+
+.fav-card-meta-developer .fav-dev-avatar {
+  width: 32px;
+  height: 32px;
+  font-size: 12px;
+}
+
+.fav-card-meta-developer .fav-dev-name {
+  font-size: 14px;
 }
 
 /* Card Actions Footer */

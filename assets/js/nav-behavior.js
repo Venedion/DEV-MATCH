@@ -494,7 +494,11 @@
     if (!backend) throw new Error('Supabase is unavailable.');
     const user = await backend.ready;
     const favorites = user ? await backend.loadFavorites() : [];
-    updateLinkBadge('nav a[href^="devmatch-favorites.html"]', 'favorites', favorites.length);
+    const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+    const validFavoriteCount = favorites.filter(item =>
+      typeof item.id === 'string' && uuidPattern.test(item.id)
+    ).length;
+    updateLinkBadge('nav a[href^="devmatch-favorites.html"]', 'favorites', validFavoriteCount);
   }
 
   function refreshFavoriteBadges() {
@@ -630,6 +634,12 @@
   async function updateNotificationBadges() {
     const backend = window.devMatchBackend;
     if (!backend) throw new Error('Supabase is unavailable.');
+    updateLinkBadge(
+      'nav a[href^="devmatch-developer-notifications.html"], nav a[href^="devmatch-notifications.html"]',
+      'notifications',
+      0
+    );
+    updateHeaderNotificationDot(0);
     const user = await backend.ready;
     if (user) {
       try {

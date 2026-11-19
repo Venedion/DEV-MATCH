@@ -8,6 +8,15 @@
 .find-detail-aside{position:sticky;top:76px}
 .find-detail-card{min-width:0;padding:19px;border:1px solid #e5e5e8;border-radius:14px;background:#fff;box-shadow:0 2px 6px #17171908}
 .find-detail-client,.find-client-profile{display:flex;align-items:center;gap:10px}
+.find-detail-client-avatar-link{display:block;flex:none;border-radius:50%;text-decoration:none}
+.find-detail-client-name-link{color:inherit;text-decoration:none}
+.find-detail-client-name-link:hover{text-decoration:underline}
+.find-client-profile{gap:12px}
+.find-client-location{display:flex;align-items:center;gap:0;color:#777982}
+.find-client-location svg{width:14px;height:14px;flex:none;fill:none;stroke:currentColor;stroke-width:1.8}
+.find-client-avatar-link{display:block;flex:none;border-radius:50%}
+.find-client-name-link{color:inherit;text-decoration:none}
+.find-client-name-link:hover{text-decoration:underline}
 .find-detail-avatar{width:37px;height:37px;display:grid;place-items:center;flex:none;border-radius:50%;background:#e8e8eb;color:#3b3d43;font-size:11px;font-weight:800}
 .find-detail-client>div,.find-client-profile>div{display:grid;min-width:0;gap:3px}
 .find-detail-client strong,.find-client-profile strong{font-size:13px}
@@ -21,7 +30,7 @@
 .find-detail-tags span:nth-child(2){background:#fff0dd;color:#a45a11}
 .find-detail-card>h1{margin-top:10px;font-size:clamp(22px,2.4vw,30px);line-height:1.2;letter-spacing:-.04em}
 .find-detail-description{margin-top:8px;color:#555862;font-size:12px;line-height:1.65}
-.find-detail-facts{display:grid;grid-template-columns:1.35fr .8fr .8fr;gap:10px;margin-top:17px;padding:12px 14px;border-radius:10px;background:#f5f5f6}
+.find-detail-facts{display:grid;grid-template-columns:minmax(0,1fr);gap:10px;margin-top:17px;padding:12px 14px;border-radius:10px;background:#f5f5f6}
 .find-detail-facts>div{display:grid;align-content:start;gap:5px;min-width:0}
 .find-detail-facts small,.find-detail-eyebrow{color:#858891;font-size:9px;font-weight:800;letter-spacing:.05em}
 .find-detail-facts strong{font-size:11px;overflow-wrap:anywhere}
@@ -47,13 +56,22 @@
 .find-comment p{margin-top:4px;color:#555862;font-size:11px;line-height:1.5;overflow-wrap:anywhere}
 #commentsEmpty{padding:8px 0;color:#777982;font-size:11px}
 #commentsEmpty[hidden]{display:none}
+.find-comment-body{min-width:0}
+.find-comment-reply{margin-top:7px;padding:0;border:0;background:transparent;color:#626671;font:inherit;font-size:10px;font-weight:700;cursor:pointer}
+.find-comment-reply:hover{text-decoration:underline}
+.find-comment-reply-badge{margin-left:5px;color:#858891;font-size:9px;font-weight:500}
+.find-comment-replies{margin-left:36px;padding-left:12px;border-left:2px solid #eeeef0}
+.find-comment-replying{display:flex;align-items:center;gap:6px;margin:0 0 8px 36px;color:#626671;font-size:10px}
+.find-comment-replying[hidden]{display:none}
+.find-comment-replying button{padding:0;border:0;background:transparent;color:#626671;font:inherit;text-decoration:underline;cursor:pointer}
 .find-client-card{display:grid;gap:13px}
 .find-client-profile .find-detail-avatar{width:40px;height:40px}
-.find-client-facts{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:10px;border-radius:9px;background:#f5f5f6}
-.find-client-facts>div{display:grid;gap:4px}
+.find-client-facts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.find-client-facts>div{display:grid;gap:4px;padding:12px;border-radius:9px;background:#f5f5f6}
 .find-client-facts small{color:#858891;font-size:9px;font-weight:800}
 .find-client-facts strong{font-size:11px}
-.find-contact-button{min-height:38px;display:flex;align-items:center;justify-content:center;border-radius:8px;background:#171719;color:#fff;font-size:11px;font-weight:700}
+.find-contact-button{min-height:38px;display:flex;align-items:center;justify-content:center;gap:8px;border-radius:8px;background:#171719;color:#fff;font-size:11px;font-weight:700}
+.find-contact-button svg{width:16px;height:16px;flex:none;fill:none;stroke:currentColor;stroke-width:2}
 .find-contact-button:hover{background:#333}
 .find-similar-card{padding:17px}
 .find-similar-card h2{margin-bottom:8px}
@@ -70,4 +88,84 @@
 @media(max-width:980px){.find-detail-layout{grid-template-columns:minmax(0,1.4fr) minmax(220px,.8fr);gap:12px}.find-detail-card{padding:16px}}
 @media(max-width:760px){.find-detail-layout{grid-template-columns:1fr}.find-detail-aside{position:static;grid-row:1}}
 @media(max-width:820px){.find-detail-main{padding-left:calc(var(--sidebar) + 18px);padding-right:18px}}
-@media(max-width:600px){.find-detail-main{padding:74px 12px 30px 66px}.find-detail-breadcrumb{font-size:10px}.find-detail-card{padding:14px}.find-detail-card>h1{font-size:21px}.find-detail-facts{grid-template-columns:1fr 1fr}.find-detail-facts>div:first-child{grid-column:1/-1}.find-comment-form textarea{padding-right:10px;padding-bottom:39px}.find-comment-form button{right:7px}}
+@media(max-width:600px){.find-detail-main{padding:74px 12px 30px 66px}.find-detail-breadcrumb{font-size:10px}.find-detail-card{padding:14px}.find-detail-card>h1{font-size:21px}.find-detail-facts{grid-template-columns:minmax(0,1fr)}.find-comment-form textarea{padding-right:10px;padding-bottom:39px}.find-comment-form button{right:7px}}
+
+.find-detail-main{padding-top:90px;padding-bottom:56px}
+.find-detail-breadcrumb{gap:10px;margin-bottom:20px;font-size:14px}
+.find-detail-layout{gap:20px}
+.find-detail-main-column,.find-detail-aside{gap:18px}
+.find-detail-aside{top:84px}
+.find-detail-card{padding:24px;border-radius:16px}
+.find-detail-client,.find-client-profile{gap:12px}
+.find-detail-avatar{width:44px;height:44px;font-size:13px}
+.find-detail-client strong,.find-client-profile strong{font-size:15px}
+.find-detail-client small,.find-client-profile small{font-size:13px}
+.find-detail-save{width:40px;height:40px}
+.find-detail-save svg{width:19px;height:19px}
+.find-detail-tags{gap:8px;margin-top:15px}
+.find-detail-tags span{padding:5px 10px;font-size:12px}
+.find-detail-card>h1{margin-top:12px;font-size:clamp(26px,2.7vw,36px)}
+.find-detail-description{margin-top:10px;font-size:14px}
+.find-detail-facts{gap:12px;margin-top:20px;padding:15px 17px;border-radius:12px}
+.find-detail-facts>div{gap:6px}
+.find-detail-facts small,.find-detail-eyebrow{font-size:11px}
+.find-detail-facts strong{font-size:16px}
+.find-detail-section{margin-top:22px}
+.find-detail-section h2{margin-bottom:8px;font-size:16px}
+.find-detail-section p,.find-detail-section li{font-size:14px}
+.find-detail-section ul{gap:8px;padding-left:22px}
+.find-detail-stats{gap:16px;margin-top:20px;padding-top:16px;font-size:12px}
+.find-comments>header{gap:12px;margin-bottom:14px}
+.find-comments h2,.find-similar-card h2{font-size:17px}
+.find-comments h2 span{font-size:13px}
+.find-comments>header label{gap:6px;font-size:12px}
+.find-comments select{max-width:125px;font-size:12px}
+.find-comment-form{grid-template-columns:32px minmax(0,1fr);gap:11px;margin-bottom:10px}
+.find-comment-form>.find-detail-avatar,.find-comment .find-detail-avatar{width:32px;height:32px;font-size:11px}
+.find-comment-form textarea{min-height:72px;padding:12px 125px 12px 13px;font-size:13px}
+.find-comment-form button{min-height:34px;padding:0 11px;font-size:11px}
+.find-comment{grid-template-columns:32px minmax(0,1fr);gap:11px;padding:14px 0}
+.find-comment strong{font-size:12px}
+.find-comment strong small{font-size:10px}
+.find-comment time{font-size:10px}
+.find-comment p{font-size:13px}
+#commentsEmpty{font-size:13px}
+.find-client-card{gap:16px}
+.find-client-profile .find-detail-avatar{width:48px;height:48px}
+.find-client-facts{gap:10px;padding:0;border-radius:10px}
+.find-client-facts small{font-size:11px}
+.find-client-facts strong{font-size:13px}
+.find-contact-button{min-height:46px;font-size:13px}
+.find-similar-card{padding:20px}
+.find-similar-card h2{margin-bottom:10px}
+.find-similar-request{padding:11px 0}
+.find-similar-request strong{font-size:12px}
+.find-similar-request small{font-size:11px}
+.find-detail-error{max-width:680px;padding:28px;border-radius:16px}
+.find-detail-error h1{font-size:23px}
+.find-detail-error a{font-size:14px}
+
+@media(max-width:980px){
+  .find-detail-main{padding:86px 26px 52px calc(var(--sidebar) + 26px)}
+  .find-detail-layout{gap:16px}
+  .find-detail-card{padding:21px}
+}
+
+@media(max-width:820px){
+  .find-detail-main{padding-right:20px;padding-left:calc(var(--sidebar) + 20px)}
+}
+
+@media(max-width:600px){
+  .find-detail-main{padding:74px 16px 34px 66px}
+  .find-detail-breadcrumb{gap:8px;margin-bottom:16px;font-size:12px}
+  .find-detail-card{padding:18px}
+  .find-detail-avatar{width:40px;height:40px;font-size:12px}
+  .find-detail-card>h1{font-size:25px}
+  .find-detail-facts small,.find-detail-eyebrow{font-size:10px}
+  .find-detail-facts strong{font-size:14px}
+  .find-detail-section h2{font-size:15px}
+  .find-detail-section p,.find-detail-section li{font-size:13px}
+  .find-comments h2,.find-similar-card h2{font-size:15px}
+  .find-comment-form textarea{padding-right:10px;padding-bottom:46px}
+  .find-comment-form button{right:8px}
+}

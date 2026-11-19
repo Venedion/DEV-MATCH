@@ -236,3 +236,63 @@
 @media(max-width:860px){.marketplace-main[data-marketplace="discover"]{padding-right:20px;padding-left:calc(var(--sidebar) + 20px)}.market-discovery-tabs{align-self:flex-start}}
 @media(max-width:640px){.marketplace-main[data-marketplace="discover"]{--page-scroll-top:72px;padding:72px 14px 36px 66px}.market-discovery-header{margin-bottom:24px}.market-discovery-header h1{font-size:24px}.market-discovery-tabs{width:100%;justify-content:space-between}.market-discovery-tab:first-child,.market-discovery-tab:last-child{width:auto;flex:1}}
 @media(prefers-reduced-motion:reduce){.market-discovery-tabs::before{animation:none!important}}
+
+.marketplace-main[data-marketplace="requests"] .project-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:17px}
+.marketplace-main[data-marketplace="requests"] .project-grid.is-list{grid-template-columns:1fr}
+.marketplace-main[data-marketplace="requests"] .project-grid .request-project-card,.marketplace-main[data-marketplace="requests"] .project-grid.is-list .request-project-card{display:block;min-height:0}
+.marketplace-main[data-marketplace="requests"] .project-grid:not(.is-list) .request-project-card{min-height:0}
+.marketplace-main[data-marketplace="requests"] .project-grid.is-list .request-card-body{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(220px,.8fr);grid-template-areas:"header header" "title budget" "description budget" "required budget" "footer footer";gap:0 24px}
+.marketplace-main[data-marketplace="requests"] .project-grid.is-list .request-card-header{grid-area:header}
+.marketplace-main[data-marketplace="requests"] .project-grid.is-list .request-card-body>.project-title{grid-area:title;align-self:end}
+.marketplace-main[data-marketplace="requests"] .project-grid.is-list .request-card-body>.project-description{grid-area:description}
+.marketplace-main[data-marketplace="requests"] .project-grid.is-list .request-budget-box{grid-area:budget;align-self:center}
+.marketplace-main[data-marketplace="requests"] .project-grid.is-list .request-required{grid-area:required}
+.marketplace-main[data-marketplace="requests"] .project-grid.is-list .request-card-footer{grid-area:footer}
+.marketplace-main[data-marketplace="requests"] .request-card-body{display:block;flex:none;padding:22px 24px}
+.request-card-header,.request-card-author,.request-card-header-actions,.request-card-footer,.request-card-metrics,.request-card-metrics span{display:flex;align-items:center}
+.request-card-header{justify-content:space-between;gap:12px}
+.request-card-author{min-width:0;gap:11px}
+.request-card-avatar{width:44px;height:44px;flex:none;display:grid;place-items:center;border-radius:50%;background:#e8e9eb;color:#353941;font-size:15px;font-weight:800}
+.request-card-author-copy{min-width:0;display:grid;gap:3px}
+.request-card-author-copy b{overflow:hidden;font-size:14px;font-weight:700;text-overflow:ellipsis;white-space:nowrap}
+.request-card-author-copy small{color:#8a8d95;font-size:12px;line-height:1.35}
+.request-card-header-actions{flex:none;gap:10px}
+.request-card-category{max-width:170px;overflow:hidden;padding:7px 12px;border-radius:99px;background:#f0f1f3;color:#30343b;font-size:12px;font-weight:700;text-overflow:ellipsis;white-space:nowrap}
+.request-card-favorite{width:40px;height:40px;display:grid;place-items:center;border:1px solid #dfe0e4;border-radius:50%;background:#fff;color:#5a5d65;cursor:pointer}
+.request-card-favorite svg{width:19px;height:19px}
+.request-card-favorite[aria-pressed=true]{color:#e54860}
+.request-card-favorite[aria-pressed=true] svg{fill:#e54860;stroke:#e54860}
+.request-card-body .project-title{margin-top:19px;font-size:21px;line-height:1.3}
+.request-card-body .project-description{min-height:0;margin-top:8px;font-size:14px;line-height:1.55;-webkit-line-clamp:3}
+.request-budget-box{display:grid;gap:5px;margin-top:17px;padding:14px 17px;border-radius:12px;background:#f5f5f6}
+.request-budget-box small{color:#8a8d95;font-size:11px;font-weight:700;letter-spacing:.04em}
+.request-budget-box strong{color:#171719;font-size:17px;font-weight:800;line-height:1.3}
+.request-required{display:flex;align-items:center;gap:10px;min-height:49px;margin-top:9px}
+.request-required>strong{flex:none;color:#555a64;font-size:13px;font-weight:600}
+.request-card-tags{display:flex;gap:7px;flex-wrap:wrap}
+.request-card-tags span{padding:5px 10px;border-radius:8px;background:#f1f2f4;color:#30343b;font-size:12px;font-weight:500}
+.request-card-footer{justify-content:space-between;gap:12px;margin-top:10px;padding-top:16px;border-top:1px solid #e8e8eb}
+.request-card-metrics{gap:17px;color:#777b84;font-size:13px}
+.request-card-metrics span{gap:6px}
+.request-card-metrics svg{width:17px;height:17px;color:#81858e}
+.request-card-view{height:40px;display:inline-flex;align-items:center;gap:10px;padding:0 15px;border:1px solid #dfe0e4;border-radius:10px;background:#fff;color:#171719;font-size:13px;font-weight:700;white-space:nowrap;cursor:pointer}
+.request-card-view:hover{background:#f7f7f8}
+.request-card-view svg{width:17px;height:17px}
+@media(max-width:600px){
+  .marketplace-main[data-marketplace="requests"] .project-grid{grid-template-columns:1fr;gap:12px}
+  .marketplace-main[data-marketplace="requests"] .request-card-body,.marketplace-main[data-marketplace="requests"] .project-grid.is-list .request-card-body{padding:16px}
+  .request-card-avatar{width:38px;height:38px;font-size:13px}
+  .request-card-author-copy b{font-size:12.5px}
+  .request-card-author-copy small{font-size:10.5px}
+  .request-card-header-actions{gap:6px}
+  .request-card-category{max-width:116px;padding:6px 9px;font-size:10.5px}
+  .request-card-favorite{width:35px;height:35px}
+  .request-card-body .project-title{margin-top:15px;font-size:18px}
+  .request-card-body .project-description{font-size:12.5px}
+  .request-budget-box{margin-top:13px;padding:12px 13px}
+  .request-budget-box strong{font-size:15px}
+  .request-required{align-items:flex-start;flex-direction:column;gap:7px;padding:9px 0}
+  .request-card-footer{align-items:flex-start}
+  .request-card-view{height:36px;padding:0 10px;font-size:11.5px}
+  .marketplace-main[data-marketplace="requests"] .project-grid.is-list .request-card-body{grid-template-columns:1fr;grid-template-areas:"header" "title" "description" "budget" "required" "footer";gap:0}
+}

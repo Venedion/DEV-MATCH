@@ -237,7 +237,8 @@ async function decryptRow(row, keyring) {
     sender_id: row.sender_id,
     text: sanitizeMessageText(text),
     attachments,
-    created_at: row.created_at
+    created_at: row.created_at,
+    read_at: row.read_at
   };
 }
 
@@ -429,8 +430,18 @@ async function handleAction(body, user, keyring, supabaseUrl, serviceRoleKey) {
     }
 
     if (body.action === 'list-messages') {
+      await requestRows(supabaseUrl, serviceRoleKey, 'messages', {
+        select: 'id',
+        conversation_id: `eq.${conversation.id}`,
+        sender_id: `neq.${user.id}`,
+        read_at: 'is.null'
+      }, {
+        method: 'PATCH',
+        headers: {Prefer: 'return=representation'},
+        body: JSON.stringify({read_at: new Date().toISOString()})
+      });
       const rows = await requestRows(supabaseUrl, serviceRoleKey, 'messages', {
-        select: 'id,conversation_id,sender_id,ciphertext,nonce,key_version,created_at',
+        select: 'id,conversation_id,sender_id,ciphertext,nonce,key_version,created_at,read_at',
         conversation_id: `eq.${conversation.id}`,
         order: 'created_at.desc',
         limit: String(MAX_MESSAGE_ROWS)
@@ -579,7 +590,7 @@ async function handleAction(body, user, keyring, supabaseUrl, serviceRoleKey) {
         supabaseUrl,
         serviceRoleKey,
         'messages',
-        {select: 'id,conversation_id,sender_id,ciphertext,nonce,key_version,created_at'},
+        {select: 'id,conversation_id,sender_id,ciphertext,nonce,key_version,created_at,read_at'},
         {
           method: 'POST',
           headers: {Prefer: 'return=representation'},

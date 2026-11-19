@@ -23,6 +23,7 @@ svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.8;stroke
 .client-icon-button{width:38px;height:38px;position:relative;display:grid;place-items:center;border:1px solid var(--cd-line);border-radius:50%;background:#fff;font-size:20px;cursor:pointer}
 .client-icon-button svg{width:17px;height:17px}
 .client-icon-button i{position:absolute;top:7px;right:8px;width:6px;height:6px;border-radius:50%;background:#ef4444}
+.client-icon-button i[hidden]{display:none!important}
 .client-user{width:170px;flex:0 0 170px;display:flex;align-items:center;gap:8px}
 .client-avatar{width:32px;height:32px;flex:0 0 32px;aspect-ratio:1;border-radius:50%;display:grid;place-items:center;background:#e9e9eb;font-size:11px;font-weight:800}
 .client-user-copy{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -50,6 +51,7 @@ svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.8;stroke
 .client-nav-count,.client-notification-count{min-width:19px;height:19px;margin-left:auto;display:grid;place-items:center;border-radius:99px;background:#fce4ec;color:#c2185b;font-size:11px;font-weight:700}
 .client-notification-count,.client-nav-count.nav-count-message,.client-nav-count.nav-count-favorites{background:#fce4ec;color:#c2185b}
 .client-nav-count.nav-count-notifications,.client-notification-count.nav-count-notifications{background:#fce4ec;color:#c2185b}
+nav a[href^="devmatch-favorites.html"] #favoriteCount{display:none!important}
 .client-sidebar nav a[href^="devmatch-chat.html"] .client-nav-count:not(.nav-count-message){display:none!important}
 .client-nav-count[hidden],.client-notification-count[hidden]{display:none}
 .account-label{margin-top:22px}
@@ -599,6 +601,8 @@ body{font-size:16px}
 .request-detail-comment-sort{padding:6px 9px;border:1px solid var(--cd-line);border-radius:99px;color:#535762;font-size:10px}
 .request-detail-comments>p,.request-detail-commenters>p{color:#858a95;font-size:12px;line-height:1.55}
 .request-detail-comment{padding:12px 0;border-top:1px solid #eff0f2}
+.request-detail-comment-author{display:flex;align-items:center;gap:8px}
+.request-detail-comment-author .request-detail-avatar{width:28px;height:28px;font-size:9px}
 .request-detail-comment strong{font-size:12px}
 .request-detail-comment p{margin-top:5px;color:#555a64;font-size:12px;line-height:1.55}
 .request-detail-comment-replies{margin-left:18px;padding-left:12px;border-left:2px solid #eceef1}

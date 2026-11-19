@@ -6,6 +6,7 @@
   let projects = [];
   let requests = [];
   let catalogError = null;
+  let catalogErrorMessage = 'Projects could not be loaded. Check your connection and try again.';
   let catalogLoaded = false;
   const favoritesKey = isRequestsPage ? 'devmatch-developer-project-favorites' : 'devmatch-client-project-favorites';
   if (localStorage.getItem(favoritesKey) === null) {
@@ -351,6 +352,46 @@
     }[character]));
   }
 
+  function formatPostedAt(value) {
+    const timestamp = new Date(value).getTime();
+    if (!Number.isFinite(timestamp)) return 'Recently posted';
+    const elapsed = Math.max(0, Date.now() - timestamp);
+    const minutes = Math.floor(elapsed / 60000);
+    if (minutes < 1) return 'Just now';
+    if (minutes < 60) return `${minutes}m ago`;
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) return `${hours}h ago`;
+    const days = Math.floor(hours / 24);
+    if (days < 7) return `${days}d ago`;
+    return new Intl.DateTimeFormat(undefined, {month:'short',day:'numeric',year:'numeric'}).format(timestamp);
+  }
+
+  async function loadPublicRequestCardMetrics(projectIds) {
+    const metrics = new Map();
+    for (let offset = 0; offset < projectIds.length; offset += 100) {
+      const batch = projectIds.slice(offset, offset + 100);
+      const {data, error} = await window.devMatchBackend.client.rpc(
+        'get_public_request_card_metrics',
+        {p_project_ids:batch}
+      );
+      if (error) throw error;
+      if (!Array.isArray(data)) throw new Error('Supabase returned invalid public request card metrics.');
+      data.forEach(row => {
+        const favoriteCount=Number(row.favorite_count);
+        const commentCount=Number(row.comment_count);
+        if (!batch.includes(row.project_id)
+          || ![favoriteCount,commentCount].every(value=>Number.isSafeInteger(value)&&value>=0)) {
+          throw new Error('Supabase returned invalid public request card metrics.');
+        }
+        metrics.set(row.project_id,{favorites:favoriteCount,comments:commentCount});
+      });
+    }
+    if (metrics.size !== projectIds.length) {
+      throw new Error('Supabase returned incomplete public request card metrics.');
+    }
+    return metrics;
+  }
+
   function priceValue(project) {
     return isRequestsPage ? project.budget : Number(String(project.price).replace(/\D/g, '')) || 0;
   }
@@ -421,17 +462,29 @@
         <span class="rating" aria-label="Rating 4.9 out of 5"><span>★</span> 4.9</span>
       </div>
       <div class="catalog-actions"><button class="catalog-detail-link arrow-action" type="button" data-detail="${escapeHtml(item.id)}">View details <svg class="arrow-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12h20M17 8l5 4-5 4"/></svg></button></div>`;
-    const requestContent = `<div class="project-meta"><span class="project-type-pill">${escapeHtml(item.type)}</span><span class="open-pill">Open · ${escapeHtml(item.days)}</span></div>
+    const requestFavorite=favoriteIds.includes(item.id);
+    const requestSpecialties=Array.isArray(item.specialties)
+      ?item.specialties
+      :String(item.specialty||'').split(/[,\n]/).filter(Boolean);
+    const requiredTags=[...new Set(requestSpecialties.map(value=>String(value).trim()).filter(Boolean))]
+      .map(value=>value==='Other'&&item.specialtyOther?`Other · ${item.specialtyOther}`:value);
+    const requestMetrics=`<div class="request-card-metrics"><span aria-label="${item.favoriteCount} favorites"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>${item.favoriteCount}</span><span aria-label="${item.commentCount} comments"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 11.5a8.4 8.4 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.4 8.4 0 0 1-3.8-.9L3 21l1.9-5.7a8.4 8.4 0 0 1-.9-3.8A8.5 8.5 0 0 1 8.7 3.9a8.4 8.4 0 0 1 3.8-.9h.5a8.5 8.5 0 0 1 8 8z"/></svg>${item.commentCount}</span></div>`;
+    const requestContent = `<header class="request-card-header">
+        <div class="request-card-author"><span class="request-card-avatar" aria-hidden="true">${escapeHtml(item.initials)}</span><span class="request-card-author-copy"><b>${escapeHtml(item.client)}</b><small>Posted ${escapeHtml(formatPostedAt(item.createdAt))} · ${escapeHtml(item.location)}</small></span></div>
+        <div class="request-card-header-actions"><span class="request-card-category">${escapeHtml(item.category)}</span><button class="request-card-favorite" type="button" data-favorite="${escapeHtml(item.id)}" aria-pressed="${requestFavorite}" aria-label="${requestFavorite?'Remove from':'Save to'} Favorites"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></button></div>
+      </header>
       <button class="project-title" type="button" data-detail="${escapeHtml(item.id)}">${escapeHtml(item.title)}</button>
       <p class="project-description">${escapeHtml(item.description)}</p>
-      <strong class="request-budget">${escapeHtml(item.budgetLabel)}</strong>
-      <div class="request-detail-row"><span><svg viewBox="0 0 24 24"><path d="M20 10c0 5-8 12-8 12S4 15 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="2"/></svg>${escapeHtml(item.location)}</span><span>${escapeHtml(item.client)}</span></div>
-      <div class="tech-tags">${stack.map(value => `<span>${escapeHtml(value)}</span>`).join('')}</div>
-      <div class="card-actions"><a class="button-primary arrow-action" href="devmatch-chat.html?role=dev&amp;request=${encodeURIComponent(item.id)}">Submit proposal <svg class="arrow-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12h20M17 8l5 4-5 4"/></svg></a></div>`;
+      <div class="request-budget-box"><small>BUDGET</small><strong>${escapeHtml(item.budgetLabel)}</strong></div>
+      <div class="request-required"><strong>Required</strong><div class="request-card-tags">${requiredTags.length?requiredTags.map(value=>`<span>${escapeHtml(value)}</span>`).join(''):'<span>Not specified</span>'}</div></div>
+      <footer class="request-card-footer">${requestMetrics}<button class="request-card-view" type="button" data-detail="${escapeHtml(item.id)}">View request <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14m-6-6 6 6-6 6"/></svg></button></footer>`;
+    if(isRequestsPage){
+      return `<article class="project-card request-project-card" data-card-detail="${escapeHtml(item.id)}" tabindex="0" aria-label="Open details for ${escapeHtml(item.title)}"><div class="project-body request-card-body">${requestContent}</div></article>`;
+    }
     return `<article class="project-card${isRequestsPage ? '' : ' catalog-card'}" data-card-detail="${escapeHtml(item.id)}" tabindex="0" aria-label="Open details for ${escapeHtml(item.title)}">
       ${artwork(item)}
       <div class="project-body">
-        ${isRequestsPage ? requestContent : catalogContent}
+        ${catalogContent}
       </div>
     </article>`;
   }
@@ -493,7 +546,7 @@
     emptyState.querySelector('[data-reset]').hidden = noPosts;
     catalogStatus.hidden = catalogLoaded && !catalogError;
     if(!catalogLoaded&&!catalogError)catalogStatus.textContent='Loading projects…';
-    if (catalogError) catalogStatus.textContent = 'Projects could not be loaded. Check your connection and try again.';
+    if(catalogError)catalogStatus.textContent = catalogErrorMessage;
     summary.textContent = isRequestsPage
       ? `Showing ${filtered.length} ${filtered.length === 1 ? 'project' : 'projects'}`
       : `Showing ${filtered.length} ${filtered.length === 1 ? 'project' : 'projects'}`;
@@ -667,6 +720,7 @@
   });
 
   async function loadCatalog() {
+    catalogErrorMessage = 'Projects could not be loaded. Check your connection and try again.';
     grid.setAttribute('aria-busy', 'true');
     catalogStatus.hidden = false;
     catalogStatus.textContent = 'Loading projects…';
@@ -693,6 +747,14 @@
         if (peopleError) throw peopleError;
         peopleById = new Map((people || []).map(person => [person.id, person]));
       }
+      let metricsByProjectId=new Map();
+      if(isRequestsPage&&rows?.length&&user){
+        try{metricsByProjectId=await loadPublicRequestCardMetrics(rows.map(row=>row.id));}
+        catch(error){
+          catalogErrorMessage='Project requests could not be loaded because their favorite and comment counts are unavailable. Apply the public request card metrics migration in Supabase.';
+          throw error;
+        }
+      }
       const records = (rows || []).map(row => {
         const data = row.data && typeof row.data === 'object' ? row.data : {};
         const person = peopleById.get(row.owner_id);
@@ -712,9 +774,12 @@
           initials:(name.match(/\b\p{L}/gu)||[]).slice(0,2).join('').toUpperCase() || 'DM',
           location:location || 'Location not provided',
           age:new Intl.DateTimeFormat(undefined,{dateStyle:'medium'}).format(new Date(row.created_at || row.updated_at)),
+          createdAt:row.created_at||row.updated_at,
           days:new Intl.DateTimeFormat(undefined,{dateStyle:'medium'}).format(new Date(row.created_at || row.updated_at)),
           created:new Intl.DateTimeFormat(undefined,{dateStyle:'medium'}).format(new Date(row.created_at || row.updated_at)),
-          status:row.status, ownerId:row.owner_id, viewsCount:0, popularity:0,
+          favoriteCount:metricsByProjectId.get(row.id)?.favorites??null,
+          commentCount:metricsByProjectId.get(row.id)?.comments??null,
+          status:row.status, ownerId:row.owner_id, popularity:0,
           overview:String(data.overview || description), features:Array.isArray(data.features)?data.features:[],
           art:'dashboard-art'
         };

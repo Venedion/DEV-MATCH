@@ -961,6 +961,19 @@ async function showRequestDetailPage(request,{preserveScroll=false}={}){
     commentsLoadFailed=true;
   }
   if(activeRequestDetailId!==request.id)return;
+  let commenterRoles=new Map();
+  try{commenterRoles=await window.devMatchBackend.loadCommentAuthorRoles(comments);}
+  catch(error){console.error('Unable to load request commenter profiles from Supabase.',error);}
+  const profileLink=(comment,node,className)=>{
+    const href=window.devMatchBackend.publicProfileUrl(comment.userId,commenterRoles.get(comment.userId));
+    if(!href)return node;
+    const link=document.createElement('a');
+    link.className=className;
+    link.href=href;
+    link.setAttribute('aria-label',`View ${comment.name||'member'} profile`);
+    link.append(node);
+    return link;
+  };
   const name=clientProfile.displayName||'Client';
   const initials=name.trim().split(/\s+/).filter(Boolean).slice(0,2).map(part=>part[0]).join('').toUpperCase()||'CL';
   const location=[clientProfile.city,clientProfile.country].filter(Boolean).join(', ')||'Indonesia';
@@ -1056,11 +1069,20 @@ async function showRequestDetailPage(request,{preserveScroll=false}={}){
     const item=document.createElement('article');
     item.className='request-detail-comment';
     item.dataset.commentId=comment.id;
+    const authorRow=document.createElement('div');
+    authorRow.className='request-detail-comment-author';
+    const avatar=document.createElement('span');
+    avatar.className='request-detail-avatar';
+    avatar.textContent=comment.initials||String(comment.name||'Member').trim().split(/\s+/).filter(Boolean).slice(0,2).map(part=>part[0]).join('').toUpperCase();
     const author=document.createElement('strong');
     author.textContent=comment.name||'Member';
+    authorRow.append(
+      profileLink(comment,avatar,'comment-profile-avatar-link'),
+      profileLink(comment,author,'comment-profile-name-link')
+    );
     const message=document.createElement('p');
     message.textContent=comment.text||'';
-    item.append(author,message);
+    item.append(authorRow,message);
     if(repliesSupported&&currentUserId&&comment.userId!==currentUserId){
       const replyButton=document.createElement('button');
       replyButton.className='request-detail-comment-reply-toggle';
@@ -1119,7 +1141,10 @@ async function showRequestDetailPage(request,{preserveScroll=false}={}){
     avatar.textContent=entry.initials||String(entry.name).trim().split(/\s+/).slice(0,2).map(part=>part[0]).join('').toUpperCase();
     const personName=document.createElement('strong');
     personName.textContent=entry.name;
-    person.append(avatar,personName);
+    person.append(
+      profileLink(entry,avatar,'comment-profile-avatar-link'),
+      profileLink(entry,personName,'comment-profile-name-link')
+    );
     commentersList.append(person);
   });
   document.getElementById('requestDetailCommentersEmpty').hidden=commenters.size>0;

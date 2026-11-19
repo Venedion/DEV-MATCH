@@ -7,14 +7,14 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=optional" rel="stylesheet">
-  <link rel="stylesheet" href="assets/css/dashboard.css?v=20261118-pink-nav-badges">
+  <link rel="stylesheet" href="assets/css/dashboard.css?v=20261119-comment-profile-links">
   <link rel="stylesheet" href="assets/css/marketplace.css?v=20261118-pink-nav-badges">
   <link rel="stylesheet" href="assets/css/mode-switch-animation.css?v=20261030-active-indicator">
   <link rel="stylesheet" href="assets/css/mobile-navigation.css?v=20261118-workspaces">
-  <link rel="stylesheet" href="assets/css/find-project-detail.css?v=20261109-project-detail-routes">
+  <link rel="stylesheet" href="assets/css/find-project-detail.css?v=20261120-comment-replies">
   <script src="assets/js/i18n.js?v=20261102-profile-details"></script>
   <script src="assets/vendor/supabase-2.119.0.js"></script>
-  <script src="assets/js/backend.js?v=20261119-workspace-isolation"></script>
+  <script src="assets/js/backend.js?v=20261119-rebase-merge"></script>
 </head>
 <body class="find-project-detail-page">
   <header class="topbar">
@@ -45,11 +45,11 @@
     <div class="find-detail-layout" id="requestDetailLayout" hidden>
       <div class="find-detail-main-column">
         <article class="find-detail-card">
-          <header class="find-detail-client"><span class="find-detail-avatar" id="requestClientAvatar"></span><div><strong id="requestClientName"></strong><small id="requestClientMeta"></small></div><button class="find-detail-save" id="saveRequestButton" type="button" aria-pressed="false" aria-label="Save request"><svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></button></header>
+          <header class="find-detail-client"><a class="find-detail-client-avatar-link" id="requestClientAvatarLink" href="#" aria-label="View client profile"><span class="find-detail-avatar" id="requestClientAvatar"></span></a><div><a class="find-detail-client-name-link" id="requestClientNameLink" href="#"><strong id="requestClientName"></strong></a><small id="requestClientMeta"></small></div><button class="find-detail-save" id="saveRequestButton" type="button" aria-pressed="false" aria-label="Save request"><svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></button></header>
           <div class="find-detail-tags" id="requestTags"></div>
           <h1 id="requestTitle"></h1>
           <p class="find-detail-description" id="requestDescription"></p>
-          <div class="find-detail-facts"><div><small>BUDGET</small><strong id="requestBudget"></strong></div><div><small>POSTED</small><strong id="requestPosted"></strong></div><div><small>LOCATION</small><strong id="requestLocation"></strong></div></div>
+          <div class="find-detail-facts"><div><small>BUDGET</small><strong id="requestBudget"></strong></div></div>
           <section class="find-detail-section"><h2>Project details</h2><p id="requestOverview"></p></section>
           <section class="find-detail-section"><h2>Key requirements</h2><ul id="requestFeatures"></ul></section>
           <section class="find-detail-section"><h2>Required specialization</h2><div class="find-detail-tags" id="requestStack"></div></section>
@@ -58,6 +58,10 @@
         <section class="find-detail-card find-comments">
           <header><h2>Comments <span id="commentsCount">0</span></h2><label>Oldest first<select id="commentSort" aria-label="Sort comments"><option value="oldest">Oldest first</option><option value="newest">Newest first</option></select></label></header>
           <form id="commentForm" class="find-comment-form"><span class="find-detail-avatar" id="developerAvatar">DV</span><div><textarea id="commentInput" maxlength="1000" placeholder="Ask the client a question about this project..." aria-label="Your comment"></textarea><button type="submit">Post comment</button></div></form>
+          <p class="find-comment-replying" id="findReplyContext" role="status" aria-live="polite" hidden>
+            Replying to <strong id="findReplyTarget"></strong>
+            <button id="cancelFindReply" type="button">Cancel reply</button>
+          </p>
           <div id="requestComments" class="find-comment-list" aria-live="polite"></div>
           <p id="commentsEmpty">No comments yet. Start the conversation with the client.</p>
         </section>
@@ -65,16 +69,16 @@
       <aside class="find-detail-aside">
         <section class="find-detail-card find-client-card">
           <p class="find-detail-eyebrow">ABOUT THE CLIENT</p>
-          <div class="find-client-profile"><span class="find-detail-avatar" id="asideClientAvatar"></span><div><strong id="asideClientName"></strong><small id="asideClientLocation"></small></div></div>
-          <div class="find-client-facts"><div><small>PROJECT</small><strong id="asideClientCategory"></strong></div><div><small>STATUS</small><strong>Open</strong></div></div>
-          <a class="find-contact-button" id="contactClient" href="#">Contact via chat</a>
+          <div class="find-client-profile"><a class="find-client-avatar-link" id="asideClientAvatarLink" href="#" aria-label="View client profile"><span class="find-detail-avatar" id="asideClientAvatar"></span></a><div><a class="find-client-name-link" id="asideClientNameLink" href="#"><strong id="asideClientName"></strong></a><small class="find-client-location"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 10c0 6-8 12-8 12S4 16 4 10a8 8 0 0 1 16 0z"/><circle cx="12" cy="10" r="3"/></svg><span id="asideClientLocation"></span></small></div></div>
+          <div class="find-client-facts"><div><small>REQUESTS</small><strong id="asideClientRequestCount"></strong></div><div><small>STATUS</small><strong>Open</strong></div></div>
+          <a class="find-contact-button" id="contactClient" href="#"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 11.5a8.5 8.5 0 0 1-8.5 8.5H4l1.5-4A8.5 8.5 0 1 1 21 11.5z"/></svg>Contact via chat</a>
         </section>
         <section class="find-detail-card find-similar-card"><h2>Similar requests</h2><div id="similarRequests"></div></section>
       </aside>
     </div>
   </main>
-  <script src="assets/js/find-project-detail.js?v=20261118-workspaces"></script>
-  <script src="assets/js/nav-behavior.js?v=20261119-workspace-isolation"></script>
+  <script src="assets/js/find-project-detail.js?v=20261119-self-reply"></script>
+  <script src="assets/js/nav-behavior.js?v=20261119-rebase-merge"></script>
 <script src="assets/js/presence.js?v=20261119-global"></script>
 </body>
 </html>

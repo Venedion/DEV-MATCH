@@ -65,7 +65,8 @@
   let currentFilter = 'all';
   let searchQuery = '';
   let realtimeChannel = null;
-  let authSubscription = null;
+  const presenceChannels = new Map();
+  let presenceReady = false;
   let isSending = false;
   let selectedAttachment = null;
 
@@ -209,6 +210,52 @@
     return conversation;
   }
 
+  function updateContactPresence(participantId, channel) {
+    const online = Object.hasOwn(channel.presenceState(), participantId);
+    let changed = false;
+    conversations.forEach(conversation => {
+      if (conversation.participantId !== participantId || conversation.online === online) return;
+      conversation.online = online;
+      changed = true;
+    });
+    if (changed) renderConversationsList();
+  }
+
+  function syncPresenceChannels() {
+    if (!presenceReady) return;
+
+    const participantIds = new Set(conversations.map(conversation => conversation.participantId));
+    for (const [participantId, channel] of presenceChannels) {
+      if (participantIds.has(participantId)) continue;
+      presenceChannels.delete(participantId);
+      void client.removeChannel(channel).catch(error => {
+        console.error('Unable to stop tracking chat contact presence.', error);
+      });
+    }
+
+    participantIds.forEach(participantId => {
+      const existingChannel = presenceChannels.get(participantId);
+      if (existingChannel) {
+        updateContactPresence(participantId, existingChannel);
+        return;
+      }
+
+      const channel = client.channel(`devmatch-user-presence:${participantId}`, {
+        config: {private: true, presence: {key: currentUser.id}}
+      });
+      presenceChannels.set(participantId, channel);
+      channel
+        .on('presence', {event: 'sync'}, () => {
+          updateContactPresence(participantId, channel);
+        })
+        .subscribe(status => {
+          if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+            console.error('Unable to subscribe to chat contact presence.', status);
+          }
+        });
+    });
+  }
+
   async function loadConversationList() {
     const rows = await invokeChat('list-conversations');
     if (!Array.isArray(rows)) throw new Error('Chat service returned an invalid conversation list.');
@@ -226,6 +273,7 @@
 
     const projectsById = new Map(projects.map(project => [project.id, project]));
     conversations = rows.map(row => mapConversation(row, projectsById));
+    syncPresenceChannels();
     if (!conversations.some(conversation => conversation.id === activeConvId)) {
       activeConvId = null;
     }
@@ -268,7 +316,7 @@
         <li class="chat-conv-item ${conversation.id === activeConvId ? 'active' : ''} ${conversation.unreadCount ? 'unread' : ''}" data-conv-id="${escapeHtml(conversation.id)}">
           <div class="chat-avatar-wrap">
             <div class="chat-avatar ${escapeHtml(conversation.color)}">${escapeHtml(conversation.initials)}</div>
-            <span class="chat-online-dot offline"></span>
+            <span class="chat-online-dot ${conversation.online ? 'online' : 'offline'}" role="img" aria-label="${conversation.online ? 'Online' : 'Offline'}" title="${conversation.online ? 'Online' : 'Offline'}"></span>
           </div>
           <div class="chat-item-main">
             <div class="chat-item-top">
@@ -432,13 +480,21 @@
           <span class="chat-attachment-info"><b>${escapeHtml(attachment.name)}</b>
           <small>${escapeHtml(formatFileSize(attachment.size))}</small></span>
         </button>`).join('');
+      const readReceipt = isSent && message.read_at
+        ? '<span class="chat-msg-read-receipt" aria-label="Read">Read</span>'
+        : '';
       return `${dateSeparator}
         <div class="chat-msg-row ${isSent ? 'sent' : 'received'}">
           ${!isSent ? `<div class="chat-msg-avatar ${escapeHtml(conversation.color)}">${escapeHtml(conversation.initials)}</div>` : ''}
           <div class="chat-msg-content">
-            ${message.text ? `<div class="chat-msg-bubble">${escapeHtml(message.text).replace(/\n/g, '<br>')}</div>` : ''}
-            ${attachmentCards}
-            <div class="chat-msg-meta"><span>${escapeHtml(formatTime(message.created_at))}</span>${isSent ? `<span>${Date.parse(conversation.peerReadAt || 0) >= Date.parse(message.created_at) ? "Read ✓✓" : "Sent ✓"}</span>` : ""}</div>
+            ${readReceipt}
+            <div class="chat-msg-body-row">
+              <div class="chat-msg-body">
+                ${message.text ? `<div class="chat-msg-bubble">${escapeHtml(message.text).replace(/\n/g, '<br>')}</div>` : ''}
+                ${attachmentCards}
+              </div>
+            </div>
+            <div class="chat-msg-meta"><span>${escapeHtml(formatTime(message.created_at))}</span>${isSent && !message.read_at ? `<span>${Date.parse(conversation.peerReadAt || 0) >= Date.parse(message.created_at) ? "Read ✓✓" : "Sent ✓"}</span>` : ""}</div>
           </div>
         </div>`;
     }).join('');
@@ -571,16 +627,8 @@
     if (error) throw error;
     if (!data.session?.access_token) throw new Error('Your session expired. Please log in again.');
     await client.realtime.setAuth(data.session.access_token);
-    if (!authSubscription) {
-      const {data: authListener} = client.auth.onAuthStateChange((_event, session) => {
-        if (session?.access_token) {
-          void client.realtime.setAuth(session.access_token).catch(error => {
-            console.error('Unable to refresh the real-time session token.', error);
-          });
-        }
-      });
-      authSubscription = authListener.subscription;
-    }
+    presenceReady = true;
+    syncPresenceChannels();
     realtimeChannel = client.channel(`chat-messages:${currentUser.id}`)
       .on('postgres_changes', {
         event: 'INSERT',
@@ -595,6 +643,20 @@
         } catch (error) {
           console.error('Unable to refresh real-time chat messages.', error);
           setStatus(error.message || 'Unable to refresh messages.', true);
+        }
+      })
+      .on('postgres_changes', {
+        event: 'UPDATE',
+        schema: 'public',
+        table: 'messages'
+      }, async payload => {
+        const conversationId = payload.new?.conversation_id || payload.old?.conversation_id;
+        if (conversationId !== activeConvId) return;
+        try {
+          await loadMessages(conversationId);
+        } catch (error) {
+          console.error('Unable to refresh chat read receipts.', error);
+          setStatus(error.message || 'Unable to refresh read receipts.', true);
         }
       })
       .on('postgres_changes', {
@@ -969,6 +1031,6 @@
   window.addEventListener('beforeunload', () => {
     clearInterval(activityTimer);
     if (realtimeChannel) void client.removeChannel(realtimeChannel);
-    authSubscription?.unsubscribe();
+    presenceChannels.forEach(channel => void client.removeChannel(channel));
   });
 })();

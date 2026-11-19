@@ -12,8 +12,19 @@
     const date=new Date(value);
     return Number.isNaN(date.getTime())?'':new Intl.DateTimeFormat(undefined,{dateStyle:'medium',timeStyle:'short'}).format(date);
   }
-  let project=null,comments=[],favorites=[],viewRecordFailed=false;
+  let project=null,comments=[],favorites=[],viewRecordFailed=false,commenterRoles=new Map();
+  let currentUserId=null,repliesSupported=true,replyTo=null;
   function readJson(key,fallback){try{const value=localStorage.getItem(key);return value?JSON.parse(value):fallback;}catch{return fallback;}}
+  async function loadCommenterRoles(){
+    try{commenterRoles=await window.devMatchBackend.loadCommentAuthorRoles(comments);}
+    catch(error){console.error('Unable to load project commenter profiles from Supabase.',error);commenterRoles=new Map();}
+  }
+  function profileAnchor(comment,content,className){
+    const profileUrl=window.devMatchBackend.publicProfileUrl(comment.userId,commenterRoles.get(comment.userId));
+    if(!profileUrl)return content;
+    const name=comment.name||'DEV-MATCH member';
+    return `<a class="${className}" href="${escapeHtml(profileUrl)}" aria-label="View ${escapeHtml(name)} profile">${content}</a>`;
+  }
   function updateFavoriteButtons(saved){
     const button=document.getElementById('detailFavoriteAction');
     button.setAttribute('aria-pressed',String(saved));
@@ -25,7 +36,36 @@
     document.getElementById('commentsHeadingCount').textContent=String(comments.length);
     document.getElementById('projectCommentsStat').textContent=`${comments.length} comments`;
     document.getElementById('commentsEmpty').hidden=comments.length>0;
-    document.getElementById('commentList').innerHTML=ordered.map(comment=>`<article class="discover-comment"><span class="discover-detail-avatar">${escapeHtml(comment.initials||'CL')}</span><div><strong>${escapeHtml(comment.name||'DEV-MATCH member')}</strong><time datetime="${escapeHtml(comment.time||'')}">${escapeHtml(formatCommentTime(comment.time))}</time><p>${escapeHtml(comment.text||'')}</p></div></article>`).join('');
+    const commentIds=new Set(ordered.map(comment=>comment.id));
+    const repliesByParent=new Map();
+    ordered.forEach(comment=>{
+      if(!comment.parentCommentId||!commentIds.has(comment.parentCommentId))return;
+      if(!repliesByParent.has(comment.parentCommentId))repliesByParent.set(comment.parentCommentId,[]);
+      repliesByParent.get(comment.parentCommentId).push(comment);
+    });
+    const renderComment=comment=>{
+      const name=escapeHtml(comment.name||'DEV-MATCH member');
+      const avatar=profileAnchor(comment,`<span class="discover-detail-avatar">${escapeHtml(comment.initials||'CL')}</span>`,'comment-profile-avatar-link');
+      const author=profileAnchor(comment,name,'comment-profile-name-link');
+      const replyButton=currentUserId&&repliesSupported
+        ?`<button class="discover-comment-reply" type="button" data-comment-reply="${escapeHtml(comment.id)}">Reply</button>`
+        :'';
+      const replyBadge=comment.parentCommentId?'<small class="discover-comment-reply-badge">Reply</small>':'';
+      const replies=repliesByParent.get(comment.id)||[];
+      return `<article class="discover-comment"><div>${avatar}</div><div class="discover-comment-body"><strong>${author} ${replyBadge}</strong><time datetime="${escapeHtml(comment.time||'')}">${escapeHtml(formatCommentTime(comment.time))}</time><p>${escapeHtml(comment.text||'')}</p>${replyButton}</div></article>${replies.length?`<div class="discover-comment-replies">${replies.map(renderComment).join('')}</div>`:''}`;
+    };
+    document.getElementById('commentList').innerHTML=ordered
+      .filter(comment=>!comment.parentCommentId||!commentIds.has(comment.parentCommentId))
+      .map(renderComment).join('');
+  }
+  function clearReplyTarget(){
+    replyTo=null;
+    document.getElementById('discoverReplyContext').hidden=true;
+    document.getElementById('discoverReplyTarget').textContent='';
+    const input=document.getElementById('commentInput');
+    input.placeholder='Ask the developer a question about this project...';
+    input.setAttribute('aria-label','Your comment');
+    document.querySelector('#commentForm button[type="submit"]').textContent='Post comment';
   }
   function initializeDetailLayout(){
     const preview=document.getElementById('projectPreview');
@@ -77,6 +117,7 @@
       link:String(data.link||data.url||''),ownerId:row.owner_id,art:String(data.art||''),views:'—',favorites:'—',initials:'DM'};
     let developerName='DEV-MATCH member',developerLocation='Location not provided',specialty='Developer',developerBio='No biography provided.';
     const user=await window.devMatchBackend.ready;
+    currentUserId=user?.id||null;
     let accountRole=null;
     if(user){
       try{await window.devMatchBackend.recordProjectView(project.id);}
@@ -135,16 +176,46 @@
     favoriteButton.hidden=!user||accountRole!=='client';
     updateFavoriteButtons(favorites.includes(project.id));
     let commentsFailed=false;
-    try{comments=(await window.devMatchBackend.loadProjectComments(project.id)).comments;}
+    try{
+      const result=await window.devMatchBackend.loadProjectComments(project.id);
+      comments=result.comments;
+      repliesSupported=result.repliesSupported;
+    }
     catch(error){console.error('Unable to load public project comments from Supabase.',error);commentsFailed=true;}
+    await loadCommenterRoles();
     initializeDetailLayout();renderComments();layout.hidden=false;
     document.getElementById('detailFavoriteAction').addEventListener('click',setFavorite);
     document.getElementById('commentSort').addEventListener('change',renderComments);
+    document.getElementById('commentList').addEventListener('click',event=>{
+      const button=event.target.closest('[data-comment-reply]');
+      if(!button||!currentUserId)return;
+      const parent=comments.find(comment=>comment.id===button.dataset.commentReply);
+      if(!parent)return;
+      replyTo=parent.id;
+      document.getElementById('discoverReplyTarget').textContent=parent.name||'member';
+      document.getElementById('discoverReplyContext').hidden=false;
+      const input=document.getElementById('commentInput');
+      input.placeholder=`Reply to ${parent.name||'member'}…`;
+      input.setAttribute('aria-label',`Reply to ${parent.name||'member'}`);
+      document.querySelector('#commentForm button[type="submit"]').textContent='Post reply';
+      input.focus();
+    });
+    document.getElementById('cancelDiscoverReply').addEventListener('click',clearReplyTarget);
     document.getElementById('commentForm').addEventListener('submit',async event=>{
       event.preventDefault();const input=document.getElementById('commentInput');const text=input.value.trim();
       if(!text){input.setCustomValidity('Please enter a comment before posting.');input.reportValidity();return;}
       input.setCustomValidity('');
-      try{comments.push(await window.devMatchBackend.addProjectComment(project.id,text));input.value='';renderComments();}
+      try{
+        const user=await window.devMatchBackend.ready;
+        if(!user){location.href='devmatch-auth.html?mode=login';return;}
+        comments.push(await (replyTo
+          ?window.devMatchBackend.addProjectCommentReply(project.id,replyTo,text)
+          :window.devMatchBackend.addProjectComment(project.id,text)));
+        await loadCommenterRoles();
+        input.value='';
+        clearReplyTarget();
+        renderComments();
+      }
       catch(error){console.error('Unable to save the project comment to Supabase.',error);window.alert('Unable to post your comment. Please log in and try again.');}
     });
     document.getElementById('commentInput').addEventListener('input',event=>event.target.setCustomValidity(''));

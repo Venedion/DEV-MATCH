@@ -4,13 +4,29 @@
   const dialog=document.getElementById('projectDetailDialog');
   const content=document.getElementById('projectContent');
   const commentsRoot=document.getElementById('commentList');
-  let activeProject=null,comments=[],commentOrder='Newest',replyTo=null;
+  let activeProject=null,comments=[],commentOrder='Newest',commenterRoles=new Map();
+  let replyTo=null;
   const initials=name=>(String(name||'').match(/\b\p{L}/gu)||[]).slice(0,2).join('').toUpperCase()||'DM';
   function chatUrl(id){return `devmatch-chat.html?role=client&project=${encodeURIComponent(id)}`;}
+  async function loadCommenterRoles(){
+    try{commenterRoles=await window.devMatchBackend.loadCommentAuthorRoles(comments);}
+    catch(error){console.error('Unable to load project commenter profiles from Supabase.',error);commenterRoles=new Map();}
+  }
+  function profileAnchor(comment,content,className){
+    const profileUrl=window.devMatchBackend.publicProfileUrl(comment.userId,commenterRoles.get(comment.userId));
+    if(!profileUrl)return content;
+    const name=comment.name||'DEV-MATCH member';
+    return `<a class="${className}" href="${escapeHtml(profileUrl)}" aria-label="View ${escapeHtml(name)} profile">${content}</a>`;
+  }
   function renderComments(){
     document.getElementById('commentCount').textContent=String(comments.length);
     const ordered=commentOrder==='Newest'?comments:[...comments].reverse();
-    commentsRoot.innerHTML=ordered.map(comment=>`<article class="comment-item"><span class="comment-avatar">${escapeHtml(comment.initials||'CL')}</span><div><p class="comment-author">${escapeHtml(comment.name||'DEV-MATCH member')} ${comment.parentCommentId ? '<small>Reply</small>' : ''}</p><p class="comment-text">${escapeHtml(comment.text)}</p><button type="button" class="reply-link" data-reply="${escapeHtml(comment.id)}">Reply</button></div></article>`).join('');
+    commentsRoot.innerHTML=ordered.map(comment=>{
+      const name=escapeHtml(comment.name||'DEV-MATCH member');
+      const avatar=profileAnchor(comment,`<span class="comment-avatar">${escapeHtml(comment.initials||'CL')}</span>`,'comment-profile-avatar-link');
+      const author=profileAnchor(comment,name,'comment-profile-name-link');
+      return `<article class="comment-item">${avatar}<div><p class="comment-author">${author} ${comment.parentCommentId ? '<small>Reply</small>' : '<small>Client</small>'}</p><p class="comment-text">${escapeHtml(comment.text)}</p><button type="button" class="reply-link" data-reply="${escapeHtml(comment.id)}">Reply</button></div></article>`;
+    }).join('');
   }
   commentsRoot.addEventListener('click',event=>{const b=event.target.closest('[data-reply]');if(!b)return;replyTo=b.dataset.reply;const input=document.getElementById('commentInput');input.placeholder='Reply to '+(comments.find(c=>c.id===replyTo)?.name||'comment')+' (clear to cancel)';input.focus();});
   function showError(message){
@@ -80,6 +96,7 @@
       document.getElementById('clientInitials').textContent=initials(clientName);
       try{comments=(await window.devMatchBackend.loadProjectComments(row.id)).comments;}
       catch(commentError){console.error('Unable to load public project comments from Supabase.',commentError);comments=[];errorElement.textContent='Project loaded, but comments could not be loaded.';errorElement.hidden=false;}
+      await loadCommenterRoles();
       commentOrder=document.querySelector('.sort-comments select').value;
       renderComments();content.hidden=false;
     }catch(error){
@@ -94,7 +111,16 @@
     event.preventDefault();const input=document.getElementById('commentInput');const text=input.value.trim();
     if(!text){input.setCustomValidity('Please enter a comment before posting.');input.reportValidity();return;}
     input.setCustomValidity('');
-    try{comments.push(await (replyTo ? window.devMatchBackend.addProjectCommentReply(activeProject.id,replyTo,text) : window.devMatchBackend.addProjectComment(activeProject.id,text)));replyTo=null;input.value='';input.placeholder='Write a comment…';renderComments();}
+    try{
+      comments.push(await (replyTo
+        ? window.devMatchBackend.addProjectCommentReply(activeProject.id,replyTo,text)
+        : window.devMatchBackend.addProjectComment(activeProject.id,text)));
+      await loadCommenterRoles();
+      replyTo=null;
+      input.value='';
+      input.placeholder='Write a comment…';
+      renderComments();
+    }
     catch(error){console.error('Unable to save the project comment to Supabase.',error);window.alert('Unable to post your comment. Please log in and try again.');}
   });
   document.getElementById('commentInput').addEventListener('input',event=>event.target.setCustomValidity(''));

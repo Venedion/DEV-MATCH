@@ -183,6 +183,85 @@
     }
     return null;
   });
+  let onlinePresenceChannel = null;
+  let onlinePresenceUserId = null;
+  let onlinePresenceGeneration = 0;
+  function stopOnlinePresence() {
+    onlinePresenceGeneration += 1;
+    const channel = onlinePresenceChannel;
+    onlinePresenceChannel = null;
+    onlinePresenceUserId = null;
+    if (channel) {
+      void client.removeChannel(channel).then(result => {
+        if (result !== 'ok') console.error('Unable to stop online presence.', result);
+      }).catch(error => {
+        console.error('Unable to stop online presence.', error);
+      });
+    }
+  }
+  function syncOnlinePresence(session) {
+    const user = session?.user;
+    if (!user?.id || !user.email_confirmed_at || !session.access_token) {
+      stopOnlinePresence();
+      return;
+    }
+    if (onlinePresenceUserId === user.id && onlinePresenceChannel) {
+      void client.realtime.setAuth(session.access_token).catch(error => {
+        console.error('Unable to refresh the online presence session token.', error);
+      });
+      return;
+    }
+
+    const generation = ++onlinePresenceGeneration;
+    void client.realtime.setAuth(session.access_token).then(() => {
+      if (generation !== onlinePresenceGeneration) return;
+      stopOnlinePresence();
+      const channel = client.channel(`devmatch-user-presence:${user.id}`, {
+        config: {private: true, presence: {key: user.id}}
+      });
+      onlinePresenceChannel = channel;
+      onlinePresenceUserId = user.id;
+      channel.subscribe(status => {
+        if (status === 'SUBSCRIBED') {
+          void channel.track({userId: user.id}).then(result => {
+            if (result !== 'ok') console.error('Unable to publish online presence.', result);
+          }).catch(error => {
+            console.error('Unable to publish online presence.', error);
+          });
+        } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+          console.error('Unable to subscribe to online presence.', status);
+        }
+      });
+    }).catch(error => {
+      console.error('Unable to authenticate online presence.', error);
+    });
+  }
+  if (!window.__devmatchOnlinePresenceInitialized) {
+    window.__devmatchOnlinePresenceInitialized = true;
+    client.auth.onAuthStateChange((_event, session) => {
+      syncOnlinePresence(session);
+    });
+    void ready.then(async user => {
+      if (!user?.email_confirmed_at) return;
+      const {data, error} = await client.auth.getSession();
+      if (error) throw error;
+      if (data.session?.user.id === user.id) syncOnlinePresence(data.session);
+    }).catch(error => {
+      console.error('Unable to initialize online presence.', error);
+    });
+    window.addEventListener('pagehide', () => {
+      stopOnlinePresence();
+    });
+    window.addEventListener('pageshow', event => {
+      if (!event.persisted) return;
+      void client.auth.getSession().then(({data, error}) => {
+        if (error) throw error;
+        syncOnlinePresence(data.session);
+      }).catch(error => {
+        console.error('Unable to restore online presence.', error);
+      });
+    });
+  }
   document.addEventListener('click', async event => {
     if (!event.target.closest?.('.header-account-logout')) return;
     event.preventDefault();
@@ -448,6 +527,45 @@
         time: comment.created_at
       }))
     };
+  }
+
+  async function loadCommentAuthorRoles(comments) {
+    const authors = (Array.isArray(comments) ? comments : [])
+      .map(comment => ({
+        userId: comment?.userId || comment?.user_id,
+        name: comment?.name || comment?.author_name
+      }))
+      .filter(comment => typeof comment.userId === 'string' && comment.userId);
+    const userIds = [...new Set(authors.map(comment => comment.userId))];
+    if (!userIds.length) return new Map();
+
+    const {data, error} = await client.from('directory_people')
+      .select('id,display_name,account_role')
+      .in('id', userIds);
+    if (error) throw error;
+
+    const profilesByUser = new Map();
+    (data || []).forEach(profile => {
+      if (!profilesByUser.has(profile.id)) profilesByUser.set(profile.id, []);
+      profilesByUser.get(profile.id).push(profile);
+    });
+
+    const roles = new Map();
+    authors.forEach(author => {
+      const profiles = profilesByUser.get(author.userId) || [];
+      const profile = profiles.find(item => item.display_name === author.name) || profiles[0];
+      if (profile && (profile.account_role === 'dev' || profile.account_role === 'client')) {
+        roles.set(author.userId, profile.account_role);
+      }
+    });
+    return roles;
+  }
+
+  function publicProfileUrl(userId, role) {
+    if (typeof userId !== 'string' || !userId) return null;
+    if (role === 'dev') return `devmatch-developer-profile.html?developer=${encodeURIComponent(userId)}`;
+    if (role === 'client') return `devmatch-client-profile.html?client=${encodeURIComponent(userId)}`;
+    return null;
   }
 
   async function recordProjectView(projectId) {
@@ -806,6 +924,8 @@
     saveOwnedProject,
     deleteOwnedProject,
     loadProjectComments,
+    loadCommentAuthorRoles,
+    publicProfileUrl,
     recordProjectView,
     addProjectComment,
     addProjectCommentReply,
