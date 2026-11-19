@@ -2,128 +2,100 @@
   'use strict';
   const backend = window.devMatchBackend;
   if (!backend) return;
+
   const phoneInput = document.getElementById('settingsPhone');
-  const sendButton = document.getElementById('sendPhoneCode');
-  const verifyButton = document.getElementById('verifyPhoneCode');
-  const codeField = document.getElementById('phoneCodeField');
-  const codeInput = document.getElementById('phoneCode');
+  const startButton = document.getElementById('startWhatsAppVerification');
+  const openWhatsApp = document.getElementById('openWhatsAppVerification');
+  const checkButton = document.getElementById('checkWhatsAppVerification');
   const status = document.getElementById('phoneVerificationStatus');
   const continueLink = document.getElementById('continuePhoneSetup');
-  let account;
-  let phone;
-  let pending = false;
-  let requested = false;
-  let available = false;
-  let verified = false;
-  let cooldownUntil = 0;
+  let account, profile, destinationNumber, expiresAt, busy = false;
 
-  function render() {
-    sendButton.disabled = !available || verified || pending || Date.now() < cooldownUntil;
-    sendButton.textContent = requested ? 'Resend SMS code' : 'Send SMS code';
-    verifyButton.disabled = !available || verified || pending;
-    codeField.hidden = !requested || verified;
-  }
-
-  async function getAccount() {
-    const {data, error} = await backend.client.auth.getUser();
-    if (error || data?.user?.id !== account?.id) throw new Error('Your session changed. Reload and log in again.');
-    return data.user;
-  }
-
-  function showError(error) {
-    if (continueLink) continueLink.hidden = false;
-    if (error.code === 'phone_provider_disabled' || error.code === 'sms_send_failed') {
-      status.textContent = 'SMS could not be delivered. Try again later.';
-    } else if (error.status === 429) {
-      status.textContent = 'Too many requests. Wait before trying again.';
-    } else if (error.code === 'otp_expired') {
-      status.textContent = 'The code is invalid or expired. Check it or request a new code.';
-    } else if (error.code === 'phone_exists') {
-      status.textContent = 'This number cannot be verified. Contact support if the number belongs to you.';
-    } else {
-      status.textContent = 'Phone verification could not be completed. Try again.';
-    }
-  }
-
-  async function run(action) {
-    if (!available || verified || pending) return;
-    pending = true;
-    render();
-    try { await action(); }
-    catch (error) { showError(error); }
-    finally { pending = false; render(); }
-  }
-
-  sendButton.addEventListener('click', () => void run(async () => {
-    if (Date.now() < cooldownUntil) return;
-    await getAccount();
-    const {error} = await backend.client.auth.updateUser({phone});
+  async function isVerified() {
+    if (profile.phone_verified_at && profile.verified_phone === profile.phone) return true;
+    const {data, error} = await backend.client.rpc('is_whatsapp_phone_verified');
     if (error) throw error;
-    requested = true;
-    cooldownUntil = Date.now() + 60000;
-    setTimeout(render, 60000);
-    status.textContent = 'Code requested. Check your SMS and enter the six digits.';
-    render();
-    codeInput.value = '';
-    codeInput.focus();
-  }));
+    return data === true;
+  }
 
-  verifyButton.addEventListener('click', () => void run(async () => {
-    const token = codeInput.value.trim();
-    if (!requested || !/^\d{6}$/.test(token)) {
-      status.textContent = 'Enter the six-digit code from your SMS.';
-      return;
-    }
-    await getAccount();
-    const {error} = await backend.client.auth.verifyOtp({phone, token, type: 'phone_change'});
-    if (error) throw error;
-    const row = await backend.loadProfile(await getAccount());
-    if (!row.phone_verified_at || row.verified_phone !== phone) throw new Error('Verification was not recorded.');
-    verified = true;
-    codeInput.value = '';
+  function showVerified() {
+    startButton.disabled = true;
+    openWhatsApp.hidden = true;
+    openWhatsApp.removeAttribute('href');
+    checkButton.hidden = true;
     status.textContent = 'Phone number verified in both modes.';
-  }));
-  codeInput.addEventListener('keydown', event => {
-    if (event.key !== 'Enter') return;
-    event.preventDefault();
-    verifyButton.click();
-  });
+    if (continueLink) {
+      location.replace(backend.destination({...profile, phone_verified_at: true, verified_phone: profile.phone}, account));
+    }
+  }
 
   async function initialize() {
     account = await backend.ready;
     if (!account?.email_confirmed_at) return;
-    const row = await backend.loadProfile(account);
+    profile = await backend.loadProfile(account);
+    phoneInput.value = profile.phone || '';
     if (continueLink) {
-      if (row.onboarding_complete || (row.phone_verified_at && row.verified_phone === row.phone)) {
-        location.replace(backend.destination(row, account));
-        return;
-      }
-      continueLink.href = 'devmatch-profile.html?role=' + row.account_role;
+      if (profile.onboarding_complete) return location.replace(backend.destination(profile, account));
+      continueLink.href = 'devmatch-profile.html?role=' + profile.account_role;
+      continueLink.hidden = false;
     }
-    phone = row.phone?.trim();
-    phoneInput.value = phone || '';
-    if (!/^\+[1-9]\d{7,14}$/.test(phone || '')) {
-      if (continueLink) continueLink.hidden = false;
+    if (!/^\+[1-9]\d{7,14}$/.test(profile.phone || '')) {
       status.textContent = 'A valid account phone number is required.';
       return;
     }
-    verified = Boolean(row.phone_verified_at && row.verified_phone === phone);
-    if (verified) {
-      status.textContent = 'Phone number verified in both modes.';
+    if (await isVerified()) return showVerified();
+    const endpoint = backend.client.supabaseUrl + '/functions/v1/whatsapp-verification?availability=1';
+    const response = await fetch(endpoint);
+    if (!response.ok) throw new Error('Availability check failed');
+    const {available, number} = await response.json();
+    if (!available || !/^[1-9]\d{7,14}$/.test(number || '')) {
+      status.textContent = 'WhatsApp verification is currently unavailable.';
       return;
     }
-    const {supabaseUrl, supabaseKey} = backend.client;
-    const response = await fetch(`${supabaseUrl}/auth/v1/settings`, {headers: {apikey: supabaseKey}});
-    if (!response.ok) throw new Error('Could not load phone verification settings.');
-    const settings = await response.json();
-    available = settings.external?.phone === true && settings.phone_autoconfirm === false;
-    if (continueLink) continueLink.hidden = available;
-    status.textContent = available ? 'Verify your account number with an SMS code.' : 'SMS verification is currently unavailable.';
-    render();
+    destinationNumber = number;
+    startButton.disabled = false;
+    status.textContent = 'Send the verification message from the WhatsApp number shown above.';
   }
 
+  startButton.addEventListener('click', async () => {
+    if (busy || !destinationNumber) return;
+    busy = true;
+    startButton.disabled = true;
+    try {
+      const {data:code, error} = await backend.client.rpc('start_whatsapp_phone_verification');
+      if (error) throw error;
+      openWhatsApp.href = 'https://wa.me/' + destinationNumber
+        + '?text=' + encodeURIComponent('DEV-MATCH VERIFY ' + code);
+      openWhatsApp.hidden = false;
+      checkButton.hidden = false;
+      expiresAt = Date.now() + 600000;
+      status.textContent = 'Open WhatsApp and send the prepared message. Then return and check verification.';
+    } catch (error) {
+      status.textContent = error.code === '22023' ? 'Wait one minute before requesting another message.' : 'Could not prepare verification. Try again.';
+    } finally {
+      busy = false;
+      startButton.disabled = false;
+    }
+  });
+
+  checkButton.addEventListener('click', async () => {
+    if (busy || !profile) return;
+    busy = true;
+    checkButton.disabled = true;
+    try {
+      if (await isVerified()) showVerified();
+      else status.textContent = Date.now() >= expiresAt
+        ? 'This code expired. Prepare a new message.'
+        : 'No matching message yet. Send it from your account number and check again.';
+    } catch {
+      status.textContent = 'Could not check verification. Try again.';
+    } finally {
+      busy = false;
+      checkButton.disabled = false;
+    }
+  });
+
   void initialize().catch(() => {
-    if (continueLink?.hasAttribute('href')) continueLink.hidden = false;
-    status.textContent = 'Could not load SMS verification. Reload to try again.';
+    status.textContent = 'Could not load WhatsApp verification. Reload to try again.';
   });
 })();
