@@ -54,7 +54,7 @@
       dialog.className = 'workspace-choice';
       dialog.style.cssText = 'border:1px solid #ddd;border-radius:18px;padding:28px;max-width:420px;width:calc(100% - 32px);font:inherit;color:#171717';
       const name = role === 'dev' ? 'developer' : 'client';
-      dialog.innerHTML = `<h2 id="workspace-choice-title">Switch to ${name} mode</h2><p>Connect to keep the same email and password, with a separate ${name} profile.</p><button type="button" data-choice="connect">Connect with current account</button> <button type="button" data-choice="new">Create a new ${name} account</button><p>A new account uses a different email and password.</p><button type="button" data-choice="cancel">Cancel</button>`;
+      dialog.innerHTML = `<h2 id="workspace-choice-title">Switch to ${name} mode</h2><p>Use the same username, email, phone number, and password. Your ${name} profile, messages, favorites, and notifications stay separate.</p><button type="button" data-choice="connect">Connect with current account</button> <button type="button" data-choice="new">Create a new ${name} account</button><p>A new account uses a different email and password.</p><button type="button" data-choice="cancel">Cancel</button>`;
       document.body.append(dialog);
       let finished = false;
       const finish = value => { if (finished) return; finished = true; dialog.close(); dialog.remove(); resolve(value); };
@@ -169,11 +169,11 @@
   function updateHeaderProfile() {
     const workspace = isClientMode ? 'client' : 'dev';
     const role = isClientMode ? 'Client' : 'Developer';
-    const fallbackName = isClientMode ? 'Client User' : 'Developer';
+    const fallbackName = 'Account';
     const profile = getWorkspaceProfile(workspace);
-    const displayName = typeof profile.displayName === 'string'
+    const displayName = profile.username?.trim() || (typeof profile.displayName === 'string'
       ? profile.displayName.trim() || fallbackName
-      : fallbackName;
+      : fallbackName);
     const initials = displayName
       .split(/\s+/)
       .filter(Boolean)
@@ -208,6 +208,7 @@
       throw new Error('The account has no supported workspace role.');
     }
 
+    backend.cache(profile,user);
     isClientMode = profile.account_role === 'client';
     const activeMode = isClientMode ? 'client' : 'developer';
     document.querySelectorAll(modeSwitchSelector).forEach(link => {
@@ -666,19 +667,20 @@
 
     if (user) {
       const {data, error} = await backend.client.functions.invoke('chat-api', {
-        body: {action: 'list-conversations'}
+        body: {action: 'list-conversations', workspaceRole: await backend.getWorkspaceRole()}
       });
       if (error) throw error;
       if (!Array.isArray(data?.data)) {
         throw new Error('Chat service returned an invalid conversation list.');
       }
 
+      const awaitedRole = await backend.getWorkspaceRole();
       unreadCount = data.data.filter(conversation => {
         const lastMessage = conversation.last_message;
         if (!lastMessage || lastMessage.sender_id === user.id) return false;
         try {
           const readAt = Number(localStorage.getItem(
-            `devmatch-chat-read:${user.id}:${conversation.id}`
+            `devmatch-chat-read:${user.id}:${awaitedRole}:${conversation.id}`
           ) || 0);
           return !(Date.parse(lastMessage.created_at) <= readAt);
         } catch (error) {

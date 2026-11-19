@@ -230,7 +230,7 @@
     setText('profileName',displayName);
     setAvatar('profileAvatar',profile.avatar,avatar);
     setAvatar('userAvatar',profile.avatar,avatar);
-    setText('topUserName',displayName);
+    setText('topUserName',username||displayName);
     setText('identityHandle',username?`@${username}`:'');
     document.getElementById('identityHandle').hidden=!username;
     const location=[city,country].filter(Boolean).join(', ');

@@ -26,16 +26,13 @@
   const CLIENTS_KEY = 'devmatch-favorite-clients';
   const DEVS_KEY = 'devmatch-client-dev-favorites';
   if (!await window.devMatchBackend.ready) return;
-  if (localStorage.getItem(PROJECTS_KEY) === null) {
-    const legacyProjects = localStorage.getItem('devmatch-client-favorites');
-    if (legacyProjects !== null) localStorage.setItem(PROJECTS_KEY, legacyProjects);
-  }
   let initialFavoriteRows = null;
   try {
     initialFavoriteRows = await window.devMatchBackend.loadFavorites();
   } catch (error) {
     console.error('Unable to load favorites from Supabase.', error);
     window.alert('Unable to load favorites. Check your connection and try again.');
+    return;
   }
   if (initialFavoriteRows) {
     const idsFor = type => initialFavoriteRows.filter(item => item.type === type).map(item => item.id);
@@ -1216,7 +1213,7 @@
       const userAvatarEl = document.getElementById('userAvatar');
       const topUserNameEl = document.getElementById('topUserName');
       if (userAvatarEl) userAvatarEl.textContent = initials;
-      if (topUserNameEl) topUserNameEl.textContent = name;
+      if (topUserNameEl) topUserNameEl.textContent = profile.username || name;
       document.querySelector('.user-copy small').textContent = role;
 
       const modeLinks = document.querySelectorAll('.mode-switch .mode');

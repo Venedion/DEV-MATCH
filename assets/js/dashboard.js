@@ -14,7 +14,7 @@
     : 'Developer';
   const nameParts = displayName.split(/\s+/).filter(Boolean);
   setText('#welcomeName', nameParts[0] || 'Developer');
-  setText('#topUserName', displayName);
+  setText('#topUserName', profile.username || displayName);
   setText('#userAvatar', nameParts.slice(0, 2).map(part => part[0]).join('').toUpperCase() || 'DM');
 
   const metricElements = {

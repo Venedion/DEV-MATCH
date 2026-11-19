@@ -22,9 +22,11 @@ const C = '33333333-3333-4333-8333-333333333333';
     create publication supabase_realtime;
   `);
   const dir = path.join(__dirname, '../supabase/migrations');
+  let isolationMigration;
   for (const file of fs.readdirSync(dir).filter(f => f.endsWith('.sql')).sort()) {
     // Registration uses external proof-of-work and pgcrypto, tested separately.
     if (file.includes('registration_protection')) continue;
+    if (file.includes('workspace_data_isolation')) { isolationMigration=fs.readFileSync(path.join(dir,file),'utf8'); continue; }
     try { await db.exec(fs.readFileSync(path.join(dir, file), 'utf8')); }
     catch (error) { throw new Error(`${file}: ${error.message}`); }
   }
@@ -36,6 +38,19 @@ const C = '33333333-3333-4333-8333-333333333333';
     update public.profiles set display_name='Original client',onboarding_complete=true,profile_data='{"bio":"client data","accountNumber":"PRIVATE"}' where id='${A}';
     update public.profiles set display_name='Developer B',onboarding_complete=true where id='${B}';
   `);
+  // Seed rows using the old schema before migrating; no history is copied or deleted.
+  await db.exec(`
+    update public.profiles set username='shared_a',phone='+628123456789' where id='${A}';
+    insert into public.conversations(id,participant_a_id,participant_b_id) values('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb','${A}','${B}');
+    insert into public.favorites(user_id,item_type,item_id) values('${A}','project','legacy-saved');
+    insert into public.notifications(id,recipient_id,actor_id,kind,conversation_id) values('cccccccc-cccc-4ccc-8ccc-cccccccccccc','${A}','${B}','message','bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb');
+    insert into public.notification_reads(user_id,notification_id) values('${A}','cccccccc-cccc-4ccc-8ccc-cccccccccccc');
+  `);
+  await db.exec(isolationMigration);
+  assert.equal((await db.query("select participant_a_role from public.conversations")).rows[0].participant_a_role,'client');
+  assert.equal((await db.query("select workspace_role from public.favorites")).rows[0].workspace_role,'client');
+  assert.equal((await db.query("select recipient_role from public.notifications")).rows[0].recipient_role,'client');
+  assert.equal((await db.query("select workspace_role from public.notification_reads")).rows[0].workspace_role,'client');
   const asUser = async id => db.exec(`reset role; set role authenticated; select set_config('request.jwt.claim.sub','${id}',false);`);
   const scalar = async sql => (await db.query(sql)).rows[0];
   await asUser(A);
@@ -76,6 +91,32 @@ const C = '33333333-3333-4333-8333-333333333333';
   await assert.rejects(db.query("select public.switch_account_workspace('dev',true)"));
   await asUser(A);
   await assert.rejects(db.query("select public.switch_account_workspace('admin',true)"));
-  console.log('PASS: full schema, idempotent connect, profile isolation, dual-role projects/directory/metrics/reviews, RLS isolation, invalid and unverified access');
+  // The same identity has independent favorites, read states and preferences.
+  await asUser(A);
+  for(const role of ['client','dev']) {
+    const identity=await scalar(`select username,phone from public.switch_account_workspace('${role}',false)`);
+    assert.equal(identity.username,'shared_a');assert.equal(identity.phone,'+628123456789');
+    await db.exec(`insert into public.favorites(user_id,workspace_role,item_type,item_id) values('${A}','${role}','project','same-project')`);
+  }
+  await db.exec(`delete from public.favorites where user_id='${A}' and workspace_role='dev' and item_id='same-project'`);
+  assert.equal((await scalar("select count(*)::int n from public.favorites where workspace_role='client' and item_id='same-project'")).n,1);
+  await db.exec("select public.save_notification_preferences('{\"messages\":false}', 'client'); select public.save_notification_preferences('{\"messages\":true}', 'dev');");
+  assert.equal((await scalar("select profile_data from public.switch_account_workspace('client',false)")).profile_data.notificationPreferences.messages,false);
+  assert.equal((await scalar("select profile_data from public.switch_account_workspace('dev',false)")).profile_data.notificationPreferences.messages,true);
+  await assert.rejects(db.exec(`insert into public.notification_reads(user_id,workspace_role,notification_id) values('${A}','dev','cccccccc-cccc-4ccc-8ccc-cccccccccccc')`));
+  await db.exec(`reset role;
+    insert into public.conversations(id,participant_a_id,participant_b_id,participant_a_role,participant_b_role)
+      values('dddddddd-dddd-4ddd-8ddd-dddddddddddd','${A}','${B}','dev','client');
+    insert into public.messages(conversation_id,sender_id,ciphertext,nonce,key_version) values
+      ('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb','${B}',repeat('a',22),repeat('b',16),1),
+      ('dddddddd-dddd-4ddd-8ddd-dddddddddddd','${B}',repeat('a',22),repeat('b',16),1);
+  `);
+  assert.equal((await scalar(`select count(*)::int n from public.notifications where recipient_id='${A}' and recipient_role='client'`)).n,1);
+  assert.equal((await scalar(`select count(*)::int n from public.notifications where recipient_id='${A}' and recipient_role='dev'`)).n,1);
+  await asUser(B);
+  assert.equal((await scalar(`select count(*)::int n from public.favorites where user_id='${A}'`)).n,0);
+  await asUser(C);
+  await assert.rejects(db.exec(`insert into public.favorites(user_id,workspace_role,item_type,item_id) values('${C}','dev','project','forbidden')`));
+  console.log('PASS: legacy history retained, shared identity, isolated workspace profiles/favorites/notifications/preferences, role-aware conversations, RLS and existing project features');
   await db.close();
 })().catch(error => { console.error(error.message); process.exitCode = 1; });

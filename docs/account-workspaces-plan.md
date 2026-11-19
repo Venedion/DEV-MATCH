@@ -19,6 +19,12 @@ When an authenticated client selects developer mode and lacks that workspace, sh
 
 ## Validation and deployment
 
-Run `npm ci`, `npm test`, and `npm run test:database`. The database suite runs repository migrations in PGlite with Supabase system tables stubbed, and exercises role membership, independent profile data, RLS, projects, directory privacy, metrics, and project reviews. Notification preferences and the authentication identity remain account-wide.
+Run `npm ci`, `npm test`, and `npm run test:database`. The database suite runs repository migrations in PGlite with Supabase system tables stubbed, and exercises role membership, independent profile data, RLS, projects, directory privacy, metrics, and project reviews. Authentication identity (username, email, phone and credentials) remains account-wide. Profiles, inboxes, favorites, notifications, read state and notification preferences are scoped to the selected workspace.
 
 Production migration `account_workspaces_and_latest_features` applies the November 17 metrics, replies, reviews and workspace changes together. The chat-api Edge Function also needs the matching role-aware implementation. Static Vercel uploads contain only HTML, assets, and vercel.json.
+
+## Workspace isolation follow-up
+
+Migration `20261118142224_workspace_data_isolation.sql` preserves historical rows and assigns their original workspace. Project conversations derive roles from their project; legacy direct conversations use participants' original roles. New conversations persist both participant roles, and the chat API checks membership and conversation role on every request. Contacts use the canonical username and their saved conversation role. Favorites and notification reads include the workspace in their keys. Notification triggers route to the correct workspace and honor its independent preferences. New connected profiles start blank while keeping the shared login identity.
+
+Validation covers existing-row migration, RLS, separate role-pair conversations for the same users, cross-workspace chat rejection, independent profiles, favorites, notification reads and preferences. Live QA uses disposable synthetic accounts to exercise Connect, onboarding and switching back to the original inbox. Deploy the database migration and matching chat-api before the static frontend.

@@ -4,7 +4,7 @@ const displayName=typeof profile.displayName==='string'&&profile.displayName.tri
   ? profile.displayName.trim()
   : 'Developer';
 const nameParts=displayName.trim().split(/\s+/).filter(Boolean);
-document.getElementById('topUserName').textContent=displayName;
+document.getElementById('topUserName').textContent=profile.username||displayName;
 document.getElementById('userAvatar').textContent=nameParts.slice(0,2).map(part=>part[0]).join('').toUpperCase()||'DM';
 
 const storageKey='devmatch-dashboard-projects';

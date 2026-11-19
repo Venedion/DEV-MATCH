@@ -75,7 +75,7 @@
 
   function appendNotification(row, notification, actors, projects) {
     const detail = kindDetails(notification.kind);
-    const actorName = actors.get(notification.actor_id) || 'A member';
+    const actorName = actors.get(notification.actor_id + ':' + notification.actor_role) || 'A member';
     const projectTitle = projects.get(notification.project_id) || 'your project';
     const article = document.createElement('article');
     article.className = 'notification-row';
@@ -227,8 +227,8 @@
       backend.loadNotificationReads(),
       backend.loadNotificationPreferences(),
       client.from('notifications')
-        .select('id,recipient_id,actor_id,kind,project_id,conversation_id,created_at')
-        .eq('recipient_id', user.id)
+        .select('id,recipient_id,recipient_role,actor_id,actor_role,kind,project_id,conversation_id,created_at')
+        .eq('recipient_id', user.id).eq('recipient_role', workspace)
         .order('created_at', {ascending: false})
     ]);
     if (notificationResult.error) throw notificationResult.error;
@@ -253,12 +253,12 @@
     const actorIds = [...new Set(notifications.map(item => item.actor_id).filter(Boolean))];
     const projectIds = [...new Set(notifications.map(item => item.project_id).filter(Boolean))];
     const [actorsResult, projectsResult] = await Promise.all([
-      actorIds.length ? client.from('directory_people').select('id,display_name').in('id', actorIds) : Promise.resolve({data: [], error: null}),
+      actorIds.length ? client.from('directory_people').select('id,username,display_name,account_role').in('id', actorIds) : Promise.resolve({data: [], error: null}),
       projectIds.length ? client.from('projects').select('id,title').in('id', projectIds) : Promise.resolve({data: [], error: null})
     ]);
     if (actorsResult.error) throw actorsResult.error;
     if (projectsResult.error) throw projectsResult.error;
-    const actors = new Map((actorsResult.data || []).map(actor => [actor.id, actor.display_name]));
+    const actors = new Map((actorsResult.data || []).map(actor => [actor.id + ':' + actor.account_role, actor.username || actor.display_name]));
     const projects = new Map((projectsResult.data || []).map(project => [project.id, project.title]));
     itemsContainer.replaceChildren();
     stateReady = true;

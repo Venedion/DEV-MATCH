@@ -189,16 +189,17 @@ async function getConversation(supabaseUrl, serviceRoleKey, conversationId) {
     throw new ChatApiError('A valid conversation is required.', 400);
   }
   const rows = await requestRows(supabaseUrl, serviceRoleKey, 'conversations', {
-    select: 'id,participant_a_id,participant_b_id,project_id,updated_at,last_message_at',
+    select: 'id,participant_a_id,participant_b_id,participant_a_role,participant_b_role,project_id,updated_at,last_message_at',
     id: `eq.${conversationId}`,
     limit: '1'
   });
   return rows[0] || null;
 }
 
-function userIsParticipant(conversation, userId) {
+function userIsParticipant(conversation, userId, role) {
   return !!conversation && (
-    conversation.participant_a_id === userId || conversation.participant_b_id === userId
+    (conversation.participant_a_id === userId && conversation.participant_a_role === role)
+    || (conversation.participant_b_id === userId && conversation.participant_b_role === role)
   );
 }
 
@@ -265,42 +266,40 @@ async function getPublicAccount(supabaseUrl, serviceRoleKey, userId, role) {
   return accounts[0] || null;
 }
 
-async function findConversation(supabaseUrl, serviceRoleKey, userId, participantId, projectId) {
-  const participantFilter = `in.(${userId},${participantId})`;
-  const query = {
-    select: 'id,participant_a_id,participant_b_id,project_id,updated_at,last_message_at',
-    participant_a_id: participantFilter,
-    participant_b_id: participantFilter,
-    limit: '1'
-  };
-  query.project_id = projectId === null ? 'is.null' : `eq.${projectId}`;
-  const rows = await requestRows(supabaseUrl, serviceRoleKey, 'conversations', query);
+async function findConversation(supabaseUrl, serviceRoleKey, userId, participantId, projectId, userRole, recipientRole) {
+  const rows = await requestRows(supabaseUrl, serviceRoleKey, 'conversations', {
+    select: 'id,participant_a_id,participant_b_id,participant_a_role,participant_b_role,project_id,updated_at,last_message_at',
+    or: `(and(participant_a_id.eq.${userId},participant_a_role.eq.${userRole},participant_b_id.eq.${participantId},participant_b_role.eq.${recipientRole}),and(participant_b_id.eq.${userId},participant_b_role.eq.${userRole},participant_a_id.eq.${participantId},participant_a_role.eq.${recipientRole}))`,
+    project_id: projectId === null ? 'is.null' : `eq.${projectId}`, limit: '1'
+  });
   return rows[0] || null;
 }
 
-async function startConversation(supabaseUrl, serviceRoleKey, userId, participantId, projectId) {
+async function startConversation(supabaseUrl, serviceRoleKey, userId, participantId, projectId, userRole, recipientRole) {
   const existing = await findConversation(
-    supabaseUrl, serviceRoleKey, userId, participantId, projectId
+    supabaseUrl, serviceRoleKey, userId, participantId, projectId, userRole, recipientRole
   );
   if (existing) return existing;
 
   const [participantA, participantB] = [userId, participantId].sort();
   try {
     const response = await fetch(
-      `${supabaseUrl.replace(/\/$/, '')}/rest/v1/conversations?select=id,participant_a_id,participant_b_id,project_id,updated_at,last_message_at`,
+      `${supabaseUrl.replace(/\/$/, '')}/rest/v1/conversations?select=id,participant_a_id,participant_b_id,participant_a_role,participant_b_role,project_id,updated_at,last_message_at`,
       {
         method: 'POST',
         headers: supabaseHeaders(serviceRoleKey, {Prefer: 'return=representation'}),
         body: JSON.stringify([{
           participant_a_id: participantA,
           participant_b_id: participantB,
+          participant_a_role: participantA === userId ? userRole : recipientRole,
+          participant_b_role: participantB === userId ? userRole : recipientRole,
           project_id: projectId
         }])
       }
     );
     if (response.status === 409) {
       const raced = await findConversation(
-        supabaseUrl, serviceRoleKey, userId, participantId, projectId
+        supabaseUrl, serviceRoleKey, userId, participantId, projectId, userRole, recipientRole
       );
       if (raced) return raced;
     }
@@ -319,21 +318,38 @@ async function startConversation(supabaseUrl, serviceRoleKey, userId, participan
 }
 
 async function handleAction(body, user, keyring, supabaseUrl, serviceRoleKey) {
+  if (body.workspaceRole != null && !['client', 'dev'].includes(body.workspaceRole)) {
+    throw new ChatApiError('Invalid workspace.', 400);
+  }
+  const account = await getAccount(supabaseUrl, serviceRoleKey, user.id, body.workspaceRole);
+  if (!account) throw new ChatApiError('Workspace not found.', 403);
+  const workspaceRole = account.account_role;
+
   if (body.action === 'list-conversations') {
     const conversations = await requestRows(supabaseUrl, serviceRoleKey, 'conversations', {
-      select: 'id,participant_a_id,participant_b_id,project_id,updated_at,last_message_at,messages(id,conversation_id,sender_id,ciphertext,nonce,key_version,created_at)',
-      or: `(participant_a_id.eq.${user.id},participant_b_id.eq.${user.id})`,
+      select: 'id,participant_a_id,participant_b_id,participant_a_role,participant_b_role,project_id,updated_at,last_message_at,messages(id,conversation_id,sender_id,ciphertext,nonce,key_version,created_at)',
+      or: `(and(participant_a_id.eq.${user.id},participant_a_role.eq.${workspaceRole}),and(participant_b_id.eq.${user.id},participant_b_role.eq.${workspaceRole}))`,
       'messages.order': 'created_at.desc',
       'messages.limit': '1',
       order: 'last_message_at.desc.nullslast,updated_at.desc',
       limit: '100'
     });
 
+    const ids = [...new Set(conversations.map(c => c.participant_a_id === user.id ? c.participant_b_id : c.participant_a_id))];
+    const [identities, workspaces] = ids.length ? await Promise.all([
+      requestRows(supabaseUrl, serviceRoleKey, 'profiles', {select:'id,username,display_name,account_role', id:`in.(${ids.join(',')})`}),
+      requestRows(supabaseUrl, serviceRoleKey, 'account_workspaces', {select:'user_id,role,display_name', user_id:`in.(${ids.join(',')})`})
+    ]) : [[], []];
     return Promise.all(conversations.map(async conversation => {
       const {messages, ...details} = conversation;
+      const partnerId = conversation.participant_a_id === user.id ? conversation.participant_b_id : conversation.participant_a_id;
+      const partnerRole = conversation.participant_a_id === user.id ? conversation.participant_b_role : conversation.participant_a_role;
+      const identity = identities.find(p => p.id === partnerId);
+      const profile = identity?.account_role === partnerRole ? identity : workspaces.find(w => w.user_id === partnerId && w.role === partnerRole);
       const last = Array.isArray(messages) ? messages[0] : null;
       return {
         ...details,
+        contact: {id:partnerId, account_role:partnerRole, username:identity?.username || '', display_name:profile?.display_name || ''},
         last_message: last ? await decryptRow(last, keyring) : null
       };
     }));
@@ -364,6 +380,7 @@ async function handleAction(body, user, keyring, supabaseUrl, serviceRoleKey) {
     }
     const expectedSenderRole = project.project_kind === 'portfolio' ? 'client' : 'dev';
     const expectedOwnerRole = project.project_kind === 'portfolio' ? 'dev' : 'client';
+    if (workspaceRole !== expectedSenderRole) throw new ChatApiError('Switch to the project contact workspace first.', 403);
     const [sender, owner] = await Promise.all([
       getAccount(supabaseUrl, serviceRoleKey, user.id, expectedSenderRole),
       getPublicAccount(supabaseUrl, serviceRoleKey, project.owner_id, expectedOwnerRole)
@@ -372,7 +389,7 @@ async function handleAction(body, user, keyring, supabaseUrl, serviceRoleKey) {
       || owner?.account_role !== expectedOwnerRole) {
       throw new ChatApiError('Your account cannot start a conversation about this project.', 403);
     }
-    return startConversation(supabaseUrl, serviceRoleKey, user.id, project.owner_id, project.id);
+    return startConversation(supabaseUrl, serviceRoleKey, user.id, project.owner_id, project.id, expectedSenderRole, expectedOwnerRole);
   }
 
   if (body.action === 'start-user') {
@@ -398,7 +415,7 @@ async function handleAction(body, user, keyring, supabaseUrl, serviceRoleKey) {
       || !['client', 'dev'].includes(recipient.account_role)) {
       throw new ChatApiError('Chat is only available between clients and developers.', 403);
     }
-    return startConversation(supabaseUrl, serviceRoleKey, user.id, participantId, null);
+    return startConversation(supabaseUrl, serviceRoleKey, user.id, participantId, null, workspaceRole, recipient.account_role);
   }
 
   if (body.action === 'list-messages'
@@ -407,7 +424,7 @@ async function handleAction(body, user, keyring, supabaseUrl, serviceRoleKey) {
     const conversation = await getConversation(
       supabaseUrl, serviceRoleKey, body.conversationId
     );
-    if (!userIsParticipant(conversation, user.id)) {
+    if (!userIsParticipant(conversation, user.id, workspaceRole)) {
       throw new ChatApiError('Conversation not found.', 404);
     }
 

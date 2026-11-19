@@ -164,7 +164,7 @@
       return null;
     }
     if (!protectedPage) return user;
-    if(['devmatch-settings.html','devmatch-my-profile.html'].includes(page)){
+    if(['devmatch-settings.html','devmatch-my-profile.html','devmatch-favorites.html','devmatch-chat.html'].includes(page)){
       const query=new URLSearchParams(location.search);
       if(query.get('role')!==row.account_role){query.set('role',row.account_role);location.replace(page+'?'+query);return null;}
     }
@@ -199,186 +199,78 @@
     return user;
   }
 
-  function readLegacyIds(storageKey) {
-    const stored = localStorage.getItem(storageKey);
-    if (stored === null) return [];
-    try {
-      const parsed = JSON.parse(stored);
-      return Array.isArray(parsed) ? [...new Set(parsed.filter(id => typeof id === 'string' && id.length > 0))] : [];
-    } catch (error) {
-      console.warn(`Ignoring invalid saved data in ${storageKey}.`, error);
-      return [];
-    }
+  async function getWorkspaceRole() {
+    const user = await currentAccount();
+    if (!activeAccountRole) activeAccountRole = (await loadProfile(user)).account_role;
+    return activeAccountRole;
   }
 
   async function loadFavorites() {
     const user = await currentAccount();
-    if (!activeAccountRole) {
-      const profile = await loadProfile(user);
-      activeAccountRole = profile.account_role;
-    }
-    const {data, error} = await client.from('favorites')
-      .select('item_type,item_id')
-      .eq('user_id', user.id);
+    const role = await getWorkspaceRole();
+    const {data, error} = await client.from('favorites').select('item_type,item_id')
+      .eq('user_id',user.id).eq('workspace_role',role);
     if (error) throw error;
-
-    const migrationKey = `devmatch-user-data-migration-${user.id}-favorites-v1`;
-    let rows = data || [];
-    if (localStorage.getItem(migrationKey) !== 'complete') {
-      if (rows.length === 0) {
-        const legacyFavorites = activeAccountRole === 'client'
-          ? [
-              ['project', 'devmatch-client-project-favorites'],
-              ['developer', 'devmatch-client-dev-favorites']
-            ]
-          : [
-              ['project', 'devmatch-developer-project-favorites'],
-              ['client', 'devmatch-favorite-clients']
-            ];
-        const projectStorageKey = legacyFavorites.find(([type]) => type === 'project')[1];
-        if (localStorage.getItem(projectStorageKey) === null) {
-          legacyFavorites.push(['project', 'devmatch-client-favorites']);
-        }
-        const imported = legacyFavorites.flatMap(([item_type, storageKey]) =>
-          readLegacyIds(storageKey).map(item_id => ({ user_id: user.id, item_type, item_id }))
-        );
-        if (imported.length) {
-          const {error: insertError} = await client.from('favorites')
-            .upsert(imported, {onConflict: 'user_id,item_type,item_id', ignoreDuplicates: true})
-          if (insertError) throw insertError;
-          const {data: refreshed, error: refreshError} = await client.from('favorites')
-            .select('item_type,item_id')
-            .eq('user_id', user.id);
-          if (refreshError) throw refreshError;
-          rows = refreshed || [];
-        }
-      }
-      localStorage.setItem(migrationKey, 'complete');
-    }
-
-    return rows.map(({item_type, item_id}) => ({type: item_type, id: item_id}));
+    // Anonymous device caches cannot establish ownership or workspace membership.
+    return (data || []).map(({item_type,item_id}) => ({type:item_type,id:item_id}));
   }
 
-  async function setFavorite(type, id, saved) {
-    if (!['project', 'developer', 'client'].includes(type) || typeof id !== 'string' || !id) {
+  async function setFavorite(type,id,saved) {
+    if (!['project','developer','client'].includes(type) || typeof id !== 'string' || !id) {
       throw new TypeError('A supported favorite type and item ID are required.');
     }
-    const user = await currentAccount();
-    const query = client.from('favorites');
-    const result = saved
-      ? await query.upsert(
-          {user_id: user.id, item_type: type, item_id: id},
-          {onConflict: 'user_id,item_type,item_id', ignoreDuplicates: true}
-        )
-      : await query.delete().eq('user_id', user.id).eq('item_type', type).eq('item_id', id);
-    if (result.error) throw result.error;
+    const user=await currentAccount(); const role=await getWorkspaceRole();
+    const query=client.from('favorites');
+    const result=saved ? await query.upsert({user_id:user.id,workspace_role:role,item_type:type,item_id:id},
+      {onConflict:'user_id,workspace_role,item_type,item_id',ignoreDuplicates:true})
+      : await query.delete().eq('user_id',user.id).eq('workspace_role',role).eq('item_type',type).eq('item_id',id);
+    if(result.error)throw result.error;
   }
 
   async function clearFavorites(type) {
-    if (!['project', 'developer', 'client'].includes(type)) {
-      throw new TypeError('A supported favorite type is required.');
-    }
-    const user = await currentAccount();
-    const {error} = await client.from('favorites')
-      .delete()
-      .eq('user_id', user.id)
-      .eq('item_type', type);
-    if (error) throw error;
+    if (!['project','developer','client'].includes(type)) throw new TypeError('A supported favorite type is required.');
+    const user=await currentAccount(); const role=await getWorkspaceRole();
+    const {error}=await client.from('favorites').delete().eq('user_id',user.id).eq('workspace_role',role).eq('item_type',type);
+    if(error)throw error;
   }
 
   async function loadNotificationReads() {
-    const user = await currentAccount();
-    const {data, error} = await client.from('notification_reads')
-      .select('notification_id')
-      .eq('user_id', user.id);
-    if (error) throw error;
-
-    const migrationKey = `devmatch-user-data-migration-${user.id}-notification-reads-v1`;
-    let rows = data || [];
-    if (localStorage.getItem(migrationKey) !== 'complete') {
-      if (rows.length === 0) {
-        const storageKey = `devmatch-${activeAccountRole}-notifications-read`;
-        const imported = readLegacyIds(storageKey).map(notification_id => ({
-          user_id: user.id,
-          notification_id
-        }));
-        if (imported.length) {
-          const {error: insertError} = await client.from('notification_reads')
-            .upsert(imported, {onConflict: 'user_id,notification_id', ignoreDuplicates: true})
-          if (insertError) throw insertError;
-          const {data: refreshed, error: refreshError} = await client.from('notification_reads')
-            .select('notification_id')
-            .eq('user_id', user.id);
-          if (refreshError) throw refreshError;
-          rows = refreshed || [];
-        }
-      }
-      localStorage.setItem(migrationKey, 'complete');
-    }
-
-    return rows.map(row => row.notification_id);
+    const user=await currentAccount(); const role=await getWorkspaceRole();
+    const {data,error}=await client.from('notification_reads').select('notification_id')
+      .eq('user_id',user.id).eq('workspace_role',role);
+    if(error)throw error;
+    return (data||[]).map(row=>row.notification_id);
   }
 
   async function loadUnreadNotificationCount() {
-    const user = await currentAccount();
-    const [readIds, {data, error}] = await Promise.all([
-      loadNotificationReads(),
-      client.from('notifications').select('id').eq('recipient_id', user.id)
-    ]);
-    if (error) throw error;
-    const readSet = new Set(readIds);
-    return (data || []).filter(notification => !readSet.has(notification.id)).length;
+    const user=await currentAccount(); const role=await getWorkspaceRole();
+    const [readIds,{data,error}]=await Promise.all([loadNotificationReads(),
+      client.from('notifications').select('id').eq('recipient_id',user.id).eq('recipient_role',role)]);
+    if(error)throw error;
+    const readSet=new Set(readIds);
+    return (data||[]).filter(n=>!readSet.has(n.id)).length;
   }
 
   async function markNotificationsRead(notificationIds) {
-    const ids = [...new Set(notificationIds.filter(id => typeof id === 'string' && id.length > 0))];
-    if (!ids.length) return;
-    const user = await currentAccount();
-    const {error} = await client.from('notification_reads').upsert(
-      ids.map(notification_id => ({user_id: user.id, notification_id, read_at: new Date().toISOString()})),
-      {onConflict: 'user_id,notification_id'}
-    );
-    if (error) throw error;
+    const ids=[...new Set(notificationIds.filter(id=>typeof id==='string'&&id.length>0))];
+    if(!ids.length)return;
+    const user=await currentAccount(); const role=await getWorkspaceRole();
+    const {error}=await client.from('notification_reads').upsert(
+      ids.map(notification_id=>({user_id:user.id,workspace_role:role,notification_id,read_at:new Date().toISOString()})),
+      {onConflict:'user_id,workspace_role,notification_id'});
+    if(error)throw error;
   }
 
   async function loadNotificationPreferences() {
-    const user = await currentAccount();
-    const {data, error} = await client.from('profiles')
-      .select('profile_data')
-      .eq('id', user.id)
-      .single();
-    if (error) throw error;
-
-    const preferences = data.profile_data?.notificationPreferences;
-    if (preferences && typeof preferences === 'object' && !Array.isArray(preferences)) return preferences;
-
-    const storageKey = `devmatch-${activeAccountRole}-notification-preferences`;
-    const legacy = localStorage.getItem(storageKey);
-    if (legacy === null) return {};
-    try {
-      const parsed = JSON.parse(legacy);
-      if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return {};
-      const {data: updatedProfileData, error: saveError} = await client.rpc(
-        'save_notification_preferences',
-        {p_preferences: parsed}
-      );
-      if (saveError) throw saveError;
-      return updatedProfileData.notificationPreferences || {};
-    } catch (parseError) {
-      if (parseError instanceof SyntaxError) {
-        console.warn(`Ignoring invalid saved notification preferences in ${storageKey}.`, parseError);
-        return {};
-      }
-      throw parseError;
-    }
+    const user=await currentAccount(); const row=await loadProfile(user);
+    return row.profile_data?.notificationPreferences || {};
   }
 
   async function saveNotificationPreferences(preferences) {
-    const user = await currentAccount();
-    const {data, error} = await client.rpc('save_notification_preferences', {p_preferences: preferences});
-    if (error) throw error;
-    const storageKey = `devmatch-${activeAccountRole}-notification-preferences`;
-    localStorage.setItem(storageKey, JSON.stringify(preferences));
+    const role=await getWorkspaceRole();
+    const {data,error}=await client.rpc('save_notification_preferences',{p_preferences:preferences,p_role:role});
+    if(error)throw error;
+    const user=await currentAccount(); cache(await loadProfile(user),user);
     return data;
   }
 
@@ -575,7 +467,7 @@
     }
     const user = await currentAccount();
     const {data, error} = await client.from('comments')
-      .insert({project_id: projectId, user_id: user.id, text: text.trim()})
+      .insert({project_id: projectId, user_id: user.id, workspace_role: await getWorkspaceRole(), text: text.trim()})
       .select('id,project_id,user_id,text,author_name,author_initials,created_at')
       .single();
     if (error) throw error;
@@ -598,7 +490,7 @@
     }
     const user = await currentAccount();
     const {data, error} = await client.from('comments')
-      .insert({project_id: projectId, parent_comment_id: parentCommentId, user_id: user.id, text: text.trim()})
+      .insert({project_id: projectId, parent_comment_id: parentCommentId, user_id: user.id, workspace_role: await getWorkspaceRole(), text: text.trim()})
       .select('id,project_id,parent_comment_id,user_id,text,author_name,author_initials,created_at')
       .single();
     if (error) throw error;
@@ -886,6 +778,7 @@
     profileDataForCache,
     cache,
     loadProfile,
+    getWorkspaceRole,
     hasWorkspace,
     switchWorkspace,
     updateWorkspaceProfile,

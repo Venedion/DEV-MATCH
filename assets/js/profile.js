@@ -2,7 +2,9 @@ const params=new URLSearchParams(window.location.search);
 const role=params.get('role')==='client'?'client':'dev';
 const isDeveloper=role==='dev';
 const draftKey='devmatch-profile-draft';
-const draft=JSON.parse(sessionStorage.getItem(draftKey)||'{}');
+const storedDraft=JSON.parse(sessionStorage.getItem(draftKey)||'{}');
+const cachedWorkspace=JSON.parse(localStorage.getItem('devmatch-profile-'+role)||'{}');
+const draft={...cachedWorkspace,...(storedDraft.role===role?storedDraft:{})};
 const profile={
   username:'',
   displayName:'',
@@ -532,4 +534,5 @@ else{
     .map((entry,index)=>({...entry,id:String(index+1),files:Array.isArray(entry.files)?entry.files.map(String):[]}));
   nextExperienceId=profile.experiences.length;
 }
+profile.username=cachedWorkspace.username||'';
 render();

@@ -264,6 +264,7 @@
     setVal('settingsDisplayName', profileData.displayName);
     setVal('settingsUsername', profileData.username || '');
     setVal('settingsEmail', profileData.email || '');
+    setVal('settingsPhone', profileData.phone || '');
     setVal('settingsCity', profileData.city || '');
     setVal('settingsBio', profileData.bio || '');
     setVal('settingsWhatsapp', profileData.whatsapp || '');
@@ -321,7 +322,7 @@
     const initials = name.trim().split(/\s+/).filter(Boolean).slice(0, 2).map(p => p[0]).join('').toUpperCase() || 'DM';
 
     setAvatar(userAvatarEl, profileData.avatar, initials);
-    if (topUserNameEl) topUserNameEl.textContent = name;
+    if (topUserNameEl) topUserNameEl.textContent = profileData.username || name;
     setAvatar(settingsAvatarPreview, profileData.avatar, initials);
   }
 

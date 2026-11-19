@@ -124,7 +124,7 @@
   }
 
   function readAtKey(conversationId) {
-    return `devmatch-chat-read:${currentUser.id}:${conversationId}`;
+    return `devmatch-chat-read:${currentUser.id}:${currentProfile.account_role}:${conversationId}`;
   }
 
   function wasReadAfterLastMessage(conversation) {
@@ -171,20 +171,20 @@
     return `${page}?${queryKey}=${encodeURIComponent(project.id)}`;
   }
 
-  function mapConversation(row, people, projects) {
+  function mapConversation(row, projects) {
     const existing = conversations.find(item => item.id === row.id);
     const otherId = row.participant_a_id === currentUser.id
       ? row.participant_b_id
       : row.participant_a_id;
-    const person = people.get(otherId);
+    const person = row.contact;
     const project = projects.get(row.project_id) || null;
     const conversation = {
       id: row.id,
       contactId: person?.username || otherId,
       participantId: otherId,
-      name: person?.display_name || 'DEV-MATCH member',
-      initials: initials(person?.display_name),
-      role: person?.account_role === 'client' ? 'Client' : 'Developer',
+      name: person?.username || person?.display_name || 'Unavailable account',
+      initials: initials(person?.username || person?.display_name),
+      role: person?.account_role === 'client' ? 'Client' : person?.account_role === 'dev' ? 'Developer' : 'Account',
       roleType: person?.account_role || '',
       color: person?.account_role === 'client' ? 'coral' : 'blue',
       online: false,
@@ -212,21 +212,8 @@
     const rows = await invokeChat('list-conversations');
     if (!Array.isArray(rows)) throw new Error('Chat service returned an invalid conversation list.');
 
-    const partnerIds = [...new Set(rows.map(row =>
-      row.participant_a_id === currentUser.id ? row.participant_b_id : row.participant_a_id
-    ))];
     const projectIds = [...new Set(rows.map(row => row.project_id).filter(Boolean))];
-    let people = [];
     let projects = [];
-
-    if (partnerIds.length) {
-      const result = await client.from('directory_people')
-        .select('id,display_name,username,account_role')
-        .eq('account_role', currentProfile.account_role === 'client' ? 'dev' : 'client')
-        .in('id', partnerIds);
-      if (result.error) throw result.error;
-      people = result.data || [];
-    }
     if (projectIds.length) {
       const result = await client.from('projects')
         .select('id,title,category,price,data,project_kind')
@@ -235,9 +222,9 @@
       projects = result.data || [];
     }
 
-    const peopleById = new Map(people.map(person => [person.id, person]));
+
     const projectsById = new Map(projects.map(project => [project.id, project]));
-    conversations = rows.map(row => mapConversation(row, peopleById, projectsById));
+    conversations = rows.map(row => mapConversation(row, projectsById));
     if (!conversations.some(conversation => conversation.id === activeConvId)) {
       activeConvId = null;
     }
@@ -810,7 +797,7 @@
   function updateShell(profile) {
     const isClient = profile.account_role === 'client';
     const role = isClient ? 'client' : 'dev';
-    const name = profile.display_name?.trim() || currentUser.email || 'DEV-MATCH member';
+    const name = profile.username?.trim() || profile.display_name?.trim() || currentUser.email || 'Account';
     const avatar = document.getElementById('userAvatar');
     const topName = document.getElementById('topUserName');
     if (avatar) avatar.textContent = initials(name);

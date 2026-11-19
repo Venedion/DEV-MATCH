@@ -16,7 +16,7 @@
   <script src="assets/js/mode-switch-state.js?v=20261030-client-mode-indicator"></script>
   <script src="assets/js/i18n.js?v=20261103-skill-edit-v2"></script>
 <script src="assets/vendor/supabase-2.119.0.js"></script>
-<script src="assets/js/backend.js?v=20261118-workspaces"></script>
+<script src="assets/js/backend.js?v=20261118-workspace-isolation"></script>
 </head>
 <body class="page-scroll-shell">
   <!-- Topbar -->
@@ -151,7 +151,7 @@
 
               <div class="settings-field">
                 <label class="settings-label" for="settingsUsername">Username</label>
-                <input class="settings-input" id="settingsUsername" type="text" required placeholder="e.g. rizkyaditya">
+                <input class="settings-input" id="settingsUsername" type="text" readonly placeholder="e.g. rizkyaditya">
               </div>
 
               <div class="settings-field">
@@ -159,8 +159,14 @@
                   Email Address
                   <small style="color:var(--green);font-weight:700;">● Verified</small>
                 </label>
-                <input class="settings-input" id="settingsEmail" type="email" required placeholder="name@example.com">
-                <span class="settings-hint">Changing email requires one-time re-verification.</span>
+                <input class="settings-input" id="settingsEmail" type="email" readonly placeholder="name@example.com">
+                <span class="settings-hint">Username and email are shared by both modes.</span>
+              </div>
+
+              <div class="settings-field">
+                <label class="settings-label" for="settingsPhone">Account phone number</label>
+                <input class="settings-input" id="settingsPhone" type="tel" readonly>
+                <span class="settings-hint">Shared by both modes. SMS verification is not enabled yet.</span>
               </div>
 
               <div class="settings-field">
@@ -811,8 +817,8 @@
 
   </a>
 
-  <script src="assets/js/settings.js?v=20261117-empty-profile-fallbacks"></script>
+  <script src="assets/js/settings.js?v=20261118-workspace-isolation"></script>
   <script src="assets/js/custom-select.js?v=20261028-custom-dropdowns-v3"></script>
-  <script src="assets/js/nav-behavior.js?v=20261118-merge-workspaces-realtime"></script>
+  <script src="assets/js/nav-behavior.js?v=20261118-workspace-isolation"></script>
 </body>
 </html>

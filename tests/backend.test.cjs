@@ -1,7 +1,7 @@
 const {test}=require('node:test');const assert=require('node:assert/strict');const fs=require('node:fs');const vm=require('node:vm');const path=require('node:path');
 const source=fs.readFileSync(path.join(__dirname,'../assets/js/backend.js'),'utf8');
-async function setup({verified=true,page='devmatch-settings.html',role='dev',userRole='dev',changeAccount=false,legacySensitiveCache=false,commentResults=[],notifications=[],notificationReadIds=[],metrics=[],metricsError=null,rpcResponses={},projectEngagement=null,workspaceRole=null,workspaces=[]}={}){
-  let gets=0;const redirects=[],updates=[],passwords=[],rpcCalls=[];
+async function setup({verified=true,page='devmatch-settings.html',role='dev',userRole='dev',changeAccount=false,legacySensitiveCache=false,commentResults=[],notifications=[],favorites=[],notificationReadIds=[],metrics=[],metricsError=null,rpcResponses={},projectEngagement=null,workspaceRole=null,workspaces=[]}={}){
+  let gets=0;const redirects=[],updates=[],passwords=[],rpcCalls=[],tableCalls=[];
   const user={id:'fixture',email:'owner@example.invalid',email_confirmed_at:verified?'2026-11-08':null};
   const row={id:user.id,account_role:userRole,account_verified:false,onboarding_complete:true,profile_data:{displayName:'Owner'},display_name:'Owner',username:'owner',phone:'+6281234567890'};
   const cachedProfile={...row.profile_data,username:row.username,displayName:row.display_name,phone:row.phone,email:user.email,role:userRole,googleConnected:false};
@@ -18,15 +18,21 @@ async function setup({verified=true,page='devmatch-settings.html',role='dev',use
   const commentSelects=[];
   const commentsQuery={select(columns){commentSelects.push(columns);return this;},eq(){return this;},order(){return this;},
     then(resolve,reject){return Promise.resolve(commentResults[commentSelects.length-1]||{data:[],error:null}).then(resolve,reject);}};
-  function dataQuery(data){const result={select:()=>result,eq:()=>result,order:()=>result,maybeSingle:async()=>({data:Array.isArray(data)?data[0]||null:data,error:null}),then:(resolve,reject)=>Promise.resolve({data,error:null}).then(resolve,reject)};return result;}
-  const tableData={notifications,notification_reads:notificationReadIds.map(notification_id=>({notification_id})),project_engagements:projectEngagement?[projectEngagement]:[]};
+  function dataQuery(data,table){
+    const filters=[];const call={table,filters};tableCalls.push(call);
+    const rows=()=>data.filter(row=>filters.every(([key,value])=>!Object.hasOwn(row,key)||row[key]===value));
+    const result={select:()=>result,eq:(key,value)=>{filters.push([key,value]);return result;},order:()=>result,
+      delete:()=>{call.deleted=true;return result;},upsert:(payload,options)=>{call.payload=payload;call.options=options;return result;},
+      maybeSingle:async()=>({data:rows()[0]||null,error:null}),then:(resolve,reject)=>Promise.resolve({data:rows(),error:null}).then(resolve,reject)};return result;
+  }
+  const tableData={notifications,favorites,notification_reads:notificationReadIds.map(notification_id=>({notification_id})),project_engagements:projectEngagement?[projectEngagement]:[]};
   const auth={getUser:async()=>({data:{user:changeAccount&&++gets>1?{...user,id:'other'}:user},error:null}),
     signInWithPassword:async args=>args.password==='Current!Password1'?{data:{user},error:null}:{data:{user:null},error:Object.assign(new Error('Wrong password'),{code:'invalid_credentials'})},
     updateUser:async args=>{passwords.push(args);return {data:{user},error:null};}};
-  const context={URLSearchParams,window:{supabase:{createClient:()=>({auth,from:table=>table==='account_workspaces'?workspaceQuery():table==='profiles'?query:table==='comments'?commentsQuery:dataQuery(tableData[table]||[]),rpc:async(name,args)=>{rpcCalls.push({name,args});return Object.hasOwn(rpcResponses,name)?rpcResponses[name]:{data:metrics,error:metricsError};}})}},location:{pathname:'/'+page,search:'?role='+role,hash:'',replace:url=>redirects.push(url),assign:url=>redirects.push(url),reload:()=>redirects.push('reload')},
+  const context={URLSearchParams,window:{supabase:{createClient:()=>({auth,from:table=>table==='account_workspaces'?workspaceQuery():table==='profiles'?query:table==='comments'?commentsQuery:dataQuery(tableData[table]||[],table),rpc:async(name,args)=>{rpcCalls.push({name,args});return Object.hasOwn(rpcResponses,name)?rpcResponses[name]:{data:metrics,error:metricsError};}})}},location:{pathname:'/'+page,search:'?role='+role,hash:'',replace:url=>redirects.push(url),assign:url=>redirects.push(url),reload:()=>redirects.push('reload')},
     localStorage:storage,sessionStorage:{getItem:key=>sessionValues[key]??null,removeItem:key=>delete sessionValues[key],setItem:(key,value)=>sessionValues[key]=value},document:{createElement:()=>({}),head:{append(){}},getElementById:()=>({remove(){}}),addEventListener(){}},fetch:async()=>({ok:true,json:async()=>({})})};
   vm.runInNewContext(source,context);const backend=context.window.devMatchBackend;await backend.ready;
-  return {backend,redirects,updates,passwords,rpcCalls,values,sessionValues,row,user,commentSelects};
+  return {backend,redirects,updates,passwords,rpcCalls,tableCalls,values,sessionValues,row,user,commentSelects};
 }
 test('Unconfirmed email accounts are routed to email verification',async()=>{
   const {redirects}=await setup({verified:false});assert.deepEqual(redirects,['devmatch-verify-email.html']);
@@ -176,4 +182,36 @@ test('Workspace selection is tab-local and cannot grant a missing role',async()=
   const forged=await setup({userRole:'client',workspaceRole:'dev',page:'devmatch-auth.html'});
   assert.equal((await forged.backend.loadProfile(forged.user)).account_role,'client');
   assert.equal(forged.sessionValues['devmatch-workspace-fixture'],undefined);
+});
+
+const connectedWorkspace={user_id:'fixture',role:'dev',display_name:'Separate developer',profile_data:{bio:'dev only'},onboarding_complete:true};
+test('Connected modes keep canonical username email phone and separate profile data',async()=>{
+  const x=await setup({page:'devmatch-auth.html',userRole:'client',workspaceRole:'dev',workspaces:[{...connectedWorkspace}]});
+  const p=await x.backend.loadProfile(x.user);x.backend.cache(p,x.user);
+  const cached=JSON.parse(x.values['devmatch-profile-dev']);
+  assert.equal(cached.username,'owner');assert.equal(cached.email,x.user.email);assert.equal(cached.phone,x.row.phone);
+  assert.equal(cached.bio,'dev only');assert.equal(cached.displayName,'Separate developer');
+});
+test('Favorites reads and removal stay in the selected mode',async()=>{
+  const x=await setup({page:'devmatch-auth.html',userRole:'client',workspaceRole:'dev',workspaces:[{...connectedWorkspace}],favorites:[
+    {workspace_role:'client',item_type:'project',item_id:'client-only'},
+    {workspace_role:'dev',item_type:'project',item_id:'dev-only'}]});
+  assert.equal(JSON.stringify(await x.backend.loadFavorites()),JSON.stringify([{type:'project',id:'dev-only'}]));
+  await x.backend.setFavorite('project','dev-only',false);await x.backend.clearFavorites('project');
+  for(const call of x.tableCalls.filter(c=>c.table==='favorites'))assert(call.filters.some(([k,v])=>k==='workspace_role'&&v==='dev'));
+});
+test('Favorite and notification read writes include their workspace in conflict keys',async()=>{
+  const x=await setup({page:'devmatch-auth.html',userRole:'client',workspaceRole:'dev',workspaces:[{...connectedWorkspace}]});
+  await x.backend.setFavorite('project','same-project',true);await x.backend.markNotificationsRead(['notification']);
+  for(const call of x.tableCalls.filter(c=>c.payload)){
+    const row=Array.isArray(call.payload)?call.payload[0]:call.payload;
+    assert.equal(row.workspace_role,'dev');assert.match(call.options.onConflict,/workspace_role/);
+  }
+});
+test('Notification badge and settings use the active workspace',async()=>{
+  const x=await setup({page:'devmatch-auth.html',userRole:'client',workspaceRole:'dev',workspaces:[{...connectedWorkspace}],notifications:[
+    {id:'client-note',recipient_role:'client'},{id:'dev-note',recipient_role:'dev'}],rpcResponses:{save_notification_preferences:{data:{},error:null}}});
+  assert.equal(await x.backend.loadUnreadNotificationCount(),1);
+  await x.backend.saveNotificationPreferences({messages:false});
+  assert.equal(x.rpcCalls.at(-1).args.p_role,'dev');
 });

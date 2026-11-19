@@ -1,7 +1,7 @@
 const clientProfile=JSON.parse(localStorage.getItem('devmatch-profile-client')||'{}');
 const clientName=clientProfile.displayName||'Client';
 const clientNameParts=clientName.trim().split(/\s+/).filter(Boolean);
-document.getElementById('topUserName').textContent=clientName;
+document.getElementById('topUserName').textContent=clientProfile.username||clientName;
 document.getElementById('userAvatar').textContent=clientNameParts.slice(0,2).map(part=>part[0]).join('').toUpperCase()||'CL';
 document.querySelectorAll('.client-notification-count').forEach(count=>{count.textContent='';count.hidden=true;});
 const notificationDot=document.querySelector('.client-icon-button i');
