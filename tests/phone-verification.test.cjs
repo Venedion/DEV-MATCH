@@ -22,7 +22,7 @@ async function setup({available=true,autoConfirm=false,sendError=null,verifyErro
       return {error:verifyError};
     }
   }};
-  vm.runInNewContext(source,{window:{devMatchBackend:{client,ready:Promise.resolve(account),loadProfile:async()=>row}},document:{getElementById:element},fetch:async()=>({ok:true,json:async()=>({external:{phone:available},phone_autoconfirm:autoConfirm})}),setTimeout(){}});
+  vm.runInNewContext(source,{window:{devMatchBackend:{client,ready:Promise.resolve(account),loadProfile:async()=>row}},document:{getElementById:id=>id==='continuePhoneSetup'?null:element(id)},fetch:async()=>({ok:true,json:async()=>({external:{phone:available},phone_autoconfirm:autoConfirm})}),setTimeout(){}});
   const flush=()=>new Promise(setImmediate);
   await flush();
   return {element,calls,phone,flush};

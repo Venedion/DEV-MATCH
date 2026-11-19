@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Verify phone — DEV-MATCH</title>
+  <link rel="stylesheet" href="assets/css/auth.css">
+  <link rel="stylesheet" href="assets/css/verification.css">
+  <script src="assets/vendor/supabase-2.119.0.js"></script>
+  <script src="assets/js/backend.js?v=20261119-phone-onboarding"></script>
+</head>
+<body>
+  <main class="verification">
+    <a class="logo" href="devmatch-landing.html"><i>&lt;/&gt;</i>DEV-MATCH</a>
+    <h1>Verify your phone number</h1>
+    <p class="intro">Confirm the number you entered when you created your account.</p>
+    <label for="settingsPhone">Account phone number</label>
+    <div class="in"><input id="settingsPhone" type="tel" readonly></div>
+    <button class="submit" id="sendPhoneCode" type="button" disabled>Send SMS code</button>
+    <div id="phoneCodeField" hidden>
+      <label for="phoneCode">SMS verification code</label>
+      <div class="in"><input id="phoneCode" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="6"></div>
+      <button class="submit" id="verifyPhoneCode" type="button" disabled>Verify code</button>
+    </div>
+    <p id="phoneVerificationStatus" role="status">Checking phone verification…</p>
+    <a id="continuePhoneSetup" class="login-link" hidden>Continue and verify later in Settings</a>
+  </main>
+  <script src="assets/js/phone-verification.js?v=20261119-phone-onboarding"></script>
+</body>
+</html>

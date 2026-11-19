@@ -12,7 +12,7 @@
     'sb_publishable_9JeJarcXaZgNRiawz81gjw_PTaXtKli'
   );
   const page = location.pathname.split('/').pop();
-  const protectedPage = /^devmatch-(dashboard|client-dashboard|profile|complete|my-profile|my-projects|settings|favorites|chat|notifications|developer-notifications)\.html$/.test(page);
+  const protectedPage = /^devmatch-(dashboard|client-dashboard|profile|complete|verify-phone|my-profile|my-projects|settings|favorites|chat|notifications|developer-notifications)\.html$/.test(page);
   const roleSpecificPages = {
     'devmatch-client-dashboard.html': 'client',
     'devmatch-notifications.html': 'client',
@@ -133,6 +133,10 @@
   }
   function destination(row,user) {
     if(!user?.email_confirmed_at)return 'devmatch-verify-email.html';
+    if (!row.onboarding_complete && /^\+[1-9]\d{7,14}$/.test(row.phone || '')
+      && !(row.phone_verified_at && row.verified_phone === row.phone)) {
+      return 'devmatch-verify-phone.html';
+    }
     return row.onboarding_complete
       ? (row.account_role === 'client' ? 'devmatch-client-dashboard.html' : 'devmatch-dashboard.html')
       : 'devmatch-profile.html?role=' + row.account_role;
