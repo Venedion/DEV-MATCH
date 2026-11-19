@@ -22,10 +22,11 @@ const C = '33333333-3333-4333-8333-333333333333';
     create publication supabase_realtime;
   `);
   const dir = path.join(__dirname, '../supabase/migrations');
-  let isolationMigration;
+  let isolationMigration; let activityMigration;
   for (const file of fs.readdirSync(dir).filter(f => f.endsWith('.sql')).sort()) {
     // Registration uses external proof-of-work and pgcrypto, tested separately.
     if (file.includes('registration_protection')) continue;
+    if (file.includes('chat_presence_and_receipts')) {activityMigration=fs.readFileSync(path.join(dir,file),'utf8');continue;}
     if (file.includes('workspace_data_isolation')) { isolationMigration=fs.readFileSync(path.join(dir,file),'utf8'); continue; }
     try { await db.exec(fs.readFileSync(path.join(dir, file), 'utf8')); }
     catch (error) { throw new Error(`${file}: ${error.message}`); }
@@ -47,6 +48,7 @@ const C = '33333333-3333-4333-8333-333333333333';
     insert into public.notification_reads(user_id,notification_id) values('${A}','cccccccc-cccc-4ccc-8ccc-cccccccccccc');
   `);
   await db.exec(isolationMigration);
+  await db.exec(activityMigration);
   assert.equal((await db.query("select participant_a_role from public.conversations")).rows[0].participant_a_role,'client');
   assert.equal((await db.query("select workspace_role from public.favorites")).rows[0].workspace_role,'client');
   assert.equal((await db.query("select recipient_role from public.notifications")).rows[0].recipient_role,'client');
@@ -117,6 +119,15 @@ const C = '33333333-3333-4333-8333-333333333333';
   assert.equal((await scalar(`select count(*)::int n from public.favorites where user_id='${A}'`)).n,0);
   await asUser(C);
   await assert.rejects(db.exec(`insert into public.favorites(user_id,workspace_role,item_type,item_id) values('${C}','dev','project','forbidden')`));
+  await asUser(A);
+  const beforeRead=(await scalar("select public.sync_chat_activity('client','bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',now()) s")).s;
+  assert.equal(beforeRead.online,false);
+  await asUser(B);
+  const afterRead=(await scalar("select public.sync_chat_activity('dev','bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',null) s")).s;
+  assert.equal(afterRead.online,true);assert.ok(afterRead.read_at);
+  await assert.rejects(db.query("select public.sync_chat_activity('client','bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',now())"));
+  await asUser(C);
+  await assert.rejects(db.query("select public.sync_chat_activity('client','bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',now())"));
   console.log('PASS: legacy history retained, shared identity, isolated workspace profiles/favorites/notifications/preferences, role-aware conversations, RLS and existing project features');
   await db.close();
 })().catch(error => { console.error(error.message); process.exitCode = 1; });

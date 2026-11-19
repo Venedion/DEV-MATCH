@@ -4,19 +4,21 @@
   const dialog=document.getElementById('projectDetailDialog');
   const content=document.getElementById('projectContent');
   const commentsRoot=document.getElementById('commentList');
-  let activeProject=null,comments=[],commentOrder='Newest';
+  let activeProject=null,comments=[],commentOrder='Newest',replyTo=null;
   const initials=name=>(String(name||'').match(/\b\p{L}/gu)||[]).slice(0,2).join('').toUpperCase()||'DM';
   function chatUrl(id){return `devmatch-chat.html?role=client&project=${encodeURIComponent(id)}`;}
   function renderComments(){
     document.getElementById('commentCount').textContent=String(comments.length);
     const ordered=commentOrder==='Newest'?comments:[...comments].reverse();
-    commentsRoot.innerHTML=ordered.map(comment=>`<article class="comment-item"><span class="comment-avatar">${escapeHtml(comment.initials||'CL')}</span><div><p class="comment-author">${escapeHtml(comment.name||'DEV-MATCH member')} <small>Client</small></p><p class="comment-text">${escapeHtml(comment.text)}</p><a class="reply-link" href="${chatUrl(activeProject.id)}">Reply</a></div></article>`).join('');
+    commentsRoot.innerHTML=ordered.map(comment=>`<article class="comment-item"><span class="comment-avatar">${escapeHtml(comment.initials||'CL')}</span><div><p class="comment-author">${escapeHtml(comment.name||'DEV-MATCH member')} ${comment.parentCommentId ? '<small>Reply</small>' : ''}</p><p class="comment-text">${escapeHtml(comment.text)}</p><button type="button" class="reply-link" data-reply="${escapeHtml(comment.id)}">Reply</button></div></article>`).join('');
   }
+  commentsRoot.addEventListener('click',event=>{const b=event.target.closest('[data-reply]');if(!b)return;replyTo=b.dataset.reply;const input=document.getElementById('commentInput');input.placeholder='Reply to '+(comments.find(c=>c.id===replyTo)?.name||'comment')+' (clear to cancel)';input.focus();});
   function showError(message){
     const error=document.getElementById('detailError');error.textContent=message;error.hidden=false;content.hidden=true;
     if(!dialog.open)dialog.showModal();
   }
   window.openProjectDetails=async function(projectId){
+    replyTo=null;
     const errorElement=document.getElementById('detailError');
     errorElement.hidden=true;content.hidden=true;
     document.getElementById('projectTitle').textContent='Loading project…';
@@ -92,7 +94,7 @@
     event.preventDefault();const input=document.getElementById('commentInput');const text=input.value.trim();
     if(!text){input.setCustomValidity('Please enter a comment before posting.');input.reportValidity();return;}
     input.setCustomValidity('');
-    try{comments.push(await window.devMatchBackend.addProjectComment(activeProject.id,text));input.value='';renderComments();}
+    try{comments.push(await (replyTo ? window.devMatchBackend.addProjectCommentReply(activeProject.id,replyTo,text) : window.devMatchBackend.addProjectComment(activeProject.id,text)));replyTo=null;input.value='';input.placeholder='Write a comment…';renderComments();}
     catch(error){console.error('Unable to save the project comment to Supabase.',error);window.alert('Unable to post your comment. Please log in and try again.');}
   });
   document.getElementById('commentInput').addEventListener('input',event=>event.target.setCustomValidity(''));

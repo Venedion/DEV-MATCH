@@ -187,7 +187,8 @@
       role: person?.account_role === 'client' ? 'Client' : person?.account_role === 'dev' ? 'Developer' : 'Account',
       roleType: person?.account_role || '',
       color: person?.account_role === 'client' ? 'coral' : 'blue',
-      online: false,
+      online: existing?.online || false,
+      peerReadAt: existing?.peerReadAt || null,
       statusText: 'Encrypted chat',
       project: project ? {
         id: project.id,
@@ -372,8 +373,8 @@
     }
     if (elements.activeName) elements.activeName.textContent = conversation.name;
     if (elements.activeRole) elements.activeRole.textContent = conversation.role;
-    if (elements.activeStatusText) elements.activeStatusText.textContent = 'Encrypted via Supabase';
-    if (elements.activeStatusDot) elements.activeStatusDot.hidden = true;
+    if (elements.activeStatusText) elements.activeStatusText.textContent = conversation.online ? 'Online' : 'Offline';
+    if (elements.activeStatusDot) elements.activeStatusDot.hidden = !conversation.online;
 
     const project = conversation.project;
     elements.detailProjectCard?.classList.toggle('is-unlinked', !project);
@@ -437,7 +438,7 @@
           <div class="chat-msg-content">
             ${message.text ? `<div class="chat-msg-bubble">${escapeHtml(message.text).replace(/\n/g, '<br>')}</div>` : ''}
             ${attachmentCards}
-            <div class="chat-msg-meta"><span>${escapeHtml(formatTime(message.created_at))}</span></div>
+            <div class="chat-msg-meta"><span>${escapeHtml(formatTime(message.created_at))}</span>${isSent ? `<span>${Date.parse(conversation.peerReadAt || 0) >= Date.parse(message.created_at) ? "Read ✓✓" : "Sent ✓"}</span>` : ""}</div>
           </div>
         </div>`;
     }).join('');
@@ -548,9 +549,23 @@
     if (conversationId === activeConvId) markRead(conversation);
     updateUnreadCounts();
     renderConversationsList();
-    if (conversationId === activeConvId) renderMessagesThread();
+    if (conversationId === activeConvId) { renderMessagesThread(); await syncActivity(); }
   }
 
+  let activityTimer;
+  async function syncActivity() {
+    if (!currentUser || document.visibilityState !== 'visible') return;
+    const conversation=getActiveConversation();
+    const last=conversation?.messages?.at(-1);
+    const {data,error}=await client.rpc('sync_chat_activity', {p_role:currentProfile.account_role,p_conversation:conversation?.id||null,p_read_at:last?.created_at||null});
+    if(error){console.warn('Unable to update chat status.',error);return;}
+    if(conversation && conversation.id===activeConvId){
+      const changed=conversation.online!==data.online || conversation.peerReadAt!==data.read_at;
+      conversation.online=data.online;conversation.peerReadAt=data.read_at;
+      if(changed)renderMessagesThread();
+    }
+  }
+  document.addEventListener('visibilitychange',()=>{if(currentUser)void syncActivity();});
   async function startRealtime() {
     const {data, error} = await client.auth.getSession();
     if (error) throw error;
@@ -936,7 +951,9 @@
     setStatus('Loading conversations…');
     await loadConversationList();
     await startRealtime();
+    activityTimer=setInterval(()=>void syncActivity(),10000);
     await openFromQuery();
+    await syncActivity();
     if (legacyChatRemoved) {
       setStatus('Previous device-only demo chats were cleared. New messages are stored securely in Supabase.');
     } else if (!activeConvId) {
@@ -950,6 +967,7 @@
   });
 
   window.addEventListener('beforeunload', () => {
+    clearInterval(activityTimer);
     if (realtimeChannel) void client.removeChannel(realtimeChannel);
     authSubscription?.unsubscribe();
   });
