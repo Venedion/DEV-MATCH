@@ -73,7 +73,7 @@ const C = '33333333-3333-4333-8333-333333333333';
   assert.equal(row.account_role, 'dev'); assert.equal(row.onboarding_complete, false); assert.deepEqual(row.profile_data, {});
   await db.exec("select public.switch_account_workspace('dev',true)");
   assert.equal((await scalar('select count(*)::int n from public.account_workspaces')).n, 1);
-  await db.exec(`update public.account_workspaces set display_name='Developer A',onboarding_complete=true,profile_data='{"bio":"developer data","npwp":"PRIVATE","hourlyRate":"Rp 150.000","minProjectPrice":"Rp 1.000.000","contractTypes":["Fixed-price","Hourly"]}' where user_id='${A}' and role='dev';`);
+  await db.exec(`update public.account_workspaces set display_name='Developer A',onboarding_complete=true,profile_data='{"bio":"developer data","npwp":"PRIVATE","bankName":"PRIVATE","hourlyRate":"Rp 150.000","minProjectPrice":"Rp 1.000.000","contractTypes":["Fixed-price","Hourly"],"githubUsername":"dev-a","linkedinUrl":"https://www.linkedin.com/in/dev-a","experiences":[{"title":"Engineer","company":"Acme","period":"2020 - Present","link":"https://example.invalid","files":["private.pdf"],"filePaths":["private/experience.pdf"]}]}' where user_id='${A}' and role='dev';`);
   row = await scalar("select account_role,profile_data from public.switch_account_workspace('client',false)");
   assert.equal(row.account_role, 'client'); assert.equal(row.profile_data.bio, 'client data');
   row = await scalar(`select account_role,profile_data from public.profiles where id='${A}'`);
@@ -86,7 +86,16 @@ const C = '33333333-3333-4333-8333-333333333333';
   assert.equal(developerDirectory.profile_data.hourlyRate, 'Rp 150.000');
   assert.equal(developerDirectory.profile_data.minProjectPrice, 'Rp 1.000.000');
   assert.deepEqual(developerDirectory.profile_data.contractTypes, ['Fixed-price', 'Hourly']);
-  for (const person of directory.rows) { assert.equal(person.profile_data.accountNumber, undefined); assert.equal(person.profile_data.npwp, undefined); }
+  assert.equal(developerDirectory.profile_data.githubUsername, 'dev-a');
+  assert.equal(developerDirectory.profile_data.linkedinUrl, 'https://www.linkedin.com/in/dev-a');
+  assert.deepEqual(developerDirectory.profile_data.experiences, [{
+    title: 'Engineer', company: 'Acme', period: '2020 - Present', link: 'https://example.invalid'
+  }]);
+  for (const person of directory.rows) {
+    assert.equal(person.profile_data.accountNumber, undefined);
+    assert.equal(person.profile_data.npwp, undefined);
+    assert.equal(person.profile_data.bankName, undefined);
+  }
   await db.exec(`insert into public.projects(id,owner_id,project_kind,status) values ('portfolio-a','${A}','portfolio','published'),('request-a','${A}','request','open')`);
   for (const role of ['client','dev']) assert.equal((await scalar(`select public.get_dashboard_metrics('${role}') m`)).m.projects, 1);
   await assert.rejects(db.query(`update public.account_workspaces set user_id='${B}' where user_id='${A}'`));

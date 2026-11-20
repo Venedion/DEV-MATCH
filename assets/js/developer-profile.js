@@ -9,6 +9,13 @@
   const favoriteRemoveMessage=document.getElementById('favoriteRemoveMessage');
   const escapeHtml=value=>String(value??'').replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
   const initials=name=>(String(name||'').match(/\b\p{L}/gu)||[]).slice(0,2).join('').toUpperCase()||'DM';
+  function safeExternalUrl(value){
+    if(typeof value!=='string'||!value.trim())return null;
+    try{
+      const url=new URL(value.trim());
+      return url.protocol==='https:'||url.protocol==='http:'?url.href:null;
+    }catch{return null;}
+  }
   const specialtyDetails={
     'Full-stack':{description:'Front + back end',icon:'<path d="m16 18 6-6-6-6M8 6l-6 6 6 6"/>'},
     Frontend:{description:'Web interfaces',icon:'<rect x="4" y="4" width="6" height="6" rx="1"/><rect x="14" y="4" width="6" height="6" rx="1"/><rect x="4" y="14" width="6" height="6" rx="1"/><rect x="14" y="14" width="6" height="6" rx="1"/>'},
@@ -208,7 +215,12 @@
     document.getElementById('developerJoined').textContent='';
     document.getElementById('developerAbout').textContent=String(profile.bio||'No biography provided.');
     document.getElementById('developerAboutCard').textContent=String(profile.bio||'No biography provided.');
-    document.getElementById('developerExperience').textContent='Not provided';
+    const experiences=Array.isArray(profile.experiences)
+      ?profile.experiences.filter(item=>item&&typeof item==='object'&&!Array.isArray(item))
+      :[];
+    document.getElementById('developerExperience').textContent=experiences.length
+      ?`${experiences.length} ${experiences.length===1?'role':'roles'}`
+      :'Not provided';
     document.getElementById('developerLocationCard').textContent=location;
     document.getElementById('developerHourlyRate').textContent=profile.hourlyRate?`${String(profile.hourlyRate).trim()} / hour`:'Not provided';
     document.getElementById('developerMinimumProject').textContent=String(profile.minProjectPrice||'Not provided');
@@ -240,10 +252,25 @@
       return `<div class="profile-specialty-card"><svg viewBox="0 0 24 24" aria-hidden="true">${details.icon}</svg><b>${escapeHtml(value)}</b><small>${escapeHtml(details.description)}</small></div>`;
     }).join(''):'<span>No specialization added yet.</span>';
     document.getElementById('developerSkills').innerHTML=skills.length?skills.map(value=>`<span>${escapeHtml(value)}</span>`).join(''):'<span>No skills added yet.</span>';
-    document.getElementById('developerExperienceList').innerHTML='<li class="empty-state">No public experience added.</li>';
-    document.getElementById('developerLinks').innerHTML='<p class="empty-state">No public links added.</p>';
-    document.getElementById('clientName').textContent='Client';
-    document.getElementById('clientInitials').textContent='CL';
+    document.getElementById('developerExperienceList').innerHTML=experiences.length
+      ?experiences.map(item=>{
+        const title=String(item.title||'Experience');
+        const company=String(item.company||'');
+        const period=String(item.period||'');
+        const link=safeExternalUrl(item.link);
+        return `<li><b>${escapeHtml(title)}</b>${company?`<span>${escapeHtml(company)}</span>`:''}${period?`<small>${escapeHtml(period)}</small>`:''}${link?`<a href="${escapeHtml(link)}" target="_blank" rel="noopener noreferrer">View experience</a>`:''}</li>`;
+      }).join('')
+      :'<li class="empty-state">No public experience added.</li>';
+    const publicLinks=[];
+    const githubUsername=String(profile.githubUsername||'').trim().replace(/^@/,'');
+    if(githubUsername&&/^[A-Za-z0-9](?:[A-Za-z0-9-]{0,37})$/.test(githubUsername)){
+      publicLinks.push({label:'GitHub',detail:`@${githubUsername}`,url:`https://github.com/${encodeURIComponent(githubUsername)}`});
+    }
+    const linkedinUrl=safeExternalUrl(profile.linkedinUrl);
+    if(linkedinUrl)publicLinks.push({label:'LinkedIn',detail:linkedinUrl,url:linkedinUrl});
+    document.getElementById('developerLinks').innerHTML=publicLinks.length
+      ?publicLinks.map(link=>`<a href="${escapeHtml(link.url)}" target="_blank" rel="noopener noreferrer"><span aria-hidden="true">↗</span><span><b>${escapeHtml(link.label)}</b><small>${escapeHtml(link.detail)}</small></span><span aria-hidden="true">↗</span></a>`).join('')
+      :'<p class="empty-state">No public links added.</p>';
     if(user&&accountRole==='client'){
       const records=await window.devMatchBackend.loadFavorites();
       favoriteDeveloper=records.some(item=>item.type==='developer'&&item.id===person.id);
