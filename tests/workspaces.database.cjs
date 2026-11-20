@@ -26,7 +26,7 @@ const C = '33333333-3333-4333-8333-333333333333';
     create publication supabase_realtime;
   `);
   const dir = path.join(__dirname, '../supabase/migrations');
-  let isolationMigration; let activityMigration;
+  let isolationMigration; let activityMigration; let separationMigration;
   let commentAuthorMigration;
   for (const file of fs.readdirSync(dir).filter(f => f.endsWith('.sql')).sort()) {
     // Registration uses external proof-of-work and pgcrypto, tested separately.
@@ -38,6 +38,7 @@ const C = '33333333-3333-4333-8333-333333333333';
     if (file === '202611190002_public_developer_work_terms.sql') continue;
     if (file.includes('chat_presence_and_receipts')) {activityMigration=fs.readFileSync(path.join(dir,file),'utf8');continue;}
     if (file.includes('workspace_data_isolation')) { isolationMigration=fs.readFileSync(path.join(dir,file),'utf8'); continue; }
+    if (file.includes('separate_chat_workspace_threads')) { separationMigration=fs.readFileSync(path.join(dir,file),'utf8'); continue; }
     if (file === '202611190001_sync_project_comment_display_names.sql') {commentAuthorMigration=fs.readFileSync(path.join(dir,file),'utf8');continue;}
     try { await db.exec(fs.readFileSync(path.join(dir, file), 'utf8')); }
     catch (error) { throw new Error(`${file}: ${error.message}`); }
@@ -60,6 +61,7 @@ const C = '33333333-3333-4333-8333-333333333333';
   `);
   await db.exec(isolationMigration);
   await db.exec(activityMigration);
+  await db.exec(separationMigration);
   assert.equal((await db.query("select participant_a_role from public.conversations")).rows[0].participant_a_role,'client');
   assert.equal((await db.query("select workspace_role from public.favorites")).rows[0].workspace_role,'client');
   assert.equal((await db.query("select recipient_role from public.notifications")).rows[0].recipient_role,'client');
@@ -96,7 +98,9 @@ const C = '33333333-3333-4333-8333-333333333333';
     assert.equal(person.profile_data.npwp, undefined);
     assert.equal(person.profile_data.bankName, undefined);
   }
+  await db.exec('reset role');
   await db.exec(`insert into public.projects(id,owner_id,project_kind,status) values ('portfolio-a','${A}','portfolio','published'),('request-a','${A}','request','open')`);
+  await asUser(A);
   for (const role of ['client','dev']) assert.equal((await scalar(`select public.get_dashboard_metrics('${role}') m`)).m.projects, 1);
   await assert.rejects(db.query(`update public.account_workspaces set user_id='${B}' where user_id='${A}'`));
   await assert.rejects(db.query(`update public.profiles set account_role='dev' where id='${A}'`));
@@ -106,7 +110,7 @@ const C = '33333333-3333-4333-8333-333333333333';
   await assert.rejects(db.query(`insert into public.projects(owner_id,project_kind) values ('${A}','portfolio')`));
   await db.exec("select public.switch_account_workspace('client',true)");
   await db.exec(`update public.account_workspaces set onboarding_complete=true where user_id='${B}' and role='client'`);
-  await db.exec(`reset role; insert into public.conversations(id,participant_a_id,participant_b_id,project_id) values ('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa','${A}','${B}','portfolio-a')`);
+  await db.exec(`reset role; insert into public.conversations(id,participant_a_id,participant_b_id,project_id,merged_into,is_primary) values ('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa','${A}','${B}','portfolio-a','bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',false)`);
   await db.exec(`insert into realtime.messages(topic) values ('devmatch-user-presence:${B}'),('devmatch-user-presence:${C}')`);
   await asUser(A);
   await db.exec(`select set_config('request.realtime.topic','devmatch-user-presence:${B}',false)`);
@@ -178,8 +182,8 @@ const C = '33333333-3333-4333-8333-333333333333';
   assert.equal((await scalar("select profile_data from public.switch_account_workspace('dev',false)")).profile_data.notificationPreferences.messages,true);
   await assert.rejects(db.exec(`insert into public.notification_reads(user_id,workspace_role,notification_id) values('${A}','dev','cccccccc-cccc-4ccc-8ccc-cccccccccccc')`));
   await db.exec(`reset role;
-    insert into public.conversations(id,participant_a_id,participant_b_id,participant_a_role,participant_b_role)
-      values('dddddddd-dddd-4ddd-8ddd-dddddddddddd','${A}','${B}','dev','client');
+    insert into public.conversations(id,participant_a_id,participant_b_id,participant_a_role,participant_b_role,merged_into,is_primary)
+      values('dddddddd-dddd-4ddd-8ddd-dddddddddddd','${A}','${B}','dev','client','bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',false);
     insert into public.messages(conversation_id,sender_id,ciphertext,nonce,key_version) values
       ('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb','${B}',repeat('a',22),repeat('b',16),1),
       ('dddddddd-dddd-4ddd-8ddd-dddddddddddd','${B}',repeat('a',22),repeat('b',16),1);
@@ -201,17 +205,28 @@ const C = '33333333-3333-4333-8333-333333333333';
   await assert.rejects(db.query("select public.sync_chat_activity('client','bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',now())"));
   await db.exec(`reset role; update public.profiles set phone='+6281234567890' where id='${A}'`);
   await asUser(A);
-  const whatsappCode=(await scalar('select public.start_whatsapp_phone_verification() code')).code;
   await assert.rejects(db.query('select public.start_whatsapp_phone_verification()'));
-  await assert.rejects(db.query('select public.confirm_whatsapp_phone_verification($1,$2)',[whatsappCode,'+6281234567890']));
+  const whatsappChallenge = 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee';
+  const whatsappPhone = '+6281234567890';
+  const whatsappDigest = 'a'.repeat(64);
+  await assert.rejects(db.query('select public.reserve_whatsapp_otp($1,$2,$3,$4)',[A,whatsappChallenge,whatsappPhone,whatsappDigest]));
+  await assert.rejects(db.query('select public.verify_whatsapp_otp($1,$2,$3,$4)',[A,whatsappChallenge,whatsappPhone,whatsappDigest]));
   await db.exec('reset role; set role service_role');
-  assert.equal((await db.query('select public.confirm_whatsapp_phone_verification($1,$2) ok',[whatsappCode,'+6282222222222'])).rows[0].ok,false);
-  assert.equal((await db.query('select public.confirm_whatsapp_phone_verification($1,$2) ok',[whatsappCode,'+6281234567890'])).rows[0].ok,true);
-  assert.equal((await db.query('select public.confirm_whatsapp_phone_verification($1,$2) ok',[whatsappCode,'+6281234567890'])).rows[0].ok,false);
+  assert.equal((await db.query('select public.reserve_whatsapp_otp($1,$2,$3,$4) ok',[A,whatsappChallenge,whatsappPhone,whatsappDigest])).rows[0].ok,true);
+  assert.equal((await db.query('select public.reserve_whatsapp_otp($1,$2,$3,$4) ok',[A,whatsappChallenge,whatsappPhone,whatsappDigest])).rows[0].ok,false);
+  assert.equal((await db.query('select public.verify_whatsapp_otp($1,$2,$3,$4) result',[A,whatsappChallenge,whatsappPhone,'b'.repeat(64)])).rows[0].result,'invalid');
+  assert.equal((await db.query('select public.verify_whatsapp_otp($1,$2,$3,$4) result',[A,whatsappChallenge,whatsappPhone,whatsappDigest])).rows[0].result,'verified');
+  assert.equal((await db.query('select public.verify_whatsapp_otp($1,$2,$3,$4) result',[A,whatsappChallenge,whatsappPhone,whatsappDigest])).rows[0].result,'expired');
+  await assert.rejects(db.query('select public.confirm_whatsapp_phone_verification($1,$2)',[whatsappChallenge,whatsappPhone]));
   await asUser(A);
-  assert.equal((await scalar('select public.is_whatsapp_phone_verified() ok')).ok,true);
+  const verifiedProfile = await scalar(`select phone,verified_phone,phone_verified_at from public.profiles where id='${A}'`);
+  assert.equal(verifiedProfile.phone, whatsappPhone);
+  assert.equal(verifiedProfile.verified_phone, whatsappPhone);
+  assert.ok(verifiedProfile.phone_verified_at);
   await asUser(B);
-  assert.equal((await scalar('select public.is_whatsapp_phone_verified() ok')).ok,false);
+  const unverifiedProfile = await scalar(`select phone_verified_at,verified_phone from public.profiles where id='${B}'`);
+  assert.equal(unverifiedProfile.phone_verified_at, null);
+  assert.equal(unverifiedProfile.verified_phone, null);
   await db.exec(`reset role;
     insert into public.project_views(project_id,viewer_id,viewed_on) values('portfolio-a','${C}',current_date);
     insert into public.favorites(user_id,workspace_role,item_type,item_id)

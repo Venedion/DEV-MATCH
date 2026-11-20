@@ -90,3 +90,4 @@ revoke all on function public.get_dashboard_metrics_for_range(text, date, date) 
 grant execute on function public.get_dashboard_metrics_for_range(text, date, date) to authenticated;
 
 commit;
+;

@@ -17,6 +17,12 @@ function conversationPeer(conversation, userId) {
   return {id: null, role: null};
 }
 
+function conversationRole(conversation, userId) {
+  if (conversation.participant_a_id === userId) return conversation.participant_a_role;
+  if (conversation.participant_b_id === userId) return conversation.participant_b_role;
+  return null;
+}
+
 function flattenMessages(conversation) {
   const sources = Array.isArray(conversation.sources) ? conversation.sources : [conversation];
   const messages = sources.flatMap(source => (Array.isArray(source.messages) ? source.messages : [])
@@ -81,7 +87,7 @@ export function buildClientDashboard({
   const developersById = new Map(developers.map(developer => [developer.id, developer.name]));
   const developerIds = new Set(developersById.keys());
   const threads = conversations
-    .filter(conversation => !conversation.merged_into)
+    .filter(conversation => !conversation.merged_into && conversationRole(conversation, userId) === 'client')
     .map(conversation => ({conversation, messages: flattenMessages(conversation)}))
     .filter(thread => thread.messages.length > 0);
   const latestMessages = threads.map(thread => ({

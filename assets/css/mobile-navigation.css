@@ -36,6 +36,10 @@ body > .client-sidebar .post-request .sidebar-action-label {
     margin-right: max(12px, calc((100vw - 1600px) / 2 + 12px));
   }
 
+  body.chat-body > header.topbar > .top-actions {
+    margin-right: 22px;
+  }
+
   body:not(.page-scroll-shell) > header.profile-topbar > .top-actions,
   body:not(.page-scroll-shell) > header.client-topbar > .client-top-actions {
     margin-right: max(12px, calc((100vw - 1660px) / 2 + 12px));
@@ -569,6 +573,7 @@ body > .client-sidebar .post-request .sidebar-action-label {
 }
 
 @media (min-width: 1001px) {
+  body.chat-body > header.topbar > .top-actions > .user-menu,
   body.page-scroll-shell > header.topbar > .top-actions > .user-menu,
   body.page-scroll-shell > header.profile-topbar > .top-actions > .user-link,
   body.page-scroll-shell > header.client-topbar > .client-top-actions > .client-user {

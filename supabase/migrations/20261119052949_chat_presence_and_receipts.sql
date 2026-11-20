@@ -45,3 +45,5 @@ end; $$;
 update public.comments c set author_name=coalesce(nullif(trim(case when p.account_role=c.workspace_role then p.display_name else w.display_name end),''),p.username)
 from public.profiles p left join public.account_workspaces w on w.user_id=p.id where c.user_id=p.id and (w.role=c.workspace_role or p.account_role=c.workspace_role);
 commit;
+
+;

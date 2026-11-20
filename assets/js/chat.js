@@ -25,14 +25,6 @@
   const detailPaneEl = document.getElementById('chatDetailPane');
   const totalBadgeEl = document.getElementById('chatTotalBadge');
   const statusEl = document.getElementById('chatStatus');
-  const draftProjectCardEl = document.getElementById('chatDraftProjectCard');
-  const draftProjectImageEl = document.getElementById('chatDraftProjectImage');
-  const draftProjectPlaceholderEl = document.getElementById('chatDraftProjectPlaceholder');
-  const draftProjectCategoryEl = document.getElementById('chatDraftProjectCategory');
-  const draftProjectTitleEl = document.getElementById('chatDraftProjectTitle');
-  const draftProjectMetaEl = document.getElementById('chatDraftProjectMeta');
-  const draftProjectNoteEl = document.getElementById('chatDraftProjectNote');
-  const draftProjectRemoveEl = document.getElementById('chatDraftProjectRemove');
   const sendBtnEl = chatFormEl?.querySelector('[type="submit"]');
   const mobileChatBreakpoint = window.matchMedia('(max-width: 820px)');
   const elements = {
@@ -241,10 +233,10 @@
       ? row.participant_b_id
       : row.participant_a_id;
     const person = row.contact;
-    const contextProjectId = row.project_context?.id || row.last_message?.project_id || row.project_id || null;
+    const contextProjectId = row.project_context?.id || row.project_id || null;
     const projectRow = row.project_context || projects.get(contextProjectId);
     const projectKind = projectRow?.project_kind
-      || (row.last_message?.project_id === contextProjectId ? row.last_message?.project_kind : null);
+      || null;
     const project = projectRow
       ? mapProject(projectRow, projectKind)
       : contextProjectId
@@ -465,7 +457,6 @@
     const mainHeader = document.querySelector('.chat-main-header');
     const projectBanner = document.getElementById('activeProjectBanner');
     const composer = document.querySelector('.chat-composer-wrap');
-    renderComposerProjectCard(conversation);
     if (!conversation) {
       chatViewportEl?.classList.remove('has-active-conversation');
       if (chatEmptyStateEl) chatEmptyStateEl.hidden = false;
@@ -572,15 +563,9 @@
       const readReceipt = isSent && message.read_at
         ? '<span class="chat-msg-read-receipt" aria-label="Read">Read</span>'
         : '';
-      const projectCard = renderMessageProjectCard(message);
-      const textBubble = message.text
+      const bubble = message.text
         ? `<div class="chat-msg-bubble">${escapeHtml(message.text).replace(/\n/g, '<br>')}</div>`
         : '';
-      const bubble = projectCard
-        ? `<div class="chat-msg-bubble has-project-context">${projectCard}${message.text
-          ? `<div class="chat-msg-text">${escapeHtml(message.text).replace(/\n/g, '<br>')}</div>`
-          : ''}</div>`
-        : textBubble;
       return `${dateSeparator}
         <div class="chat-msg-row ${isSent ? 'sent' : 'received'}">
           ${!isSent ? `<div class="chat-msg-avatar ${escapeHtml(conversation.color)}">${escapeHtml(conversation.initials)}</div>` : ''}
@@ -601,69 +586,6 @@
       scrollThreadToBottom();
     }
     updateDetailPaneVisibility();
-  }
-
-  function renderMessageProjectCard(message) {
-    if (!message.project_id) return '';
-    const project = message.project_context;
-    if (project?.available !== true) {
-      return `<div class="chat-message-project-card is-unavailable" role="status">
-        <strong>Project unavailable</strong>
-      </div>`;
-    }
-
-    const projectId = project.id || message.project_id;
-    const image = safeProjectCover(project.cover_image);
-    const imageMarkup = image ? `<img src="${escapeHtml(image)}" alt="">` : '';
-    const title = project.title || 'Project unavailable';
-    const category = project.category || 'PROJECT';
-    const price = project.price || '';
-    return `<button class="chat-message-project-card" type="button"
-      data-chat-project-detail="${escapeHtml(projectId)}"
-      data-project-kind="${escapeHtml(project.project_kind || message.project_kind || 'portfolio')}"
-      aria-label="Open project details: ${escapeHtml(title)}">
-      <span class="chat-project-thumbnail">
-        ${imageMarkup}
-        <span aria-hidden="true">Project</span>
-      </span>
-      <span class="chat-message-project-copy">
-        <span class="chat-message-project-category">${escapeHtml(category)}</span>
-        <strong class="chat-message-project-title">${escapeHtml(title)}</strong>
-        ${price ? `<span class="chat-message-project-price">${escapeHtml(price)}</span>` : ''}
-      </span>
-    </button>`;
-  }
-
-  function renderComposerProjectCard(conversation) {
-    const isDraft = conversation === pendingConversationDraft;
-    const project = conversation && (isDraft || conversation.messageProjectId)
-      ? conversation.project
-      : null;
-    const isVisible = Boolean(project);
-    if (draftProjectCardEl) draftProjectCardEl.hidden = !isVisible;
-    if (draftProjectNoteEl) draftProjectNoteEl.hidden = !isVisible;
-    if (!isVisible) return;
-
-    if (draftProjectImageEl) {
-      draftProjectImageEl.hidden = !project.coverImage;
-      if (project.coverImage) draftProjectImageEl.src = project.coverImage;
-      else draftProjectImageEl.removeAttribute('src');
-    }
-    if (draftProjectPlaceholderEl) draftProjectPlaceholderEl.hidden = Boolean(project.coverImage);
-    if (draftProjectCategoryEl) {
-      draftProjectCategoryEl.textContent = `ASKING ABOUT THIS PROJECT · ${project.category || 'PROJECT'}`;
-    }
-    if (draftProjectTitleEl) draftProjectTitleEl.textContent = project.title;
-    if (draftProjectMetaEl) {
-      const developerName = project.developerName
-        || conversation.contactDisplayName
-        || conversation.contactUsername
-        || conversation.name;
-      draftProjectMetaEl.textContent = [
-        project.price,
-        developerName ? `by ${developerName}` : ''
-      ].filter(Boolean).join(' · ');
-    }
   }
 
   function updateDetailPaneVisibility() {
@@ -1171,7 +1093,9 @@
         return;
       }
 
-      const existing = conversations.find(conversation => conversation.participantId === project.owner_id);
+      const existing = conversations.find(conversation =>
+        conversation.participantId === project.owner_id && conversation.projectId === project.id
+      );
       if (existing) {
         existing.messageProjectId = project.id;
         existing.project = mapProject(project);
@@ -1250,7 +1174,7 @@
       if (clientLink) clientLink.href = 'devmatch-client-dashboard.html';
       const workspace = document.getElementById('workspaceBadge');
       if (workspace) {
-        workspace.innerHTML = '<span class="workspace-icon">C</span><span><b>Client workspace</b><small>Discover &amp; hire</small></span>';
+        workspace.innerHTML = '<span class="workspace-icon"><svg viewBox="0 0 24 24"><rect x="3" y="7" width="18" height="14" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></span><span><b>Client workspace</b><small>Discover &amp; hire</small></span>';
       }
       const sideAdd = document.querySelector('.side-add');
       if (sideAdd) {
@@ -1304,17 +1228,6 @@
         }
       });
     });
-    draftProjectRemoveEl?.addEventListener('click', () => {
-      const conversation = getActiveConversation();
-      if (!conversation) return;
-      conversation.messageProjectId = null;
-      if (conversation === pendingConversationDraft) {
-        conversation.projectId = null;
-        conversation.sourceProject = null;
-        conversation.project = null;
-      }
-      renderMessagesThread();
-    });
     attachButtonEl?.addEventListener('click', () => attachmentInputEl?.click());
     attachmentInputEl?.addEventListener('change', () => {
       const file = attachmentInputEl.files?.[0];
@@ -1336,24 +1249,6 @@
       setStatus('Attachment ready. Files are encrypted before storage.');
     });
     chatMessagesEl?.addEventListener('click', event => {
-      const projectButton = event.target.closest('[data-chat-project-detail]');
-      if (projectButton && chatMessagesEl.contains(projectButton)) {
-        const projectId = projectButton.dataset.chatProjectDetail;
-        if (projectButton.dataset.projectKind === 'request') {
-          if (typeof window.openProjectRequestDetails === 'function') {
-            window.openProjectRequestDetails(projectId, projectButton.querySelector('.chat-message-project-title')?.textContent || 'Project request');
-          } else {
-            console.error('Project request details modal is unavailable.');
-            setStatus('Project details are unavailable right now.', true);
-          }
-        } else if (typeof window.openProjectDetails === 'function') {
-          void window.openProjectDetails(projectId);
-        } else {
-          console.error('Project details modal is unavailable.');
-          setStatus('Project details are unavailable right now.', true);
-        }
-        return;
-      }
       const button = event.target.closest('[data-chat-download]');
       if (button && chatMessagesEl.contains(button)) void downloadAttachment(button);
     });

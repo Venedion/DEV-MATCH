@@ -231,6 +231,24 @@ test('client home lists client-started developer-project conversations by latest
   assert.equal(result.sentConversations[0].developer, 'Vendee');
 });
 
+test('client home excludes conversations from the signed-in user developer workspace',()=>{
+  const result=dashboard({
+    conversations:[{
+      id:'developer-mode-thread',
+      participant_a_id:userId,
+      participant_b_id:developerId,
+      participant_a_role:'dev',
+      participant_b_role:'client',
+      project_id:'developer-project',
+      messages:[{sender_id:userId,project_id:'developer-project',created_at:recent}]
+    }]
+  });
+
+  assert.equal(result.metrics.awaitingDeveloperReply,0);
+  assert.deepEqual(result.sentConversations,[]);
+  assert.deepEqual(result.attention,[]);
+});
+
 test('client home excludes empty, developer-only, and client-to-client conversations from sent projects', () => {
   const conversations = [
     {
@@ -290,8 +308,8 @@ test('client home aggregates merged source messages once per parent and deduplic
     id: 'parent-thread',
     participant_a_id: userId,
     participant_b_id: developerId,
-    participant_a_role: 'dev',
-    participant_b_role: 'client',
+    participant_a_role: 'client',
+    participant_b_role: 'dev',
     project_id: 'developer-project',
     merged_into: null,
     sources: [
@@ -305,13 +323,13 @@ test('client home aggregates merged source messages once per parent and deduplic
       },
       {
         id: 'merged-source',
-        project_id: 'request-open',
+        project_id: 'developer-project',
         messages: [
-          {id: 'request-inquiry-1', sender_id: developerId, created_at: '2026-11-19T10:00:00.000Z', read_at: null},
-          {id: 'request-inquiry-2', sender_id: developerId, created_at: '2026-11-19T10:01:00.000Z', read_at: null},
-          {id: 'request-client-reply', sender_id: userId, created_at: '2026-11-19T10:02:00.000Z', read_at: null},
-          {id: 'request-inquiry-3', sender_id: developerId, created_at: '2026-11-19T10:03:00.000Z', read_at: null},
-          {id: 'request-client-last', sender_id: userId, created_at: '2026-11-21T10:04:00.000Z', read_at: null},
+          {id: 'request-inquiry-1', sender_id: developerId, project_id: 'request-open', created_at: '2026-11-19T10:00:00.000Z', read_at: null},
+          {id: 'request-inquiry-2', sender_id: developerId, project_id: 'request-open', created_at: '2026-11-19T10:01:00.000Z', read_at: null},
+          {id: 'request-client-reply', sender_id: userId, project_id: 'request-open', created_at: '2026-11-19T10:02:00.000Z', read_at: null},
+          {id: 'request-inquiry-3', sender_id: developerId, project_id: 'request-open', created_at: '2026-11-19T10:03:00.000Z', read_at: null},
+          {id: 'request-client-last', sender_id: userId, project_id: 'request-open', created_at: '2026-11-21T10:04:00.000Z', read_at: null},
           {id: 'second-project-contact', sender_id: userId, project_id: 'second-developer-project', created_at: '2026-11-22T10:00:00.000Z', read_at: null}
         ]
       }
@@ -326,7 +344,7 @@ test('client home aggregates merged source messages once per parent and deduplic
         participant_b_id: developerId,
         participant_a_role: 'client',
         participant_b_role: 'dev',
-        project_id: 'request-open',
+        project_id: 'developer-project',
         merged_into: 'parent-thread',
         messages: [{id: 'request-inquiry-1', sender_id: developerId, created_at: recent, read_at: null}]
       },

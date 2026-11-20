@@ -67,3 +67,4 @@ grant execute on function public.start_whatsapp_phone_verification(), public.is_
 grant execute on function public.confirm_whatsapp_phone_verification(uuid, text) to service_role;
 
 commit;
+;

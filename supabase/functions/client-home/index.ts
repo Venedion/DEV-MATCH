@@ -107,8 +107,8 @@ async function loadDashboard(
     order: 'created_at.desc,id.asc'
   });
   const parents = await fetchRows(supabaseUrl, serviceRoleKey, 'conversations', {
-    select: 'id,participant_a_id,participant_b_id,participant_a_role,participant_b_role,project_id,merged_into,updated_at,last_message_at',
-    or: `(participant_a_id.eq.${userId},participant_b_id.eq.${userId})`,
+    select: 'id,participant_a_id,participant_b_id,participant_a_role,participant_b_role,project_id,workspace_pair_key,merged_into,updated_at,last_message_at',
+    or: `(and(participant_a_id.eq.${userId},participant_a_role.eq.client),and(participant_b_id.eq.${userId},participant_b_role.eq.client))`,
     merged_into: 'is.null',
     order: 'last_message_at.desc.nullslast,updated_at.desc,id.asc'
   });
@@ -116,7 +116,7 @@ async function loadDashboard(
   const children: Record<string, any>[] = [];
   for (let offset = 0; offset < parentIds.length; offset += 100) {
     children.push(...await fetchRows(supabaseUrl, serviceRoleKey, 'conversations', {
-      select: 'id,participant_a_id,participant_b_id,participant_a_role,participant_b_role,project_id,merged_into,updated_at,last_message_at',
+      select: 'id,participant_a_id,participant_b_id,participant_a_role,participant_b_role,project_id,workspace_pair_key,merged_into,updated_at,last_message_at',
       merged_into: inFilter(parentIds.slice(offset, offset + 100))
     }));
   }
@@ -135,7 +135,12 @@ async function loadDashboard(
   }
   const childrenByParent = new Map<string, Record<string, any>[]>();
   parentIds.forEach(id => childrenByParent.set(id, []));
-  children.forEach(child => childrenByParent.get(child.merged_into)?.push(child));
+  const parentsById = new Map(parents.map(parent => [parent.id, parent]));
+  children.forEach(child => {
+    if (parentsById.get(child.merged_into)?.workspace_pair_key === child.workspace_pair_key) {
+      childrenByParent.get(child.merged_into)?.push(child);
+    }
+  });
   const conversations = parents.map(parent => ({
     ...parent,
     sources: [parent, ...(childrenByParent.get(parent.id) || [])].map(source => ({

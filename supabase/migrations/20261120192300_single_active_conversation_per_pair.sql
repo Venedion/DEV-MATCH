@@ -166,8 +166,14 @@ begin
     if not found
       or v_project_owner is distinct from p_peer_id
       or v_project_status not in ('published', 'open')
-      or p_user_role <> case when v_project_kind = 'portfolio' then 'client' else 'dev' end
-      or p_peer_role <> case when v_project_kind = 'portfolio' then 'dev' else 'client' end then
+      or (
+        v_project_kind = 'portfolio'
+        and (p_user_role <> 'client' or p_peer_role <> 'dev')
+      )
+      or (
+        v_project_kind is distinct from 'portfolio'
+        and (p_user_role <> 'dev' or p_peer_role <> 'client')
+      ) then
       raise exception 'The project is not available for this conversation' using errcode = '42501';
     end if;
   end if;

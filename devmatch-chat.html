@@ -8,12 +8,10 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=optional" rel="stylesheet">
   <link rel="stylesheet" href="assets/css/dashboard.css?v=20261118-hide-favorites-nav-badge">
-  <link rel="stylesheet" href="assets/css/chat.css?v=20261120-chat-composer-project-card">
-  <link rel="stylesheet" href="assets/css/project-detail.css?v=20261120-chat-project-message-card">
-  <link rel="stylesheet" href="assets/css/project-detail-popup.css?v=20261120-chat-project-message-card">
+  <link rel="stylesheet" href="assets/css/chat.css?v=20261121-chat-rollback">
   <link rel="stylesheet" href="assets/css/client-shell.css?v=20261030-header-size-match">
   <link rel="stylesheet" href="assets/css/mode-switch-animation.css?v=20261030-client-mode-route">
-  <link rel="stylesheet" href="assets/css/mobile-navigation.css?v=20261120-mobile-bottom-nav-v11">
+  <link rel="stylesheet" href="assets/css/mobile-navigation.css?v=20261121-chat-header-right-align-v4">
   <script src="assets/js/mode-switch-state.js?v=20261030-client-mode-indicator"></script>
   <script src="assets/js/i18n.js?v=20261102-profile-details"></script>
 <script src="assets/vendor/supabase-2.119.0.js"></script>
@@ -198,18 +196,6 @@
       <footer class="chat-composer-wrap" hidden>
         <div class="chat-attachment-pending" id="chatAttachmentPreview" hidden></div>
         <input id="chatAttachmentInput" type="file" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.webp" hidden>
-        <aside class="chat-draft-project-card" id="chatDraftProjectCard" aria-label="Project context" hidden>
-          <div class="chat-draft-project-image">
-            <img id="chatDraftProjectImage" alt="" hidden>
-            <span id="chatDraftProjectPlaceholder" aria-hidden="true">Project</span>
-          </div>
-          <div class="chat-draft-project-info">
-            <span class="chat-draft-project-category" id="chatDraftProjectCategory"></span>
-            <strong class="chat-draft-project-title" id="chatDraftProjectTitle"></strong>
-            <p class="chat-draft-project-meta" id="chatDraftProjectMeta"></p>
-          </div>
-          <button class="chat-draft-project-remove" id="chatDraftProjectRemove" type="button" aria-label="Remove project context">×</button>
-        </aside>
         <form class="chat-composer-form" id="chatComposerForm">
           <div class="chat-composer-tools">
             <button class="chat-composer-btn" id="chatAttachBtn" type="button" title="Attach file or proposal" aria-label="Attach file">
@@ -221,7 +207,6 @@
             <svg viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
           </button>
         </form>
-        <p class="chat-draft-project-note" id="chatDraftProjectNote" hidden>The project card is attached to your first message. Clear it to chat without context.</p>
         <div class="chat-composer-hint">
           <span>DEV-MATCH Direct Messenger</span>
           <span>Shift + Enter for new line</span>
@@ -286,7 +271,7 @@
 
   <script src="assets/js/project-detail.js?v=20261120-chat-project-message-card"></script>
   <script src="assets/js/project-detail-popup.js?v=20261120-chat-project-message-card"></script>
-  <script src="assets/js/chat.js?v=20261121-rebase-merge"></script>
+  <script src="assets/js/chat.js?v=20261121-chat-client-workspace-icon-v1"></script>
   <script src="assets/js/nav-behavior.js?v=20261120-mobile-bottom-nav-v4"></script>
 </body>
 </html>

@@ -75,3 +75,4 @@ revoke all on public.directory_people from public, anon, authenticated;
 grant select on public.directory_people to authenticated;
 
 commit;
+;

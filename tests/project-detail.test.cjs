@@ -40,23 +40,14 @@ test('Contact Developer carries the selected project into Messages',()=>{
   assert.doesNotMatch(chatHtml,/chatDraftProjectId/);
 });
 
-test('Composer project context card shows real project fields and can be removed',()=>{
+test('Contact Developer keeps its project draft without rendering the removed context card',()=>{
   const chat=fs.readFileSync('assets/js/chat.js','utf8');
   const html=fs.readFileSync('devmatch-chat.html','utf8');
   const styles=fs.readFileSync('assets/css/chat.css','utf8');
-  assert.match(html,/id="chatDraftProjectCard"[^>]*hidden/);
-  assert.match(html,/id="chatDraftProjectImage"/);
-  assert.match(html,/id="chatDraftProjectCategory"/);
-  assert.match(html,/id="chatDraftProjectTitle"/);
-  assert.match(html,/id="chatDraftProjectMeta"/);
-  assert.match(html,/aria-label="Remove project context"/);
-  assert.match(html,/The project card is attached to your first message\. Clear it to chat without context\./);
-  assert.match(chat,/project\.price,\s*developerName \? `by \$\{developerName\}`/);
-  assert.match(chat,/project\.category \|\| 'PROJECT'/);
-  assert.match(chat,/conversation\.messageProjectId = null/);
-  assert.match(styles,/\.chat-draft-project-remove\s*\{[^}]*width: 44px;[^}]*height: 44px;/);
-  assert.match(styles,/@media \(max-width: 600px\) \{[\s\S]*?\.chat-draft-project-card\s*\{[^}]*grid-template-columns: minmax\(0, 1fr\)/);
-  assert.match(styles,/-webkit-line-clamp: 2/);
+  assert.doesNotMatch(html,/chatDraftProjectCard|chatDraftProjectImage|chatDraftProjectNote/);
+  assert.doesNotMatch(chat,/renderComposerProjectCard|draftProjectRemoveEl/);
+  assert.doesNotMatch(styles,/chat-draft-project-card|chat-draft-project-remove/);
+  assert.match(chat,/projectId: project\?\.id \|\| null/);
 });
 
 test('Opening Contact Developer checks for an existing thread without creating one',()=>{
@@ -64,6 +55,7 @@ test('Opening Contact Developer checks for an existing thread without creating o
   const openFromQuery=chat.slice(chat.indexOf('async function openFromQuery()'),chat.indexOf('\n  function updateShell'));
   const sendMessage=chat.slice(chat.indexOf('async function sendMessage('),chat.indexOf('\n  function formatFileSize'));
   assert.match(openFromQuery,/invokeChat\('find-project', \{projectId: project\.id\}\)/);
+  assert.match(openFromQuery,/conversation\.participantId === project\.owner_id && conversation\.projectId === project\.id/);
   assert.match(openFromQuery,/activateConversationDraft\(draft\)/);
   assert.doesNotMatch(openFromQuery,/invokeChat\('start-(?:project|user)'/);
   assert.match(sendMessage,/invokeChat\('start-project', \{projectId: conversation\.projectId\}\)/);
