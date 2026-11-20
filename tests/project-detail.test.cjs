@@ -18,6 +18,15 @@ test('Project detail header uses developer profile portfolio views',()=>{
   assert.doesNotMatch(source,/getElementById\('projectViews'\)\.textContent=formatMetric\(projectViewCount\)/);
 });
 
+test('Project detail displays the uploaded project cover when available',()=>{
+  const source=fs.readFileSync('assets/js/project-detail.js','utf8');
+  const styles=fs.readFileSync('assets/css/project-detail.css','utf8');
+  assert.match(source,/coverImage:safeProjectCover\(row\.cover_image\|\|data\.coverImage\)/);
+  assert.match(source,/image\.src=activeProject\.coverImage/);
+  assert.match(source,/cover\.classList\.add\('has-uploaded-image'\)/);
+  assert.match(styles,/\.project-cover\.has-uploaded-image:before,.project-cover\.has-uploaded-image:after\{display:none\}/);
+});
+
 test('Project detail comments show timestamp beside Reply',()=>{
   const source=fs.readFileSync('assets/js/project-detail.js','utf8');
   assert.match(source,/comment-actions/);

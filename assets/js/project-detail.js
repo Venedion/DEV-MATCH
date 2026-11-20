@@ -1,6 +1,18 @@
 (function(){
   'use strict';
   const escapeHtml=value=>String(value??'').replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
+  function safeProjectCover(value){
+    if(typeof value!=='string')return '';
+    if(/^data:image\/(?:jpeg|png|webp);base64,/i.test(value))return value;
+    try{
+      const url=new URL(value);
+      return url.origin==='https://yxwktllqbmhustmhdaqi.supabase.co'
+        &&url.pathname.startsWith('/storage/v1/object/public/project-media/')
+        ?value:'';
+    }catch{
+      return '';
+    }
+  }
   function ensureProjectDetailDialog(){
     const existing=document.getElementById('projectDetailDialog');
     if(existing)return existing;
@@ -268,7 +280,8 @@
       activeProject={id:row.id,title:String(row.title||''),category:String(row.category||''),type:String(row.project_type||''),
         description:String(data.description||data.overview||''),overview:String(data.overview||data.description||''),
         price:String(row.price||data.price||''),stack:Array.isArray(data.stack)?data.stack.join(', '):String(data.stack||''),
-        link:String(data.link||data.url||''),priceType:String(data.priceType||data.price_type||''),created:row.created_at||row.updated_at,ownerId:row.owner_id};
+        link:String(data.link||data.url||''),coverImage:safeProjectCover(row.cover_image||data.coverImage),
+        priceType:String(data.priceType||data.price_type||''),created:row.created_at||row.updated_at,ownerId:row.owner_id};
       let developerName='DEV-MATCH member',developerLocation='Location not provided',specialty='Developer',developerBio='No biography provided.';
       const user=await window.devMatchBackend.ready;
       let accountRole=null,favoritesLoadFailed=false,viewRecordFailed=false,engagementMetricsAvailable=true;
@@ -362,6 +375,15 @@
       if(safeProjectUrl){projectLink.href=safeProjectUrl;projectLink.textContent=activeProject.link;}
       const cover=document.getElementById('projectCover');
       cover.className=`project-cover ${['food-art','dashboard-art','analytics-art','store-art','inventory-art'].includes(data.art)?data.art:'dashboard-art'}`;
+      cover.replaceChildren();
+      if(activeProject.coverImage){
+        const image=document.createElement('img');
+        image.className='project-cover-image';
+        image.src=activeProject.coverImage;
+        image.alt='';
+        cover.append(image);
+        cover.classList.add('has-uploaded-image');
+      }
       document.getElementById('developerInitials').textContent=initials(developerName);
       document.getElementById('developerName').textContent=developerName;
       document.getElementById('developerLocation').textContent=developerLocation;
