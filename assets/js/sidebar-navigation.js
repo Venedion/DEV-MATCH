@@ -1,6 +1,8 @@
 (function () {
   'use strict';
 
+  const mobileNavigationTransitionKey = 'devmatch-mobile-bottom-nav-transition';
+
   const icons = {
     overview: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>',
     home: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-6v-7h-4v7H4a1 1 0 0 1-1-1z"/></svg>',
@@ -141,6 +143,287 @@
     }).join('');
   }
 
+  function renderMobileBottomNavigation(role, activeKey) {
+    let nav = document.querySelector('.mobile-bottom-nav');
+    if (!nav) {
+      nav = document.createElement('nav');
+      nav.className = 'mobile-bottom-nav';
+      document.body.appendChild(nav);
+      initializeMobileBottomNavigationEvents(nav);
+    }
+
+    const isClient = role === 'client';
+    const page = location.pathname.split('/').pop();
+    const items = isClient
+      ? [
+        {key: 'home', label: 'Home', href: 'devmatch-client-dashboard.html#home', icon: 'home'},
+        {key: 'requests', label: 'My Requests', href: 'devmatch-client-dashboard.html#requests', icon: 'projects'},
+        {key: 'explore', label: 'Explore', icon: 'discover'},
+        {key: 'notifications', label: 'Notifications', href: 'devmatch-notifications.html', icon: 'notifications'},
+        {key: 'profile', label: 'Profile', href: 'devmatch-my-profile.html?role=client', icon: 'profile'}
+      ]
+      : [
+        {key: 'overview', label: 'Overview', href: 'devmatch-dashboard.html', icon: 'overview'},
+        {key: 'projects', label: 'My Projects', href: 'devmatch-my-projects.html', icon: 'projects'},
+        {key: 'explore', label: 'Explore', icon: 'discover'},
+        {key: 'notifications', label: 'Notifications', href: 'devmatch-developer-notifications.html', icon: 'notifications'},
+        {key: 'profile', label: 'Profile', href: 'devmatch-my-profile.html?role=dev', icon: 'profile'}
+      ];
+    const exploreItems = isClient
+      ? [
+        {key: 'discover', label: 'Discover Projects', href: 'devmatch-discover-projects.html', icon: 'discover'},
+        {key: 'developers', label: 'Developers', href: 'devmatch-find-developers.html', icon: 'people'}
+      ]
+      : [
+        {key: 'findProjects', label: 'Find Projects', href: 'devmatch-find-projects.html', icon: 'discover'},
+        {key: 'findClients', label: 'Find Clients', href: 'devmatch-find-clients.html', icon: 'people'}
+      ];
+
+    nav.setAttribute('aria-label', isClient ? 'Client navigation' : 'Developer navigation');
+    nav.dataset.workspace = role;
+    nav.classList.remove('is-explore-open');
+    nav.replaceChildren();
+
+    items.forEach(item => {
+      const active = item.key === 'explore'
+        ? exploreItems.some(exploreItem => exploreItem.key === activeKey)
+        : item.key === 'profile'
+          ? activeKey === 'profile' || activeKey === 'settings'
+          : item.key === activeKey;
+
+      if (item.key === 'explore') {
+        const button = document.createElement('button');
+        button.className = `mobile-bottom-nav__item mobile-bottom-nav__explore-button${active ? ' active' : ''}`;
+        button.type = 'button';
+        button.setAttribute('aria-label', item.label);
+        button.setAttribute('aria-haspopup', 'true');
+        button.setAttribute('aria-controls', 'mobileExploreMenu');
+        button.setAttribute('aria-expanded', 'false');
+        button.title = item.label;
+        button.dataset.mobileNavKey = item.key;
+        if (isClient) {
+          button.classList.add('client-nav-item');
+          button.dataset.navKey = 'discover';
+        }
+        button.innerHTML = `${icons[item.icon]}<span class="mobile-bottom-nav__sr-only">${item.label}</span>`;
+        nav.appendChild(button);
+        return;
+      }
+
+      const isClientDashboardShortcut = isClient
+        && page === 'devmatch-client-dashboard.html'
+        && (item.key === 'home' || item.key === 'requests');
+      const link = document.createElement(isClientDashboardShortcut ? 'button' : 'a');
+      link.className = `mobile-bottom-nav__item${active ? ' active' : ''}`;
+      link.dataset.mobileNavKey = item.key;
+      if (isClientDashboardShortcut) {
+        link.type = 'button';
+        link.dataset.mobileClientView = item.key;
+      } else {
+        link.href = item.href;
+      }
+      if (isClient && (item.key === 'home' || item.key === 'requests')) {
+        link.classList.add('client-nav-item');
+        link.dataset.navKey = item.key;
+        if (item.key === 'requests') link.setAttribute('data-request-nav', '');
+      }
+      link.setAttribute('aria-label', item.label);
+      link.title = item.label;
+      if (active) link.setAttribute('aria-current', 'page');
+      link.innerHTML = `${icons[item.icon]}<span class="mobile-bottom-nav__sr-only">${item.label}</span>`;
+      nav.appendChild(link);
+    });
+
+    const exploreMenu = document.createElement('div');
+    exploreMenu.className = 'mobile-explore-menu';
+    exploreMenu.id = 'mobileExploreMenu';
+    exploreMenu.setAttribute('aria-label', isClient ? 'Explore developers and projects' : 'Explore projects and clients');
+    exploreMenu.hidden = true;
+    exploreItems.forEach(item => {
+      const link = document.createElement('a');
+      link.className = 'mobile-explore-menu__item';
+      link.href = item.href;
+      link.dataset.mobileNavKey = 'explore';
+      link.setAttribute('aria-label', item.label);
+      if (item.key === activeKey) link.setAttribute('aria-current', 'page');
+      link.innerHTML = `${icons[item.icon]}<span>${item.label}</span>`;
+      exploreMenu.appendChild(link);
+    });
+    nav.appendChild(exploreMenu);
+
+    document.body.classList.add('has-mobile-bottom-navigation');
+    document.body.classList.toggle('mobile-bottom-nav-hidden', nav.classList.contains('is-hidden'));
+    updateMobileBottomNavigationIndicator(nav, role);
+  }
+
+  function initializeMobileBottomNavigationEvents(nav) {
+    nav.addEventListener('click', event => {
+      if (!(event.target instanceof Element)) return;
+      const exploreButton = event.target.closest('.mobile-bottom-nav__explore-button');
+      if (exploreButton) {
+        const isOpen = exploreButton.getAttribute('aria-expanded') === 'true';
+        const menu = nav.querySelector('.mobile-explore-menu');
+        exploreButton.setAttribute('aria-expanded', String(!isOpen));
+        nav.classList.toggle('is-explore-open', !isOpen);
+        if (menu) menu.hidden = isOpen;
+        return;
+      }
+      const clickedItem = event.target.closest('.mobile-bottom-nav__item, .mobile-explore-menu__item');
+      if (!clickedItem) return;
+      if (clickedItem instanceof HTMLAnchorElement) {
+        const activeItem = nav.querySelector('.mobile-bottom-nav__item.active');
+        const activeKey = activeItem?.dataset.mobileNavKey;
+        const destinationKey = clickedItem.dataset.mobileNavKey;
+        if (activeKey && destinationKey && activeKey !== destinationKey) {
+          const destinationPath = new URL(clickedItem.href, location.href).pathname;
+          sessionStorage.setItem(
+            mobileNavigationTransitionKey,
+            `${nav.dataset.workspace}|${activeKey}|${destinationPath}`
+          );
+        } else {
+          sessionStorage.removeItem(mobileNavigationTransitionKey);
+        }
+      }
+      closeMobileExploreMenu(nav);
+      if (clickedItem instanceof HTMLButtonElement) {
+        requestAnimationFrame(() => updateMobileBottomNavigationIndicator(nav, nav.dataset.workspace));
+      }
+    });
+
+    document.addEventListener('click', event => {
+      if (!nav.contains(event.target)) closeMobileExploreMenu(nav);
+    });
+
+    document.addEventListener('keydown', event => {
+      if (event.key !== 'Escape' || !nav.classList.contains('is-explore-open')) return;
+      closeMobileExploreMenu(nav);
+      nav.querySelector('.mobile-bottom-nav__explore-button')?.focus();
+    });
+
+    const main = document.querySelector('main');
+    const scrollPositions = new Map();
+    [document.scrollingElement, document.documentElement, document.body, main].forEach(target => {
+      if (target instanceof HTMLElement) scrollPositions.set(target, target.scrollTop);
+    });
+    let scrollTarget = null;
+    let direction = 0;
+    let directionDistance = 0;
+    document.addEventListener('scroll', event => {
+      const target = event.target === document ? document.scrollingElement : event.target;
+      if (!(target instanceof HTMLElement)
+        || (target !== document.documentElement && target !== document.body && target.tagName !== 'MAIN')) return;
+
+      const currentTop = Math.max(0, target.scrollTop);
+      const previousTop = scrollPositions.get(target);
+      scrollPositions.set(target, currentTop);
+      if (target !== scrollTarget) {
+        scrollTarget = target;
+        direction = 0;
+        directionDistance = 0;
+      }
+
+      if (previousTop === undefined) return;
+      const delta = currentTop - previousTop;
+      if (currentTop < 24) {
+        setMobileBottomNavigationHidden(nav, false);
+        direction = 0;
+        directionDistance = 0;
+        return;
+      }
+      if (!delta) return;
+
+      const nextDirection = delta > 0 ? 1 : -1;
+      if (nextDirection !== direction) {
+        direction = nextDirection;
+        directionDistance = 0;
+      }
+      directionDistance += Math.abs(delta);
+      if (directionDistance < 8) return;
+
+      setMobileBottomNavigationHidden(nav, direction > 0);
+      if (direction > 0) closeMobileExploreMenu(nav);
+      directionDistance = 0;
+    }, {capture: true, passive: true});
+
+    window.addEventListener('resize', () => {
+      setMobileBottomNavigationHidden(nav, false);
+      closeMobileExploreMenu(nav);
+      updateMobileBottomNavigationIndicator(nav, nav.dataset.workspace);
+    });
+  }
+
+  function updateMobileBottomNavigationIndicator(nav, role) {
+    if (!(nav instanceof HTMLElement)) return;
+    const activeItem = nav.querySelector('.mobile-bottom-nav__item.active');
+    const navBounds = nav.getBoundingClientRect();
+    if (!activeItem || !navBounds.width) return;
+    if (nav.dataset.mobileNavIndicatorPending === 'true') return;
+
+    const setPosition = item => {
+      const currentNavBounds = nav.getBoundingClientRect();
+      const itemBounds = item.getBoundingClientRect();
+      nav.style.setProperty(
+        '--mobile-nav-active-left',
+        `${itemBounds.left - currentNavBounds.left - nav.clientLeft}px`
+      );
+      nav.style.setProperty('--mobile-nav-active-width', `${itemBounds.width}px`);
+    };
+
+    const markIndicatorReady = () => {
+      nav.classList.remove('is-initializing-indicator');
+      nav.dataset.mobileNavIndicatorPending = 'false';
+      nav.dataset.mobileNavIndicatorInitialized = 'true';
+    };
+
+    if (nav.dataset.mobileNavIndicatorInitialized === 'true') {
+      setPosition(activeItem);
+      nav.classList.add('has-active-indicator');
+      return;
+    }
+
+    nav.classList.add('is-initializing-indicator');
+    const savedTransition = sessionStorage.getItem(mobileNavigationTransitionKey);
+    sessionStorage.removeItem(mobileNavigationTransitionKey);
+    const [previousRole, previousKey, destinationPath] = savedTransition?.split('|') || [];
+    const previousItem = previousRole === role && destinationPath === location.pathname
+      ? Array.from(nav.querySelectorAll('.mobile-bottom-nav__item'))
+        .find(item => item.dataset.mobileNavKey === previousKey)
+      : null;
+
+    if (previousItem && previousItem !== activeItem) {
+      setPosition(previousItem);
+      nav.classList.add('has-active-indicator');
+      nav.dataset.mobileNavIndicatorPending = 'true';
+      requestAnimationFrame(() => requestAnimationFrame(() => {
+        const currentActiveItem = nav.querySelector('.mobile-bottom-nav__item.active');
+        if (currentActiveItem) setPosition(currentActiveItem);
+        markIndicatorReady();
+      }));
+    } else {
+      setPosition(activeItem);
+      nav.classList.add('has-active-indicator');
+      requestAnimationFrame(() => requestAnimationFrame(() => {
+        const currentActiveItem = nav.querySelector('.mobile-bottom-nav__item.active');
+        if (currentActiveItem) setPosition(currentActiveItem);
+        markIndicatorReady();
+      }));
+    }
+    nav.dataset.mobileNavIndicatorPending = 'true';
+  }
+
+  function setMobileBottomNavigationHidden(nav, hidden) {
+    nav.classList.toggle('is-hidden', hidden);
+    document.body.classList.toggle('mobile-bottom-nav-hidden', hidden);
+  }
+
+  function closeMobileExploreMenu(nav) {
+    const button = nav.querySelector('.mobile-bottom-nav__explore-button');
+    const menu = nav.querySelector('.mobile-explore-menu');
+    button?.setAttribute('aria-expanded', 'false');
+    if (menu) menu.hidden = true;
+    nav.classList.remove('is-explore-open');
+  }
+
   function initializeSidebarActionLabels() {
     const actions = document.querySelectorAll('body > .sidebar > .side-add, body > .sidebar > .post-request, body > .client-sidebar > .post-request');
     actions.forEach(action => {
@@ -251,9 +534,16 @@
         renderGroup(nav, groups[group], workspace, activeKey);
       }
     });
+    renderMobileBottomNavigation(workspace, activeKey);
   }
 
-  window.DEVMATCH_SIDEBAR_NAVIGATION = { setWorkspace };
+  window.DEVMATCH_SIDEBAR_NAVIGATION = {
+    setWorkspace,
+    updateMobileBottomNavigationIndicator: () => updateMobileBottomNavigationIndicator(
+      document.querySelector('.mobile-bottom-nav'),
+      currentWorkspace
+    )
+  };
   initializeSidebarActionLabels();
   initializeSidebarPin();
   initializeSidebarBrandPlacement();

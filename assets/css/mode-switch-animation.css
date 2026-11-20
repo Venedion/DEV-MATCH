@@ -18,6 +18,30 @@
   }
 }
 
+@keyframes opportunity-indicator-to-projects {
+  from {
+    width: 92px;
+    transform: translateX(156px);
+  }
+
+  to {
+    width: 154px;
+    transform: translateX(0);
+  }
+}
+
+@keyframes opportunity-indicator-to-clients {
+  from {
+    width: 154px;
+    transform: translateX(0);
+  }
+
+  to {
+    width: 92px;
+    transform: translateX(156px);
+  }
+}
+
 html.client-mode-route .mode-switch::before,
 html.client-mode-route .client-mode-switch::before {
   transform: translateX(100%);

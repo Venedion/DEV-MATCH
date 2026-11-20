@@ -49,6 +49,7 @@ const ownedProjectsReady=window.devMatchBackend.ready.then(user=>user
   return false;
 });
 const rows=document.getElementById('managedProjectRows');
+const mobileProjectCards=document.getElementById('mobileProjectCards');
 const search=document.getElementById('projectSearch');
 const headerSearch=document.getElementById('headerSearch');
 const projectTabs=document.querySelector('.project-tabs');
@@ -59,8 +60,10 @@ const sortMenu=document.getElementById('projectSortMenu');
 const pagination=document.getElementById('pagination');
 const emptyState=document.getElementById('emptyProjects');
 const tableSummary=document.getElementById('resultSummary');
+const mobileTableSummary=document.getElementById('mobileResultSummary');
 const projectScrollContainer=document.querySelector('.projects-page');
 const projectEditorActionBreakpoint=window.matchMedia('(max-width: 820px)');
+const projectsMobileBreakpoint=window.matchMedia('(max-width: 600px)');
 const perPage=6;
 let currentStatus=new URLSearchParams(location.search).get('status')==='favorites'?'published':'all';
 let currentPage=1;
@@ -135,6 +138,12 @@ function filteredProjects(){
 function thumbnail(project){
   return `<span class="project-thumb art-${escapeHtml(project.art)}" aria-hidden="true">${project.coverImage?`<img src="${escapeHtml(project.coverImage)}" alt="">`:'<i class="mock-top"></i><i class="mock-line"></i><i class="mock-line short"></i><i class="mock-block"></i>'}</span>`;
 }
+function projectActions(project){
+  return `<div class="row-actions">
+    <button class="row-action" type="button" data-action="edit" data-id="${escapeHtml(project.id)}" aria-label="Edit ${escapeHtml(project.title)}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m14 6 4 4M4 20l4-.8L19 8a2.8 2.8 0 0 0-4-4L4 15z"/></svg></button>
+    <button class="row-action delete" type="button" data-action="delete" data-id="${escapeHtml(project.id)}" aria-label="Delete ${escapeHtml(project.title)}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16m-10 4v6m4-6v6M6 7l1 14h10l1-14M9 7V4h6v3"/></svg></button>
+  </div>`;
+}
 function renderPagination(pageCount){
   if(pageCount<=1){pagination.innerHTML='';return;}
   const buttons=[`<button class="page-button" type="button" data-page="${currentPage-1}" aria-label="Previous page" ${currentPage===1?'disabled':''}>‹</button>`];
@@ -148,38 +157,70 @@ function renderPagination(pageCount){
 }
 function render(){
   const filtered=filteredProjects();
-  const pageCount=Math.max(1,Math.ceil(filtered.length/perPage));
-  currentPage=Math.min(currentPage,pageCount);
-  visibleProjects=filtered.slice((currentPage-1)*perPage,currentPage*perPage);
+  const pageCount=projectsMobileBreakpoint.matches?1:Math.max(1,Math.ceil(filtered.length/perPage));
+  currentPage=projectsMobileBreakpoint.matches?1:Math.min(currentPage,pageCount);
+  visibleProjects=projectsMobileBreakpoint.matches?filtered:filtered.slice((currentPage-1)*perPage,currentPage*perPage);
   rows.innerHTML=visibleProjects.map(project=>`
     <tr data-project-id="${escapeHtml(project.id)}">
       <td><div class="project-cell">${thumbnail(project)}<div><h2 class="project-title"><button class="project-preview-trigger" type="button" data-action="view" data-id="${escapeHtml(project.id)}" aria-label="Preview ${escapeHtml(project.title)}">${escapeHtml(project.title)}</button></h2><p class="project-subtitle">${escapeHtml(displayProjectChoice(project.type,project.typeOther,'Project type'))} · ${escapeHtml(displayProjectChoice(project.category,project.categoryOther,'Project category'))}</p></div></div></td>
       <td><span class="price-type">${escapeHtml(project.priceType)}</span><span class="price-value">${escapeHtml(project.price||'Contact for price')}</span></td>
       <td><span class="status-badge${project.status==='draft'?' draft':''}">${project.status==='draft'?'Draft':'Published'}</span></td>
       <td class="metric">${formatMetric(project.views)}</td><td class="metric">${formatMetric(project.favorites)}</td><td class="metric">${formatMetric(project.comments)}</td>
-      <td><div class="row-actions">
-        <button class="row-action" type="button" data-action="edit" data-id="${escapeHtml(project.id)}" aria-label="Edit ${escapeHtml(project.title)}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m14 6 4 4M4 20l4-.8L19 8a2.8 2.8 0 0 0-4-4L4 15z"/></svg></button>
-        <button class="row-action delete" type="button" data-action="delete" data-id="${escapeHtml(project.id)}" aria-label="Delete ${escapeHtml(project.title)}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16m-10 4v6m4-6v6M6 7l1 14h10l1-14M9 7V4h6v3"/></svg></button>
-      </div></td>
+      <td>${projectActions(project)}</td>
     </tr>`).join('');
+  mobileProjectCards.innerHTML=visibleProjects.map(project=>{
+    const projectId=escapeHtml(project.id);
+    const title=escapeHtml(project.title);
+    const metric=value=>escapeHtml(formatMetric(value));
+    const status=project.status==='draft'?'Draft':'Published';
+    const type=escapeHtml(displayProjectChoice(project.type,project.typeOther,'Project type'));
+    const category=escapeHtml(displayProjectChoice(project.category,project.categoryOther,'Project category'));
+    return `<article class="mobile-project-card" data-project-id="${projectId}">
+      <div class="mobile-project-main">
+        <div class="mobile-project-visual">${thumbnail(project)}<div class="mobile-project-price"><span class="price-type">${escapeHtml(project.priceType)}</span><span class="price-value">${escapeHtml(project.price||'Contact for price')}</span></div></div>
+        <div class="mobile-project-details">
+          <span class="status-badge${project.status==='draft'?' draft':''}">${status}</span>
+          <h2 class="project-title"><button class="project-preview-trigger" type="button" data-action="view" data-id="${projectId}" aria-label="Preview ${title}">${title}</button></h2>
+          <p class="project-subtitle">${type} · ${category}</p>
+        </div>
+      </div>
+      <div class="mobile-project-footer">
+        <div class="mobile-project-metrics">
+          <span class="mobile-project-metric" aria-label="Views: ${metric(project.views)}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2.5 12s3.3-6 9.5-6 9.5 6 9.5 6-3.3 6-9.5 6-9.5-6-9.5-6Z"/><circle cx="12" cy="12" r="2.5"/></svg><b aria-hidden="true">${metric(project.views)}</b></span>
+          <span class="mobile-project-metric" aria-label="Favorites: ${metric(project.favorites)}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.8 8.7c0 4.2-8.8 10-8.8 10s-8.8-5.8-8.8-10a4.2 4.2 0 0 1 7.4-2.7L12 7.5l1.4-1.5a4.2 4.2 0 0 1 7.4 2.7Z"/></svg><b aria-hidden="true">${metric(project.favorites)}</b></span>
+          <span class="mobile-project-metric" aria-label="Comments: ${metric(project.comments)}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.5 11.5a8.5 8.5 0 0 1-12.8 7.3L3 20l1.2-4.1a8.5 8.5 0 1 1 16.3-4.4Z"/></svg><b aria-hidden="true">${metric(project.comments)}</b></span>
+        </div>
+        ${projectActions(project)}
+      </div>
+    </article>`;
+  }).join('');
   emptyState.hidden=filtered.length>0;
   document.querySelector('.project-table').hidden=filtered.length===0;
   document.querySelector('.table-footer').hidden=filtered.length===0;
   const start=filtered.length?(currentPage-1)*perPage+1:0;
-  const end=Math.min(currentPage*perPage,filtered.length);
-  tableSummary.textContent=`Showing ${start}–${end} of ${filtered.length} projects`;
+  const end=filtered.length?start+visibleProjects.length-1:0;
+  const summary=`Showing ${start}–${end} of ${filtered.length} projects`;
+  tableSummary.textContent=summary;
+  mobileTableSummary.textContent=`Showing ${visibleProjects.length} of ${filtered.length} projects`;
+  mobileTableSummary.hidden=filtered.length===0;
   renderPagination(pageCount);
   document.getElementById('allCount').textContent=String(projects.length);
   document.getElementById('publishedCount').textContent=String(projects.filter(project=>project.status==='published').length);
   document.getElementById('draftCount').textContent=String(projects.filter(project=>project.status==='draft').length);
 }
+projectsMobileBreakpoint.addEventListener('change',()=>{
+  currentPage=1;
+  render();
+});
 function storeSavedProjects(){
   localStorage.setItem(storageKey,JSON.stringify(savedProjects));
 }
 const editor=document.getElementById('projectEditor');
 const projectsPage=document.getElementById('projectsList');
 const form=document.getElementById('projectForm');
+form.noValidate=true;
 const selectedMedia=[];
+let publishValidationShown=false;
 let previewUrls=[];
 let galleryUrls=[];
 let existingCoverImage='';
@@ -269,6 +310,9 @@ async function restoreUnsavedProjectDraft(){
 }
 function showEditor(project=null){
   form.reset();
+  publishValidationShown=false;
+  form.querySelectorAll('.validation-message').forEach(message=>{message.textContent='';message.hidden=true});
+  form.querySelectorAll('[aria-invalid="true"]').forEach(control=>control.removeAttribute('aria-invalid'));
   selectedMedia.length=0;
   previewUrls.forEach(url=>URL.revokeObjectURL(url));
   previewUrls=[];
@@ -516,6 +560,9 @@ function hasCompletePrice(){
     :Boolean(form.elements.price.value.trim());
 }
 function updateEditor(){
+  const descriptionField=form.elements.description;
+  descriptionField.style.height='auto';
+  descriptionField.style.height=`${descriptionField.scrollHeight}px`;
   const title=form.elements.title.value.trim();
   const description=form.elements.description.value.trim();
   const type=form.elements.type.value;
@@ -595,6 +642,7 @@ function renderSelectedMedia(){
       selectedMedia.splice(index,1);
       renderSelectedMedia();
       updateEditor();
+      if(publishValidationShown)validatePublishForm();
       saveUnsavedProjectDraftMedia().catch(error=>{
         document.getElementById('mediaMessage').textContent=error.message;
       });
@@ -624,6 +672,7 @@ function addMedia(files){
   selectedMedia.push(...accepted);
   renderSelectedMedia();
   updateEditor();
+  if(publishValidationShown&&accepted.length)validatePublishForm();
   saveUnsavedProjectDraftMedia().catch(error=>{
     document.getElementById('mediaMessage').textContent=error.message;
   });
@@ -646,32 +695,92 @@ async function uploadSelectedMedia(projectId){
     throw error;
   }
 }
+function setValidationMessage(id,message,control){
+  const element=document.getElementById(id);
+  element.textContent=message;
+  element.hidden=!message;
+  if(control){
+    if(message)control.setAttribute('aria-invalid','true');
+    else control.removeAttribute('aria-invalid');
+  }
+}
+function validatePublishForm(){
+  const title=form.elements.title.value.trim();
+  const description=form.elements.description.value.trim();
+  const type=form.elements.type.value;
+  const category=form.elements.category.value;
+  const typeOther=form.elements.typeOther.value.trim();
+  const categoryOther=form.elements.categoryOther.value.trim();
+  const priceType=form.elements.priceType.value;
+  const titleInput=form.elements.title;
+  const descriptionInput=form.elements.description;
+  const linkInput=form.elements.link;
+  const mediaDropzone=document.getElementById('mediaDropzone');
+  const typeGroup=document.getElementById('projectTypeGroup');
+  const categoryGroup=document.getElementById('projectCategoryGroup');
+  const pricingOptions=document.getElementById('pricingOptions');
+  let firstInvalid=null;
+  const setError=(id,message,control)=>{
+    setValidationMessage(id,message,control);
+    if(message&&!firstInvalid)firstInvalid=control;
+  };
+  setError('titleError',title?'':'Enter a project name.',titleInput);
+  setError('descriptionError',description?'':'Enter a project description.',descriptionInput);
+  setError('linkError',linkInput.value.trim()&&linkInput.validity.typeMismatch?'Enter a valid project URL.':'',linkInput);
+  setError('mediaMessage',selectedMedia.some(file=>file.type.startsWith('image/'))||existingCoverImage?'':'Add at least one screenshot.',mediaDropzone);
+  setError('typeError',type?'':'Select a project type.',typeGroup);
+  setError('typeOtherError',type==='Other'&&!typeOther?'Enter the project type.':'',form.elements.typeOther);
+  setError('categoryError',category?'':'Select a project category.',categoryGroup);
+  setError('categoryOtherError',category==='Other'&&!categoryOther?'Enter the project category.':'',form.elements.categoryOther);
+  setError('priceTypeError',priceType?'':'Select a pricing option.',pricingOptions);
+
+  const priceInputs=[form.elements.price,form.elements.priceMin,form.elements.priceMax];
+  priceInputs.forEach(input=>input.removeAttribute('aria-invalid'));
+  let priceError='';
+  let invalidPriceInput=null;
+  if(priceType==='Custom quote'){
+    const minMissing=!form.elements.priceMin.value.trim();
+    const maxMissing=!form.elements.priceMax.value.trim();
+    if(minMissing||maxMissing){
+      priceError=minMissing&&maxMissing?'Enter a minimum and maximum price.':minMissing?'Enter a minimum price.':'Enter a maximum price.';
+      invalidPriceInput=minMissing?form.elements.priceMin:form.elements.priceMax;
+      if(minMissing)form.elements.priceMin.setAttribute('aria-invalid','true');
+      if(maxMissing)form.elements.priceMax.setAttribute('aria-invalid','true');
+    }
+  }else if(priceType&&!form.elements.price.value.trim()){
+    priceError='Enter a price.';
+    invalidPriceInput=form.elements.price;
+    form.elements.price.setAttribute('aria-invalid','true');
+  }
+  setError('priceError',priceError,null);
+  if(priceError&&!firstInvalid)firstInvalid=invalidPriceInput;
+  document.getElementById('projectMessage').textContent=firstInvalid?'Please complete the highlighted fields before publishing.':'';
+  return firstInvalid;
+}
 async function saveProject(status){
+  const projectMessage=document.getElementById('projectMessage');
+  if(status==='published'){
+    publishValidationShown=true;
+    const firstInvalid=validatePublishForm();
+    if(firstInvalid){
+      document.getElementById('projectPreviewMode').hidden=true;
+      editor.hidden=false;
+      const scrollTarget=firstInvalid.closest('.editor-field,.media-dropzone,.editor-choice-group,.pricing-options')||firstInvalid;
+      scrollTarget.scrollIntoView({block:'center',behavior:'smooth'});
+      return;
+    }
+  }else{
+    publishValidationShown=false;
+    form.querySelectorAll('.validation-message').forEach(message=>{message.textContent='';message.hidden=true});
+    form.querySelectorAll('[aria-invalid="true"]').forEach(control=>control.removeAttribute('aria-invalid'));
+  }
   if(!await ownedProjectsReady){
-    document.getElementById('projectMessage').textContent='Your account projects are not ready to save. Reload the page and try again.';
+    projectMessage.textContent='Your account projects are not ready to save. Reload the page and try again.';
     return;
   }
   const title=form.elements.title.value.trim();
   const description=form.elements.description.value.trim();
   const priceType=form.elements.priceType.value;
-  const projectMessage=document.getElementById('projectMessage');
-  if(status==='published'){
-    const missing=[];
-    if(!title||!description)missing.push('project name and description');
-    if(!selectedMedia.some(file=>file.type.startsWith('image/'))&&!existingCoverImage)missing.push('at least one screenshot');
-    if(!form.elements.type.value||!form.elements.category.value)missing.push('project type and category');
-    else if(form.elements.type.value==='Other'&&!form.elements.typeOther.value.trim())missing.push('a description for the other project type');
-    if(form.elements.category.value==='Other'&&!form.elements.categoryOther.value.trim())missing.push('a description for the other project category');
-    if(!priceType)missing.push('a pricing option');
-    else if(!hasCompletePrice())missing.push(priceType==='Custom quote'?'both ends of the price range':'a price');
-    if(missing.length){
-      projectMessage.textContent=`Before publishing, add ${missing.join(', ')}.`;
-      document.getElementById('projectPreviewMode').hidden=true;
-      editor.hidden=false;
-      editor.querySelector('.publish-checklist').scrollIntoView({block:'center',behavior:'smooth'});
-      return;
-    }
-  }
   const coverImage=existingCoverImage;
   const projectData={
     title:title||'Untitled project',
@@ -796,6 +905,7 @@ form.addEventListener('input',event=>{
     input.setSelectionRange(digitsBeforeCaret,digitsBeforeCaret);
   }
   updateEditor();
+  if(publishValidationShown)validatePublishForm();
   saveUnsavedProjectDraftFields();
 });
 form.addEventListener('change',event=>{
@@ -804,6 +914,7 @@ form.addEventListener('change',event=>{
     event.target.value='';
   }
   updateEditor();
+  if(publishValidationShown&&event.target.name!=='media')validatePublishForm();
   saveUnsavedProjectDraftFields();
 });
 form.addEventListener('submit',event=>{
@@ -838,9 +949,9 @@ document.querySelector('[data-status="all"]').parentElement.addEventListener('cl
   updateProjectTabIndicator();
   render();
 });
-rows.addEventListener('click',async event=>{
+async function handleProjectListClick(event){
   const button=event.target.closest('[data-action]');
-  const row=event.target.closest('tr[data-project-id]');
+  const row=event.target.closest('[data-project-id]');
   if(!row)return;
   const project=projects.find(item=>item.id===(button?.dataset.id||row.dataset.projectId));
   if(!project)return;
@@ -870,7 +981,9 @@ rows.addEventListener('click',async event=>{
     projects=projects.filter(item=>item.id!==project.id);
     render();
   }
-});
+}
+rows.addEventListener('click',handleProjectListClick);
+mobileProjectCards.addEventListener('click',handleProjectListClick);
 pagination.addEventListener('click',event=>{
   const button=event.target.closest('[data-page]');
   if(!button||button.disabled)return;

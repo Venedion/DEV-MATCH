@@ -477,11 +477,12 @@ function showClientView(view){
       ?item.hasAttribute('data-request-nav')
       :viewingRequests||viewingDetail
         ?item.hasAttribute('data-request-nav')
-        :item.getAttribute('href')==='#home';
+        :(item.dataset.mobileClientView==='home'||item.getAttribute('href')==='#home');
     item.classList.toggle('active',active);
     if(active)item.setAttribute('aria-current','page');
     else item.removeAttribute('aria-current');
   });
+  window.DEVMATCH_SIDEBAR_NAVIGATION?.updateMobileBottomNavigationIndicator();
   if(discovering)document.querySelector('[data-discover-nav]').focus({preventScroll:true});
 }
 document.querySelectorAll('[data-discover-nav]').forEach(link=>link.addEventListener('click',event=>{
@@ -494,11 +495,20 @@ document.querySelector('.client-nav-item[href="#home"]').addEventListener('click
   history.replaceState(null,'','#home');
   showClientView('home');
 });
-document.querySelectorAll('.client-nav-item[data-request-nav]').forEach(link=>link.addEventListener('click',event=>{
+document.querySelectorAll('.client-nav-item[data-request-nav]:not(.mobile-bottom-nav__item)').forEach(link=>link.addEventListener('click',event=>{
   event.preventDefault();
   history.replaceState(null,'','#requests');
   showClientView('requests');
 }));
+document.addEventListener('click',event=>{
+  if(event.defaultPrevented||!(event.target instanceof Element))return;
+  const link=event.target.closest('.mobile-bottom-nav [data-mobile-client-view="home"],.mobile-bottom-nav [data-mobile-client-view="requests"]');
+  if(!link)return;
+  const view=link.dataset.mobileClientView;
+  event.preventDefault();
+  history.replaceState(null,'',view==='requests'?'#requests':'#home');
+  showClientView(view);
+});
 document.querySelectorAll('.client-nav-item[data-favorites-filter]').forEach(link=>link.addEventListener('click',()=>{
   showClientView('home');
   document.querySelectorAll('.client-nav-item').forEach(item=>{

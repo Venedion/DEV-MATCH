@@ -29,6 +29,12 @@
   const periodSelect = document.getElementById('periodSelect');
   const periodTrigger = document.getElementById('periodTrigger');
   const periodOptions = document.getElementById('periodOptions');
+  let periodMenuOpen = false;
+  let periodMenuCloseTimer = null;
+  const periodMenuAnimationDuration = window.matchMedia
+    && window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    ? 0
+    : 180;
   const rangeStartInput = document.getElementById('rangeStart');
   const rangeEndInput = document.getElementById('rangeEnd');
   const rangeError = document.getElementById('rangeError');
@@ -36,8 +42,6 @@
   const periodCancel = document.getElementById('periodCancel');
   const periodApply = document.getElementById('periodApply');
   const periodCalendar = document.getElementById('periodCalendar');
-  const daysThroughTodayInput = document.getElementById('daysThroughToday');
-  const daysThroughYesterdayInput = document.getElementById('daysThroughYesterday');
   const stateText = {
     loading: 'Loading your dashboard…',
     emptyProjects: 'No projects yet. Add a project to see it here.',
@@ -226,6 +230,8 @@
     const label = rangeLabel(range);
     const periodValue = document.getElementById('periodValue');
     const description = document.getElementById('rangeDescription');
+    const welcome = document.querySelector('.dashboard > .welcome');
+    welcome?.classList.toggle('is-custom-range', range.key === 'custom');
     if (periodValue) periodValue.textContent = label;
     if (description) {
       description.textContent = range.key === 'lifetime'
@@ -255,14 +261,34 @@
 
   function setPeriodMenuOpen(open) {
     if (!periodSelect || !periodTrigger || !periodOptions) return;
+    periodMenuOpen = open;
+    if (periodMenuCloseTimer !== null) {
+      window.clearTimeout(periodMenuCloseTimer);
+      periodMenuCloseTimer = null;
+    }
     periodSelect.classList.toggle('open', open);
     document.querySelector('.dashboard')?.classList.toggle('period-picker-open', open);
     periodTrigger.setAttribute('aria-expanded', String(open));
-    periodOptions.hidden = !open;
+    periodOptions.inert = !open;
     if (open) {
+      periodOptions.hidden = false;
       requestAnimationFrame(() => {
-        if (!periodOptions.hidden && calendarMonth) scrollCalendarToMonth(calendarMonth);
+        requestAnimationFrame(() => {
+          if (!periodMenuOpen || periodOptions.hidden) return;
+          periodOptions.classList.add('is-open');
+          if (calendarMonth) scrollCalendarToMonth(calendarMonth);
+        });
       });
+    } else {
+      periodOptions.classList.remove('is-open');
+      if (periodMenuAnimationDuration === 0) {
+        periodOptions.hidden = true;
+      } else {
+        periodMenuCloseTimer = window.setTimeout(() => {
+          if (!periodMenuOpen) periodOptions.hidden = true;
+          periodMenuCloseTimer = null;
+        }, periodMenuAnimationDuration);
+      }
     }
   }
 
@@ -425,9 +451,11 @@
     if (!monthElement) return;
     const stickyWeekdays = periodCalendar.querySelector('.period-weekdays');
     const stickyHeight = stickyWeekdays?.getBoundingClientRect().height || 0;
+    const monthHeadingGap = 8;
     periodCalendar.scrollTop += monthElement.getBoundingClientRect().top
       - periodCalendar.getBoundingClientRect().top
-      - stickyHeight;
+      - stickyHeight
+      - monthHeadingGap;
     updateVisibleCalendarMonth();
   }
 
@@ -856,24 +884,6 @@
     }
   }
 
-  function setRelativeDayRange(input, dayOffset, presetKey, periodName) {
-    const days = Number(input.value);
-    if (!Number.isSafeInteger(days) || days < 1 || days > 3650) {
-      rangeError.textContent = 'Enter a number of days between 1 and 3650.';
-      rangeError.hidden = false;
-      return;
-    }
-    const endDate = offsetDateKey(todayKey, -dayOffset);
-    const startDate = offsetDateKey(endDate, 1 - days);
-    setDraftRange({
-      key: 'custom',
-      presetKey,
-      startDate,
-      endDate,
-      label: `${days} days up to ${periodName}`
-    });
-  }
-
   function cancelPeriodPicker(restoreFocus = true) {
     setDraftRange(appliedRange || initialRange);
     setPeriodMenuOpen(false);
@@ -906,7 +916,7 @@
   }
 
   periodTrigger?.addEventListener('click', () => {
-    if (periodOptions.hidden) {
+    if (!periodMenuOpen) {
       dateSelectionField = 'start';
       setDraftRange(appliedRange || initialRange);
       setPeriodMenuOpen(true);
@@ -938,14 +948,17 @@
       }
     }
   });
-  periodOptions?.addEventListener('keydown', event => {
-    if (event.key === 'Escape') cancelPeriodPicker();
+  document.addEventListener('keydown', event => {
+    if (event.key === 'Escape' && periodMenuOpen) {
+      event.preventDefault();
+      cancelPeriodPicker();
+    }
   });
   document.addEventListener('click', event => {
     const clickPath = event.composedPath?.() || [];
     const clickedInside = periodSelect
       && (periodSelect.contains(event.target) || clickPath.includes(periodSelect));
-    if (periodSelect && !clickedInside && !periodOptions.hidden) cancelPeriodPicker(false);
+    if (periodSelect && !clickedInside && periodMenuOpen) cancelPeriodPicker(false);
   });
   periodCalendar?.addEventListener('scroll', () => {
     updateVisibleCalendarMonth();
@@ -962,13 +975,6 @@
   });
   periodCancel?.addEventListener('click', cancelPeriodPicker);
   periodApply?.addEventListener('click', applyDraftRange);
-  daysThroughTodayInput?.addEventListener('change', () => {
-    setRelativeDayRange(daysThroughTodayInput, 0, 'custom-today', 'today');
-  });
-  daysThroughYesterdayInput?.addEventListener('change', () => {
-    setRelativeDayRange(daysThroughYesterdayInput, 1, 'custom-yesterday', 'yesterday');
-  });
-
   const search = document.getElementById('searchInput');
   search?.addEventListener('input', () => {
     const query = search.value.trim().toLowerCase();

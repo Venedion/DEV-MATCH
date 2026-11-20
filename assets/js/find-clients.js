@@ -42,6 +42,8 @@
   const favoriteRemoveDialog = document.getElementById('favoriteRemoveDialog');
   const favoriteRemoveMessage = document.getElementById('favoriteRemoveMessage');
   const favoriteCountEl = document.getElementById('favoriteCount');
+  const projectRequestsTabCount = document.getElementById('projectRequestsTabCount');
+  const clientsTabCount = document.getElementById('clientsTabCount');
   const favoriteStateReady = window.devMatchBackend.ready.then(user => user
     ? window.devMatchBackend.loadFavorites()
     : null
@@ -606,16 +608,24 @@
       if (!user) throw new Error('Sign in with a developer account to browse the client directory.');
       const account = await window.devMatchBackend.loadProfile(user);
       if (account.account_role !== 'dev') throw new Error('The client directory is available in developer mode.');
-      const [{data: people, error: peopleError}, {data: rows, error: projectsError}] = await Promise.all([
+      const [
+        {data: people, count: clientCount, error: peopleError},
+        {data: rows, count: projectRequestCount, error: projectsError}
+      ] = await Promise.all([
         window.devMatchBackend.client.from('directory_people')
-          .select('id,display_name,username,account_role,profile_data,open_request_count')
+          .select('id,display_name,username,account_role,profile_data,open_request_count', {count:'exact'})
           .eq('account_role', 'client'),
         window.devMatchBackend.client.from('projects')
-          .select('id,owner_id,title,project_type,category,price,data,status,created_at,updated_at')
+          .select('id,owner_id,title,project_type,category,price,data,status,created_at,updated_at', {count:'exact'})
           .eq('project_kind', 'request').eq('status', 'open').order('updated_at', {ascending:false})
       ]);
       if (peopleError) throw peopleError;
       if (projectsError) throw projectsError;
+      if (clientCount === null || projectRequestCount === null) {
+        throw new Error('The client or project request count was not returned by Supabase.');
+      }
+      if (projectRequestsTabCount && projectRequestCount !== null) projectRequestsTabCount.textContent = String(projectRequestCount);
+      if (clientsTabCount && clientCount !== null) clientsTabCount.textContent = String(clientCount);
       const requestsByOwner = new Map();
       (rows || []).forEach(row => {
         const data = row.data && typeof row.data === 'object' ? row.data : {};
@@ -639,6 +649,8 @@
       renderClients();
     } catch (error) {
       console.error('Unable to load the client directory from Supabase.', error);
+      if (projectRequestsTabCount) projectRequestsTabCount.textContent = '—';
+      if (clientsTabCount) clientsTabCount.textContent = '—';
       status.textContent = error.message && /Sign in|available in developer mode/.test(error.message)
         ? error.message : 'The client directory could not be loaded. Check your connection and try again.';
       status.hidden = false;

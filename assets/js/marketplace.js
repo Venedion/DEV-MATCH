@@ -30,6 +30,8 @@
   const catalogStatus = document.getElementById('catalogStatus');
   const projectTabCount = document.getElementById('projectTabCount');
   const developerTabCount = document.getElementById('developerTabCount');
+  const projectRequestsTabCount = document.getElementById('projectRequestsTabCount');
+  const clientsTabCount = document.getElementById('clientsTabCount');
   function safeProjectCover(value) {
     if (typeof value !== 'string' || !value.trim()) return '';
     try {
@@ -545,6 +547,25 @@
     }
   }
 
+  async function loadClientDirectoryTabCount() {
+    if (!clientsTabCount) return;
+    try {
+      const user = await window.devMatchBackend.ready;
+      if (!user) throw new Error('Sign in with a developer account to browse the client directory.');
+      const account = await window.devMatchBackend.loadProfile(user);
+      if (account.account_role !== 'dev') throw new Error('The client directory is available in developer mode.');
+      const {count, error} = await window.devMatchBackend.client.from('directory_people')
+        .select('id', {count:'exact',head:true})
+        .eq('account_role', 'client');
+      if (error) throw error;
+      if (count === null) throw new Error('The client directory count was not returned by Supabase.');
+      clientsTabCount.textContent = String(count);
+    } catch (error) {
+      console.error('Unable to load the client directory tab count from Supabase.', error);
+      clientsTabCount.textContent = '—';
+    }
+  }
+
   function render() {
     const source = isRequestsPage ? requests : projects;
     const filtered = getItems();
@@ -779,12 +800,20 @@
       const user = await window.devMatchBackend.ready;
       const kind = isRequestsPage ? 'request' : 'portfolio';
       let query = window.devMatchBackend.client.from('projects')
-        .select('id,owner_id,title,project_type,category,price,price_type,cover_image,status,data,created_at,updated_at', isRequestsPage ? {} : {count:'exact'})
+        .select('id,owner_id,title,project_type,category,price,price_type,cover_image,status,data,created_at,updated_at', {count:'exact'})
         .eq('project_kind', kind)
         .eq('status', isRequestsPage ? 'open' : 'published')
         .order('updated_at', {ascending:false});
-      const {data: rows, count: portfolioCount, error} = await query;
+      const {data: rows, count: projectCount, error} = await query;
       if (error) throw error;
+      if (isRequestsPage && projectRequestsTabCount) {
+        if (projectCount === null) {
+          console.error('Unable to load the project request tab count from Supabase.');
+          projectRequestsTabCount.textContent = '—';
+        } else {
+          projectRequestsTabCount.textContent = String(projectCount);
+        }
+      }
 
       let peopleById = new Map();
       if (user && rows?.length) {
@@ -841,7 +870,7 @@
       if (isRequestsPage) requests = records;
       else projects = records;
       if (!isRequestsPage && projectTabCount) {
-        projectTabCount.textContent = portfolioCount === null ? '0' : String(portfolioCount);
+        projectTabCount.textContent = projectCount === null ? '0' : String(projectCount);
       }
       catalogError = null;
       catalogLoaded = true;
@@ -849,6 +878,7 @@
       catalogStatus.hidden = true;
     } catch (error) {
       console.error('Unable to load public projects from Supabase.', error);
+      if (isRequestsPage && projectRequestsTabCount) projectRequestsTabCount.textContent = '—';
       catalogError = error;
       catalogLoaded = true;
       projects = [];
@@ -859,5 +889,6 @@
     }
   }
   loadDeveloperTabCount();
+  loadClientDirectoryTabCount();
   loadCatalog();
 })();

@@ -118,19 +118,21 @@
 
   if (header && sidebar) {
     sidebar.id ||= 'mobileNavigation';
-    mobileMenuButton.className = 'mobile-menu-toggle';
-    mobileMenuButton.type = 'button';
-    mobileMenuButton.setAttribute('aria-label', 'Open navigation');
-    mobileMenuButton.setAttribute('aria-controls', sidebar.id);
-    mobileMenuButton.setAttribute('aria-expanded', 'false');
-    mobileMenuButton.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg>';
-    header.insertBefore(mobileMenuButton, header.firstElementChild);
+    if (!document.querySelector('.mobile-bottom-nav')) {
+      mobileMenuButton.className = 'mobile-menu-toggle';
+      mobileMenuButton.type = 'button';
+      mobileMenuButton.setAttribute('aria-label', 'Open navigation');
+      mobileMenuButton.setAttribute('aria-controls', sidebar.id);
+      mobileMenuButton.setAttribute('aria-expanded', 'false');
+      mobileMenuButton.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg>';
+      header.insertBefore(mobileMenuButton, header.firstElementChild);
 
-    mobileNavigationBackdrop.className = 'mobile-navigation-backdrop';
-    mobileNavigationBackdrop.type = 'button';
-    mobileNavigationBackdrop.setAttribute('aria-label', 'Close navigation');
-    mobileNavigationBackdrop.tabIndex = -1;
-    document.body.appendChild(mobileNavigationBackdrop);
+      mobileNavigationBackdrop.className = 'mobile-navigation-backdrop';
+      mobileNavigationBackdrop.type = 'button';
+      mobileNavigationBackdrop.setAttribute('aria-label', 'Close navigation');
+      mobileNavigationBackdrop.tabIndex = -1;
+      document.body.appendChild(mobileNavigationBackdrop);
+    }
   }
 
   let activeModeLink = document.querySelector(

@@ -48,7 +48,7 @@
   font-weight: 400;
 }
 
-/* Nav Stats / Pill Toggle (Project Requests 42 | Clients 120) */
+/* Nav Stats / Pill Toggle (Project Requests | Clients) */
 .clients-tabs-toggle {
   display: inline-flex;
   align-items: center;
@@ -97,6 +97,71 @@
 
 .clients-tab-btn.active .clients-tab-count {
   color: var(--fc-ink);
+}
+
+@media (min-width: 861px) {
+  .clients-header {
+    align-items: flex-start;
+    min-height: 60.6px;
+  }
+
+  .clients-tabs-toggle {
+    position: relative;
+    align-self: flex-start;
+    isolation: isolate;
+    box-sizing: border-box;
+    width: 258px;
+    margin-top: 20px;
+  }
+
+  .clients-tabs-toggle::before {
+    position: absolute;
+    top: 5px;
+    left: 5px;
+    z-index: 0;
+    width: 92px;
+    height: calc(100% - 10px);
+    border-radius: 99px;
+    background: #ffffff;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+    content: "";
+    transform: translateX(156px);
+  }
+
+  .clients-tabs-toggle.clients-active::before {
+    animation: opportunity-indicator-to-clients 380ms cubic-bezier(.22, .61, .36, 1) both;
+  }
+
+  .clients-tab-btn {
+    position: relative;
+    z-index: 1;
+    justify-content: center;
+  }
+
+  .clients-tab-btn:first-child {
+    width: 154px;
+    flex: 0 0 154px;
+    padding-right: 12px;
+    padding-left: 12px;
+  }
+
+  .clients-tab-btn:last-child {
+    width: 92px;
+    flex: 0 0 92px;
+    padding-right: 12px;
+    padding-left: 12px;
+  }
+
+  .clients-tab-btn.active {
+    background: transparent;
+    box-shadow: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .clients-tabs-toggle::before {
+    animation: none !important;
+  }
 }
 
 /* Search Box Container (Row 1) */

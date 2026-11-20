@@ -8,16 +8,16 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=optional" rel="stylesheet">
   <link rel="stylesheet" href="assets/css/dashboard.css?v=20261118-hide-favorites-nav-badge">
-  <link rel="stylesheet" href="assets/css/my-projects.css?v=20261118-row-click-preview">
+  <link rel="stylesheet" href="assets/css/my-projects.css?v=20261121-mobile-summary-no-pagination-v2">
   <link rel="stylesheet" href="assets/css/mode-switch-animation.css?v=20261030-active-indicator">
-  <link rel="stylesheet" href="assets/css/mobile-navigation.css?v=20261120-header-content-alignment-v47">
+  <link rel="stylesheet" href="assets/css/mobile-navigation.css?v=20261120-mobile-bottom-nav-v11">
   <link rel="stylesheet" href="assets/css/arrow-motion.css?v=20261118-arrow-motion-global-v2">
   <script src="assets/js/i18n.js?v=20261117-supabase-workspace"></script>
 <script src="assets/vendor/supabase-2.119.0.js"></script>
 <script src="assets/js/backend.js?v=20261119-phone-onboarding"></script>
 </head>
 <body class="page-scroll-shell">
-  <header class="topbar">
+  <header class="topbar my-projects-topbar">
     <a class="brand" href="devmatch-dashboard.html"><img class="brand-mark" src="assets/images/devmatch-logo.png" width="34" height="34" alt="" aria-hidden="true"><span>DEV-MATCH</span></a>
     <label class="search">
       <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
@@ -28,6 +28,7 @@
         <a class="mode active" href="devmatch-dashboard.html"><span aria-hidden="true">&lt;/&gt;</span>Developer Mode</a>
         <a class="mode" href="devmatch-client-dashboard.html"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="7" width="18" height="14" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>Client Mode</a>
       </div>
+      <button class="icon-button mobile-add-project" type="button" aria-label="Add project" data-open-project><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14m-7-7h14"/></svg></button>
       <a class="icon-button notification-button" href="devmatch-developer-notifications.html" aria-label="Notifications"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9m-8 13h4"/></svg><i></i></a>
       <a class="user-menu" href="devmatch-my-profile.html?role=dev"><span class="user-avatar" id="userAvatar">DM</span><span class="user-copy"><b id="topUserName">Developer</b><small>Developer</small></span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m7 10 5 5 5-5"/></svg></a>
     </div>
@@ -44,11 +45,10 @@
     </nav>
     <div class="sidebar-foot"><span class="online-dot"></span>Supabase workspace</div>
   </aside>
-  <script src="assets/js/sidebar-navigation.js?v=20261120-settings-role-v7"></script>
+  <script src="assets/js/sidebar-navigation.js?v=20261120-mobile-bottom-nav-v9"></script>
 
   <main class="projects-page">
     <section class="project-editor" id="projectEditor" hidden>
-      <button class="editor-mobile-back" type="button" data-editor-cancel><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 18-6-6 6-6M9 12h12"/></svg>Back to My Projects</button>
       <div class="editor-breadcrumb"><button type="button" data-editor-cancel><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg>Projects</button><span aria-hidden="true">|</span><span id="editorBreadcrumbCurrent">New</span></div>
       <div class="editor-heading">
         <div><h1 id="editorTitle">Add a new project</h1><p>Showcase a project clients can discover, favorite and hire you for.</p></div>
@@ -57,27 +57,28 @@
         <form id="projectForm" class="editor-form">
           <section class="editor-card">
             <header class="editor-card-heading"><span>1</span><div><h2>Basic information</h2><p>Name your project and describe what clients get.</p></div></header>
-            <label class="editor-field">Project name<input name="title" required maxlength="80" placeholder="e.g. Restaurant Website Development"><small><span id="titleCount">0</span> / 80 characters</small></label>
-            <label class="editor-field">Project description<textarea name="description" required maxlength="1000" rows="4" placeholder="Describe what you built, the problem it solves, and what the client receives."></textarea><small>Markdown supported · <span id="descriptionCount">0</span> / 1,000</small></label>
-            <label class="editor-field">Project link <span class="optional-label">Optional</span><input name="link" type="url" placeholder="https://your-project.example"><small>Live demo, Figma prototype or repository</small></label>
+            <label class="editor-field">Project name<input id="projectTitle" name="title" required maxlength="40" placeholder="e.g. Restaurant Website Development" aria-describedby="titleCount titleError"><small><span id="titleCount">0</span> / 40 characters</small><small class="validation-message" id="titleError" role="alert" hidden></small></label>
+            <label class="editor-field">Project description<textarea id="projectDescription" name="description" required maxlength="200" rows="4" placeholder="Describe what you built, the problem it solves, and what the client receives." aria-describedby="descriptionCount descriptionError"></textarea><small><span id="descriptionCount">0</span> / 200 characters</small><small class="validation-message" id="descriptionError" role="alert" hidden></small></label>
+            <label class="editor-field">Project link <span class="optional-label">Optional</span><input name="link" type="url" placeholder="https://your-project.example" aria-describedby="linkHint linkError"><small id="linkHint">Live demo, Figma prototype or repository</small><small class="validation-message" id="linkError" role="alert" hidden></small></label>
           </section>
           <section class="editor-card">
             <header class="editor-card-heading"><span>2</span><div><h2>Media</h2><p>Screenshots and a demo video help clients trust your work.</p></div></header>
-            <label class="media-dropzone" id="mediaDropzone"><input id="projectMedia" name="media" type="file" accept="image/png,image/jpeg,image/webp,video/mp4,video/webm" multiple><span class="upload-icon" aria-hidden="true">↑</span><strong>Drag &amp; drop screenshots or a demo video, or <u>browse</u></strong><small>PNG, JPG up to 5 MB · MP4 up to 50 MB · max 8 files</small></label>
+            <label class="media-dropzone" id="mediaDropzone"><input id="projectMedia" name="media" type="file" accept="image/png,image/jpeg,image/webp,video/mp4,video/webm" multiple aria-describedby="mediaMessage"><span class="upload-icon" aria-hidden="true">↑</span><strong>Browse</strong><small>PNG, JPG up to 5 MB · MP4 up to 50 MB · max 8 files</small></label>
             <div class="media-preview-list" id="mediaPreviewList" aria-live="polite"></div>
-            <p class="editor-message" id="mediaMessage" role="status"></p>
+            <p class="editor-message validation-message" id="mediaMessage" role="alert" hidden></p>
           </section>
           <section class="editor-card">
             <header class="editor-card-heading"><span>3</span><div><h2>Type &amp; category</h2><p>Helps clients filter and find your project.</p></div></header>
-            <fieldset class="editor-choice-group"><legend>Project type</legend><div class="type-options">
+            <fieldset class="editor-choice-group" id="projectTypeGroup" aria-describedby="typeError"><legend>Project type</legend><div class="type-options">
               <label class="type-option"><input type="radio" name="type" value="Website"><span aria-hidden="true">◎</span>Website</label>
               <label class="type-option"><input type="radio" name="type" value="Android / iOS"><span aria-hidden="true">▱</span>Android / iOS App</label>
               <label class="type-option"><input type="radio" name="type" value="Desktop App"><span aria-hidden="true">▦</span>Desktop App</label>
               <label class="type-option"><input type="radio" name="type" value="Web App"><span aria-hidden="true">‹›</span>Web App</label>
               <label class="type-option"><input type="radio" name="type" value="Other"><span aria-hidden="true">＋</span>Other</label>
             </div></fieldset>
-            <label class="editor-field choice-other-field" id="typeOtherField" hidden>What type of project is it?<input name="typeOther" maxlength="60" placeholder="e.g. Browser extension"><small>Enter a short, specific project type.</small></label>
-            <fieldset class="editor-choice-group category-group"><legend>Project category</legend><div class="category-options">
+            <p class="validation-message" id="typeError" role="alert" hidden></p>
+            <label class="editor-field choice-other-field" id="typeOtherField" hidden>What type of project is it?<input name="typeOther" maxlength="60" placeholder="e.g. Browser extension" aria-describedby="typeOtherHint typeOtherError"><small id="typeOtherHint">Enter a short, specific project type.</small><small class="validation-message" id="typeOtherError" role="alert" hidden></small></label>
+            <fieldset class="editor-choice-group category-group" id="projectCategoryGroup" aria-describedby="categoryError"><legend>Project category</legend><div class="category-options">
               <label class="category-option"><input type="radio" name="category" value="Company Profile"><span>Company Profile</span></label>
               <label class="category-option"><input type="radio" name="category" value="POS"><span>POS</span></label>
               <label class="category-option"><input type="radio" name="category" value="Inventory"><span>Inventory</span></label>
@@ -85,21 +86,24 @@
               <label class="category-option"><input type="radio" name="category" value="E-Commerce"><span>E-Commerce</span></label>
               <label class="category-option"><input type="radio" name="category" value="Other"><span>Other</span></label>
             </div></fieldset>
-            <label class="editor-field choice-other-field" id="categoryOtherField" hidden>What category is it?<input name="categoryOther" maxlength="60" placeholder="e.g. Education"><small>Enter a short, specific category.</small></label>
+            <p class="validation-message" id="categoryError" role="alert" hidden></p>
+            <label class="editor-field choice-other-field" id="categoryOtherField" hidden>What category is it?<input name="categoryOther" maxlength="60" placeholder="e.g. Education" aria-describedby="categoryOtherHint categoryOtherError"><small id="categoryOtherHint">Enter a short, specific category.</small><small class="validation-message" id="categoryOtherError" role="alert" hidden></small></label>
           </section>
           <section class="editor-card">
             <header class="editor-card-heading"><span>4</span><div><h2>Pricing</h2><p>Choose how your price appears on the project card.</p></div></header>
-            <div class="pricing-options">
+            <div class="pricing-options" id="pricingOptions" aria-describedby="priceTypeError">
               <label class="pricing-option"><input type="radio" name="priceType" value="Fixed price"><span><b>Fixed Price</b><small>One clear price</small></span></label>
               <label class="pricing-option"><input type="radio" name="priceType" value="Starting from"><span><b>Starting From</b><small>Base price, add-ons extra</small></span></label>
               <label class="pricing-option"><input type="radio" name="priceType" value="Negotiable"><span><b>Negotiable</b><small>Price shown, open to talk</small></span></label>
               <label class="pricing-option"><input type="radio" name="priceType" value="Custom quote"><span><b>Custom Quote</b><small>Show a price range</small></span></label>
             </div>
+            <p class="validation-message" id="priceTypeError" role="alert" hidden></p>
             <div class="price-inputs">
-              <label class="editor-field" id="singlePriceField">Price<div class="currency-input"><span>Rp</span><input name="price" inputmode="numeric" placeholder="3.500.000"></div></label>
-              <div class="editor-field price-range-field" id="priceRangeField" hidden><span>Price range — Custom Quote only</span><div class="price-range-inputs"><label class="currency-input"><span>Rp</span><input name="priceMin" inputmode="numeric" placeholder="3.000.000"></label><span>—</span><label class="currency-input"><span>Rp</span><input name="priceMax" inputmode="numeric" placeholder="7.000.000"></label></div></div>
+              <label class="editor-field" id="singlePriceField">Price<div class="currency-input"><span>Rp</span><input name="price" inputmode="numeric" placeholder="3.500.000" aria-describedby="priceHelper priceError"></div></label>
+              <div class="editor-field price-range-field" id="priceRangeField" hidden><span>Price range — Custom Quote only</span><div class="price-range-inputs"><label class="currency-input"><span>Rp</span><input name="priceMin" inputmode="numeric" placeholder="3.000.000" aria-describedby="priceHelper priceError"></label><span>—</span><label class="currency-input"><span>Rp</span><input name="priceMax" inputmode="numeric" placeholder="7.000.000" aria-describedby="priceHelper priceError"></label></div></div>
             </div>
             <small class="price-helper" id="priceHelper">Select a pricing option to continue.</small>
+            <small class="validation-message" id="priceError" role="alert" hidden></small>
           </section>
           <section class="editor-card">
             <header class="editor-card-heading"><span>5</span><div><h2>Included services</h2><p>Tick everything that comes with this project.</p></div></header>
@@ -175,6 +179,7 @@
           <button class="project-tab" type="button" role="tab" aria-selected="false" data-status="draft">Drafts <span id="draftCount">0</span></button>
         </div>
         <div class="project-tools">
+          <span class="mobile-table-summary" id="mobileResultSummary" hidden></span>
           <label class="table-search"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg><input id="projectSearch" type="search" placeholder="Search my projects"></label>
           <div class="sort-control">
             <button class="sort-select" id="projectSortTrigger" type="button" aria-label="Sort projects" aria-haspopup="menu" aria-expanded="false" aria-controls="projectSortMenu"><span id="projectSortLabel">Last updated</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m7 10 5 5 5-5"/></svg></button>
@@ -189,6 +194,7 @@
         </div>
       </div>
       <div class="project-table-wrap">
+        <div class="mobile-project-list" id="mobileProjectCards"></div>
         <table class="project-table">
           <thead><tr><th scope="col">Project</th><th scope="col">Price</th><th scope="col">Status</th><th scope="col">Views</th><th scope="col">Favorites</th><th scope="col">Comments</th><th scope="col"><span class="visually-hidden">Actions</span></th></tr></thead>
           <tbody id="managedProjectRows"></tbody>
@@ -219,8 +225,8 @@
   <a class="floating-chat" href="devmatch-chat.html" aria-label="Messages &amp; Chat" title="Open Messages &amp; Chat">
     <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5c-5 0-9 3.65-9 8.15 0 2.24 1.04 4.27 2.73 5.74L4.7 21l5.24-1.28c.67.12 1.36.18 2.06.18 5 0 9-3.65 9-8.15S17 3.5 12 3.5Z"/><circle cx="8.5" cy="11.7" r="1" fill="currentColor" stroke="none"/><circle cx="12" cy="11.7" r="1" fill="currentColor" stroke="none"/><circle cx="15.5" cy="11.7" r="1" fill="currentColor" stroke="none"/></svg>
   </a>
-  <script src="assets/js/my-projects.js?v=20261119-rebase-merge"></script>
-  <script src="assets/js/nav-behavior.js?v=20261119-rebase-merge"></script>
+  <script src="assets/js/my-projects.js?v=20261121-mobile-summary-total-count"></script>
+  <script src="assets/js/nav-behavior.js?v=20261120-mobile-bottom-nav-v4"></script>
 <script src="assets/js/presence.js?v=20261119-global"></script>
 </body>
 </html>

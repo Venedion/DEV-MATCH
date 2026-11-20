@@ -7,9 +7,9 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=optional" rel="stylesheet">
-  <link rel="stylesheet" href="assets/css/dashboard.css?v=20261119-dashboard-merged">
+  <link rel="stylesheet" href="assets/css/dashboard.css?v=20261120-mobile-filter-smaller">
   <link rel="stylesheet" href="assets/css/mode-switch-animation.css?v=20261030-active-indicator">
-  <link rel="stylesheet" href="assets/css/mobile-navigation.css?v=20261120-header-content-alignment-v47">
+  <link rel="stylesheet" href="assets/css/mobile-navigation.css?v=20261120-mobile-bottom-nav-v11">
   <script>
     (() => {
       const storageKey = 'devmatch-mode-switch-navigation';
@@ -63,7 +63,7 @@
     </nav>
     <div class="sidebar-foot"><span class="online-dot"></span>Developer workspace</div>
   </aside>
-  <script src="assets/js/sidebar-navigation.js?v=20261120-settings-role-v7"></script>
+  <script src="assets/js/sidebar-navigation.js?v=20261120-mobile-bottom-nav-v9"></script>
 
   <main class="dashboard" id="overview">
     <section class="welcome">
@@ -90,10 +90,6 @@
                 <button type="button" aria-pressed="false" data-preset="365">Last 365 days</button>
                 <button type="button" aria-pressed="false" data-preset="5-years">Last 5 years</button>
                 <button type="button" aria-pressed="false" data-preset="lifetime">Lifetime</button>
-                <div class="period-day-presets">
-                  <label><input id="daysThroughToday" type="number" min="1" max="3650" value="30" aria-label="Number of days up to today"><span>days up to today</span></label>
-                  <label><input id="daysThroughYesterday" type="number" min="1" max="3650" value="30" aria-label="Number of days up to yesterday"><span>days up to yesterday</span></label>
-                </div>
               </nav>
               <div class="period-calendar-pane">
                 <div class="period-date-fields">
@@ -151,8 +147,8 @@
   <a class="floating-chat" href="devmatch-chat.html" aria-label="Messages &amp; Chat" title="Open Messages &amp; Chat">
     <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5c-5 0-9 3.65-9 8.15 0 2.24 1.04 4.27 2.73 5.74L4.7 21l5.24-1.28c.67.12 1.36.18 2.06.18 5 0 9-3.65 9-8.15S17 3.5 12 3.5Z"/><circle cx="8.5" cy="11.7" r="1" fill="currentColor" stroke="none"/><circle cx="12" cy="11.7" r="1" fill="currentColor" stroke="none"/><circle cx="15.5" cy="11.7" r="1" fill="currentColor" stroke="none"/></svg>
   </a>
-  <script src="assets/js/dashboard.js?v=20261119-dashboard-merged"></script>
-  <script src="assets/js/nav-behavior.js?v=20261119-workspace-isolation"></script>
+  <script src="assets/js/dashboard.js?v=20261120-mobile-custom-range"></script>
+  <script src="assets/js/nav-behavior.js?v=20261120-mobile-bottom-nav-v4"></script>
 <script src="assets/js/presence.js?v=20261119-global"></script>
 </body>
 </html>
