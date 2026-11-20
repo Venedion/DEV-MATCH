@@ -309,6 +309,7 @@ async function restoreUnsavedProjectDraft(){
   updateEditor();
 }
 function showEditor(project=null){
+  closeProjectPreview();
   form.reset();
   publishValidationShown=false;
   form.querySelectorAll('.validation-message').forEach(message=>{message.textContent='';message.hidden=true});
@@ -347,7 +348,6 @@ function showEditor(project=null){
     form.querySelectorAll('[name="services"]').forEach(input=>{input.checked=(project.services||[]).includes(input.value)});
   }
   projectsPage.hidden=true;
-  document.getElementById('projectPreviewMode').hidden=true;
   editor.hidden=false;
   updateEditor();
   if(projectEditorActionBreakpoint.matches)projectScrollContainer.scrollTop=0;
@@ -355,8 +355,8 @@ function showEditor(project=null){
   form.elements.title.focus();
 }
 function closeEditor(){
+  closeProjectPreview();
   editor.hidden=true;
-  document.getElementById('projectPreviewMode').hidden=true;
   projectsPage.hidden=false;
   editingId=null;
   const url=new URL(window.location.href);
@@ -492,10 +492,12 @@ function populatePreviewMode(project){
 }
 function showProjectPreview(project){
   populatePreviewMode(project);
-  editor.hidden=true;
-  projectsPage.hidden=true;
-  document.getElementById('projectPreviewMode').hidden=false;
-  document.getElementById('projectPreviewMode').scrollIntoView({block:'start'});
+  const previewDialog=document.getElementById('projectPreviewMode');
+  if(!previewDialog.open)previewDialog.showModal();
+}
+function closeProjectPreview(){
+  const previewDialog=document.getElementById('projectPreviewMode');
+  if(previewDialog.open)previewDialog.close();
 }
 function openPreview(project){
   previewingProject=project;
@@ -891,11 +893,14 @@ document.querySelector('[data-preview-form]').addEventListener('click',()=>{
   showProjectPreview(previewProjectData());
 });
 document.querySelector('[data-exit-preview]').addEventListener('click',()=>{
-  document.getElementById('projectPreviewMode').hidden=true;
-  editor.hidden=false;
+  closeProjectPreview();
   editor.scrollIntoView({block:'start'});
 });
-document.querySelector('[data-publish-preview]').addEventListener('click',()=>saveProject('published'));
+document.querySelector('[data-close-project-preview]').addEventListener('click',closeProjectPreview);
+document.querySelector('[data-publish-preview]').addEventListener('click',()=>{
+  closeProjectPreview();
+  saveProject('published');
+});
 form.addEventListener('input',event=>{
   if(['price','priceMin','priceMax'].includes(event.target.name)){
     const input=event.target;

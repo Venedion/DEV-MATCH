@@ -17,6 +17,79 @@
   const favoritesKey='devmatch-developer-project-favorites';
   const escapeHtml=value=>String(value??'').replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
   const initials=name=>(String(name||'').match(/\b\p{L}/gu)||[]).slice(0,2).join('').toUpperCase()||'CL';
+  function formatRequestDate(value,options={dateStyle:'medium'}){
+    if(typeof value!=='string'||!value.trim())return '';
+    const dateOnly=/^\d{4}-\d{2}-\d{2}$/.test(value);
+    const monthOnly=/^\d{4}-\d{2}$/.test(value);
+    const date=new Date(dateOnly?`${value}T00:00:00`:monthOnly?`${value}-01T00:00:00`:value);
+    return Number.isNaN(date.getTime())?'':new Intl.DateTimeFormat(undefined,options).format(date);
+  }
+  function formatRequestMoney(value){
+    const amount=String(value||'').replace(/\D/g,'');
+    return amount?`Rp ${Number(amount).toLocaleString('id-ID')}`:'';
+  }
+  function renderReferenceLinks(references){
+    const container=document.getElementById('requestReferenceLinks');
+    container.replaceChildren();
+    references.forEach(reference=>{
+      if(typeof reference!=='string'||!reference.trim())return;
+      const item=document.createElement('div');
+      try{
+        const url=new URL(reference);
+        if(!['http:','https:'].includes(url.protocol))throw new TypeError('Unsupported reference URL protocol.');
+        const link=document.createElement('a');
+        link.href=url.href;
+        link.target='_blank';
+        link.rel='noopener noreferrer';
+        link.textContent=url.hostname+url.pathname;
+        item.append(link);
+      }catch{
+        item.textContent=reference;
+      }
+      container.append(item);
+    });
+    if(!container.childElementCount)container.textContent='Not provided';
+  }
+  async function renderReferenceFiles(requestId,attachments){
+    const container=document.getElementById('requestReferenceFiles');
+    const statusElement=document.getElementById('requestReferenceFilesStatus');
+    container.dataset.requestId=requestId;
+    container.replaceChildren();
+    statusElement.hidden=true;
+    if(!attachments.length)return;
+    statusElement.textContent='Loading reference files…';
+    statusElement.hidden=false;
+    let unavailable=0;
+    await Promise.all(attachments.map(async attachment=>{
+      const item=document.createElement('li');
+      container.append(item);
+      const name=typeof attachment?.name==='string'&&attachment.name?attachment.name:'Reference file';
+      if(typeof attachment?.path!=='string'||!attachment.path){
+        item.textContent=`${name} — unavailable`;
+        unavailable++;
+        return;
+      }
+      item.textContent=`Loading ${name}…`;
+      try{
+        const url=await window.devMatchBackend.createPrivateFileUrl(attachment.path,name);
+        if(container.dataset.requestId!==requestId)return;
+        const link=document.createElement('a');
+        link.href=url;
+        link.target='_blank';
+        link.rel='noopener noreferrer';
+        link.textContent=name;
+        item.replaceChildren(link);
+      }catch(error){
+        console.error('Unable to create a private reference-file link.',error);
+        if(container.dataset.requestId!==requestId)return;
+        item.textContent=`${name} — unavailable`;
+        unavailable++;
+      }
+    }));
+    if(container.dataset.requestId!==requestId)return;
+    statusElement.textContent=unavailable?'Some reference files could not be loaded.':'';
+    statusElement.hidden=unavailable===0;
+  }
   function formatCommentTime(value){
     if(typeof value!=='string'||!value)return '';
     const date=new Date(value);
@@ -89,13 +162,25 @@
     const {count:clientRequestCount,error:clientRequestCountError}=await window.devMatchBackend.client.from('projects')
       .select('id',{count:'exact',head:true}).eq('owner_id',row.owner_id).eq('project_kind','request').eq('status','open');
     if(clientRequestCountError)throw clientRequestCountError;
-    const data=row.data&&typeof row.data==='object'?row.data:{};
-    project={...data,id:row.id,title:row.title,type:row.project_type,category:row.category,
-      budgetLabel:row.price||data.budgetLabel||data.budget||'Budget not specified',
-      description:String(data.description||data.overview||''),overview:String(data.overview||data.description||''),
-      stack:Array.isArray(data.stack)?data.stack:String(data.stack||''),
+    const data=row.data&&typeof row.data==='object'&&!Array.isArray(row.data)?row.data:{};
+    const categoryValue=String(row.category||data.category||'');
+    const typeValue=String(row.project_type||data.projectType||data.type||'');
+    const category=categoryValue==='Other'&&data.categoryOther?`Other · ${data.categoryOther}`:categoryValue;
+    const type=typeValue==='Other'&&data.projectTypeOther?`Other · ${data.projectTypeOther}`:typeValue;
+    const specialties=Array.isArray(data.specialties)?data.specialties
+      :Array.isArray(data.stack)?data.stack
+        :data.specialty?[data.specialty]:[];
+    const budgetLabel=String(row.price||data.price||data.budget||data.budgetLabel
+      ||(data.budgetFrom&&data.budgetTo?`${formatRequestMoney(data.budgetFrom)} — ${formatRequestMoney(data.budgetTo)}`:'')
+      ||'Budget not specified');
+    project={...data,id:row.id,title:String(row.title||data.title||'Project request'),type,category,
+      description:String(data.description||data.overview||''),overview:String(data.overview||''),
+      stack:specialties.map(value=>String(value).trim()).filter(Boolean),
       features:Array.isArray(data.features)?data.features:[],location:String(data.location||'Location not provided'),
-      popularity:0,ownerId:row.owner_id,createdAt:row.created_at||row.updated_at};
+      references:Array.isArray(data.references)?data.references:[],
+      attachments:Array.isArray(data.attachments)?data.attachments:[],
+      negotiable:data.negotiable===true,deadline:String(data.deadline||''),targetStart:String(data.targetStart||''),
+      budgetLabel,popularity:0,ownerId:row.owner_id,createdAt:row.created_at||row.updated_at};
     let clientName='DEV-MATCH member',profileLocation='Location not provided',accountRole=null;
     const user=await window.devMatchBackend.ready;
     currentUserId=user?.id||null;
@@ -116,37 +201,50 @@
         favorites=records.filter(item=>item.type==='project').map(item=>item.id);
       }
     }
-    const date=new Intl.DateTimeFormat(undefined,{dateStyle:'medium'}).format(new Date(project.createdAt));
-    const budgetMatch=String(project.budgetLabel).replace(/[^\d]/g,'');
-    const budget=Number(budgetMatch)||0;
-    const days=new Intl.DateTimeFormat(undefined,{dateStyle:'medium'}).format(new Date(project.createdAt));
-    project.client=clientName;project.initials=initials(clientName);project.location=profileLocation;project.days=days;project.budget=budget;
+    const date=formatRequestDate(project.createdAt)||'Date unavailable';
+    project.client=clientName;project.initials=initials(clientName);project.location=profileLocation;
     document.title=`${project.title} — Find Projects | DEV-MATCH`;
     document.getElementById('requestCategory').textContent=project.category;
     document.getElementById('requestBreadcrumbTitle').textContent=project.title;
-    document.getElementById('requestTypeLabel').textContent=project.category;
-    document.getElementById('requestPreviewCategory').textContent=[project.category,project.type].filter(Boolean).join(' · ');
-    document.getElementById('requestPreviewTitle').textContent=project.title;
-    document.getElementById('requestPreviewDescription').textContent=project.description;
+    document.getElementById('requestClientAvatar').textContent=project.initials;
+    document.getElementById('requestClientName').textContent=clientName;
+    document.getElementById('requestClientMeta').textContent=project.location;
+    const clientProfileUrl=`devmatch-client-profile.html?client=${encodeURIComponent(row.owner_id)}&from=find-projects`;
+    document.getElementById('requestClientAvatarLink').href=clientProfileUrl;
+    document.getElementById('requestClientNameLink').href=clientProfileUrl;
     document.getElementById('asideClientAvatar').textContent=project.initials;
     document.getElementById('asideClientName').textContent=clientName;
-    const clientProfileUrl=`devmatch-client-profile.html?client=${encodeURIComponent(row.owner_id)}&from=find-projects`;
     document.getElementById('asideClientAvatarLink').href=clientProfileUrl;
     document.getElementById('asideClientAvatarLink').setAttribute('aria-label',`View ${clientName} profile`);
     document.getElementById('asideClientNameLink').href=clientProfileUrl;
     document.getElementById('asideClientLocation').textContent=project.location;
-    document.getElementById('asideClientMeta').textContent=`Posted ${date}`;
-    document.getElementById('asideClientRequestCount').textContent=String(clientRequestCount??0);
-    document.getElementById('requestTags').innerHTML=[project.category,project.type].filter(Boolean).map(value=>`<span>${escapeHtml(value)}</span>`).join('');
+    const clientProjectsCount=clientRequestCount??0;
+    const formatCount=value=>value!==null&&value!==undefined&&Number.isFinite(Number(value))?Number(value).toLocaleString('id-ID'):'—';
+    document.getElementById('asideClientProjects').textContent=formatCount(clientProjectsCount);
+    document.getElementById('asideClientViews').textContent=formatCount(0);
+    document.getElementById('asideClientFavorites').textContent=formatCount(0);
     document.getElementById('requestTitle').textContent=project.title;
     document.getElementById('requestDescription').textContent=project.description;
-    document.getElementById('requestBudget').textContent=project.budgetLabel;
+    document.getElementById('requestProjectType').textContent=project.type||'Not provided';
+    document.getElementById('requestProjectCategory').textContent=project.category||'Not provided';
+    document.getElementById('requestBudget').textContent=budgetLabel;
+    document.getElementById('requestNegotiableFact').hidden=!project.negotiable;
+    const deadline=formatRequestDate(project.deadline,{dateStyle:'long'});
+    document.getElementById('requestDeadline').textContent=deadline;
+    document.getElementById('requestDeadlineFact').hidden=!deadline;
+    const targetStart=formatRequestDate(project.targetStart,{month:'long',year:'numeric'});
+    document.getElementById('requestTargetStart').textContent=targetStart||'Not provided';
+    document.getElementById('requestCreated').textContent=date;
     document.getElementById('requestOverview').textContent=project.overview;
+    document.getElementById('requestOverviewSection').hidden=!project.overview;
     document.getElementById('requestFeatures').innerHTML=project.features.map(feature=>`<li>${escapeHtml(feature)}</li>`).join('');
     document.getElementById('requestRequirementsSection').hidden=project.features.length===0;
-    const stackValues=(Array.isArray(project.stack)?project.stack:String(project.stack).split(/\s+(?:and|,)\s+/)).filter(Boolean);
+    const stackValues=project.stack.map(value=>value==='Other'&&data.specialtyOther?`Other · ${data.specialtyOther}`:value);
     document.getElementById('requestStack').innerHTML=stackValues.map(value=>`<span>${escapeHtml(value)}</span>`).join('');
     document.getElementById('requestSpecialtySection').hidden=stackValues.length===0;
+    renderReferenceLinks(project.references);
+    document.getElementById('requestReferencesSection').hidden=project.attachments.length===0;
+    await renderReferenceFiles(project.id,project.attachments);
     document.getElementById('requestPopularity').textContent='';
     document.getElementById('contactClient').href=user&&accountRole==='dev'?`devmatch-chat.html?role=dev&request=${encodeURIComponent(project.id)}`:'devmatch-auth.html?mode=login';
     const saveButton=document.getElementById('saveRequestButton');

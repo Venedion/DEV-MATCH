@@ -7,42 +7,30 @@ document.querySelectorAll('.client-notification-count').forEach(count=>{count.te
 const notificationDot=document.querySelector('.client-icon-button i');
 if(notificationDot)notificationDot.hidden=true;
 const hour=new Date().getHours();
-document.getElementById('greeting').textContent=(hour<12?'Good morning, ':hour<18?'Good afternoon, ':'Good evening, ')+clientNameParts[0];
+document.getElementById('greeting').textContent=hour<12?'Good morning,':hour<18?'Good afternoon,':'Good evening,';
 
 let marketplaceProjects=[];
 let marketplaceLoaded=false;
 let marketplaceFailed=false;
+let favoritesLoaded=false;
+let favoritesFailed=false;
 const favoritesKey='devmatch-client-project-favorites';
 if(localStorage.getItem(favoritesKey)===null){const legacy=localStorage.getItem('devmatch-client-favorites');if(legacy!==null)localStorage.setItem(favoritesKey,legacy);}
 const requestsKey='devmatch-client-requests';
 let favorites=JSON.parse(localStorage.getItem(favoritesKey)||'[]');
 let favoritesRevision=0;
-const favoriteStateReady=window.devMatchBackend.ready.then(user=>{
-  if(!user)return null;
-  const revision=favoritesRevision;
-  return window.devMatchBackend.loadFavorites().then(records=>({revision,records}));
-}).then(result=>{
-  if(!result)return false;
-  if(result.revision!==favoritesRevision)return true;
-  const records=result.records;
-  favorites=records.filter(item=>item.type==='project').map(item=>item.id);
-  const developerIds=records.filter(item=>item.type==='developer').map(item=>item.id);
-  localStorage.setItem(favoritesKey,JSON.stringify(favorites));
-  localStorage.setItem('devmatch-client-dev-favorites',JSON.stringify(developerIds));
-  window.DEVMATCH_NAV_BADGES?.updateFavorites();
-  renderProjects();
-  return true;
-}).catch(error=>{
-  console.error('Unable to load project favorites from Supabase.',error);
-  window.alert('Unable to load favorites. Check your connection and try again.');
-  return null;
-});
+let favoriteStateReady;
 let requests=JSON.parse(localStorage.getItem(requestsKey)||'[]');
 let requestDashboardMetrics=null;
 function formatDashboardMetric(value){
   return value!==null&&value!==undefined&&Number.isFinite(Number(value))
     ?Number(value).toLocaleString('id-ID')
     :'—';
+}
+function renderRequestDetailClientMetrics(){
+  document.getElementById('requestDetailClientProjects').textContent=formatDashboardMetric(requestDashboardMetrics?.projects);
+  document.getElementById('requestDetailClientViews').textContent=formatDashboardMetric(requestDashboardMetrics?.views);
+  document.getElementById('requestDetailClientFavorites').textContent=formatDashboardMetric(requestDashboardMetrics?.favorites);
 }
 const requestsReady=window.devMatchBackend.ready.then(user=>user
   ?window.devMatchBackend.loadOwnedProjects('request',requests)
@@ -64,7 +52,6 @@ let activePrice='All';
 let activeSpecialty='All';
 let activeSort='newest';
 let activeQuery='';
-let favoritesOnly=false;
 let activeRequestFilter='all';
 let activeRequestQuery='';
 let activeRequestSort='newest';
@@ -73,8 +60,90 @@ let activeRequestViewId=null;
 let requestActivityEntries=[];
 let requestActivityState='loading';
 let savingRequest=false;
-const grid=document.getElementById('projectGrid');
 const discoverGrid=document.getElementById('discoverGrid');
+const homeRecommendedGrid=document.getElementById('homeRecommendedGrid');
+const homeSavedList=document.getElementById('homeSavedList');
+
+function renderHomeLoading(container,kind='data',count=3){
+  container.setAttribute('aria-busy','true');
+  container.innerHTML=Array.from({length:count},()=>kind==='person'
+    ?'<div class="home-skeleton-row home-skeleton-person" aria-hidden="true"><i class="home-skeleton-avatar"></i><span><i class="home-skeleton-bar"></i><i class="home-skeleton-bar short"></i></span></div>'
+    :'<div class="home-skeleton-row" aria-hidden="true"><i class="home-skeleton-bar"></i><i class="home-skeleton-bar short"></i></div>'
+  ).join('');
+}
+
+function renderHomeMessage(container,message,linkText,href){
+  container.setAttribute('aria-busy','false');
+  container.replaceChildren();
+  const paragraph=document.createElement('p');
+  paragraph.className='home-coming-soon';
+  paragraph.setAttribute('role','status');
+  paragraph.textContent=message;
+  if(linkText&&href){
+    const link=document.createElement('a');
+    link.className='home-inline-link';
+    link.href=href;
+    link.textContent=linkText;
+    paragraph.append(' ',link);
+  }
+  container.append(paragraph);
+}
+
+function renderHomeError(container,message,retry){
+  container.setAttribute('aria-busy','false');
+  container.replaceChildren();
+  const paragraph=document.createElement('p');
+  paragraph.className='home-coming-soon';
+  paragraph.setAttribute('role','status');
+  paragraph.textContent=message;
+  const button=document.createElement('button');
+  button.className='request-secondary-button';
+  button.type='button';
+  button.textContent='Try again';
+  button.addEventListener('click',retry,{once:true});
+  container.append(paragraph,button);
+}
+
+function renderHomeRecommendationLoading(){
+  homeRecommendedGrid.setAttribute('aria-busy','true');
+  homeRecommendedGrid.innerHTML=Array.from({length:4},()=>'<div class="home-skeleton-card" aria-hidden="true"><i class="home-skeleton-bar"></i><i class="home-skeleton-bar short"></i><i class="home-skeleton-bar"></i></div>').join('');
+  const status=document.getElementById('homeRecommendedStatus');
+  status.hidden=true;
+  status.replaceChildren();
+}
+
+async function loadHomeFavorites(){
+  favoritesLoaded=false;
+  favoritesFailed=false;
+  renderHomeProjects();
+  try{
+    const user=await window.devMatchBackend.ready;
+    if(!user)throw new Error('Sign in to load saved projects.');
+    const revision=favoritesRevision;
+    const records=await window.devMatchBackend.loadFavorites();
+    if(revision!==favoritesRevision){
+      favoritesLoaded=true;
+      renderHomeProjects();
+      return true;
+    }
+    favorites=records.filter(item=>item.type==='project').map(item=>item.id);
+    const developerIds=records.filter(item=>item.type==='developer').map(item=>item.id);
+    localStorage.setItem(favoritesKey,JSON.stringify(favorites));
+    localStorage.setItem('devmatch-client-dev-favorites',JSON.stringify(developerIds));
+    window.DEVMATCH_NAV_BADGES?.updateFavorites();
+    favoritesLoaded=true;
+    renderProjects();
+    return true;
+  }catch(error){
+    console.error('Unable to load project favorites from Supabase.',error);
+    favoritesLoaded=true;
+    favoritesFailed=true;
+    renderHomeProjects();
+    return null;
+  }
+}
+
+favoriteStateReady=loadHomeFavorites();
 
 function escapeHtml(value){
   return String(value).replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
@@ -111,7 +180,7 @@ function getFilteredProjects(){
     const specialties=Array.isArray(project.specialties)?project.specialties:[project.specialty].filter(Boolean);
     const specialtyMatches=activeSpecialty==='All'||specialties.includes(activeSpecialty);
     const queryMatches=!activeQuery||[project.title,project.type,project.category,project.description,project.developer,project.specialty].join(' ').toLowerCase().includes(activeQuery);
-    return categoryMatches&&typeMatches&&priceMatches&&specialtyMatches&&queryMatches&&(!favoritesOnly||favorites.includes(project.id));
+    return categoryMatches&&typeMatches&&priceMatches&&specialtyMatches&&queryMatches;
   });
   if(activeSort==='oldest')filtered.reverse();
   if(activeSort==='price-low'||activeSort==='price-high'){
@@ -133,7 +202,7 @@ function projectCardMarkup(project,discover=false){
     <article class="client-project-card" data-project="${escapeHtml(project.id)}" tabindex="0" role="link" aria-label="View ${escapeHtml(project.title)} details">
       <div class="project-art ${project.art}">
         <span class="art-label">${escapeHtml(project.type)}</span>
-        <button class="favorite-button" type="button" data-favorite="${escapeHtml(project.id)}" aria-pressed="${favorite}" aria-label="${favorite?'Remove from':'Add to'} favorites">
+        <button class="favorite-button" type="button" data-favorite="${escapeHtml(project.id)}" aria-pressed="${favorite}" aria-label="${favorite?'Remove':'Add'} ${escapeHtml(project.title)} ${favorite?'from':'to'} favorites">
           <svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
         </button>
         ${artwork}
@@ -145,7 +214,6 @@ function projectCardMarkup(project,discover=false){
         <div class="project-by catalog-project-by">
           <span class="developer-avatar">${escapeHtml(project.initials)}</span>
           <span class="developer-info"><b>${escapeHtml(project.developer)}</b><small>${escapeHtml(project.handle||'')}</small></span>
-          <span class="rating" aria-label="Rating 4.9 out of 5"><span>★</span> 4.9</span>
         </div>
       </div>
     </article>`;
@@ -153,29 +221,316 @@ function projectCardMarkup(project,discover=false){
 
 function renderProjects(){
   const filtered=getFilteredProjects();
-  grid.innerHTML=filtered.map(project=>projectCardMarkup(project)).join('');
   discoverGrid.innerHTML=filtered.map(project=>projectCardMarkup(project,true)).join('');
   const emptyMessage=marketplaceFailed
     ?'Projects could not be loaded. Check your connection and try again.'
     :marketplaceLoaded?'No projects match these filters. Try changing your search or filters.':'Loading published projects…';
-  const emptyState=document.getElementById('emptyState');
   const discoverEmptyState=document.getElementById('discoverEmptyState');
-  emptyState.textContent=marketplaceFailed?'Projects could not be loaded. Check your connection and try again.':marketplaceLoaded?'No projects match your search. Try another keyword or category.':'Loading published projects…';
   discoverEmptyState.textContent=emptyMessage;
-  emptyState.hidden=filtered.length>0;
   discoverEmptyState.hidden=filtered.length>0;
   document.getElementById('discoverProjectCount').textContent=String(marketplaceProjects.length);
   document.getElementById('discoverResultsCount').textContent=`${filtered.length} project${filtered.length===1?'':'s'}`;
-  document.querySelectorAll('[data-category-count]').forEach(count=>{
-    const category=count.dataset.categoryCount;
-    const total=category==='All'?marketplaceProjects.length:marketplaceProjects.filter(project=>project.category===category).length;
-    count.textContent=`${total} project${total===1?'':'s'}`;
-  });
-  document.getElementById('resultsLabel').textContent=activeQuery||activeCategory!=='All'
-    ?`${filtered.length} project${filtered.length===1?'':'s'} found.`
-    :'Explore ready-to-build ideas from independent developers.';
   document.getElementById('discoverResultsNote').textContent=activeSort==='newest'?'· showing newest first':activeSort==='oldest'?'· showing oldest first':activeSort==='price-low'?'· lowest price first':'· highest price first';
   document.getElementById('favoriteCount').textContent=String(favorites.length);
+  renderHomeProjects();
+}
+
+function renderHomeProjects(){
+  if(!favoritesLoaded){
+    renderHomeLoading(homeSavedList);
+  }else if(favoritesFailed){
+    renderHomeError(homeSavedList,'Unable to load saved projects.',retryHomeProjectData);
+  }else if(!marketplaceLoaded){
+    renderHomeLoading(homeSavedList);
+  }else if(marketplaceFailed){
+    renderHomeError(homeSavedList,'Unable to load saved projects.',retryHomeProjectData);
+  }else{
+    const savedProjects=marketplaceProjects.filter(project=>favorites.includes(project.id)).slice(0,3);
+    if(savedProjects.length){
+      homeSavedList.innerHTML=savedProjects.map(project=>`
+        <button class="home-saved-item" type="button" data-project-open="${escapeHtml(project.id)}">
+          <span><b>${escapeHtml(project.title)}</b><small>${escapeHtml(project.category)} · ${escapeHtml(project.developer)}</small></span>
+          <strong>${escapeHtml(project.price)}</strong>
+        </button>`).join('');
+      homeSavedList.setAttribute('aria-busy','false');
+    }else{
+      renderHomeMessage(homeSavedList,'No saved projects yet. Browse projects to find something to save.','Browse projects','devmatch-discover-projects.html');
+    }
+  }
+
+  const recommendedStatus=document.getElementById('homeRecommendedStatus');
+  if(!marketplaceLoaded||!favoritesLoaded){
+    renderHomeRecommendationLoading();
+    return;
+  }
+  if(marketplaceFailed||favoritesFailed){
+    homeRecommendedGrid.replaceChildren();
+    homeRecommendedGrid.setAttribute('aria-busy','false');
+    recommendedStatus.hidden=false;
+    renderHomeError(recommendedStatus,'Unable to load recommendations.',retryHomeProjectData);
+    return;
+  }
+  const favoriteCategories=new Set(marketplaceProjects
+    .filter(project=>favorites.includes(project.id))
+    .map(project=>project.category));
+  const unsavedProjects=marketplaceProjects.filter(project=>!favorites.includes(project.id));
+  const related=unsavedProjects.filter(project=>favoriteCategories.has(project.category));
+  const recommendations=[...related,...unsavedProjects.filter(project=>!favoriteCategories.has(project.category))].slice(0,4);
+  homeRecommendedGrid.setAttribute('aria-busy','false');
+  recommendedStatus.replaceChildren();
+  homeRecommendedGrid.innerHTML=recommendations.map(project=>projectCardMarkup(project,true)).join('');
+  recommendedStatus.hidden=recommendations.length>0;
+  if(!recommendations.length){
+    renderHomeMessage(recommendedStatus,'No recommendations available yet. Explore the full project catalog.','Discover projects','devmatch-discover-projects.html');
+  }
+}
+
+function retryHomeProjectData(){
+  if(favoritesFailed)favoriteStateReady=loadHomeFavorites();
+  if(marketplaceFailed)void loadPublicProjects();
+}
+
+function renderHomeMetrics(metrics){
+  const values={
+    openRequests:metrics?.openRequests,
+    newInquiries:metrics?.newInquiries,
+    awaitingDeveloperReply:metrics?.awaitingDeveloperReply
+  };
+  Object.entries(values).forEach(([key,value])=>{
+    const target=document.querySelector(`[data-home-metric-value="${key}"]`);
+    target.textContent=formatDashboardMetric(value);
+  });
+  document.querySelector('.home-metrics').setAttribute('aria-busy','false');
+}
+
+function formatHomeRelativeTime(value){
+  const date=new Date(value);
+  if(Number.isNaN(date.getTime()))return 'Recently';
+  const minutes=Math.max(0,Math.floor((Date.now()-date.getTime())/60000));
+  if(minutes<1)return 'Just now';
+  if(minutes<60)return `${minutes}m ago`;
+  const hours=Math.floor(minutes/60);
+  if(hours<24)return `${hours}h ago`;
+  const days=Math.floor(hours/24);
+  return days<7?`${days}d ago`:date.toLocaleDateString();
+}
+
+function renderHomeAttention(items){
+  const list=document.getElementById('homeAttentionList');
+  if(!items.length){
+    renderHomeMessage(list,'You’re all caught up. New inquiries and messages will appear here.');
+    return;
+  }
+  list.innerHTML=items.map(item=>{
+    const developer=String(item.developer||'Developer');
+    const initials=developer.trim().split(/\s+/).filter(Boolean).slice(0,2).map(part=>part[0]).join('').toUpperCase()||'?';
+    const context=String(item.context||'your conversation');
+    const message=item.type==='inquiry'
+      ?`messaged you about “${context}”`
+      :item.type==='awaiting-reply'
+        ?`hasn’t replied about “${context}” yet`
+        :`finished “${context}”; your rating is pending`;
+    const action=item.type==='inquiry'?'Open chat':item.type==='awaiting-reply'?'Reply':'Rate';
+    const conversationId=encodeURIComponent(item.conversationId);
+    const href=item.type==='rate'
+      ?`devmatch-chat.html?role=client&conversation=${conversationId}&review=1`
+      :`devmatch-chat.html?role=client&conversation=${conversationId}`;
+    return `<article class="home-attention-item">
+      <span class="home-attention-avatar" aria-hidden="true">${escapeHtml(initials)}</span>
+      <div class="home-attention-copy"><b>${escapeHtml(developer)}</b><p>${escapeHtml(message)}</p><small>${escapeHtml(formatHomeRelativeTime(item.createdAt))}</small></div>
+      <a class="request-secondary-button" href="${escapeHtml(href)}" aria-label="${escapeHtml(action)} — ${escapeHtml(developer)} — ${escapeHtml(context)}">${action}</a>
+    </article>`;
+  }).join('');
+  list.setAttribute('aria-busy','false');
+}
+
+function renderHomeChecklistLoading(){
+  const section=document.getElementById('homeGettingStarted');
+  const checklist=document.getElementById('homeChecklist');
+  section.hidden=false;
+  section.setAttribute('aria-busy','true');
+  checklist.innerHTML=Array.from({length:3},()=>'<div class="home-skeleton-row" aria-hidden="true"><i class="home-skeleton-bar"></i><i class="home-skeleton-bar short"></i></div>').join('');
+}
+
+function renderHomeChecklist(state){
+  const section=document.getElementById('homeGettingStarted');
+  const checklist=document.getElementById('homeChecklist');
+  const items=[
+    {key:'profileComplete',label:'Complete your profile',action:'Complete profile',href:'devmatch-my-profile.html?role=client'},
+    {key:'exploredProjects',label:'Explore projects',action:'Browse projects',href:'devmatch-discover-projects.html'},
+    {key:'postedRequest',label:'Post your first request',action:'Post a request',href:'devmatch-client-dashboard.html#request-new'}
+  ];
+  const allComplete=items.every(item=>state[item.key]===true);
+  section.setAttribute('aria-busy','false');
+  section.hidden=allComplete;
+  checklist.innerHTML=allComplete?'':items.map((item,index)=>{
+    const complete=state[item.key]===true;
+    return `<div class="home-checklist-item${complete?' is-complete':''}" role="listitem">
+      <span class="home-checklist-mark" aria-hidden="true">${complete?'✓':index+1}</span>
+      <span class="home-checklist-label">${item.label}</span>
+      ${complete?'<span class="home-checklist-action">Done</span>':`<a class="home-checklist-action" href="${item.href}">${item.action}</a>`}
+    </div>`;
+  }).join('');
+}
+
+function renderHomeDashboardLoading(){
+  renderHomeChecklistLoading();
+  renderHomeLoading(document.getElementById('homeAttentionList'),'person',3);
+  renderHomeLoading(document.getElementById('homePostedRequests'),'data',3);
+  renderHomeLoading(document.getElementById('homeSentConversations'),'data',3);
+  const metrics=document.querySelector('.home-metrics');
+  metrics.setAttribute('aria-busy','true');
+  document.querySelectorAll('[data-home-metric-value]').forEach(target=>{
+    target.innerHTML='<span class="home-skeleton-bar home-metric-skeleton" aria-hidden="true"></span>';
+  });
+  const status=document.getElementById('homeMetricsStatus');
+  status.hidden=true;
+  status.replaceChildren();
+}
+
+function formatPostedRequestBudget(request){
+  if(request.budgetFrom&&request.budgetTo){
+    return `${formatRequestMoney(request.budgetFrom)} — ${formatRequestMoney(request.budgetTo)}`;
+  }
+  const budget=String(request.price||'').trim();
+  return /^\d+$/.test(budget)?formatRequestMoney(budget):budget||'Budget not set';
+}
+
+function renderHomeRequestLists(postedRequests,sentConversations){
+  const postedList=document.getElementById('homePostedRequests');
+  if(!postedRequests.length){
+    renderHomeMessage(postedList,'No posted requests yet. Start with your first request.','Post a request','devmatch-client-dashboard.html#request-new');
+  }else{
+    postedList.innerHTML=postedRequests.map(request=>{
+      const status=request.status==='open'?'Open':'Closed';
+      const inquiries=Number(request.inquiries).toLocaleString('id-ID');
+      return `<button class="home-data-row home-data-button" type="button" data-home-request-open="${escapeHtml(request.id)}" aria-label="View ${escapeHtml(request.title)} request details">
+        <span class="home-data-row-copy"><b>${escapeHtml(request.title)}</b><small>${escapeHtml(formatPostedRequestBudget(request))} · ${inquiries} inquiries</small></span>
+        <span class="home-data-row-meta"><b>${status}</b></span>
+      </button>`;
+    }).join('');
+    postedList.setAttribute('aria-busy','false');
+  }
+
+  const sentList=document.getElementById('homeSentConversations');
+  if(!sentConversations.length){
+    renderHomeMessage(sentList,'No conversations about developer projects yet. Explore projects to start one.','Browse projects','devmatch-discover-projects.html');
+  }else{
+    sentList.innerHTML=sentConversations.map(conversation=>{
+      const status=conversation.status==='awaiting-reply'?'Awaiting reply':'Replied';
+      return `<a class="home-data-row home-data-link" href="devmatch-discover-project-detail.html?project=${encodeURIComponent(conversation.projectId)}">
+        <span class="home-data-row-copy"><b>${escapeHtml(conversation.project)}</b><small>${escapeHtml(conversation.developer)}</small></span>
+        <span class="home-data-row-meta"><b>${status}</b><small>${escapeHtml(formatHomeRelativeTime(conversation.createdAt))}</small></span>
+      </a>`;
+    }).join('');
+    sentList.setAttribute('aria-busy','false');
+  }
+}
+
+document.getElementById('homePostedRequests').addEventListener('click',async event=>{
+  const row=event.target.closest('[data-home-request-open]');
+  if(!row)return;
+  if(!await requestsReady)return;
+  const request=requests.find(item=>item.id===row.dataset.homeRequestOpen);
+  if(request){
+    showRequestDetailPage(request);
+    return;
+  }
+  history.replaceState(null,'','#requests');
+  showClientView('requests');
+  document.getElementById('requestsMessage').textContent='This request is no longer available. Review your full request list.';
+});
+
+async function loadHomeDashboard(){
+  const status=document.getElementById('homeMetricsStatus');
+  renderHomeDashboardLoading();
+  try{
+    const {data,error}=await window.devMatchBackend.client.functions.invoke('client-home',{
+      body:{action:'dashboard'}
+    });
+    if(error)throw error;
+    const result=data?.data;
+    const metrics=result?.metrics;
+    const metricKeys=['openRequests','newInquiries','awaitingDeveloperReply'];
+    if(!metrics||metricKeys.some(key=>!Number.isSafeInteger(metrics[key])||metrics[key]<0)
+      ||!Array.isArray(result.attention)
+      ||result.attention.some(item=>!['inquiry','awaiting-reply','rate'].includes(item.type)
+        ||typeof item.conversationId!=='string'||!item.conversationId)
+      ||!Array.isArray(result.postedRequests)
+      ||!Array.isArray(result.sentConversations)
+      ||!result.gettingStarted
+      ||['profileComplete','exploredProjects','postedRequest'].some(key=>typeof result.gettingStarted[key]!=='boolean')
+      ||result.postedRequests.some(item=>!item||typeof item.id!=='string'||!['open','closed'].includes(item.status)
+        ||!Number.isSafeInteger(item.inquiries)||item.inquiries<0)
+      ||result.sentConversations.some(item=>!item||typeof item.conversationId!=='string'
+        ||typeof item.projectId!=='string'||!item.projectId
+        ||!['awaiting-reply','replied'].includes(item.status))){
+      throw new Error('Dashboard service returned invalid data.');
+    }
+    renderHomeMetrics(metrics);
+    status.hidden=true;
+    renderHomeAttention(result.attention);
+    renderHomeRequestLists(result.postedRequests,result.sentConversations);
+    renderHomeChecklist(result.gettingStarted);
+  }catch(error){
+    console.error('Unable to load client home data.',error);
+    status.hidden=false;
+    const retry=()=>void loadHomeDashboard();
+    document.querySelector('.home-metrics').setAttribute('aria-busy','false');
+    renderHomeMetrics({});
+    renderHomeError(status,'Unable to load workspace summary.',retry);
+    renderHomeError(document.getElementById('homeAttentionList'),'Unable to load updates.',retry);
+    renderHomeError(document.getElementById('homePostedRequests'),'Unable to load your requests.',retry);
+    renderHomeError(document.getElementById('homeSentConversations'),'Unable to load conversations about developer projects.',retry);
+    const checklistSection=document.getElementById('homeGettingStarted');
+    checklistSection.hidden=false;
+    checklistSection.setAttribute('aria-busy','false');
+    renderHomeError(document.getElementById('homeChecklist'),'Unable to load your checklist.',retry);
+  }
+}
+
+async function loadHomeConversations(){
+  const list=document.getElementById('homeConversationList');
+  renderHomeLoading(list,'person',3);
+  try{
+    const {data,error}=await window.devMatchBackend.client.functions.invoke('chat-api',{
+      body:{action:'list-conversations',workspaceRole:'client'}
+    });
+    if(error)throw error;
+    if(!data||!Array.isArray(data.data))throw new Error('Chat service returned an invalid conversation list.');
+    const conversations=data.data.slice().sort((first,second)=>{
+      const firstDate=Date.parse(first.last_message_at||first.updated_at||'');
+      const secondDate=Date.parse(second.last_message_at||second.updated_at||'');
+      return (Number.isFinite(secondDate)?secondDate:0)-(Number.isFinite(firstDate)?firstDate:0);
+    }).slice(0,5);
+    if(!conversations.length){
+      renderHomeMessage(list,'No conversations yet. Browse projects to start a conversation.','Browse projects','devmatch-discover-projects.html');
+      return;
+    }
+    list.innerHTML=conversations.map(conversation=>{
+      const contact=conversation.contact||{};
+      const name=String(contact.display_name||contact.username||'Unavailable account');
+      const initials=name.trim().split(/\s+/).filter(Boolean).slice(0,2).map(part=>part[0]).join('').toUpperCase()||'?';
+      const message=conversation.last_message;
+      const preview=message
+        ?String(message.text||((message.attachments||[]).length?'Attachment':'Message')).slice(0,100)
+        :'No messages yet';
+      const timestamp=conversation.last_message_at||conversation.updated_at;
+      const date=timestamp?new Date(timestamp):null;
+      const time=date&&!Number.isNaN(date.getTime())
+        ?new Intl.DateTimeFormat(undefined,{month:'short',day:'numeric'}).format(date)
+        :'';
+      return `<a class="home-conversation-item" href="devmatch-chat.html?role=client&amp;conversation=${encodeURIComponent(conversation.id)}">
+        <span class="home-conversation-avatar" aria-hidden="true">${escapeHtml(initials)}</span>
+        <span class="home-conversation-copy"><b>${escapeHtml(name)}</b><small>${escapeHtml(preview)}</small></span>
+        <time>${escapeHtml(time)}</time>
+      </a>`;
+    }).join('');
+    list.setAttribute('aria-busy','false');
+  }catch(error){
+    console.error('Unable to load recent conversations for the client dashboard.',error);
+    renderHomeError(list,'Unable to load recent conversations.',()=>void loadHomeConversations());
+  }
 }
 
 window.addEventListener('devmatch:project-favorite-change',event=>{
@@ -193,6 +548,9 @@ window.addEventListener('devmatch:project-favorite-change',event=>{
 });
 
 async function loadPublicProjects(){
+  marketplaceLoaded=false;
+  marketplaceFailed=false;
+  renderHomeProjects();
   try{
     const user=await window.devMatchBackend.ready;
     if(!user)throw new Error('Sign in to browse published projects.');
@@ -310,12 +668,13 @@ function renderRequests(){
     const comments=Number(request.commentCount??request.comments)||0;
     const moreAction=status==='open'?'close':status==='closed'?'reopen':'publish';
     const moreLabel=status==='open'?'Close request':status==='closed'?'Reopen request':'Publish request';
+    const negotiableBadge=request.negotiable===true?'<span class="request-card-tag">Negotiable</span>':'';
     return `<article class="request-item request-card" data-request-card="${escapeHtml(request.id)}">
-      <div class="request-card-topline"><div class="request-card-badges"><span class="request-status ${status}">${status}</span><span class="request-card-tag">${escapeHtml(category)}</span><span class="request-card-tag">${escapeHtml(type)}</span>${request.negotiable?'<span class="request-card-tag">Negotiable</span>':''}</div>
+      <div class="request-card-topline"><div class="request-card-badges"><span class="request-status ${status}">${status}</span><span class="request-card-tag">${escapeHtml(category)}</span><span class="request-card-tag">${escapeHtml(type)}</span></div>
       <div class="request-card-menu"><details><summary aria-label="More actions for request">•••</summary><div><button type="button" data-request-action="${moreAction}" data-request-id="${escapeHtml(request.id)}">${moreLabel}</button>${status!=='draft'?`<button type="button" data-request-action="draft" data-request-id="${escapeHtml(request.id)}">Save as draft</button>`:''}<button class="danger" type="button" data-request-action="delete" data-request-id="${escapeHtml(request.id)}">Delete request</button></div></details></div></div>
       <h2>${escapeHtml(request.title||'Untitled request')}</h2>
-      <div class="request-card-facts"><div><small>BUDGET</small><b>${escapeHtml(budget)}</b></div><div><small>DEADLINE</small><b>${deadline?escapeHtml(formatDeadline(request.deadline)):'Not set'}${daysLeft===null?'':` · ${escapeHtml(deadlineNote)}`}</b></div><div><small>REQUIRED</small><span>${specialties.length?specialties.map(specialty=>`<i>${escapeHtml(specialty)}</i>`).join(''):'Not specified'}</span></div></div>
-      <footer class="request-card-footer"><span class="request-card-metrics"><span>◉ ${views}</span><span>♡ ${saves}</span><span>▢ ${comments}</span>${referenceCount?`<span class="request-card-new">${referenceCount} ref</span>`:''}</span><div class="request-card-actions"><button type="button" class="request-card-secondary" data-edit-request="${escapeHtml(request.id)}">Edit</button><button type="button" class="request-card-secondary arrow-action" data-request-detail="${escapeHtml(request.id)}">See Details <svg class="arrow-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12h20M17 8l5 4-5 4"/></svg></button></div></footer>
+      <div class="request-card-facts"><div><small>BUDGET</small><b class="request-card-budget-value">${escapeHtml(budget)}${negotiableBadge}</b></div><div><small>DEADLINE</small><b>${deadline?escapeHtml(formatDeadline(request.deadline)):'Not set'}${daysLeft===null?'':` · ${escapeHtml(deadlineNote)}`}</b></div><div><small>REQUIRED</small><span>${specialties.length?specialties.map(specialty=>`<i>${escapeHtml(specialty)}</i>`).join(''):'Not specified'}</span></div></div>
+      <footer class="request-card-footer"><span class="request-card-metrics"><span>◉ ${views}</span><span>♡ ${saves}</span><span>▢ ${comments}</span>${referenceCount?`<span class="request-card-new">${referenceCount} ref</span>`:''}</span><div class="request-card-actions"><button type="button" class="request-card-secondary request-edit-button" data-edit-request="${escapeHtml(request.id)}">Edit</button></div></footer>
     </article>`;
   }).join('');
 }
@@ -385,34 +744,12 @@ function handleProjectGridKeydown(event){
     window.openProjectDetails(card.dataset.project);
   }
 }
-[grid,discoverGrid].forEach(projectGrid=>{
+[discoverGrid,homeRecommendedGrid,homeSavedList].forEach(projectGrid=>{
   projectGrid.addEventListener('click',handleProjectGridClick);
   projectGrid.addEventListener('keydown',handleProjectGridKeydown);
 });
-document.querySelectorAll('[data-category]').forEach(button=>button.addEventListener('click',()=>{
-  favoritesOnly=false;
-  activeQuery='';
-  activeCategory=button.dataset.category;
-  activeType='All';
-  activePrice='All';
-  activeSpecialty='All';
-  document.querySelectorAll('[data-category]').forEach(item=>item.classList.toggle('selected',item===button));
-  document.getElementById('searchInput').value='';
-  document.getElementById('heroSearchInput').value='';
-  document.getElementById('discoverSearchInput').value='';
-  document.getElementById('discoverCategory').value=activeCategory;
-  document.getElementById('discoverType').value='All';
-  document.getElementById('discoverPrice').value='All';
-  document.getElementById('discoverSpecialty').value='All';
-  renderProjects();
-}));
-document.querySelectorAll('[data-query]').forEach(button=>button.addEventListener('click',()=>{
-  searchProjects(button.dataset.query);
-  document.getElementById('projects').scrollIntoView({behavior:'smooth'});
-}));
 function searchProjects(value,preserveFilters=false){
   activeQuery=value.trim().toLowerCase();
-  favoritesOnly=false;
   if(!preserveFilters){
     activeCategory='All';
     activeType='All';
@@ -427,15 +764,9 @@ function searchProjects(value,preserveFilters=false){
     document.querySelectorAll('[data-category]').forEach(button=>button.classList.toggle('selected',button.dataset.category==='All'));
   }
   document.getElementById('searchInput').value=value;
-  document.getElementById('heroSearchInput').value=value;
   document.getElementById('discoverSearchInput').value=value;
   renderProjects();
 }
-document.getElementById('heroSearch').addEventListener('submit',event=>{
-  event.preventDefault();
-  searchProjects(document.getElementById('heroSearchInput').value);
-  document.getElementById('projects').scrollIntoView({behavior:'smooth'});
-});
 document.getElementById('searchInput').addEventListener('input',event=>{
   searchProjects(event.target.value);
 });
@@ -448,7 +779,6 @@ document.getElementById('discoverSearchInput').addEventListener('input',event=>{
 });
 document.getElementById('discoverCategory').addEventListener('change',event=>{
   activeCategory=event.target.value;
-  favoritesOnly=false;
   document.querySelectorAll('[data-category]').forEach(button=>button.classList.toggle('selected',button.dataset.category===activeCategory));
   renderProjects();
 });
@@ -459,14 +789,12 @@ document.getElementById('discoverSort').addEventListener('change',event=>{active
 function showClientView(view){
   const discovering=view==='discover';
   const composingRequest=view==='request';
-  const viewingRequests=view==='requests';
   const viewingDetail=view==='request-detail';
+  const viewingRequests=view==='requests'||viewingDetail;
   const viewingHome=!discovering&&!composingRequest&&!viewingRequests&&!viewingDetail;
   document.body.classList.toggle('request-composer-open',composingRequest);
-  ['.client-hero','.category-list','.client-projects','.client-demo-note'].forEach(selector=>{
-    document.querySelector(selector).hidden=!viewingHome;
-  });
   document.getElementById('discover').hidden=!discovering;
+  document.getElementById('homeDashboard').hidden=!viewingHome;
   document.getElementById('requests').hidden=!viewingRequests;
   document.getElementById('requestDetailPage').hidden=!viewingDetail;
   document.getElementById('requestComposer').hidden=!composingRequest;
@@ -509,7 +837,8 @@ document.addEventListener('click',event=>{
   history.replaceState(null,'',view==='requests'?'#requests':'#home');
   showClientView(view);
 });
-document.querySelectorAll('.client-nav-item[data-favorites-filter]').forEach(link=>link.addEventListener('click',()=>{
+document.querySelectorAll('.client-nav-item[data-favorites-filter]').forEach(link=>link.addEventListener('click',event=>{
+  event.preventDefault();
   showClientView('home');
   document.querySelectorAll('.client-nav-item').forEach(item=>{
     const active=item===link;
@@ -518,23 +847,7 @@ document.querySelectorAll('.client-nav-item[data-favorites-filter]').forEach(lin
     else item.removeAttribute('aria-current');
   });
   if(link.hasAttribute('data-favorites-filter')){
-    activeQuery='';
-    activeCategory='All';
-    activeType='All';
-    activePrice='All';
-    activeSpecialty='All';
-    favoritesOnly=true;
-    document.getElementById('discoverCategory').value='All';
-    document.getElementById('discoverType').value='All';
-    document.getElementById('discoverPrice').value='All';
-    document.getElementById('discoverSpecialty').value='All';
-    document.getElementById('searchInput').value='';
-    document.getElementById('heroSearchInput').value='';
-    document.getElementById('discoverSearchInput').value='';
-    document.getElementById('discoverSort').value='newest';
-    activeSort='newest';
-    document.querySelectorAll('[data-category]').forEach(categoryButton=>categoryButton.classList.toggle('selected',categoryButton.dataset.category==='All'));
-    renderProjects();
+    document.getElementById('homeSavedSection').scrollIntoView({behavior:'smooth',block:'center'});
   }
 }));
 document.addEventListener('keydown',event=>{
@@ -985,8 +1298,52 @@ function showRequestDetails(request){
   document.getElementById('requestViewStatus').textContent=`${Number(request.views)||0} views · ${Number(request.saves??request.favorites)||0} saved · ${Number(request.commentCount??request.comments)||0} comments`;
   dialog.showModal();
 }
+function renderRequestDetailProjectFacts(request,{category,type}){
+  const container=document.getElementById('requestDetailProjectFacts');
+  const created=Number(request.created);
+  const createdLabel=Number.isFinite(created)&&created>0
+    ?new Date(created).toLocaleDateString('en-US',{day:'numeric',month:'short',year:'numeric'})
+    :'Not available';
+  const references=Array.isArray(request.references)?request.references:[];
+  const facts=[
+    ['Project type',type==='Project type not set'?'Not provided':type],
+    ['Category',category==='Category not selected'?'Not provided':category],
+    ['Target start',request.targetStart?formatMonth(request.targetStart):'Not provided'],
+    ['Reference links',references],
+    ['Created',createdLabel]
+  ];
+  container.replaceChildren();
+  facts.forEach(([label,value])=>{
+    const row=document.createElement('div');
+    const term=document.createElement('dt');
+    const description=document.createElement('dd');
+    term.textContent=label;
+    if(label==='Reference links'){
+      value.forEach(reference=>{
+        try{
+          const url=new URL(reference);
+          if(!['http:','https:'].includes(url.protocol))return;
+          const link=document.createElement('a');
+          link.href=url.href;
+          link.target='_blank';
+          link.rel='noopener noreferrer';
+          link.textContent=url.hostname+url.pathname;
+          description.append(link);
+        }catch(error){
+          console.warn('Skipping an invalid project request reference link.',error);
+        }
+      });
+      if(!description.childElementCount)description.textContent='Not provided';
+    }else{
+      description.textContent=value;
+    }
+    row.append(term,description);
+    container.append(row);
+  });
+}
 async function showRequestDetailPage(request,{preserveScroll=false}={}){
-  const previousScrollY=window.scrollY;
+  const detailDialog=document.getElementById('requestDetailPage');
+  const previousScrollTop=detailDialog.scrollTop;
   activeRequestDetailId=request.id;
   let currentUserId=null;
   let repliesSupported=true;
@@ -1054,7 +1411,7 @@ async function showRequestDetailPage(request,{preserveScroll=false}={}){
     ?`${formatRequestMoney(request.budgetFrom)} — ${formatRequestMoney(request.budgetTo)}`
     :request.budget||'Not set';
   const negotiableBadge=document.getElementById('requestDetailNegotiable');
-  negotiableBadge.hidden=!request.negotiable;
+  negotiableBadge.hidden=request.negotiable!==true;
   const deadline=parseIsoDate(request.deadline);
   document.getElementById('requestDetailDeadline').textContent=deadline?formatDeadline(request.deadline):'Not set';
   const deadlineRemaining=document.getElementById('requestDetailDeadlineRemaining');
@@ -1071,13 +1428,6 @@ async function showRequestDetailPage(request,{preserveScroll=false}={}){
     deadlineRemaining.textContent='';
     deadlineRemaining.hidden=true;
   }
-  const meta=document.getElementById('requestDetailMeta');
-  meta.replaceChildren();
-  [category,type].forEach(label=>{
-    const tag=document.createElement('span');
-    tag.textContent=label;
-    meta.append(tag);
-  });
   const specialtyContainer=document.getElementById('requestDetailSpecialties');
   specialtyContainer.replaceChildren();
   if(specialties.length){
@@ -1094,10 +1444,7 @@ async function showRequestDetailPage(request,{preserveScroll=false}={}){
   document.getElementById('requestDetailViews').textContent=`◉ ${views.toLocaleString('id-ID')} views`;
   document.getElementById('requestDetailSaves').textContent=`♡ ${saves.toLocaleString('id-ID')} favorites`;
   document.getElementById('requestDetailComments').textContent=`▢ ${commentCount.toLocaleString('id-ID')} comments`;
-  const created=Number(request.created||request.updated);
-  document.getElementById('requestDetailCreated').textContent=Number.isFinite(created)&&created>0
-    ?`Created ${new Date(created).toLocaleDateString('id-ID',{day:'numeric',month:'short',year:'numeric'})}`
-    :'Date not available';
+  renderRequestDetailProjectFacts(request,{category,type});
   document.getElementById('requestDetailCommentCount').textContent=String(commentCount);
   const commentsList=document.getElementById('requestDetailCommentsList');
   commentsList.replaceChildren();
@@ -1207,14 +1554,14 @@ async function showRequestDetailPage(request,{preserveScroll=false}={}){
     commentersList.append(person);
   });
   document.getElementById('requestDetailCommentersEmpty').hidden=commenters.size>0;
-  document.getElementById('requestDetailRequestCount').textContent=String(requests.length);
-  document.getElementById('requestDetailOpenCount').textContent=String(requests.filter(item=>item.status==='open').length);
+  renderRequestDetailClientMetrics();
   const statusButton=document.querySelector('[data-detail-status-action]');
   statusButton.textContent=status==='open'?'Close request':status==='closed'?'Reopen request':'Publish request';
   statusButton.dataset.nextStatus=status==='open'?'closed':'open';
   history.replaceState(null,'',`#request-detail/${encodeURIComponent(request.id)}`);
   showClientView('request-detail');
-  window.scrollTo({top:preserveScroll?previousScrollY:0,behavior:preserveScroll?'auto':'smooth'});
+  if(!detailDialog.open)detailDialog.showModal();
+  detailDialog.scrollTop=preserveScroll?previousScrollTop:0;
 }
 async function updateRequestStatus(requestId,status){
   if(!await requestsReady)return;
@@ -1270,6 +1617,8 @@ async function deleteRequest(requestId){
   renderRequests();
   if(activeRequestDetailId===requestId){
     activeRequestDetailId=null;
+    const detailDialog=document.getElementById('requestDetailPage');
+    if(detailDialog.open)detailDialog.close();
     history.replaceState(null,'','#requests');
     showClientView('requests');
   }
@@ -1474,10 +1823,16 @@ async function saveRequest(status){
 }
 document.querySelectorAll('[data-open-request]').forEach(button=>button.addEventListener('click',()=>openRequestComposer()));
 document.querySelectorAll('[data-back-to-requests]').forEach(button=>button.addEventListener('click',()=>{
+  const detailDialog=document.getElementById('requestDetailPage');
+  if(detailDialog.open)detailDialog.close();
   activeRequestDetailId=null;
   history.replaceState(null,'','#requests');
   showClientView('requests');
 }));
+document.getElementById('requestDetailPage').addEventListener('close',()=>{
+  activeRequestDetailId=null;
+  if(location.hash.startsWith('#request-detail/'))history.replaceState(null,'','#requests');
+});
 document.querySelector('[data-save-request-draft]').addEventListener('click',()=>saveRequest('draft'));
 document.querySelector('[data-post-request]').addEventListener('click',()=>saveRequest('open'));
 requestForm.addEventListener('input',updateRequestPreview);
@@ -1618,15 +1973,9 @@ requestList.addEventListener('click',event=>{
   if(card&&!event.target.closest('button,a,input,select,textarea,summary,[data-request-ignore-open]')){
     const request=requests.find(item=>item.id===card.dataset.requestCard);
     if(request){
-      showRequestDetails(request);
+      showRequestDetailPage(request);
       return;
     }
-  }
-  const detailButton=event.target.closest('[data-request-detail]');
-  if(detailButton){
-    const request=requests.find(item=>item.id===detailButton.dataset.requestDetail);
-    if(request)showRequestDetailPage(request);
-    return;
   }
   const button=event.target.closest('[data-edit-request]');
   if(button){
@@ -1659,7 +2008,10 @@ document.getElementById('requestDetailPage').addEventListener('click',event=>{
   }
   if(event.target.closest('[data-edit-detail-request]')){
     const request=requests.find(item=>item.id===activeRequestDetailId);
-    if(request)openRequestComposer(request);
+    if(request){
+      document.getElementById('requestDetailPage').close();
+      openRequestComposer(request);
+    }
     return;
   }
   if(event.target.closest('[data-detail-status-action]')){
@@ -1828,12 +2180,38 @@ document.getElementById('openRequestActivity').addEventListener('click',()=>{
 document.querySelector('[data-close-request-activity]').addEventListener('click',()=>requestActivityDialog.close());
 requestActivityDialog.addEventListener('click',event=>{if(event.target===event.currentTarget)event.currentTarget.close()});
 
+async function loadClientWorkspaceIdentity(backend,user){
+  try{
+    const profile=await backend.loadProfile(user);
+    if(profile.account_role!=='client')throw new Error('Client workspace profile is unavailable.');
+    const name=String(profile.display_name||profile.username||user.email||'').trim();
+    if(!name)throw new Error('Your account name is unavailable.');
+    document.getElementById('homeUserName').textContent=name;
+    document.getElementById('homeIdentityStatus').hidden=true;
+  }catch(error){
+    console.error('Unable to load the client workspace identity.',error);
+    const status=document.getElementById('homeIdentityStatus');
+    status.replaceChildren();
+    const message=document.createElement('span');
+    message.textContent='Unable to load your workspace profile.';
+    const retry=document.createElement('button');
+    retry.className='request-secondary-button';
+    retry.type='button';
+    retry.textContent='Try again';
+    retry.addEventListener('click',()=>void loadClientWorkspaceIdentity(backend,user),{once:true});
+    status.append(message,retry);
+    status.hidden=false;
+  }
+}
+
 async function loadClientDashboardData(){
   const backend=window.devMatchBackend;
   const client=backend.client;
   try{
     const user=await backend.ready;
     if(!user)return;
+    const identityTask=loadClientWorkspaceIdentity(backend,user);
+    const homeDashboardTask=loadHomeDashboard();
     const metricsTask=client.rpc('get_dashboard_metrics', {p_role: 'client'}).then(({data,error})=>{
       if(error)throw error;
       requestDashboardMetrics=typeof data==='string'?JSON.parse(data):data;
@@ -1842,9 +2220,11 @@ async function loadClientDashboardData(){
         throw new Error('Dashboard metrics are unavailable.');
       }
       renderRequests();
+      renderRequestDetailClientMetrics();
     }).catch(error=>{
       console.error('Unable to load request dashboard metrics.',error);
-      ['requestStatViews','requestStatSaves','requestStatComments'].forEach(id=>{document.getElementById(id).textContent='—';});
+      requestDashboardMetrics=null;
+      renderRequestDetailClientMetrics();
       document.getElementById('requestsMessage').textContent='Unable to load dashboard metrics. Check your connection and try again.';
     });
     const activityTask=(async()=>{
@@ -1916,7 +2296,8 @@ async function loadClientDashboardData(){
       });
       if(notificationDot)notificationDot.hidden=unread===0;
     })().catch(error=>console.error('Unable to load notification count.',error));
-    await Promise.all([metricsTask,activityTask,unreadTask]);
+    const conversationsTask=loadHomeConversations();
+    await Promise.all([identityTask,homeDashboardTask,metricsTask,activityTask,unreadTask,conversationsTask]);
   }catch(error){
     console.error('Unable to load client dashboard data.',error);
   }

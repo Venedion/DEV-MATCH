@@ -27,8 +27,8 @@
   };
   let projects=[],favoriteDeveloper=false,accountRole=null,publicProfileProjects=null,commenterRoles=new Map();
   let profileDeveloperIdentity={};
+  let profileRating=null,reviewsLoadFailed=false;
   let activeFilter='All',activeQuery='';
-  const filters=['All','Website','Web App','Android / iOS','Desktop App'];
   const filtersRoot=document.getElementById('portfolioFilters');
   const grid=document.getElementById('portfolioGrid');
   const empty=document.getElementById('portfolioEmpty');
@@ -51,15 +51,101 @@
     status.hidden=false;status.textContent=message;
     identity.hidden=true;columns.hidden=true;
   }
+  async function loadDeveloperDirectoryProfile(profileId){
+    const directory=window.devMatchBackend.client.from('directory_people');
+    const metricColumns='id,display_name,username,account_role,profile_data,published_portfolio_count,published_portfolio_views_count,published_portfolio_favorites_count';
+    const legacyColumns='id,display_name,username,account_role,profile_data,published_portfolio_count';
+    let metricsAvailable=true;
+    let result=await directory.select(metricColumns).eq('id',profileId).eq('account_role','dev').maybeSingle();
+    if(result.error&&['42703','PGRST204'].includes(result.error.code)
+      &&/published_portfolio_(views|favorites)_count/.test(result.error.message||'')){
+      metricsAvailable=false;
+      result=await directory.select(legacyColumns).eq('id',profileId).eq('account_role','dev').maybeSingle();
+    }
+    if(result.error)throw result.error;
+    return {person:result.data,metricsAvailable};
+  }
   function projectRecord(row){
     const data=row.data&&typeof row.data==='object'?row.data:{};
     return {...data,id:row.id,title:String(row.title||data.title||''),type:String(row.project_type||data.projectType||data.type||''),
       category:String(row.category||data.category||''),description:String(data.description||data.overview||''),
-      price:String(row.price||data.price||''),coverImage:String(row.cover_image||data.coverImage||''),views:'—',favorites:'—',created:row.created_at||row.updated_at};
+      price:String(row.price||data.price||''),coverImage:String(row.cover_image||data.coverImage||''),created:row.created_at||row.updated_at};
   }
   function normalizeList(value){
     const items=Array.isArray(value)?value:typeof value==='string'?value.split(/[,;\n]/):[];
     return items.map(item=>String(item).trim()).filter(Boolean);
+  }
+  function publicCount(value){
+    if(value===null||value===undefined||value==='')return null;
+    const count=Number(value);
+    return Number.isSafeInteger(count)&&count>=0?count:null;
+  }
+  function safeExternalUrl(value){
+    if(typeof value!=='string')return '';
+    const raw=String(value||'').trim();
+    if(!raw||(/^[a-z][a-z\d+.-]*:/i.test(raw)&&!/^https?:\/\//i.test(raw)))return '';
+    try{
+      const url=new URL(/^https?:\/\//i.test(raw)?raw:`https://${raw}`);
+      return ['http:','https:'].includes(url.protocol)?url.href:'';
+    }catch(error){return '';}
+  }
+  function setAvatar(id,imageUrl,fallback){
+    const element=document.getElementById(id);
+    if(!element)return;
+    let validImage=typeof imageUrl==='string'&&/^data:image\/(?:jpeg|png);base64,/.test(imageUrl);
+    if(typeof imageUrl==='string'&&imageUrl.startsWith('https://')){
+      try{
+        const url=new URL(imageUrl);
+        validImage=url.origin==='https://yxwktllqbmhustmhdaqi.supabase.co'
+          &&url.pathname.startsWith('/storage/v1/object/public/project-media/');
+      }catch(error){validImage=false;}
+    }
+    if(!validImage){
+      element.textContent=fallback;
+      return;
+    }
+    const image=document.createElement('img');
+    image.src=imageUrl;
+    image.alt='';
+    image.addEventListener('error',()=>{element.textContent=fallback;});
+    element.replaceChildren(image);
+  }
+  function profileExperiences(profile){
+    return (Array.isArray(profile.experiences)?profile.experiences:[])
+      .filter(item=>item&&typeof item==='object'&&(item.title||item.company))
+      .map(item=>({...item,period:String(item.period||[item.startYear,item.endYear].filter(Boolean).join(' – ')).trim()}))
+      .sort((left,right)=>{
+        const order=item=>{
+          const years=String(item.period||'').match(/\d{4}/g)||[];
+          return {current:/\b(present|sekarang|current)\b/i.test(item.period||''),end:Number(years[years.length-1]||years[0]||0)};
+        };
+        const a=order(left),b=order(right);
+        return Number(b.current)-Number(a.current)||b.end-a.end;
+      });
+  }
+  function renderExperience(experiences){
+    const root=document.getElementById('developerExperienceList');
+    root.innerHTML=experiences.length?experiences.map(item=>{
+      const details=[item.company,item.period].map(value=>String(value||'').trim()).filter(Boolean).join(' · ');
+      const linkLabel=String(item.link||'').trim();
+      const href=safeExternalUrl(linkLabel);
+      return `<li><b>${escapeHtml(item.title||'Experience')}</b>${details?`<small>${escapeHtml(details)}</small>`:''}${href?`<a href="${escapeHtml(href)}" target="_blank" rel="noopener noreferrer">Portfolio link</a>`:''}</li>`;
+    }).join(''):'<li class="empty-state">No public experience added.</li>';
+  }
+  function renderPublicLinks(profile,experiences){
+    const links=[];
+    const add=(label,value,icon)=>{
+      const url=safeExternalUrl(value);
+      if(url&&!links.some(link=>link.url===url))links.push({label,url,icon});
+    };
+    const githubUsername=String(profile.githubUsername||'').trim().replace(/^@/,'');
+    if(profile.githubConnected!==false)add('GitHub',profile.githubUrl||profile.github||(githubUsername?`https://github.com/${encodeURIComponent(githubUsername)}`:''),'GH');
+    if(profile.linkedinConnected!==false)add('LinkedIn',profile.linkedinUrl||profile.linkedin,'in');
+    experiences.forEach((experience,index)=>add(`Portfolio ${index+1}`,experience.link,'↗'));
+    document.getElementById('developerLinks').innerHTML=links.length?links.map(link=>{
+      const url=new URL(link.url);
+      return `<a href="${escapeHtml(link.url)}" target="_blank" rel="noopener noreferrer"><span class="public-link-icon">${escapeHtml(link.icon)}</span><span><b>${escapeHtml(link.label)}</b><small>${escapeHtml(url.hostname.replace(/^www\./,''))}${escapeHtml(url.pathname)}</small></span><span aria-hidden="true">↗</span></a>`;
+    }).join(''):'<p class="empty-state">No public links added.</p>';
   }
   function renderFavoriteButton(){
     const button=document.getElementById('favoriteDeveloper');
@@ -72,8 +158,9 @@
     const filtered=projects.filter(item=>(activeFilter==='All'||item.type===activeFilter)&&
       (!activeQuery||`${item.title} ${item.description} ${item.type} ${item.category}`.toLowerCase().includes(activeQuery)));
     const sort=sortSelect.value;
-    filtered.sort((a,b)=>sort==='title'?a.title.localeCompare(b.title):sort==='newest'
-      ?new Date(b.created)-new Date(a.created):a.title.localeCompare(b.title));
+    const time=value=>{const parsed=Date.parse(value);return Number.isFinite(parsed)?parsed:0;};
+    filtered.sort((a,b)=>sort==='title'?a.title.localeCompare(b.title)
+      :time(b.created)-time(a.created)||a.title.localeCompare(b.title));
     grid.innerHTML=filtered.map(item=>`
       <article class="showcase-project portfolio-catalog-card" data-project-detail="${escapeHtml(item.id)}" tabindex="0" role="link" aria-label="View ${escapeHtml(item.title)} details">
         <div class="project-art art-dashboard">${item.coverImage
@@ -87,10 +174,11 @@
           <footer class="project-footer portfolio-catalog-footer">
             <span class="developer-avatar">${escapeHtml(profileDeveloperIdentity.initials||'DM')}</span>
             <span class="developer-info"><b>${escapeHtml(profileDeveloperIdentity.name||'DEV-MATCH member')}</b><small>${escapeHtml(profileDeveloperIdentity.handle||'')}</small></span>
-            <span class="rating" aria-label="Rating 4.9 out of 5"><span>★</span> 4.9</span>
+            <span class="rating" aria-label="${reviewsLoadFailed?'Developer rating unavailable':profileRating===null?'No client reviews yet':`Developer rating ${profileRating.toFixed(1)} out of 5`}">${profileRating===null?(reviewsLoadFailed?'Unavailable':'No reviews'):`<span>★</span> ${profileRating.toFixed(1)}`}</span>
           </footer>
         </div>
       </article>`).join('');
+    empty.textContent=projects.length?'No projects match this filter.':'No public projects have been added yet.';
     empty.hidden=filtered.length>0;
   }
   function renderComments(comments){
@@ -128,25 +216,23 @@
   status.hidden=false;status.textContent='Loading developer profile…';
   try{
     const user=await window.devMatchBackend.ready;
+    let accountProfile=null;
     let person=null;
+    let profileMetricsAvailable=true;
     if(user){
-      const account = await window.devMatchBackend.loadProfile(user);
-      accountRole=account.account_role;
-      let personQuery=await window.devMatchBackend.client.from('directory_people')
-        .select('id,display_name,username,account_role,profile_data,published_portfolio_count')
-        .eq('id',requestedId).eq('account_role','dev').maybeSingle();
-      if(personQuery.error)throw personQuery.error;
-      person=personQuery.data;
+      accountProfile=await window.devMatchBackend.loadProfile(user);
+      accountRole=accountProfile.account_role;
+      let directoryProfile=await loadDeveloperDirectoryProfile(requestedId);
+      person=directoryProfile.person;
+      profileMetricsAvailable=directoryProfile.metricsAvailable;
       if(!person){
         const {data:project,error:projectError}=await window.devMatchBackend.client.from('projects')
           .select('owner_id').eq('id',requestedId).eq('project_kind','portfolio').eq('status','published').maybeSingle();
         if(projectError)throw projectError;
         if(project){
-          personQuery=await window.devMatchBackend.client.from('directory_people')
-            .select('id,display_name,username,account_role,profile_data,published_portfolio_count')
-            .eq('id',project.owner_id).eq('account_role','dev').maybeSingle();
-          if(personQuery.error)throw personQuery.error;
-          person=personQuery.data;
+          directoryProfile=await loadDeveloperDirectoryProfile(project.owner_id);
+          person=directoryProfile.person;
+          profileMetricsAvailable=directoryProfile.metricsAvailable;
         }
       }
     }else{
@@ -175,7 +261,6 @@
     }
     if(!person){showError('This developer profile is not available.');return;}
     let profileReviews=[];
-    let reviewsLoadFailed=false;
     try{
       profileReviews=await window.devMatchBackend.loadProfileReviews(person.id);
     }catch(error){
@@ -195,7 +280,7 @@
     const profile=person.profile_data||{};
     const name=String(person.display_name||'DEV-MATCH member');
     profileDeveloperIdentity={name,handle:person.username?`@${String(person.username).replace(/^@/,'')}`:'',initials:initials(name)};
-    const location=String(profile.city||'Location not provided');
+    const location=[profile.city,profile.country].map(value=>String(value||'').trim()).filter(Boolean).join(', ')||'Location not provided';
     const specialtyValues=Array.isArray(profile.specialty)?profile.specialty:typeof profile.specialty==='string'?[profile.specialty]:[];
     const selectedSpecialties=specialtyValues.map(value=>String(value).trim()).filter(Boolean);
     const customSpecialty=typeof profile.specialtyOther==='string'?profile.specialtyOther.trim():'';
@@ -203,11 +288,13 @@
     const specialties=window.devMatchProfileSpecialties
       ?window.devMatchProfileSpecialties.normalize(profile)
       :[...new Set(selectedSpecialties.map(value=>value.toLowerCase()==='other'&&customSpecialty?customSpecialty:value))];
-    const skills=Array.isArray(profile.skills)?profile.skills.map(String):[];
+    const skills=normalizeList(profile.skills);
+    const experiences=profileExperiences(profile);
     document.title=`${name} — DEV-MATCH`;
     document.getElementById('breadcrumbName').textContent=name;
     document.getElementById('developerName').textContent=name;
     document.getElementById('developerInitials').textContent=initials(name);
+    setAvatar('developerInitials',profile.avatar,initials(name));
     document.getElementById('developerHandle').textContent=person.username?`@${String(person.username).replace(/^@/,'')}`:'';
     document.getElementById('developerLocation').textContent=location;
     document.getElementById('developerRole').textContent=specialties.join(', ')||'Developer';
@@ -215,15 +302,12 @@
     document.getElementById('developerJoined').textContent='';
     document.getElementById('developerAbout').textContent=String(profile.bio||'No biography provided.');
     document.getElementById('developerAboutCard').textContent=String(profile.bio||'No biography provided.');
-    const experiences=Array.isArray(profile.experiences)
-      ?profile.experiences.filter(item=>item&&typeof item==='object'&&!Array.isArray(item))
-      :[];
-    document.getElementById('developerExperience').textContent=experiences.length
-      ?`${experiences.length} ${experiences.length===1?'role':'roles'}`
-      :'Not provided';
+    document.getElementById('developerExperience').textContent=experiences.length?`${experiences.length} ${experiences.length===1?'role':'roles'}`:'Not provided';
     document.getElementById('developerLocationCard').textContent=location;
-    document.getElementById('developerHourlyRate').textContent=profile.hourlyRate?`${String(profile.hourlyRate).trim()} / hour`:'Not provided';
-    document.getElementById('developerMinimumProject').textContent=String(profile.minProjectPrice||'Not provided');
+    const hourlyRate=String(profile.hourlyRate||'').trim();
+    const minimumProject=String(profile.minProjectPrice||'').trim();
+    document.getElementById('developerHourlyRate').textContent=hourlyRate?`${hourlyRate} / hour`:'Not provided';
+    document.getElementById('developerMinimumProject').textContent=minimumProject||'Not provided';
     const workTerms=normalizeList(profile.contractTypes);
     const workTermsRoot=document.getElementById('developerWorkTerms');
     workTermsRoot.classList.toggle('empty-state',workTerms.length===0);
@@ -232,12 +316,14 @@
       ?workTerms.map(term=>`<span>${escapeHtml(term)}</span>`).join('')
       :'No work terms added yet.';
     document.getElementById('statProjects').textContent=String(projects.length);
-    document.getElementById('statProjectFavorites').textContent='—';
-    document.getElementById('statViews').textContent='—';
-    const averageRating=profileReviews.length
+    const projectFavorites=profileMetricsAvailable?publicCount(person.published_portfolio_favorites_count):null;
+    const profileViews=profileMetricsAvailable?publicCount(person.published_portfolio_views_count):null;
+    document.getElementById('statProjectFavorites').textContent=String(projectFavorites??'Unavailable');
+    document.getElementById('statViews').textContent=String(profileViews??'Unavailable');
+    profileRating=profileReviews.length
       ?profileReviews.reduce((sum,review)=>sum+review.rating,0)/profileReviews.length
       :null;
-    document.getElementById('statRating').textContent=averageRating===null?'—':`★ ${averageRating.toFixed(1)}`;
+    document.getElementById('statRating').textContent=profileRating===null?'—':`★ ${profileRating.toFixed(1)}`;
     document.getElementById('statReviewCount').textContent=reviewsLoadFailed
       ?'unable to load reviews'
       :profileReviews.length?`from ${profileReviews.length} reviews`:'no reviews yet';
@@ -252,30 +338,17 @@
       return `<div class="profile-specialty-card"><svg viewBox="0 0 24 24" aria-hidden="true">${details.icon}</svg><b>${escapeHtml(value)}</b><small>${escapeHtml(details.description)}</small></div>`;
     }).join(''):'<span>No specialization added yet.</span>';
     document.getElementById('developerSkills').innerHTML=skills.length?skills.map(value=>`<span>${escapeHtml(value)}</span>`).join(''):'<span>No skills added yet.</span>';
-    document.getElementById('developerExperienceList').innerHTML=experiences.length
-      ?experiences.map(item=>{
-        const title=String(item.title||'Experience');
-        const company=String(item.company||'');
-        const period=String(item.period||'');
-        const link=safeExternalUrl(item.link);
-        return `<li><b>${escapeHtml(title)}</b>${company?`<span>${escapeHtml(company)}</span>`:''}${period?`<small>${escapeHtml(period)}</small>`:''}${link?`<a href="${escapeHtml(link)}" target="_blank" rel="noopener noreferrer">View experience</a>`:''}</li>`;
-      }).join('')
-      :'<li class="empty-state">No public experience added.</li>';
-    const publicLinks=[];
-    const githubUsername=String(profile.githubUsername||'').trim().replace(/^@/,'');
-    if(githubUsername&&/^[A-Za-z0-9](?:[A-Za-z0-9-]{0,37})$/.test(githubUsername)){
-      publicLinks.push({label:'GitHub',detail:`@${githubUsername}`,url:`https://github.com/${encodeURIComponent(githubUsername)}`});
-    }
-    const linkedinUrl=safeExternalUrl(profile.linkedinUrl);
-    if(linkedinUrl)publicLinks.push({label:'LinkedIn',detail:linkedinUrl,url:linkedinUrl});
-    document.getElementById('developerLinks').innerHTML=publicLinks.length
-      ?publicLinks.map(link=>`<a href="${escapeHtml(link.url)}" target="_blank" rel="noopener noreferrer"><span aria-hidden="true">↗</span><span><b>${escapeHtml(link.label)}</b><small>${escapeHtml(link.detail)}</small></span><span aria-hidden="true">↗</span></a>`).join('')
-      :'<p class="empty-state">No public links added.</p>';
+    renderExperience(experiences);
+    renderPublicLinks(profile,experiences);
+    const clientName=String(accountProfile?.display_name||accountProfile?.profile_data?.displayName||'Client').trim();
+    document.getElementById('clientName').textContent=clientName;
+    setAvatar('clientInitials',accountProfile?.profile_data?.avatar,initials(clientName));
     if(user&&accountRole==='client'){
       const records=await window.devMatchBackend.loadFavorites();
       favoriteDeveloper=records.some(item=>item.type==='developer'&&item.id===person.id);
     }
     renderFavoriteButton();
+    const filters=['All',...new Set(projects.map(item=>item.type.trim()).filter(Boolean).sort((a,b)=>a.localeCompare(b)))];
     filtersRoot.innerHTML=filters.map(filter=>`<button type="button" class="${filter==='All'?'active':''}" data-filter="${escapeHtml(filter)}">${escapeHtml(filter)} <small>${filter==='All'?projects.length:projects.filter(item=>item.type===filter).length}</small></button>`).join('');
     filtersRoot.addEventListener('click',event=>{
       const button=event.target.closest('[data-filter]');if(!button)return;
@@ -289,9 +362,9 @@
       const showReviews=button.dataset.tab==='reviews';
       document.querySelectorAll('[data-tab]').forEach(tab=>{const selected=tab===button;tab.classList.toggle('active',selected);tab.setAttribute('aria-selected',String(selected));});
       updateTabIndicator(button);
-      filtersRoot.hidden=!showProjects;grid.hidden=!showProjects;sortSelect.parentElement.hidden=!showProjects;
+      filtersRoot.hidden=!showProjects;grid.hidden=!showProjects;sortSelect.closest('.sort-control').hidden=!showProjects;
       reviewsPanel.hidden=!showReviews;commentsPanel.hidden=showProjects||showReviews;
-      empty.hidden=!showProjects||projects.length>0;
+      empty.hidden=!showProjects||grid.children.length>0;
       if(button.dataset.tab==='comments'){
         commentsPanel.innerHTML='<p class="empty-state">Loading comments…</p>';
         try{

@@ -373,6 +373,7 @@
       ...data,
       id: row.id,
       status: row.status,
+      created: row.created_at ? new Date(row.created_at).getTime() : Number(data.created) || 0,
       updated: new Date(row.updated_at).getTime(),
       ...(row.cover_image ? {coverImage: row.cover_image} : {})
     };
@@ -384,7 +385,7 @@
     }
     const user = await currentAccount();
     const {data, error} = await client.from('projects')
-      .select('id,legacy_id,title,project_type,category,cover_image,status,data,updated_at')
+      .select('id,legacy_id,title,project_type,category,cover_image,status,data,created_at,updated_at')
       .eq('owner_id', user.id)
       .eq('project_kind', kind)
       .order('updated_at', {ascending: false});
@@ -424,7 +425,7 @@
         });
         if (insertError) throw insertError;
         const {data: refreshed, error: refreshError} = await client.from('projects')
-          .select('id,legacy_id,title,project_type,category,cover_image,status,data,updated_at')
+          .select('id,legacy_id,title,project_type,category,cover_image,status,data,created_at,updated_at')
           .eq('owner_id', user.id)
           .eq('project_kind', kind)
           .order('updated_at', {ascending: false});

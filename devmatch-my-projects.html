@@ -136,7 +136,8 @@
         </aside>
       </div>
     </section>
-    <section class="project-preview-mode" id="projectPreviewMode" hidden aria-label="Project overview preview">
+    <dialog class="project-preview-mode" id="projectPreviewMode" aria-labelledby="previewModeTitle">
+      <header class="preview-popup-header"><strong>Project overview preview</strong><button class="preview-popup-close" type="button" data-close-project-preview aria-label="Close project preview">×</button></header>
       <div class="preview-mode-banner">
         <span class="preview-mode-icon" aria-hidden="true">◉</span>
         <div><strong>Preview mode — this is exactly what clients will see</strong><p>Your project isn’t public yet. Views, favorites and comments start after publishing.</p></div>
@@ -165,7 +166,7 @@
           <p class="preview-protection-note">♧ &nbsp; Agree on scope, timeline and payment terms in writing before you start.</p>
         </aside>
       </div>
-    </section>
+    </dialog>
     <section id="projectsList">
     <section class="projects-heading">
       <div><h1>My projects</h1><p>Manage your listings, pricing and visibility.</p></div>

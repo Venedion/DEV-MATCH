@@ -38,7 +38,7 @@
 .identity-meta{display:flex;flex-wrap:wrap;gap:8px 17px;margin-top:12px;color:var(--profile-muted);font-size:11px}
 .identity-meta span{display:inline-flex;align-items:center;gap:6px}
 .identity-meta span:before{width:14px;height:14px;display:grid;place-items:center;color:#8b8d95;font-size:12px}
-#identityHandle:before{content:"@"}
+#identityHandle:before{display:none}
 #identityLocation:before{content:"⌖"}
 #identitySpecialty:before{content:"◇"}
 #identityJoined:before{content:"◷"}

@@ -14,11 +14,18 @@
   const projectStatus=document.getElementById('landingProjectStatus'),directoryStatus=document.getElementById('landingDirectoryStatus');
   const types=['All projects','Website','Web App','Android / iOS','Desktop App'];
   let activeType='All projects',projects=[],projectsLoaded=false;
+  projectGrid.addEventListener('click',event=>{
+    if(event.button!==0||event.metaKey||event.ctrlKey||event.shiftKey||event.altKey)return;
+    const link=event.target.closest('a[data-project-detail]');
+    if(!link||typeof window.openProjectDetails!=='function')return;
+    event.preventDefault();
+    window.openProjectDetails(link.dataset.projectDetail);
+  });
   function renderProjects(){
     chips.innerHTML=types.map(type=>`<button class="chip" aria-pressed="${type===activeType}" data-type="${escapeHtml(type)}">${escapeHtml(type)}</button>`).join('');
     const filtered=projects.filter(project=>activeType==='All projects'||project.type===activeType);
     projectGrid.innerHTML=filtered.length?filtered.map((project,index)=>`<article class="card">
-      <a class="landing-project-link" href="devmatch-discover-project-detail.html?project=${encodeURIComponent(project.id)}" aria-label="View ${escapeHtml(project.title)}">
+      <a class="landing-project-link" data-project-detail="${escapeHtml(project.id)}" href="devmatch-discover-project-detail.html?project=${encodeURIComponent(project.id)}" aria-label="View ${escapeHtml(project.title)}">
       <div class="thumb landing-art-${index%4}"><span class="type">${escapeHtml(project.type)}</span><div class="mock"><i style="width:22%"></i><div style="flex:1;display:grid;gap:6px;align-content:start"><i style="height:10px;width:60%"></i><i style="height:36px"></i><i style="height:10px;width:80%"></i></div></div></div>
       <div class="pbody"><div class="meta"><span>${escapeHtml(project.category)}</span><span>${escapeHtml(project.date)}</span></div><h3>${escapeHtml(project.title)}</h3><p>${escapeHtml(project.description)}</p><div class="price"><small>Published project</small><b>${escapeHtml(project.price||'Price not specified')}</b></div></div></a></article>`).join('')
       :projectsLoaded?'<p class="landing-empty" role="status">No published projects in this category yet.</p>':'';

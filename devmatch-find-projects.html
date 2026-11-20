@@ -8,7 +8,8 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=optional" rel="stylesheet">
   <link rel="stylesheet" href="assets/css/dashboard.css?v=20261118-hide-favorites-nav-badge">
-  <link rel="stylesheet" href="assets/css/marketplace.css?v=20261120-find-projects-discovery-layout-v5">
+  <link rel="stylesheet" href="assets/css/marketplace.css?v=20261121-rebase-merge">
+  <link rel="stylesheet" href="assets/css/project-detail-popup.css?v=20261120-popup-detail">
   <link rel="stylesheet" href="assets/css/mode-switch-animation.css?v=20261120-opportunity-switch-indicator">
   <link rel="stylesheet" href="assets/css/mobile-navigation.css?v=20261120-mobile-bottom-nav-v11">
   <link rel="stylesheet" href="assets/css/arrow-motion.css?v=20261118-arrow-motion-global-v2">
@@ -106,6 +107,10 @@
   <dialog class="project-dialog" id="projectDialog" aria-labelledby="dialogTitle">
     <button class="dialog-close" type="button" data-close-dialog aria-label="Close details">×</button>
     <div class="dialog-content" id="dialogContent"></div>
+  </dialog>
+  <dialog class="project-request-detail-dialog" id="requestDetailDialog" aria-label="Project request details">
+    <div class="project-detail-popup-bar"><img src="assets/images/devmatch-logo.png" alt=""><span>Project request details</span><button class="project-detail-popup-close" id="closeRequestDetail" type="button" aria-label="Close project request details">×</button></div>
+    <iframe class="project-detail-popup-frame" id="requestDetailFrame" title="Project request details"></iframe>
   </dialog>
 
   <a class="floating-chat" href="devmatch-chat.html" aria-label="Messages &amp; Chat" title="Open Messages &amp; Chat">

@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=optional" rel="stylesheet">
-  <link rel="stylesheet" href="assets/css/client-dashboard.css?v=20261119-rebase-merge">
+  <link rel="stylesheet" href="assets/css/client-dashboard.css?v=20261120-client-home-a11y">
   <link rel="stylesheet" href="assets/css/project-detail.css?v=20261119-rebase-merge">
   <link rel="stylesheet" href="assets/css/favorite-feedback.css?v=20261120-confirmation-undo">
   <link rel="stylesheet" href="assets/css/mode-switch-animation.css?v=20261030-active-indicator">
@@ -35,7 +35,7 @@
   </script>
   <script src="assets/js/i18n.js?v=20261102-profile-details"></script>
 <script src="assets/vendor/supabase-2.119.0.js"></script>
-<script src="assets/js/backend.js?v=20261119-phone-onboarding"></script>
+<script src="assets/js/backend.js?v=20261120-project-created-at"></script>
 </head>
 <body class="page-scroll-shell">
   <header class="client-topbar">
@@ -68,26 +68,115 @@
   <script src="assets/js/sidebar-navigation.js?v=20261120-mobile-bottom-nav-v9"></script>
 
   <main class="client-main" id="home">
-    <section class="client-hero">
-      <div class="hero-orbit orbit-one"></div><div class="hero-orbit orbit-two"></div>
-      <p id="greeting">Good afternoon, Client</p>
-      <h1>What do you want to build today?</h1>
-      <form class="hero-search" id="heroSearch">
-        <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
-        <input id="heroSearchInput" type="search" placeholder="Try “restaurant website”, “POS”, or “Flutter developer”">
-        <button type="submit">Search</button>
-      </form>
-      <div class="popular"><span>Popular:</span><button type="button" data-query="Company Profile">Company profile</button><button type="button" data-query="Café POS">Café POS</button><button type="button" data-query="Booking">Booking app</button><button type="button" data-query="E-Commerce">Online store</button></div>
-    </section>
+    <section class="client-home" id="homeDashboard">
+      <header class="request-page-heading home-header">
+        <div>
+          <p id="greeting">Good afternoon,</p>
+          <h1 id="homeUserName"></h1>
+          <div id="homeIdentityStatus" class="home-status" role="status" hidden></div>
+        </div>
+        <div class="home-header-actions">
+          <button class="request-primary-button" type="button" data-open-request>Post a request</button>
+          <a class="request-secondary-button" href="devmatch-discover-projects.html">Browse projects</a>
+        </div>
+      </header>
 
-    <section class="category-list" aria-label="Project categories">
-      <button class="category-card selected" type="button" data-category="All"><span class="category-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18m-9-9a15 15 0 0 1 0 18m0-18a15 15 0 0 0 0 18"/></svg></span><b>All projects</b><small data-category-count="All">0 projects</small></button>
-      <button class="category-card" type="button" data-category="Company Profile"><span class="category-icon"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg></span><b>Company Profile</b><small data-category-count="Company Profile">0 projects</small></button>
-      <button class="category-card" type="button" data-category="POS"><span class="category-icon"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M7 9h4m-4 4h10m-10 3h6"/></svg></span><b>POS</b><small data-category-count="POS">0 projects</small></button>
-      <button class="category-card" type="button" data-category="Inventory"><span class="category-icon"><svg viewBox="0 0 24 24"><path d="M3 6a2 2 0 0 1 2-2h5l2 2h7a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg></span><b>Inventory</b><small data-category-count="Inventory">0 projects</small></button>
-      <button class="category-card" type="button" data-category="Booking"><span class="category-icon"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/></svg></span><b>Booking</b><small data-category-count="Booking">0 projects</small></button>
-      <button class="category-card" type="button" data-category="E-Commerce"><span class="category-icon"><svg viewBox="0 0 24 24"><rect x="3" y="7" width="18" height="14" rx="2"/><path d="M8 7V5a4 4 0 0 1 8 0v2"/></svg></span><b>E-Commerce</b><small data-category-count="E-Commerce">0 projects</small></button>
-      <button class="category-card" type="button" data-category="Other"><span class="category-icon"><svg viewBox="0 0 24 24"><path d="M12 3v3m0 12v3m9-9h-3M6 12H3m15.4-6.4-2.1 2.1M7.7 16.3l-2.1 2.1m12.8 0-2.1-2.1M7.7 7.7 5.6 5.6"/></svg></span><b>Other</b><small data-category-count="Other">0 projects</small></button>
+      <section class="request-form-card home-section home-getting-started" id="homeGettingStarted" aria-labelledby="homeGettingStartedTitle" aria-busy="true">
+        <header><h2 id="homeGettingStartedTitle">Getting started</h2><p>Three steps to get your workspace ready.</p></header>
+        <div class="home-checklist" id="homeChecklist" role="list" aria-live="polite">
+          <div class="home-skeleton-row" aria-hidden="true"><i class="home-skeleton-bar"></i><i class="home-skeleton-bar"></i></div>
+          <div class="home-skeleton-row" aria-hidden="true"><i class="home-skeleton-bar"></i><i class="home-skeleton-bar"></i></div>
+          <div class="home-skeleton-row" aria-hidden="true"><i class="home-skeleton-bar"></i><i class="home-skeleton-bar"></i></div>
+        </div>
+      </section>
+
+      <section class="request-stats-grid home-metrics" aria-label="Workspace summary" aria-busy="true">
+        <article class="request-stat-card"><small>OPEN REQUESTS</small><strong data-home-metric-value="openRequests"><span class="home-skeleton-bar home-metric-skeleton" aria-hidden="true"></span></strong></article>
+        <article class="request-stat-card"><small>NEW INQUIRIES</small><strong data-home-metric-value="newInquiries"><span class="home-skeleton-bar home-metric-skeleton" aria-hidden="true"></span></strong></article>
+        <article class="request-stat-card"><small>AWAITING DEVELOPER REPLY</small><strong data-home-metric-value="awaitingDeveloperReply"><span class="home-skeleton-bar home-metric-skeleton" aria-hidden="true"></span></strong></article>
+        <article class="request-stat-card"><small>ACTIVE PROJECTS</small><strong>—</strong></article>
+      </section>
+      <div id="homeMetricsStatus" class="home-section-status" role="status" hidden></div>
+
+      <div class="home-workspace-grid">
+        <div class="home-main-column">
+          <section class="request-form-card home-section">
+            <header><h2>Needs your attention</h2></header>
+            <div class="home-attention-list" id="homeAttentionList" aria-live="polite" aria-busy="true">
+              <div class="home-skeleton-row home-skeleton-person" aria-hidden="true"><i class="home-skeleton-avatar"></i><span><i class="home-skeleton-bar"></i><i class="home-skeleton-bar short"></i></span></div>
+              <div class="home-skeleton-row home-skeleton-person" aria-hidden="true"><i class="home-skeleton-avatar"></i><span><i class="home-skeleton-bar"></i><i class="home-skeleton-bar short"></i></span></div>
+              <div class="home-skeleton-row home-skeleton-person" aria-hidden="true"><i class="home-skeleton-avatar"></i><span><i class="home-skeleton-bar"></i><i class="home-skeleton-bar short"></i></span></div>
+            </div>
+          </section>
+          <div class="home-request-sections">
+            <section class="request-form-card home-section">
+              <header class="home-section-heading">
+                <h2>Posted by me</h2>
+                <a href="devmatch-client-dashboard.html#requests" aria-label="View all posted requests">View all</a>
+              </header>
+              <div class="home-data-list" id="homePostedRequests" aria-live="polite" aria-busy="true">
+                <div class="home-skeleton-row" aria-hidden="true"><i class="home-skeleton-bar"></i><i class="home-skeleton-bar short"></i></div>
+                <div class="home-skeleton-row" aria-hidden="true"><i class="home-skeleton-bar"></i><i class="home-skeleton-bar short"></i></div>
+                <div class="home-skeleton-row" aria-hidden="true"><i class="home-skeleton-bar"></i><i class="home-skeleton-bar short"></i></div>
+              </div>
+            </section>
+            <section class="request-form-card home-section">
+              <header class="home-section-heading">
+                <div><h2>Sent to developers</h2><p class="home-section-subtitle">Conversations about developer projects</p></div>
+                <a href="devmatch-chat.html?role=client" aria-label="View all conversations sent to developers">View all</a>
+              </header>
+              <div class="home-data-list" id="homeSentConversations" aria-live="polite" aria-busy="true">
+                <div class="home-skeleton-row" aria-hidden="true"><i class="home-skeleton-bar"></i><i class="home-skeleton-bar short"></i></div>
+                <div class="home-skeleton-row" aria-hidden="true"><i class="home-skeleton-bar"></i><i class="home-skeleton-bar short"></i></div>
+                <div class="home-skeleton-row" aria-hidden="true"><i class="home-skeleton-bar"></i><i class="home-skeleton-bar short"></i></div>
+              </div>
+            </section>
+          </div>
+          <section class="request-form-card home-section">
+            <header><h2>Active projects</h2></header>
+            <p class="home-coming-soon">Coming soon</p>
+          </section>
+        </div>
+
+        <aside class="home-side-column">
+          <section class="request-form-card home-section" aria-labelledby="homeConversationsTitle">
+            <header class="home-section-heading">
+              <h2 id="homeConversationsTitle">Recent conversations</h2>
+              <a href="devmatch-chat.html?role=client">All chats</a>
+            </header>
+            <div class="home-conversation-list" id="homeConversationList" aria-live="polite" aria-busy="true">
+              <div class="home-skeleton-row home-skeleton-person" aria-hidden="true"><i class="home-skeleton-avatar"></i><span><i class="home-skeleton-bar"></i><i class="home-skeleton-bar short"></i></span></div>
+              <div class="home-skeleton-row home-skeleton-person" aria-hidden="true"><i class="home-skeleton-avatar"></i><span><i class="home-skeleton-bar"></i><i class="home-skeleton-bar short"></i></span></div>
+              <div class="home-skeleton-row home-skeleton-person" aria-hidden="true"><i class="home-skeleton-avatar"></i><span><i class="home-skeleton-bar"></i><i class="home-skeleton-bar short"></i></span></div>
+            </div>
+          </section>
+          <section class="request-form-card home-section" id="homeSavedSection" aria-labelledby="homeSavedTitle">
+            <header class="home-section-heading">
+              <h2 id="homeSavedTitle">Saved</h2>
+              <a href="devmatch-favorites.html?role=client">Favorites</a>
+            </header>
+            <div class="home-saved-list" id="homeSavedList" aria-live="polite" aria-busy="true">
+              <div class="home-skeleton-row" aria-hidden="true"><i class="home-skeleton-bar"></i><i class="home-skeleton-bar short"></i></div>
+              <div class="home-skeleton-row" aria-hidden="true"><i class="home-skeleton-bar"></i><i class="home-skeleton-bar short"></i></div>
+              <div class="home-skeleton-row" aria-hidden="true"><i class="home-skeleton-bar"></i><i class="home-skeleton-bar short"></i></div>
+            </div>
+          </section>
+        </aside>
+      </div>
+
+      <section class="home-recommended" aria-labelledby="homeRecommendedTitle">
+        <header class="home-section-heading">
+          <div><h2 id="homeRecommendedTitle">Recommended for you</h2><p>Based on your saved project categories.</p></div>
+          <a href="devmatch-discover-projects.html" aria-label="Discover all projects">Discover all</a>
+        </header>
+        <div class="client-project-grid home-recommended-grid" id="homeRecommendedGrid" aria-live="polite" aria-busy="true">
+          <div class="home-skeleton-card" aria-hidden="true"><i class="home-skeleton-bar"></i><i class="home-skeleton-bar short"></i><i class="home-skeleton-bar"></i></div>
+          <div class="home-skeleton-card" aria-hidden="true"><i class="home-skeleton-bar"></i><i class="home-skeleton-bar short"></i><i class="home-skeleton-bar"></i></div>
+          <div class="home-skeleton-card" aria-hidden="true"><i class="home-skeleton-bar"></i><i class="home-skeleton-bar short"></i><i class="home-skeleton-bar"></i></div>
+          <div class="home-skeleton-card" aria-hidden="true"><i class="home-skeleton-bar"></i><i class="home-skeleton-bar short"></i><i class="home-skeleton-bar"></i></div>
+        </div>
+        <div id="homeRecommendedStatus" class="home-section-status" role="status" hidden></div>
+      </section>
     </section>
 
     <section class="discover-page" id="discover" hidden aria-labelledby="discoverTitle">
@@ -163,7 +252,8 @@
       </div>
     </section>
 
-    <section class="request-detail-page" id="requestDetailPage" hidden aria-labelledby="requestDetailTitle">
+    <dialog class="request-detail-page" id="requestDetailPage" aria-labelledby="requestDetailTitle">
+      <div class="request-detail-dialog-bar"><strong>Project request details</strong><button class="request-detail-dialog-close" type="button" data-back-to-requests aria-label="Close project request details">×</button></div>
       <nav class="request-detail-breadcrumb" aria-label="Breadcrumb">
         <button type="button" data-back-to-requests>My Requests</button><span aria-hidden="true">›</span><span id="requestDetailBreadcrumbTitle">Project request</span>
       </nav>
@@ -174,18 +264,21 @@
               <span class="request-detail-avatar" id="requestDetailAvatar">CL</span>
               <div><strong id="requestDetailOwner">Client</strong><small id="requestDetailLocation">Client workspace</small></div>
               <span class="request-detail-status" id="requestDetailStatus">Open</span>
-              <button class="request-card-secondary" type="button" data-edit-detail-request>Edit request</button>
+              <button class="request-card-secondary request-edit-button" type="button" data-edit-detail-request>Edit request</button>
             </header>
-            <div class="request-detail-meta" id="requestDetailMeta"></div>
             <h1 id="requestDetailTitle"></h1>
             <p class="request-detail-description" id="requestDetailDescription"></p>
             <dl class="request-detail-facts">
               <div class="request-detail-budget-fact"><dt>Budget</dt><dd><span id="requestDetailBudget"></span><span class="request-detail-negotiable" id="requestDetailNegotiable" hidden>Negotiable</span></dd></div>
               <div class="request-detail-deadline-fact"><dt>Deadline</dt><dd id="requestDetailDeadline"></dd><small id="requestDetailDeadlineRemaining"></small></div>
             </dl>
+            <section class="request-detail-project-details" aria-labelledby="requestDetailProjectDetailsTitle">
+              <h2 id="requestDetailProjectDetailsTitle">Project details</h2>
+              <dl class="request-detail-project-facts" id="requestDetailProjectFacts"></dl>
+            </section>
             <section class="request-detail-specialties request-detail-references" id="requestDetailReferences" hidden><h2>Reference files</h2><div id="requestDetailAttachments"></div><p id="requestDetailAttachmentStatus" role="status" aria-live="polite" hidden></p></section>
             <section class="request-detail-specialties"><h2>Required specialization</h2><div id="requestDetailSpecialties"></div></section>
-            <footer class="request-detail-stats"><span id="requestDetailViews"></span><span id="requestDetailSaves"></span><span id="requestDetailComments"></span><time id="requestDetailCreated"></time></footer>
+            <footer class="request-detail-stats"><span id="requestDetailViews"></span><span id="requestDetailSaves"></span><span id="requestDetailComments"></span></footer>
           </article>
           <section class="request-detail-comments">
             <header><h2>Comments <span id="requestDetailCommentCount">0</span></h2><span class="request-detail-comment-sort">Oldest first</span></header>
@@ -198,14 +291,14 @@
           <section class="request-detail-client-card">
             <span class="request-detail-eyebrow">ABOUT THE CLIENT</span>
             <div class="request-detail-client"><span class="request-detail-avatar" id="requestDetailAsideAvatar">CL</span><div><strong id="requestDetailAsideName">Client</strong><small><span id="requestDetailAsideLocation">Indonesia</span><span aria-hidden="true"> · </span><span id="requestDetailRating">No ratings yet</span></small></div></div>
-            <div class="request-detail-client-stats"><div><small>REQUESTS</small><strong id="requestDetailRequestCount">0</strong></div><div><small>OPEN</small><strong id="requestDetailOpenCount">0</strong></div><div><small>HIRED</small><strong>0</strong></div></div>
+            <div class="request-detail-client-stats"><div><strong id="requestDetailClientProjects">—</strong><small>PROJECTS</small></div><div><strong id="requestDetailClientViews">—</strong><small>VIEWS</small></div><div><strong id="requestDetailClientFavorites">—</strong><small>FAVORITES</small></div></div>
             <button class="request-detail-close" type="button" data-detail-status-action>Close request</button>
             <button class="request-detail-delete" type="button" data-detail-delete>Delete request</button>
           </section>
           <section class="request-detail-commenters"><h2>Developers who commented</h2><div id="requestDetailCommentersList"></div><p id="requestDetailCommentersEmpty">No developers have commented yet.</p></section>
         </aside>
       </div>
-    </section>
+    </dialog>
 
     <section class="request-composer" id="requestComposer" hidden aria-labelledby="requestPageTitle">
       <div class="request-breadcrumb"><button type="button" data-back-to-requests>My Requests</button><span>/</span><span>New</span></div>
@@ -290,13 +383,6 @@
       </div>
     </section>
 
-    <section class="client-projects" id="projects">
-      <div class="section-heading"><div><h2>Latest projects</h2><p id="resultsLabel">Explore ready-to-build ideas from independent developers.</p></div><a class="arrow-action" href="#discover" data-discover-nav>Discover all <svg class="arrow-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12h20M17 8l5 4-5 4"/></svg></a></div>
-      <div class="client-project-grid" id="projectGrid"></div>
-      <p class="empty-state" id="emptyState" hidden>No projects match your search. Try another keyword or category.</p>
-    </section>
-
-    <p class="client-demo-note">Project listings are published by developers; your requests, metrics, and activity are synced with Supabase.</p>
   </main>
 
   <dialog class="request-view-dialog" id="requestViewDialog" aria-labelledby="requestViewTitle">
@@ -331,7 +417,7 @@
   </dialog>
   <script src="assets/js/favorite-feedback.js?v=20261120-confirmation-undo"></script>
   <script src="assets/js/project-detail.js?v=20261119-rebase-merge"></script>
-  <script src="assets/js/client-dashboard.js?v=20261120-mobile-bottom-nav-v3"></script>
+  <script src="assets/js/client-dashboard.js?v=20261121-rebase-merge"></script>
   <script src="assets/js/nav-behavior.js?v=20261120-mobile-bottom-nav-v4"></script>
 <script src="assets/js/presence.js?v=20261119-global"></script>
 </body>

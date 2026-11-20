@@ -688,7 +688,11 @@
       favGridEl.querySelectorAll('.fav-card-clickable').forEach(card => {
         card.addEventListener('click', event => {
           if (event.target.closest('a,button')) return;
-          window.location.assign(card.dataset.detailUrl);
+          if(typeof window.openProjectRequestDetails==='function'){
+            window.openProjectRequestDetails(card.dataset.projectId,card.querySelector('.fav-card-title')?.textContent||'Project request');
+          }else{
+            window.location.assign(card.dataset.detailUrl);
+          }
         });
       });
     }

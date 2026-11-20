@@ -189,18 +189,41 @@ async function getConversation(supabaseUrl, serviceRoleKey, conversationId) {
     throw new ChatApiError('A valid conversation is required.', 400);
   }
   const rows = await requestRows(supabaseUrl, serviceRoleKey, 'conversations', {
-    select: 'id,participant_a_id,participant_b_id,participant_a_role,participant_b_role,project_id,updated_at,last_message_at',
+    select: 'id,participant_a_id,participant_b_id,participant_a_role,participant_b_role,project_id,pair_key,merged_into,updated_at,last_message_at',
     id: `eq.${conversationId}`,
     limit: '1'
   });
   return rows[0] || null;
 }
 
-function userIsParticipant(conversation, userId, role) {
-  return !!conversation && (
-    (conversation.participant_a_id === userId && conversation.participant_a_role === role)
-    || (conversation.participant_b_id === userId && conversation.participant_b_role === role)
-  );
+async function getThreadRoot(supabaseUrl, serviceRoleKey, conversation) {
+  if (!conversation) return null;
+  if (!conversation.merged_into) return conversation;
+  const rows = await requestRows(supabaseUrl, serviceRoleKey, 'conversations', {
+    select: 'id,participant_a_id,participant_b_id,participant_a_role,participant_b_role,project_id,pair_key,merged_into,updated_at,last_message_at',
+    id: `eq.${conversation.merged_into}`,
+    pair_key: `eq.${conversation.pair_key}`,
+    merged_into: 'is.null',
+    limit: '1'
+  });
+  return rows[0] || null;
+}
+
+async function getThreadSources(supabaseUrl, serviceRoleKey, conversation) {
+  const children = await requestRows(supabaseUrl, serviceRoleKey, 'conversations', {
+    select: 'id,participant_a_id,participant_b_id,participant_a_role,participant_b_role,project_id,pair_key,merged_into',
+    merged_into: `eq.${conversation.id}`,
+    limit: '1000'
+  });
+  return [conversation, ...children];
+}
+
+function userIsParticipant(conversation, userId) {
+  return !!conversation && [conversation.participant_a_id, conversation.participant_b_id].includes(userId);
+}
+
+function messageProjectId(row) {
+  return row?.project_reference_id || row?.project_id || null;
 }
 
 async function decryptRow(row, keyring) {
@@ -237,9 +260,83 @@ async function decryptRow(row, keyring) {
     sender_id: row.sender_id,
     text: sanitizeMessageText(text),
     attachments,
+    project_id: messageProjectId(row),
+    project_kind: row.project_kind || null,
     created_at: row.created_at,
     read_at: row.read_at
   };
+}
+
+async function attachMessageProjectContexts(messages, conversation, user, supabaseUrl, serviceRoleKey) {
+  const projectIds = [...new Set(messages
+    .map(message => message.project_id)
+    .filter(id => typeof id === 'string' && /^[A-Za-z0-9_-]{1,160}$/.test(id)))];
+  if (!projectIds.length) return messages.map(message => ({...message, project_context: null}));
+
+  const peerId = conversation.participant_a_id === user.id
+    ? conversation.participant_b_id
+    : conversation.participant_a_id;
+  const [projects, profiles, workspaces] = await Promise.all([
+    requestRows(supabaseUrl, serviceRoleKey, 'projects', {
+      select: 'id,owner_id,project_kind,status,title,category,price,cover_image',
+      id: `in.(${projectIds.join(',')})`,
+      limit: String(projectIds.length)
+    }),
+    requestRows(supabaseUrl, serviceRoleKey, 'profiles', {
+      select: 'id,username,display_name',
+      id: `eq.${peerId}`,
+      limit: '1'
+    }),
+    requestRows(supabaseUrl, serviceRoleKey, 'account_workspaces', {
+      select: 'user_id,role,display_name',
+      user_id: `eq.${peerId}`,
+      role: 'eq.dev',
+      limit: '1'
+    })
+  ]);
+  const projectsById = new Map(projects.map(project => [project.id, project]));
+  const profile = profiles[0];
+  const developerName = workspaces[0]?.display_name
+    || profile?.display_name
+    || profile?.username
+    || null;
+
+  return messages.map(message => {
+    if (!message.project_id) return {...message, project_context: null};
+    const project = projectsById.get(message.project_id);
+    const projectKind = project?.project_kind || message.project_kind;
+    const messagePeerId = message.sender_id === conversation.participant_a_id
+      ? conversation.participant_b_id
+      : conversation.participant_a_id;
+    const projectOwnerIsPeer = project?.owner_id === messagePeerId;
+    const isAvailable = projectOwnerIsPeer
+      && (project.project_kind === 'portfolio'
+        ? project.status === 'published'
+        : project.project_kind === 'request'
+          && project.status === 'open');
+    return {
+      ...message,
+      project_context: isAvailable
+        ? {
+          id: project.id,
+          project_kind: project.project_kind,
+          status: project.status,
+          title: project.title,
+          category: project.category,
+          price: project.price,
+          cover_image: project.cover_image,
+          developer_name: project.project_kind === 'portfolio' ? developerName : null,
+          available: true
+        }
+        : {
+          id: message.project_id,
+          project_kind: projectKind,
+          status: 'unavailable',
+          developer_name: projectKind === 'portfolio' ? developerName : null,
+          available: false
+        }
+    };
+  });
 }
 
 async function getAccount(supabaseUrl, serviceRoleKey, userId, role = null) {
@@ -267,43 +364,62 @@ async function getPublicAccount(supabaseUrl, serviceRoleKey, userId, role) {
   return accounts[0] || null;
 }
 
-async function findConversation(supabaseUrl, serviceRoleKey, userId, participantId, projectId, userRole, recipientRole) {
+async function findConversation(supabaseUrl, serviceRoleKey, userId, participantId) {
+  const [participantA, participantB] = [userId, participantId].sort();
   const rows = await requestRows(supabaseUrl, serviceRoleKey, 'conversations', {
-    select: 'id,participant_a_id,participant_b_id,participant_a_role,participant_b_role,project_id,updated_at,last_message_at',
-    or: `(and(participant_a_id.eq.${userId},participant_a_role.eq.${userRole},participant_b_id.eq.${participantId},participant_b_role.eq.${recipientRole}),and(participant_b_id.eq.${userId},participant_b_role.eq.${userRole},participant_a_id.eq.${participantId},participant_a_role.eq.${recipientRole}))`,
-    project_id: projectId === null ? 'is.null' : `eq.${projectId}`, limit: '1'
+    select: 'id,participant_a_id,participant_b_id,participant_a_role,participant_b_role,project_id,pair_key,merged_into,updated_at,last_message_at',
+    pair_key: `eq.${participantA}:${participantB}`,
+    merged_into: 'is.null',
+    order: 'is_primary.desc,created_at.asc,id.asc',
+    limit: '1'
   });
-  return rows[0] || null;
+  const conversation = rows[0];
+  if (!conversation) return null;
+  const sources = await getThreadSources(supabaseUrl, serviceRoleKey, conversation);
+  return {
+    ...conversation,
+    source_conversations: sources.map(source => ({
+      id: source.id,
+      my_role: source.participant_a_id === userId
+        ? source.participant_a_role
+        : source.participant_b_role
+    }))
+  };
 }
 
-async function startConversation(supabaseUrl, serviceRoleKey, userId, participantId, projectId, userRole, recipientRole) {
-  const existing = await findConversation(
-    supabaseUrl, serviceRoleKey, userId, participantId, projectId, userRole, recipientRole
-  );
+async function startConversation(
+  supabaseUrl,
+  serviceRoleKey,
+  userId,
+  participantId,
+  projectId,
+  userRole,
+  recipientRole,
+  authorization,
+  existingConversation
+) {
+  const existing = existingConversation === undefined
+    ? await findConversation(
+      supabaseUrl, serviceRoleKey, userId, participantId
+    )
+    : existingConversation;
   if (existing) return existing;
 
-  const [participantA, participantB] = [userId, participantId].sort();
+  if (!authorization) throw new ChatApiError('A valid session is required.', 401);
   try {
     const response = await fetch(
-      `${supabaseUrl.replace(/\/$/, '')}/rest/v1/conversations?select=id,participant_a_id,participant_b_id,participant_a_role,participant_b_role,project_id,updated_at,last_message_at`,
+      `${supabaseUrl.replace(/\/$/, '')}/rest/v1/rpc/get_or_create_conversation`,
       {
         method: 'POST',
-        headers: supabaseHeaders(serviceRoleKey, {Prefer: 'return=representation'}),
-        body: JSON.stringify([{
-          participant_a_id: participantA,
-          participant_b_id: participantB,
-          participant_a_role: participantA === userId ? userRole : recipientRole,
-          participant_b_role: participantB === userId ? userRole : recipientRole,
-          project_id: projectId
-        }])
+        headers: supabaseHeaders(serviceRoleKey, {Authorization: authorization}),
+        body: JSON.stringify({
+          p_peer_id: participantId,
+          p_user_role: userRole,
+          p_peer_role: recipientRole,
+          p_project_id: projectId
+        })
       }
     );
-    if (response.status === 409) {
-      const raced = await findConversation(
-        supabaseUrl, serviceRoleKey, userId, participantId, projectId, userRole, recipientRole
-      );
-      if (raced) return raced;
-    }
     if (!response.ok) {
       console.error(`Chat conversation creation failed (${response.status}).`);
       throw new ChatApiError('Unable to start this conversation.', 503);
@@ -318,7 +434,7 @@ async function startConversation(supabaseUrl, serviceRoleKey, userId, participan
   }
 }
 
-async function handleAction(body, user, keyring, supabaseUrl, serviceRoleKey) {
+async function handleAction(body, user, keyring, supabaseUrl, serviceRoleKey, authorization = null) {
   if (body.workspaceRole != null && !['client', 'dev'].includes(body.workspaceRole)) {
     throw new ChatApiError('Invalid workspace.', 400);
   }
@@ -327,36 +443,131 @@ async function handleAction(body, user, keyring, supabaseUrl, serviceRoleKey) {
   const workspaceRole = account.account_role;
 
   if (body.action === 'list-conversations') {
-    const conversations = await requestRows(supabaseUrl, serviceRoleKey, 'conversations', {
-      select: 'id,participant_a_id,participant_b_id,participant_a_role,participant_b_role,project_id,updated_at,last_message_at,messages(id,conversation_id,sender_id,ciphertext,nonce,key_version,created_at)',
-      or: `(and(participant_a_id.eq.${user.id},participant_a_role.eq.${workspaceRole}),and(participant_b_id.eq.${user.id},participant_b_role.eq.${workspaceRole}))`,
+    const parents = await requestRows(supabaseUrl, serviceRoleKey, 'conversations', {
+      select: 'id,participant_a_id,participant_b_id,participant_a_role,participant_b_role,project_id,pair_key,merged_into,updated_at,last_message_at,messages(id,conversation_id,sender_id,ciphertext,nonce,key_version,created_at,read_at,project_id,project_reference_id,project_kind),context_message:messages(project_id,project_reference_id,project_kind,created_at)',
+      or: `(participant_a_id.eq.${user.id},participant_b_id.eq.${user.id})`,
+      merged_into: 'is.null',
       'messages.order': 'created_at.desc',
       'messages.limit': '1',
+      'context_message.project_reference_id': 'not.is.null',
+      'context_message.order': 'created_at.desc',
+      'context_message.limit': '1',
       order: 'last_message_at.desc.nullslast,updated_at.desc',
       limit: '100'
     });
+    const parentIds = parents.map(conversation => conversation.id);
+    const children = parentIds.length ? await requestRows(supabaseUrl, serviceRoleKey, 'conversations', {
+      select: 'id,participant_a_id,participant_b_id,participant_a_role,participant_b_role,project_id,pair_key,merged_into,updated_at,last_message_at,messages(id,conversation_id,sender_id,ciphertext,nonce,key_version,created_at,read_at,project_id,project_reference_id,project_kind),context_message:messages(project_id,project_reference_id,project_kind,created_at)',
+      merged_into: `in.(${parentIds.join(',')})`,
+      'messages.order': 'created_at.desc',
+      'messages.limit': '1',
+      'context_message.project_reference_id': 'not.is.null',
+      'context_message.order': 'created_at.desc',
+      'context_message.limit': '1',
+      limit: '1000'
+    }) : [];
+    const childrenByParent = new Map(parentIds.map(id => [id, []]));
+    children.forEach(child => childrenByParent.get(child.merged_into)?.push(child));
 
-    const ids = [...new Set(conversations.map(c => c.participant_a_id === user.id ? c.participant_b_id : c.participant_a_id))];
+    const threadMessages = parents.map(conversation => {
+      const sourceConversations = [conversation, ...(childrenByParent.get(conversation.id) || [])];
+      const sourceMessages = sourceConversations
+        .flatMap(source => Array.isArray(source.messages) ? source.messages : [])
+        .sort((a, b) => Date.parse(b.created_at) - Date.parse(a.created_at));
+      const last = sourceMessages[0] || null;
+      const contextMessage = sourceConversations
+        .flatMap(source => Array.isArray(source.context_message) ? source.context_message : [])
+        .sort((a, b) => Date.parse(b.created_at) - Date.parse(a.created_at))[0]
+        || sourceMessages.find(message => messageProjectId(message))
+        || null;
+      return {conversation, sourceConversations, last, contextMessage};
+    }).filter(thread => thread.last);
+    const projectIds = [...new Set(threadMessages
+      .map(({conversation, contextMessage}) => messageProjectId(contextMessage) || conversation.project_id)
+      .filter(id => typeof id === 'string' && /^[A-Za-z0-9_-]{1,160}$/.test(id)))];
+    const projects = [];
+    for (let offset = 0; offset < projectIds.length; offset += 100) {
+      const batch = projectIds.slice(offset, offset + 100);
+      projects.push(...await requestRows(supabaseUrl, serviceRoleKey, 'projects', {
+        select: 'id,owner_id,project_kind,status,title,category,price,cover_image,data',
+        id: `in.(${batch.join(',')})`
+      }));
+    }
+    const projectsById = new Map(projects.map(project => [project.id, project]));
+    const ids = [...new Set(parents.map(c => c.participant_a_id === user.id ? c.participant_b_id : c.participant_a_id))];
     const [identities, workspaces] = ids.length ? await Promise.all([
       requestRows(supabaseUrl, serviceRoleKey, 'profiles', {select:'id,username,display_name,account_role', id:`in.(${ids.join(',')})`}),
       requestRows(supabaseUrl, serviceRoleKey, 'account_workspaces', {select:'user_id,role,display_name', user_id:`in.(${ids.join(',')})`})
     ]) : [[], []];
-    return Promise.all(conversations.map(async conversation => {
+    const mapped = await Promise.all(threadMessages.map(async ({conversation, sourceConversations, last, contextMessage}) => {
       const {messages, ...details} = conversation;
       const partnerId = conversation.participant_a_id === user.id ? conversation.participant_b_id : conversation.participant_a_id;
       const partnerRole = conversation.participant_a_id === user.id ? conversation.participant_b_role : conversation.participant_a_role;
       const identity = identities.find(p => p.id === partnerId);
       const profile = identity?.account_role === partnerRole ? identity : workspaces.find(w => w.user_id === partnerId && w.role === partnerRole);
-      const last = Array.isArray(messages) ? messages[0] : null;
+      const contextProjectId = messageProjectId(contextMessage) || conversation.project_id || null;
+      const contextProject = contextProjectId ? projectsById.get(contextProjectId) : null;
+      const contextKind = contextProject?.project_kind
+        || (contextMessage && messageProjectId(contextMessage) === contextProjectId
+          ? contextMessage.project_kind
+          : null)
+        || null;
+      const developerName = contextProject?.project_kind === 'portfolio'
+        ? workspaces.find(workspace => workspace.user_id === partnerId && workspace.role === 'dev')?.display_name
+          || identity?.display_name
+          || identity?.username
+          || null
+        : null;
+      const contextIsAvailable = contextProject?.owner_id === partnerId
+        && (contextProject.project_kind === 'portfolio' && contextProject.status === 'published'
+          || contextProject.project_kind === 'request' && contextProject.status === 'open');
+      const projectContext = contextProjectId ? contextIsAvailable
+        ? {
+          id: contextProject.id,
+          owner_id: contextProject.owner_id,
+          project_kind: contextProject.project_kind,
+          status: contextProject.status,
+          title: contextProject.title,
+          category: contextProject.category,
+          price: contextProject.price,
+          cover_image: contextProject.cover_image,
+          data: contextProject.data,
+          developer_name: developerName,
+          available: true
+        }
+        : {
+          id: contextProjectId,
+          project_kind: contextKind,
+          status: 'unavailable',
+          developer_name: contextKind === 'portfolio'
+            ? workspaces.find(workspace => workspace.user_id === partnerId && workspace.role === 'dev')?.display_name
+              || identity?.display_name
+              || identity?.username
+              || null
+            : null,
+          available: false
+        }
+        : null;
       return {
         ...details,
         contact: {id:partnerId, account_role:partnerRole, username:identity?.username || '', display_name:profile?.display_name || ''},
-        last_message: last ? await decryptRow(last, keyring) : null
+        project_context: projectContext,
+        last_message_at: last.created_at,
+        source_conversations: sourceConversations.map(source => ({
+          id: source.id,
+          my_role: source.participant_a_id === user.id
+            ? source.participant_a_role
+            : source.participant_b_role
+        })),
+        last_message: await decryptRow(last, keyring)
       };
     }));
+    return mapped.filter(Boolean).sort((a, b) =>
+      Date.parse(b.last_message_at) - Date.parse(a.last_message_at)
+    );
   }
 
-  if (body.action === 'start-project') {
+  if (body.action === 'start-project' || body.action === 'find-project') {
     const projectId = body.projectId;
     if (typeof projectId !== 'string' || !/^[A-Za-z0-9_-]{1,160}$/.test(projectId)) {
       throw new ChatApiError('A valid project is required.', 400);
@@ -376,7 +587,12 @@ async function handleAction(body, user, keyring, supabaseUrl, serviceRoleKey) {
       });
     }
     const project = projectRows.length === 1 ? projectRows[0] : null;
-    if (!project || project.owner_id === user.id) {
+    const projectIsAvailable = project?.project_kind === 'portfolio'
+      ? project.status === 'published'
+      : project?.project_kind === 'request'
+        ? project.status === 'open'
+        : false;
+    if (!project || !projectIsAvailable || project.owner_id === user.id) {
       throw new ChatApiError('This project is not available for a new conversation.', 404);
     }
     const expectedSenderRole = project.project_kind === 'portfolio' ? 'client' : 'dev';
@@ -390,10 +606,27 @@ async function handleAction(body, user, keyring, supabaseUrl, serviceRoleKey) {
       || owner?.account_role !== expectedOwnerRole) {
       throw new ChatApiError('Your account cannot start a conversation about this project.', 403);
     }
-    return startConversation(supabaseUrl, serviceRoleKey, user.id, project.owner_id, project.id, expectedSenderRole, expectedOwnerRole);
+    const existing = await findConversation(
+      supabaseUrl,
+      serviceRoleKey,
+      user.id,
+      project.owner_id
+    );
+    if (body.action === 'find-project') return existing;
+    return startConversation(
+      supabaseUrl,
+      serviceRoleKey,
+      user.id,
+      project.owner_id,
+      project.id,
+      expectedSenderRole,
+      expectedOwnerRole,
+      authorization,
+      existing
+    );
   }
 
-  if (body.action === 'start-user') {
+  if (body.action === 'start-user' || body.action === 'find-user') {
     const participantId = body.participantId;
     if (typeof participantId !== 'string' || !UUID_PATTERN.test(participantId)
       || participantId === user.id) {
@@ -416,23 +649,39 @@ async function handleAction(body, user, keyring, supabaseUrl, serviceRoleKey) {
       || !['client', 'dev'].includes(recipient.account_role)) {
       throw new ChatApiError('Chat is only available between clients and developers.', 403);
     }
-    return startConversation(supabaseUrl, serviceRoleKey, user.id, participantId, null, workspaceRole, recipient.account_role);
+    if (body.action === 'find-user') {
+      return findConversation(supabaseUrl, serviceRoleKey, user.id, participantId);
+    }
+    return startConversation(
+      supabaseUrl,
+      serviceRoleKey,
+      user.id,
+      participantId,
+      null,
+      workspaceRole,
+      recipient.account_role,
+      authorization
+    );
   }
 
   if (body.action === 'list-messages'
     || body.action === 'send-message'
     || body.action === 'download-attachment') {
-    const conversation = await getConversation(
+    const requestedConversation = await getConversation(
       supabaseUrl, serviceRoleKey, body.conversationId
     );
-    if (!userIsParticipant(conversation, user.id, workspaceRole)) {
+    const conversation = await getThreadRoot(supabaseUrl, serviceRoleKey, requestedConversation);
+    if (!userIsParticipant(conversation, user.id)) {
       throw new ChatApiError('Conversation not found.', 404);
     }
+    const sourceConversations = await getThreadSources(supabaseUrl, serviceRoleKey, conversation);
+    const sourceIds = sourceConversations.map(source => source.id);
+    const sourceFilter = `in.(${sourceIds.join(',')})`;
 
     if (body.action === 'list-messages') {
       await requestRows(supabaseUrl, serviceRoleKey, 'messages', {
         select: 'id',
-        conversation_id: `eq.${conversation.id}`,
+        conversation_id: sourceFilter,
         sender_id: `neq.${user.id}`,
         read_at: 'is.null'
       }, {
@@ -441,12 +690,15 @@ async function handleAction(body, user, keyring, supabaseUrl, serviceRoleKey) {
         body: JSON.stringify({read_at: new Date().toISOString()})
       });
       const rows = await requestRows(supabaseUrl, serviceRoleKey, 'messages', {
-        select: 'id,conversation_id,sender_id,ciphertext,nonce,key_version,created_at,read_at',
-        conversation_id: `eq.${conversation.id}`,
+        select: 'id,conversation_id,sender_id,ciphertext,nonce,key_version,created_at,read_at,project_id,project_reference_id,project_kind',
+        conversation_id: sourceFilter,
         order: 'created_at.desc',
         limit: String(MAX_MESSAGE_ROWS)
       });
-      return Promise.all(rows.reverse().map(row => decryptRow(row, keyring)));
+      const messages = await Promise.all(rows.reverse().map(row => decryptRow(row, keyring)));
+      return attachMessageProjectContexts(
+        messages, conversation, user, supabaseUrl, serviceRoleKey
+      );
     }
 
     if (body.action === 'download-attachment') {
@@ -456,11 +708,12 @@ async function handleAction(body, user, keyring, supabaseUrl, serviceRoleKey) {
       const rows = await requestRows(supabaseUrl, serviceRoleKey, 'messages', {
         select: 'id,conversation_id,sender_id,ciphertext,nonce,key_version,created_at',
         id: `eq.${body.messageId}`,
-        conversation_id: `eq.${conversation.id}`,
         limit: '1'
       });
       const row = rows[0];
-      if (!row) throw new ChatApiError('Attachment not found.', 404);
+      if (!row || !sourceIds.includes(row.conversation_id)) {
+        throw new ChatApiError('Attachment not found.', 404);
+      }
       const key = keyring.keys.get(Number(row.key_version));
       if (!key) throw new ChatApiError('This attachment cannot be decrypted right now.', 503);
       const context = {
@@ -480,7 +733,7 @@ async function handleAction(body, user, keyring, supabaseUrl, serviceRoleKey) {
         : null;
       if (!item
         || !UUID_PATTERN.test(item.id || '')
-        || item.path !== `chat-attachments/${conversation.id}/${row.sender_id}/${item.id}.bin`
+        || item.path !== `chat-attachments/${row.conversation_id}/${row.sender_id}/${item.id}.bin`
         || typeof item.type !== 'string'
         || !ALLOWED_ATTACHMENT_TYPES.has(item.type)
         || typeof item.name !== 'string'
@@ -501,7 +754,7 @@ async function handleAction(body, user, keyring, supabaseUrl, serviceRoleKey) {
         supabaseUrl, serviceRoleKey, item.path
       );
       const attachmentContext = {
-        conversationId: `${conversation.id}:attachment:${item.id}`,
+        conversationId: `${row.conversation_id}:attachment:${item.id}`,
         senderId: row.sender_id,
         keyVersion: Number(item.key_version)
       };
@@ -534,6 +787,37 @@ async function handleAction(body, user, keyring, supabaseUrl, serviceRoleKey) {
     const hasAttachment = body.attachment !== undefined && body.attachment !== null;
     if (!text && !hasAttachment) {
       throw new ChatApiError('Write a message or attach a file.', 400);
+    }
+    let messageProjectId = null;
+    let messageProjectKind = null;
+    if (body.projectId !== undefined && body.projectId !== null) {
+      if (typeof body.projectId !== 'string' || !/^[A-Za-z0-9_-]{1,160}$/.test(body.projectId)) {
+        throw new ChatApiError('The project context is invalid.', 400);
+      }
+      const peerId = conversation.participant_a_id === user.id
+        ? conversation.participant_b_id
+        : conversation.participant_a_id;
+      const projects = await requestRows(supabaseUrl, serviceRoleKey, 'projects', {
+        select: 'id,owner_id,project_kind,status',
+        id: `eq.${body.projectId}`,
+        limit: '1'
+      });
+      const project = projects[0];
+      const isPortfolioContext = project?.project_kind === 'portfolio'
+        && project.status === 'published'
+        && workspaceRole === 'client';
+      const isRequestContext = project?.project_kind === 'request'
+        && project.status === 'open'
+        && workspaceRole === 'dev';
+      const ownerRole = isPortfolioContext ? 'dev' : isRequestContext ? 'client' : null;
+      const owner = ownerRole
+        ? await getPublicAccount(supabaseUrl, serviceRoleKey, peerId, ownerRole)
+        : null;
+      if (!project || project.owner_id !== peerId || !ownerRole || !owner) {
+        throw new ChatApiError('The project context is not available for this conversation.', 400);
+      }
+      messageProjectId = project.id;
+      messageProjectKind = project.project_kind;
     }
     const attachments = [];
     let uploadedPath = '';
@@ -590,7 +874,7 @@ async function handleAction(body, user, keyring, supabaseUrl, serviceRoleKey) {
         supabaseUrl,
         serviceRoleKey,
         'messages',
-        {select: 'id,conversation_id,sender_id,ciphertext,nonce,key_version,created_at,read_at'},
+        {select: 'id,conversation_id,sender_id,ciphertext,nonce,key_version,created_at,read_at,project_id,project_reference_id,project_kind'},
         {
           method: 'POST',
           headers: {Prefer: 'return=representation'},
@@ -599,7 +883,10 @@ async function handleAction(body, user, keyring, supabaseUrl, serviceRoleKey) {
             sender_id: user.id,
             ciphertext: encrypted.ciphertext,
             nonce: encrypted.nonce,
-            key_version: keyring.activeVersion
+            key_version: keyring.activeVersion,
+            project_id: messageProjectId,
+            project_reference_id: messageProjectId,
+            project_kind: messageProjectKind
           }])
         }
       );
@@ -611,7 +898,10 @@ async function handleAction(body, user, keyring, supabaseUrl, serviceRoleKey) {
       if (uploadedPath) await deleteChatAttachment(supabaseUrl, serviceRoleKey, uploadedPath);
       throw new ChatApiError('Chat service returned an invalid response.');
     }
-    return decryptRow(rows[0], keyring);
+    const message = await decryptRow(rows[0], keyring);
+    return (await attachMessageProjectContexts(
+      [message], conversation, user, supabaseUrl, serviceRoleKey
+    ))[0];
   }
 
   throw new ChatApiError('Unsupported chat action.', 400);
@@ -663,7 +953,7 @@ Deno.serve(async request => {
 
   try {
     const result = await handleAction(
-      body, user, keyring, supabaseUrl, serviceRoleKey
+      body, user, keyring, supabaseUrl, serviceRoleKey, request.headers.get('authorization')
     );
     return jsonResponse({data: result}, 200, cors);
   } catch (error) {

@@ -25,6 +25,14 @@
   const detailPaneEl = document.getElementById('chatDetailPane');
   const totalBadgeEl = document.getElementById('chatTotalBadge');
   const statusEl = document.getElementById('chatStatus');
+  const draftProjectCardEl = document.getElementById('chatDraftProjectCard');
+  const draftProjectImageEl = document.getElementById('chatDraftProjectImage');
+  const draftProjectPlaceholderEl = document.getElementById('chatDraftProjectPlaceholder');
+  const draftProjectCategoryEl = document.getElementById('chatDraftProjectCategory');
+  const draftProjectTitleEl = document.getElementById('chatDraftProjectTitle');
+  const draftProjectMetaEl = document.getElementById('chatDraftProjectMeta');
+  const draftProjectNoteEl = document.getElementById('chatDraftProjectNote');
+  const draftProjectRemoveEl = document.getElementById('chatDraftProjectRemove');
   const sendBtnEl = chatFormEl?.querySelector('[type="submit"]');
   const mobileChatBreakpoint = window.matchMedia('(max-width: 820px)');
   const elements = {
@@ -34,6 +42,8 @@
     activeStatusDot: document.getElementById('activeStatusDot'),
     activeStatusText: document.getElementById('activeStatusText'),
     activeProjectBanner: document.getElementById('activeProjectBanner'),
+    activeProjectImage: document.getElementById('activeProjectImage'),
+    activeProjectCategory: document.getElementById('activeProjectCategory'),
     activeProjectTitle: document.getElementById('activeProjectTitle'),
     activeProjectPrice: document.getElementById('activeProjectPrice'),
     viewProjectLink: document.getElementById('viewProjectLink'),
@@ -62,6 +72,7 @@
   let currentProfile = null;
   let conversations = [];
   let activeConvId = null;
+  let pendingConversationDraft = null;
   let currentFilter = 'all';
   let searchQuery = '';
   let realtimeChannel = null;
@@ -125,12 +136,13 @@
   }
 
   function readAtKey(conversationId) {
-    return `devmatch-chat-read:${currentUser.id}:${currentProfile.account_role}:${conversationId}`;
+    return `devmatch-chat-read:${currentUser.id}:${conversationId}`;
   }
 
   function wasReadAfterLastMessage(conversation) {
     const last = conversation.lastMessage;
     if (!last || last.sender_id === currentUser.id) return true;
+    if (last.read_at && Date.parse(last.read_at) >= Date.parse(last.created_at)) return true;
     try {
       const readAt = Number(localStorage.getItem(readAtKey(conversation.id)) || 0);
       return Date.parse(last.created_at) <= readAt;
@@ -172,17 +184,86 @@
     return `${page}?${queryKey}=${encodeURIComponent(project.id)}`;
   }
 
+  function safeProjectCover(value) {
+    if (typeof value !== 'string') return '';
+    if (/^data:image\/(?:jpeg|png|webp);base64,/i.test(value)) return value;
+    try {
+      const url = new URL(value);
+      return url.origin === 'https://yxwktllqbmhustmhdaqi.supabase.co'
+        && url.pathname.startsWith('/storage/v1/object/public/project-media/')
+        ? value
+        : '';
+    } catch {
+      return '';
+    }
+  }
+
+  function mapProject(project, fallbackKind = null) {
+    if (!project) return null;
+    const projectKind = project.project_kind || fallbackKind;
+    const available = project.available === true
+      || (project.available !== false
+        && (projectKind === 'portfolio' && project.status === 'published'
+          || projectKind === 'request' && project.status === 'open'));
+    if (!available) {
+      return {
+        id: project.id,
+        title: projectKind === 'request' ? 'Request unavailable' : 'Project unavailable',
+        category: '',
+        price: '',
+        coverImage: '',
+        developerName: project.developer_name || '',
+        summary: '',
+        project_kind: projectKind,
+        ownerId: null,
+        link: '#',
+        available: false
+      };
+    }
+    return {
+      id: project.id,
+      title: project.title,
+      category: project.category,
+      price: project.price,
+      coverImage: safeProjectCover(project.cover_image),
+      developerName: project.developer_name || '',
+      summary: project.data?.overview || project.data?.description || '',
+      project_kind: projectKind,
+      ownerId: project.owner_id,
+      link: projectUrl({...project, project_kind: projectKind}),
+      available: true
+    };
+  }
+
   function mapConversation(row, projects) {
     const existing = conversations.find(item => item.id === row.id);
     const otherId = row.participant_a_id === currentUser.id
       ? row.participant_b_id
       : row.participant_a_id;
     const person = row.contact;
-    const project = projects.get(row.project_id) || null;
+    const contextProjectId = row.project_context?.id || row.last_message?.project_id || row.project_id || null;
+    const projectRow = row.project_context || projects.get(contextProjectId);
+    const projectKind = projectRow?.project_kind
+      || (row.last_message?.project_id === contextProjectId ? row.last_message?.project_kind : null);
+    const project = projectRow
+      ? mapProject(projectRow, projectKind)
+      : contextProjectId
+        ? mapProject({id: contextProjectId, project_kind: projectKind, available: false}, projectKind)
+        : null;
     const conversation = {
       id: row.id,
+      projectId: row.project_id || null,
+      messageProjectId: null,
       contactId: person?.username || otherId,
       participantId: otherId,
+      contactUsername: person?.username || '',
+      contactDisplayName: person?.display_name || '',
+      myRole: row.participant_a_id === currentUser.id
+        ? row.participant_a_role
+        : row.participant_b_role,
+      sourceConversationIds: Array.isArray(row.source_conversations)
+        ? row.source_conversations.map(source => source.id).filter(Boolean)
+        : [row.id],
       name: person?.username || person?.display_name || 'Unavailable account',
       initials: initials(person?.username || person?.display_name),
       role: person?.account_role === 'client' ? 'Client' : person?.account_role === 'dev' ? 'Developer' : 'Account',
@@ -191,15 +272,7 @@
       online: existing?.online || false,
       peerReadAt: existing?.peerReadAt || null,
       statusText: 'Encrypted chat',
-      project: project ? {
-        id: project.id,
-        title: project.title,
-        category: project.category,
-        price: project.price,
-        summary: project.data?.overview || project.data?.description || '',
-        project_kind: project.project_kind,
-        link: projectUrl(project)
-      } : null,
+      project,
       files: [],
       messages: existing?.messages || [],
       lastMessage: row.last_message || null,
@@ -260,18 +333,7 @@
     const rows = await invokeChat('list-conversations');
     if (!Array.isArray(rows)) throw new Error('Chat service returned an invalid conversation list.');
 
-    const projectIds = [...new Set(rows.map(row => row.project_id).filter(Boolean))];
-    let projects = [];
-    if (projectIds.length) {
-      const result = await client.from('projects')
-        .select('id,title,category,price,data,project_kind')
-        .in('id', projectIds);
-      if (result.error) throw result.error;
-      projects = result.data || [];
-    }
-
-
-    const projectsById = new Map(projects.map(project => [project.id, project]));
+    const projectsById = new Map();
     conversations = rows.map(row => mapConversation(row, projectsById));
     syncPresenceChannels();
     if (!conversations.some(conversation => conversation.id === activeConvId)) {
@@ -299,7 +361,7 @@
 
     if (!filtered.length) {
       const emptyText = conversations.length ? 'No conversations found' : 'No conversations yet';
-      convListEl.innerHTML = `<li class="chat-conv-empty"><p>${emptyText}</p><small>Select a project to start a secure chat.</small></li>`;
+      convListEl.innerHTML = `<li class="chat-conv-empty"><p>${emptyText}</p><small>Open a profile or project to start a secure chat.</small></li>`;
       return;
     }
 
@@ -382,13 +444,19 @@
   }
 
   function getActiveConversation() {
+    if (pendingConversationDraft && activeConvId === null) return pendingConversationDraft;
     return conversations.find(conversation => conversation.id === activeConvId) || null;
   }
 
-  function updateConversationQuery(conversationId) {
+  function updateConversationQuery(conversationId, preserveReview = false) {
     const url = new URL(window.location.href);
-    if (conversationId) url.searchParams.set('conversation', conversationId);
-    else url.searchParams.delete('conversation');
+    if (conversationId) {
+      url.searchParams.set('conversation', conversationId);
+      ['project', 'request', 'contact', 'client'].forEach(key => url.searchParams.delete(key));
+    } else {
+      ['conversation', 'project', 'request', 'contact', 'client'].forEach(key => url.searchParams.delete(key));
+    }
+    if (!preserveReview) url.searchParams.delete('review');
     window.history.replaceState(window.history.state, '', url);
   }
 
@@ -397,6 +465,7 @@
     const mainHeader = document.querySelector('.chat-main-header');
     const projectBanner = document.getElementById('activeProjectBanner');
     const composer = document.querySelector('.chat-composer-wrap');
+    renderComposerProjectCard(conversation);
     if (!conversation) {
       chatViewportEl?.classList.remove('has-active-conversation');
       if (chatEmptyStateEl) chatEmptyStateEl.hidden = false;
@@ -425,14 +494,32 @@
     if (elements.activeStatusDot) elements.activeStatusDot.hidden = !conversation.online;
 
     const project = conversation.project;
-    elements.detailProjectCard?.classList.toggle('is-unlinked', !project);
+    const isDraft = conversation === pendingConversationDraft;
+    elements.detailProjectCard?.classList.toggle('is-unlinked', !project || !project.available);
     if (projectBanner) projectBanner.hidden = !project;
-    if (elements.projectEngagementPanel) elements.projectEngagementPanel.hidden = false;
+    if (elements.projectEngagementPanel) {
+      elements.projectEngagementPanel.hidden = isDraft || Boolean(project && !project.available);
+    }
     if (project) {
+      if (elements.activeProjectImage) {
+        elements.activeProjectImage.hidden = !project.coverImage;
+        if (project.coverImage) elements.activeProjectImage.src = project.coverImage;
+        else elements.activeProjectImage.removeAttribute('src');
+      }
+      if (elements.activeProjectCategory) elements.activeProjectCategory.textContent = project.category || '';
       if (elements.activeProjectTitle) elements.activeProjectTitle.textContent = project.title;
       if (elements.activeProjectPrice) elements.activeProjectPrice.textContent = project.price || '';
-      if (elements.viewProjectLink) elements.viewProjectLink.href = project.link;
-      if (elements.viewProjectBtn) elements.viewProjectBtn.href = project.link;
+      if (elements.viewProjectLink) {
+        elements.viewProjectLink.href = project.link;
+        elements.viewProjectLink.hidden = !project.available;
+      }
+      if (elements.viewProjectBtn) {
+        elements.viewProjectBtn.href = project.link;
+        elements.viewProjectBtn.hidden = !project.available;
+      }
+    } else {
+      if (elements.viewProjectLink) elements.viewProjectLink.hidden = true;
+      if (elements.viewProjectBtn) elements.viewProjectBtn.hidden = true;
     }
     if (elements.activeWhatsAppBtn) elements.activeWhatsAppBtn.hidden = true;
     if (elements.detailWhatsAppAction) elements.detailWhatsAppAction.hidden = true;
@@ -455,7 +542,9 @@
       elements.detailProjectTitle.textContent = project?.title || 'No project linked';
     }
     if (elements.detailProjectDesc) {
-      elements.detailProjectDesc.textContent = project?.summary || 'Private conversation';
+      elements.detailProjectDesc.textContent = project?.available
+        ? project.summary || 'Private conversation'
+        : project ? '' : 'Private conversation';
     }
     if (elements.detailProjectPrice) elements.detailProjectPrice.textContent = project?.price || '';
     if (elements.detailFilesList) {
@@ -483,6 +572,15 @@
       const readReceipt = isSent && message.read_at
         ? '<span class="chat-msg-read-receipt" aria-label="Read">Read</span>'
         : '';
+      const projectCard = renderMessageProjectCard(message);
+      const textBubble = message.text
+        ? `<div class="chat-msg-bubble">${escapeHtml(message.text).replace(/\n/g, '<br>')}</div>`
+        : '';
+      const bubble = projectCard
+        ? `<div class="chat-msg-bubble has-project-context">${projectCard}${message.text
+          ? `<div class="chat-msg-text">${escapeHtml(message.text).replace(/\n/g, '<br>')}</div>`
+          : ''}</div>`
+        : textBubble;
       return `${dateSeparator}
         <div class="chat-msg-row ${isSent ? 'sent' : 'received'}">
           ${!isSent ? `<div class="chat-msg-avatar ${escapeHtml(conversation.color)}">${escapeHtml(conversation.initials)}</div>` : ''}
@@ -490,7 +588,7 @@
             ${readReceipt}
             <div class="chat-msg-body-row">
               <div class="chat-msg-body">
-                ${message.text ? `<div class="chat-msg-bubble">${escapeHtml(message.text).replace(/\n/g, '<br>')}</div>` : ''}
+                ${bubble}
                 ${attachmentCards}
               </div>
             </div>
@@ -503,6 +601,69 @@
       scrollThreadToBottom();
     }
     updateDetailPaneVisibility();
+  }
+
+  function renderMessageProjectCard(message) {
+    if (!message.project_id) return '';
+    const project = message.project_context;
+    if (project?.available !== true) {
+      return `<div class="chat-message-project-card is-unavailable" role="status">
+        <strong>Project unavailable</strong>
+      </div>`;
+    }
+
+    const projectId = project.id || message.project_id;
+    const image = safeProjectCover(project.cover_image);
+    const imageMarkup = image ? `<img src="${escapeHtml(image)}" alt="">` : '';
+    const title = project.title || 'Project unavailable';
+    const category = project.category || 'PROJECT';
+    const price = project.price || '';
+    return `<button class="chat-message-project-card" type="button"
+      data-chat-project-detail="${escapeHtml(projectId)}"
+      data-project-kind="${escapeHtml(project.project_kind || message.project_kind || 'portfolio')}"
+      aria-label="Open project details: ${escapeHtml(title)}">
+      <span class="chat-project-thumbnail">
+        ${imageMarkup}
+        <span aria-hidden="true">Project</span>
+      </span>
+      <span class="chat-message-project-copy">
+        <span class="chat-message-project-category">${escapeHtml(category)}</span>
+        <strong class="chat-message-project-title">${escapeHtml(title)}</strong>
+        ${price ? `<span class="chat-message-project-price">${escapeHtml(price)}</span>` : ''}
+      </span>
+    </button>`;
+  }
+
+  function renderComposerProjectCard(conversation) {
+    const isDraft = conversation === pendingConversationDraft;
+    const project = conversation && (isDraft || conversation.messageProjectId)
+      ? conversation.project
+      : null;
+    const isVisible = Boolean(project);
+    if (draftProjectCardEl) draftProjectCardEl.hidden = !isVisible;
+    if (draftProjectNoteEl) draftProjectNoteEl.hidden = !isVisible;
+    if (!isVisible) return;
+
+    if (draftProjectImageEl) {
+      draftProjectImageEl.hidden = !project.coverImage;
+      if (project.coverImage) draftProjectImageEl.src = project.coverImage;
+      else draftProjectImageEl.removeAttribute('src');
+    }
+    if (draftProjectPlaceholderEl) draftProjectPlaceholderEl.hidden = Boolean(project.coverImage);
+    if (draftProjectCategoryEl) {
+      draftProjectCategoryEl.textContent = `ASKING ABOUT THIS PROJECT · ${project.category || 'PROJECT'}`;
+    }
+    if (draftProjectTitleEl) draftProjectTitleEl.textContent = project.title;
+    if (draftProjectMetaEl) {
+      const developerName = project.developerName
+        || conversation.contactDisplayName
+        || conversation.contactUsername
+        || conversation.name;
+      draftProjectMetaEl.textContent = [
+        project.price,
+        developerName ? `by ${developerName}` : ''
+      ].filter(Boolean).join(' · ');
+    }
   }
 
   function updateDetailPaneVisibility() {
@@ -523,10 +684,14 @@
       panel.hidden = true;
       return;
     }
+    if (conversation === pendingConversationDraft) {
+      panel.hidden = true;
+      return;
+    }
     if (conversation.id !== activeConvId) return;
 
     panel.hidden = false;
-    if (!conversation.project?.id) {
+    if (!conversation.project?.id || !conversation.project.available) {
       elements.engagementStatus.textContent = 'Reviews require a project-linked conversation. Start a chat from a project page to enable completion confirmation.';
       elements.confirmProjectCompletion.hidden = true;
       elements.projectReviewForm.hidden = true;
@@ -610,10 +775,14 @@
 
   let activityTimer;
   async function syncActivity() {
-    if (!currentUser || document.visibilityState !== 'visible') return;
+    if (!currentUser || pendingConversationDraft || document.visibilityState !== 'visible') return;
     const conversation=getActiveConversation();
     const last=conversation?.messages?.at(-1);
-    const {data,error}=await client.rpc('sync_chat_activity', {p_role:currentProfile.account_role,p_conversation:conversation?.id||null,p_read_at:last?.created_at||null});
+    const {data,error}=await client.rpc('sync_chat_activity', {
+      p_role: conversation?.myRole || currentProfile.account_role,
+      p_conversation: conversation?.id || null,
+      p_read_at: last?.created_at || null
+    });
     if(error){console.warn('Unable to update chat status.',error);return;}
     if(conversation && conversation.id===activeConvId){
       const changed=conversation.online!==data.online || conversation.peerReadAt!==data.read_at;
@@ -639,7 +808,10 @@
         if (!conversationId) return;
         try {
           await loadConversationList();
-          if (conversationId === activeConvId) await loadMessages(conversationId);
+          const active = getActiveConversation();
+          if (active?.sourceConversationIds?.includes(conversationId)) {
+            await loadMessages(active.id);
+          }
         } catch (error) {
           console.error('Unable to refresh real-time chat messages.', error);
           setStatus(error.message || 'Unable to refresh messages.', true);
@@ -651,9 +823,10 @@
         table: 'messages'
       }, async payload => {
         const conversationId = payload.new?.conversation_id || payload.old?.conversation_id;
-        if (conversationId !== activeConvId) return;
+        const active = getActiveConversation();
+        if (!active?.sourceConversationIds?.includes(conversationId)) return;
         try {
-          await loadMessages(conversationId);
+          await loadMessages(active.id);
         } catch (error) {
           console.error('Unable to refresh chat read receipts.', error);
           setStatus(error.message || 'Unable to refresh read receipts.', true);
@@ -665,7 +838,8 @@
         table: 'project_engagements'
       }, payload => {
         const conversationId = payload.new?.conversation_id || payload.old?.conversation_id;
-        if (conversationId === activeConvId) void refreshProjectEngagement();
+        const active = getActiveConversation();
+        if (active?.sourceConversationIds?.includes(conversationId)) void refreshProjectEngagement();
       })
       .subscribe(status => {
         if (status === 'SUBSCRIBED') setStatus('Connected securely · messages encrypted at rest.');
@@ -675,18 +849,25 @@
       });
   }
 
-  async function selectConversation(id) {
+  async function selectConversation(id, {focusReview = false} = {}) {
     const conversation = conversations.find(item => item.id === id);
     if (!conversation) return;
+    pendingConversationDraft = null;
     activeConvId = id;
-    updateConversationQuery(id);
+    updateConversationQuery(id, focusReview);
     markRead(conversation);
     if (chatViewportEl) chatViewportEl.classList.add('viewing-thread');
     setDetailPaneOpen(false);
     updateUnreadCounts();
     renderConversationsList();
     renderMessagesThread();
-    void refreshProjectEngagement(conversation);
+    void refreshProjectEngagement(conversation).then(() => {
+      if (!focusReview || id !== activeConvId) return;
+      const reviewAvailable = !elements.projectReviewForm.hidden;
+      const focusTarget = reviewAvailable ? elements.projectReviewForm : elements.engagementStatus;
+      focusTarget.scrollIntoView({behavior: 'smooth', block: 'center'});
+      if (reviewAvailable) elements.projectReviewRating.focus({preventScroll: true});
+    });
     setStatus('Loading encrypted messages…');
     if (messageInputEl) messageInputEl.focus();
     try {
@@ -700,15 +881,46 @@
   }
 
   async function sendMessage(text) {
-    const conversation = getActiveConversation();
+    let conversation = getActiveConversation();
     if (!conversation || isSending) return;
     const plainText = String(text || '').trim();
     if (!plainText && !selectedAttachment) return;
+    const isDraft = conversation === pendingConversationDraft;
+    const draftProject = conversation.sourceProject;
+    const messageProjectId = conversation.messageProjectId
+      || (isDraft && conversation.project ? conversation.projectId : null);
     isSending = true;
     if (sendBtnEl) sendBtnEl.disabled = true;
     if (attachButtonEl) attachButtonEl.disabled = true;
     setStatus('Encrypting and sending…');
     try {
+      if (isDraft) {
+        const row = conversation.projectId
+          ? await invokeChat('start-project', {projectId: conversation.projectId})
+          : await invokeChat('start-user', {participantId: conversation.participantId});
+        if (!row || typeof row.id !== 'string' || !row.id) {
+          throw new Error('Chat service returned an invalid conversation.');
+        }
+        const contact = {
+          id: conversation.participantId,
+          account_role: conversation.roleType,
+          username: conversation.contactUsername,
+          display_name: conversation.contactDisplayName
+        };
+        conversation = conversations.find(item => item.id === row.id)
+          || mapConversation(
+            {...row, project_id: conversation.projectId || row.project_id, contact, source_conversations: [{id: row.id, my_role: row.participant_a_id === currentUser.id
+              ? row.participant_a_role
+              : row.participant_b_role}]},
+            new Map([[conversation.projectId, conversation.sourceProject]])
+          );
+        if (messageProjectId) {
+          conversation.messageProjectId = messageProjectId;
+          conversation.project = draftProject
+              ? mapProject(draftProject)
+              : conversation.project;
+        }
+      }
       const attachment = selectedAttachment
         ? {
             name: selectedAttachment.name,
@@ -719,6 +931,7 @@
       const message = await invokeChat('send-message', {
         conversationId: conversation.id,
         text: plainText,
+        ...(messageProjectId ? {projectId: messageProjectId} : {}),
         ...(attachment ? {attachment} : {})
       });
       if (!message || typeof message.text !== 'string' || !Array.isArray(message.attachments)) {
@@ -728,13 +941,20 @@
         conversation.messages.push(message);
       }
       conversation.lastMessage = message;
+      if (isDraft) {
+        if (!conversations.some(item => item.id === conversation.id)) conversations.unshift(conversation);
+        pendingConversationDraft = null;
+        activeConvId = conversation.id;
+        updateConversationQuery(conversation.id);
+      }
+      conversation.messageProjectId = null;
       renderConversationsList();
       renderMessagesThread();
       setStatus('Message sent securely.');
       return true;
     } catch (error) {
       console.error('Unable to send chat message.', error);
-      setStatus(error.message || 'Unable to send this message.', true);
+      setStatus(`${error.message || 'Unable to send this message.'} You can try again.`, true);
       return false;
     } finally {
       isSending = false;
@@ -846,13 +1066,134 @@
     return null;
   }
 
+  function makeConversationDraft(recipient, project = null) {
+    const role = recipient.account_role;
+    return {
+      id: null,
+      projectId: project?.id || null,
+      sourceProject: project,
+      participantId: recipient.id,
+      contactUsername: recipient.username || '',
+      contactDisplayName: recipient.display_name || '',
+      name: recipient.username || recipient.display_name || 'Unavailable account',
+      initials: initials(recipient.username || recipient.display_name),
+      role: role === 'dev' ? 'Developer' : 'Client',
+      roleType: role,
+      color: role === 'client' ? 'coral' : 'blue',
+      myRole: currentProfile.account_role,
+      sourceConversationIds: [],
+      online: false,
+      peerReadAt: null,
+      statusText: 'Encrypted chat',
+      project: mapProject(project),
+      files: [],
+      messages: [],
+      lastMessage: null,
+      unreadCount: 0,
+      quickReplies: []
+    };
+  }
+
+  function replaceDraftProject(draft, project) {
+    draft.projectId = project.id;
+    draft.sourceProject = project;
+    draft.project = mapProject(project);
+    draft.messageProjectId = null;
+  }
+
+  function activateConversationDraft(draft, status = 'Write a message to start this conversation.') {
+    pendingConversationDraft = draft;
+    activeConvId = null;
+    chatViewportEl?.classList.add('viewing-thread');
+    setDetailPaneOpen(false);
+    renderConversationsList();
+    renderMessagesThread();
+    setStatus(status, status !== 'Write a message to start this conversation.');
+    messageInputEl?.focus();
+  }
+
+  async function openExistingOrDraft(row, recipient, project = null) {
+    let messages;
+    try {
+      messages = await invokeChat('list-messages', {conversationId: row.id});
+    } catch (error) {
+      console.error('Unable to load the existing conversation.', error);
+      activateConversationDraft(
+        makeConversationDraft(recipient, project),
+        `${error.message || 'Unable to load existing chat.'} You can still send a message.`
+      );
+      return;
+    }
+    if (messages.length) {
+      await loadConversationList();
+      let existing = conversations.find(item => item.id === row.id);
+      if (!existing) {
+        existing = mapConversation(
+          {...row, contact: recipient, project_id: project?.id || row.project_id},
+          new Map(project ? [[project.id, project]] : [])
+        );
+        conversations.unshift(existing);
+      }
+      if (project) {
+        existing.messageProjectId = project.id;
+        existing.project = mapProject(project);
+      }
+      await selectConversation(existing.id);
+      return;
+    }
+    activateConversationDraft(makeConversationDraft(recipient, project));
+  }
+
   async function openFromQuery() {
     const params = new URLSearchParams(window.location.search);
     const projectId = params.get('project') || params.get('request');
     if (projectId) {
-      const conversation = await invokeChat('start-project', {projectId});
-      await loadConversationList();
-      await selectConversation(conversation.id);
+      const {data:project, error} = await client.from('projects')
+        .select('id,owner_id,title,project_kind,project_type,category,price,cover_image,status,data')
+        .eq('id', projectId)
+        .in('status', ['published', 'open'])
+        .maybeSingle();
+      if (error) throw error;
+      if (!project) throw new Error('This project is not available for a new conversation.');
+
+      const senderRole = project.project_kind === 'portfolio' ? 'client' : 'dev';
+      const recipientRole = project.project_kind === 'portfolio' ? 'dev' : 'client';
+      if (currentProfile.account_role !== senderRole) {
+        throw new Error('Switch to the correct workspace to contact this project owner.');
+      }
+      if (project.owner_id === currentUser.id) {
+        throw new Error('You cannot start a conversation about your own project.');
+      }
+
+      if (pendingConversationDraft?.participantId === project.owner_id) {
+        replaceDraftProject(pendingConversationDraft, project);
+        activateConversationDraft(pendingConversationDraft);
+        return;
+      }
+
+      const existing = conversations.find(conversation => conversation.participantId === project.owner_id);
+      if (existing) {
+        existing.messageProjectId = project.id;
+        existing.project = mapProject(project);
+        await selectConversation(existing.id);
+        return;
+      }
+
+      const recipient = await lookupContact(project.owner_id);
+      if (!recipient || recipient.account_role !== recipientRole) {
+        throw new Error('This project owner is not available for chat.');
+      }
+      const draft = makeConversationDraft(recipient, project);
+      let existingRow;
+      try {
+        existingRow = await invokeChat('find-project', {projectId: project.id});
+      } catch (error) {
+        console.error('Unable to check for an existing project conversation.', error);
+        activateConversationDraft(draft, `${error.message || 'Unable to check existing chat.'} You can still send a message.`);
+        return;
+      }
+      if (existingRow) await openExistingOrDraft(existingRow, recipient, project);
+      else activateConversationDraft(draft);
       return;
     }
     const contact = params.get('contact');
@@ -860,14 +1201,25 @@
     if (contact || participantId) {
       const recipient = await lookupContact(contact, participantId);
       if (!recipient) throw new Error('This contact is not available in the public directory.');
-      const conversation = await invokeChat('start-user', {participantId: recipient.id});
-      await loadConversationList();
-      await selectConversation(conversation.id);
+      const draft = makeConversationDraft(recipient);
+      let existingRow;
+      try {
+        existingRow = await invokeChat('find-user', {participantId: recipient.id});
+      } catch (error) {
+        console.error('Unable to check for an existing direct conversation.', error);
+        activateConversationDraft(draft, `${error.message || 'Unable to check existing chat.'} You can still send a message.`);
+        return;
+      }
+      if (existingRow) await openExistingOrDraft(existingRow, recipient);
+      else activateConversationDraft(draft);
       return;
     }
     const requestedConversation = params.get('conversation');
-    if (requestedConversation && conversations.some(item => item.id === requestedConversation)) {
-      await selectConversation(requestedConversation);
+    const requestedThread = conversations.find(item =>
+      item.id === requestedConversation || item.sourceConversationIds.includes(requestedConversation)
+    );
+    if (requestedThread) {
+      await selectConversation(requestedThread.id, {focusReview: params.get('review') === '1'});
     }
   }
 
@@ -952,6 +1304,17 @@
         }
       });
     });
+    draftProjectRemoveEl?.addEventListener('click', () => {
+      const conversation = getActiveConversation();
+      if (!conversation) return;
+      conversation.messageProjectId = null;
+      if (conversation === pendingConversationDraft) {
+        conversation.projectId = null;
+        conversation.sourceProject = null;
+        conversation.project = null;
+      }
+      renderMessagesThread();
+    });
     attachButtonEl?.addEventListener('click', () => attachmentInputEl?.click());
     attachmentInputEl?.addEventListener('change', () => {
       const file = attachmentInputEl.files?.[0];
@@ -973,6 +1336,24 @@
       setStatus('Attachment ready. Files are encrypted before storage.');
     });
     chatMessagesEl?.addEventListener('click', event => {
+      const projectButton = event.target.closest('[data-chat-project-detail]');
+      if (projectButton && chatMessagesEl.contains(projectButton)) {
+        const projectId = projectButton.dataset.chatProjectDetail;
+        if (projectButton.dataset.projectKind === 'request') {
+          if (typeof window.openProjectRequestDetails === 'function') {
+            window.openProjectRequestDetails(projectId, projectButton.querySelector('.chat-message-project-title')?.textContent || 'Project request');
+          } else {
+            console.error('Project request details modal is unavailable.');
+            setStatus('Project details are unavailable right now.', true);
+          }
+        } else if (typeof window.openProjectDetails === 'function') {
+          void window.openProjectDetails(projectId);
+        } else {
+          console.error('Project details modal is unavailable.');
+          setStatus('Project details are unavailable right now.', true);
+        }
+        return;
+      }
       const button = event.target.closest('[data-chat-download]');
       if (button && chatMessagesEl.contains(button)) void downloadAttachment(button);
     });
@@ -987,8 +1368,11 @@
       this.style.height = `${Math.min(this.scrollHeight, 120)}px`;
     });
     document.getElementById('chatBackBtn')?.addEventListener('click', () => {
+      pendingConversationDraft = null;
+      activeConvId = null;
       chatViewportEl?.classList.remove('viewing-thread');
       updateConversationQuery(null);
+      renderMessagesThread();
     });
     document.getElementById('toggleDetailBtn')?.addEventListener('click', () => {
       setDetailPaneOpen(detailPaneEl?.classList.contains('closed'));
@@ -1032,7 +1416,7 @@
     await syncActivity();
     if (legacyChatRemoved) {
       setStatus('Previous device-only demo chats were cleared. New messages are stored securely in Supabase.');
-    } else if (!activeConvId) {
+    } else if (!activeConvId && !pendingConversationDraft) {
       setStatus('Select a conversation or open a project to start a secure chat.');
     }
   }

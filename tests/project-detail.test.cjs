@@ -27,6 +27,50 @@ test('Project detail displays the uploaded project cover when available',()=>{
   assert.match(styles,/\.project-cover\.has-uploaded-image:before,.project-cover\.has-uploaded-image:after\{display:none\}/);
 });
 
+test('Contact Developer carries the selected project into Messages',()=>{
+  const detail=fs.readFileSync('assets/js/project-detail.js','utf8');
+  const discover=fs.readFileSync('assets/js/discover-project-detail.js','utf8');
+  const chat=fs.readFileSync('assets/js/chat.js','utf8');
+  const chatHtml=fs.readFileSync('devmatch-chat.html','utf8');
+  assert.match(detail,/function chatUrl\(id\)\{return `devmatch-chat\.html\?role=client&project=\$\{encodeURIComponent\(id\)\}`;\}/);
+  assert.match(detail,/getElementById\('chatDeveloperLink'\)\.href=user\?chatUrl\(row\.id\)/);
+  assert.match(discover,/devmatch-chat\.html\?role=client&project=\$\{encodeURIComponent\(project\.id\)\}/);
+  assert.match(chat,/params\.get\('project'\) \|\| params\.get\('request'\)/);
+  assert.match(chat,/projectId: project\?\.id \|\| null/);
+  assert.doesNotMatch(chatHtml,/chatDraftProjectId/);
+});
+
+test('Composer project context card shows real project fields and can be removed',()=>{
+  const chat=fs.readFileSync('assets/js/chat.js','utf8');
+  const html=fs.readFileSync('devmatch-chat.html','utf8');
+  const styles=fs.readFileSync('assets/css/chat.css','utf8');
+  assert.match(html,/id="chatDraftProjectCard"[^>]*hidden/);
+  assert.match(html,/id="chatDraftProjectImage"/);
+  assert.match(html,/id="chatDraftProjectCategory"/);
+  assert.match(html,/id="chatDraftProjectTitle"/);
+  assert.match(html,/id="chatDraftProjectMeta"/);
+  assert.match(html,/aria-label="Remove project context"/);
+  assert.match(html,/The project card is attached to your first message\. Clear it to chat without context\./);
+  assert.match(chat,/project\.price,\s*developerName \? `by \$\{developerName\}`/);
+  assert.match(chat,/project\.category \|\| 'PROJECT'/);
+  assert.match(chat,/conversation\.messageProjectId = null/);
+  assert.match(styles,/\.chat-draft-project-remove\s*\{[^}]*width: 44px;[^}]*height: 44px;/);
+  assert.match(styles,/@media \(max-width: 600px\) \{[\s\S]*?\.chat-draft-project-card\s*\{[^}]*grid-template-columns: minmax\(0, 1fr\)/);
+  assert.match(styles,/-webkit-line-clamp: 2/);
+});
+
+test('Opening Contact Developer checks for an existing thread without creating one',()=>{
+  const chat=fs.readFileSync('assets/js/chat.js','utf8');
+  const openFromQuery=chat.slice(chat.indexOf('async function openFromQuery()'),chat.indexOf('\n  function updateShell'));
+  const sendMessage=chat.slice(chat.indexOf('async function sendMessage('),chat.indexOf('\n  function formatFileSize'));
+  assert.match(openFromQuery,/invokeChat\('find-project', \{projectId: project\.id\}\)/);
+  assert.match(openFromQuery,/activateConversationDraft\(draft\)/);
+  assert.doesNotMatch(openFromQuery,/invokeChat\('start-(?:project|user)'/);
+  assert.match(sendMessage,/invokeChat\('start-project', \{projectId: conversation\.projectId\}\)/);
+  assert.match(chat,/function replaceDraftProject\(draft, project\)/);
+  assert.match(chat,/replaceDraftProject\(pendingConversationDraft, project\)/);
+});
+
 test('Project detail comments show timestamp beside Reply',()=>{
   const source=fs.readFileSync('assets/js/project-detail.js','utf8');
   assert.match(source,/comment-actions/);
@@ -60,4 +104,150 @@ test('Project detail favorite changes update client dashboard cards',()=>{
   assert.match(dashboard,/Array\.isArray\(change\.favorites\)/);
   assert.match(dashboard,/localStorage\.setItem\(favoritesKey,JSON\.stringify\(favorites\)\)/);
   assert.match(dashboard,/renderProjects\(\)/);
+});
+
+test('Project request details open in a popup from marketplace and linked views',()=>{
+  const listing=fs.readFileSync('devmatch-find-projects.html','utf8');
+  const popup=fs.readFileSync('assets/js/project-detail-popup.js','utf8');
+  const route=fs.readFileSync('assets/js/project-detail-route-popup.js','utf8');
+  assert.match(listing,/<dialog class="project-request-detail-dialog" id="requestDetailDialog"/);
+  assert.match(listing,/<iframe class="project-detail-popup-frame" id="requestDetailFrame"/);
+  assert.match(popup,/window\.openProjectRequestDetails=function/);
+  assert.match(popup,/devmatch-find-project-detail\.html\?request=.*&modal=1/);
+  assert.match(route,/params\.get\('modal'\)==='1'/);
+  assert.match(route,/dialog\.showModal\(\)/);
+});
+
+test('Developer request detail fields match the page and saved request data',()=>{
+  const html=fs.readFileSync('devmatch-find-project-detail.html','utf8');
+  const source=fs.readFileSync('assets/js/find-project-detail.js','utf8');
+  const styles=fs.readFileSync('assets/css/find-project-detail.css','utf8');
+  const markupIds=new Set([...html.matchAll(/id="([^"]+)"/g)].map(match=>match[1]));
+  const assignedIds=[...source.matchAll(/getElementById\(['"]([^'"]+)['"]\)/g)].map(match=>match[1]);
+  const missing=[...new Set(assignedIds.filter(id=>!markupIds.has(id)))];
+  assert.deepEqual(missing,[]);
+  assert.match(html,/id="asideClientProjects"[\s\S]*id="asideClientViews"[\s\S]*id="asideClientFavorites"/);
+  assert.match(html,/<h2>Project details<\/h2>[\s\S]*id="requestProjectType"[\s\S]*id="requestProjectCategory"[\s\S]*id="requestTargetStart"[\s\S]*id="requestReferenceLinks"[\s\S]*id="requestCreated"/);
+  assert.match(html,/<span class="find-detail-negotiable" id="requestNegotiableFact" hidden>Negotiable<\/span>/);
+  assert.match(source,/Array\.isArray\(data\.specialties\)/);
+  assert.match(source,/data\.categoryOther/);
+  assert.match(source,/data\.references/);
+  assert.match(source,/data\.attachments/);
+  assert.match(source,/data\.deadline/);
+  assert.match(source,/data\.targetStart/);
+  assert.match(source,/negotiable:data\.negotiable===true/);
+  assert.match(source,/requestClientMeta'\)\.textContent=project\.location/);
+  assert.match(source,/requestCreated'\)\.textContent=date/);
+  assert.match(source,/requestReferencesSection'\)\.hidden=project\.attachments\.length===0/);
+  assert.match(styles,/\.find-detail-facts>\.find-detail-budget-fact\{[^}]*background:#f1f1f3/);
+  assert.match(styles,/\.find-project-facts>div\{[^}]*border-top:1px solid/);
+});
+
+test('Client-owned request detail is a popup while request composition stays separate',()=>{
+  const dashboard=fs.readFileSync('devmatch-client-dashboard.html','utf8');
+  const source=fs.readFileSync('assets/js/client-dashboard.js','utf8');
+  assert.match(dashboard,/<dialog class="request-detail-page" id="requestDetailPage"/);
+  assert.match(source,/if\(!detailDialog\.open\)detailDialog\.showModal\(\)/);
+  assert.match(dashboard,/<section class="request-composer" id="requestComposer"/);
+});
+
+test('Client request detail shows live client metrics and a fully red delete action',()=>{
+  const dashboard=fs.readFileSync('devmatch-client-dashboard.html','utf8');
+  const source=fs.readFileSync('assets/js/client-dashboard.js','utf8');
+  const styles=fs.readFileSync('assets/css/client-dashboard.css','utf8');
+  assert.match(dashboard,/<strong id="requestDetailClientProjects">—<\/strong><small>PROJECTS<\/small>/);
+  assert.match(dashboard,/<strong id="requestDetailClientViews">—<\/strong><small>VIEWS<\/small>/);
+  assert.match(dashboard,/<strong id="requestDetailClientFavorites">—<\/strong><small>FAVORITES<\/small>/);
+  assert.match(source,/function renderRequestDetailClientMetrics\(\)/);
+  assert.match(source,/formatDashboardMetric\(requestDashboardMetrics\?\.projects\)/);
+  assert.match(source,/formatDashboardMetric\(requestDashboardMetrics\?\.views\)/);
+  assert.match(source,/formatDashboardMetric\(requestDashboardMetrics\?\.favorites\)/);
+  assert.match(styles,/\.request-detail-client-stats\{[^}]*border-top:1px solid/);
+  assert.match(styles,/\.request-detail-delete\{[^}]*background:#c43d43;[^}]*color:#fff/s);
+});
+
+test('Client request details use entered request data and show negotiation only when enabled',()=>{
+  const dashboard=fs.readFileSync('devmatch-client-dashboard.html','utf8');
+  const source=fs.readFileSync('assets/js/client-dashboard.js','utf8');
+  const backend=fs.readFileSync('assets/js/backend.js','utf8');
+  const styles=fs.readFileSync('assets/css/client-dashboard.css','utf8');
+  assert.match(dashboard,/<h2 id="requestDetailProjectDetailsTitle">Project details<\/h2>/);
+  assert.match(dashboard,/<dl class="request-detail-project-facts" id="requestDetailProjectFacts"><\/dl>/);
+  assert.match(source,/function renderRequestDetailProjectFacts\(request,\{category,type\}\)/);
+  assert.match(source,/\['Project type',type===.*\],\s*\['Category',category===.*\],\s*\['Target start',request\.targetStart/);
+  assert.match(source,/\['Reference links',references\]/);
+  assert.match(source,/negotiableBadge\.hidden=request\.negotiable!==true/);
+  assert.match(backend,/created_at,updated_at/);
+  assert.match(backend,/created: row\.created_at \? new Date\(row\.created_at\)\.getTime\(\)/);
+  assert.match(styles,/\.request-detail-project-facts>div\{[^}]*border-top:1px solid/);
+});
+
+test('Client request card and detail typography is slightly larger on desktop and mobile',()=>{
+  const styles=fs.readFileSync('assets/css/client-dashboard.css','utf8');
+  assert.match(styles,/\.request-card h2\{[^}]*font-size:18px/);
+  assert.match(styles,/\.request-card-facts b\{[^}]*font-size:13px/);
+  assert.match(styles,/\.request-detail-description\{[^}]*font-size:14px/);
+  assert.match(styles,/\.request-detail-card h1\{font-size:24px\}/);
+  assert.match(styles,/\.request-card-actions button\{min-height:34px;padding:0 8px;font-size:11px\}/);
+});
+
+test('Client My Requests cards show the negotiation tag only when enabled',()=>{
+  const source=fs.readFileSync('assets/js/client-dashboard.js','utf8');
+  const styles=fs.readFileSync('assets/css/client-dashboard.css','utf8');
+  assert.match(source,/const negotiableBadge=request\.negotiable===true\?'<span class="request-card-tag">Negotiable<\/span>':''/);
+  assert.match(source,/request-card-budget-value">\$\{escapeHtml\(budget\)\}\$\{negotiableBadge\}/);
+  assert.match(styles,/\.request-card-facts \.request-card-budget-value\{display:flex;align-items:center;gap:7px/);
+  const badgeRowStart=source.indexOf('class="request-card-badges"');
+  const budgetLineStart=source.indexOf('class="request-card-budget-value"');
+  assert.ok(badgeRowStart>=0&&budgetLineStart>badgeRowStart);
+  assert.doesNotMatch(source.slice(badgeRowStart,budgetLineStart),/\$\{negotiableBadge\}/);
+});
+
+test('Client My Requests cards open the full detail view directly',()=>{
+  const source=fs.readFileSync('assets/js/client-dashboard.js','utf8');
+  const dashboard=fs.readFileSync('devmatch-client-dashboard.html','utf8');
+  const styles=fs.readFileSync('assets/css/client-dashboard.css','utf8');
+  const handlerStart=source.indexOf("requestList.addEventListener('click',event=>{");
+  const handlerEnd=source.indexOf("document.getElementById('requestDetailPage').addEventListener('click'",handlerStart);
+  assert.notEqual(handlerStart,-1);
+  assert.notEqual(handlerEnd,-1);
+  const handler=source.slice(handlerStart,handlerEnd);
+  const cardStart=handler.indexOf("const card=event.target.closest('[data-request-card]')");
+  const editButtonStart=handler.indexOf("const button=event.target.closest('[data-edit-request]')",cardStart);
+  assert.notEqual(cardStart,-1);
+  assert.notEqual(editButtonStart,-1);
+  const cardClick=handler.slice(cardStart,editButtonStart);
+  assert.match(cardClick,/if\(request\)\{\s*showRequestDetailPage\(request\);/);
+  assert.doesNotMatch(cardClick,/showRequestDetails\(request\)/);
+  const cardTemplate=source.slice(source.indexOf('return `<article class="request-item request-card"'),source.indexOf('`;\n  }).join',cardStart));
+  assert.notEqual(cardTemplate,'');
+  assert.doesNotMatch(cardTemplate,/See Details|data-request-detail/);
+  assert.match(cardTemplate,/request-card-secondary request-edit-button" data-edit-request/);
+  assert.match(dashboard,/request-card-secondary request-edit-button" type="button" data-edit-detail-request/);
+  assert.match(styles,/\.request-card-actions button\.request-edit-button\{width:100px;border-color:#171719;background:#171719;color:#fff\}/);
+  assert.match(styles,/\.request-detail-owner button\.request-edit-button\{border-color:#171719;background:#171719;color:#fff\}/);
+});
+
+test('Landing and direct detail routes use project detail popups',()=>{
+  const landing=fs.readFileSync('devmatch-landing.html','utf8');
+  const landingSource=fs.readFileSync('assets/js/landing.js','utf8');
+  const discover=fs.readFileSync('devmatch-discover-project-detail.html','utf8');
+  const find=fs.readFileSync('devmatch-find-project-detail.html','utf8');
+  assert.match(landing,/<script src="assets\/js\/project-detail\.js/);
+  assert.match(landingSource,/window\.openProjectDetails\(link\.dataset\.projectDetail\)/);
+  assert.match(discover,/<script src="assets\/js\/project-detail-route-popup\.js/);
+  assert.match(find,/<script src="assets\/js\/project-detail-route-popup\.js/);
+});
+
+test('Full project editor preview opens as a dialog and leaves editing available behind it',()=>{
+  const html=fs.readFileSync('devmatch-my-projects.html','utf8');
+  const source=fs.readFileSync('assets/js/my-projects.js','utf8');
+  const styles=fs.readFileSync('assets/css/my-projects.css','utf8');
+  const previewFunction=source.match(/function showProjectPreview\(project\)\{([\s\S]*?)\n\}/)?.[1]||'';
+  assert.match(html,/<dialog class="project-preview-mode" id="projectPreviewMode"/);
+  assert.match(html,/data-close-project-preview/);
+  assert.match(previewFunction,/previewDialog\.showModal\(\)/);
+  assert.doesNotMatch(previewFunction,/editor\.hidden=true|projectsPage\.hidden=true/);
+  assert.match(source,/function closeProjectPreview\(\)\{[\s\S]*previewDialog\.close\(\)/);
+  assert.match(styles,/\.project-preview-mode\[open\]\{/);
 });

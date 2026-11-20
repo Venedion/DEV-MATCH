@@ -26,18 +26,23 @@
 .find-detail-save[aria-pressed=true]{color:#b4233b}
 .find-detail-save[aria-pressed=true] svg{fill:#b4233b}
 .find-detail-tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:13px}
-.find-detail-tags span{padding:4px 8px;border-radius:99px;background:#f0f0f2;color:#393b42;font-size:10px;font-weight:600}
+.find-detail-tags span{padding:4px 8px;border-radius:99px;background:#f0f0f2;color:#393b42;font-size:10px;font-weight:600;overflow-wrap:anywhere}
 .find-detail-tags span:nth-child(2){background:#fff0dd;color:#a45a11}
-.find-detail-card>h1{margin-top:10px;font-size:clamp(22px,2.4vw,30px);line-height:1.2;letter-spacing:-.04em}
-.find-detail-description{margin-top:8px;color:#555862;font-size:12px;line-height:1.65}
-.find-detail-facts{display:grid;grid-template-columns:minmax(0,1fr);gap:10px;margin-top:17px;padding:12px 14px;border-radius:10px;background:#f5f5f6}
+.find-detail-card>h1{margin-top:10px;font-size:clamp(22px,2.4vw,30px);line-height:1.2;letter-spacing:-.04em;overflow-wrap:anywhere}
+.find-detail-description{margin-top:8px;color:#555862;font-size:12px;line-height:1.65;overflow-wrap:anywhere}
+.find-detail-facts{display:grid;grid-template-columns:minmax(0,1fr);gap:10px;margin:17px 0 0;padding:12px 14px;border-radius:10px;background:#f5f5f6}
 .find-detail-facts>div{display:grid;align-content:start;gap:5px;min-width:0}
-.find-detail-facts small,.find-detail-eyebrow{color:#858891;font-size:9px;font-weight:800;letter-spacing:.05em}
-.find-detail-facts strong{font-size:11px;overflow-wrap:anywhere}
+.find-detail-facts dt,.find-detail-facts small,.find-detail-eyebrow{color:#858891;font-size:9px;font-weight:800;letter-spacing:.05em}
+.find-detail-facts dd{margin:0;font-size:11px;overflow-wrap:anywhere}
+.find-detail-facts small{color:#858891}
 .find-detail-section{margin-top:18px}
 .find-detail-section h2{margin-bottom:7px;font-size:13px}
-.find-detail-section p,.find-detail-section li{color:#555862;font-size:12px;line-height:1.65}
+.find-detail-section p,.find-detail-section li{color:#555862;font-size:12px;line-height:1.65;overflow-wrap:anywhere}
 .find-detail-section ul{display:grid;gap:6px;padding-left:18px}
+.find-detail-reference-links,.find-detail-reference-files{display:grid;gap:7px;margin-top:9px}
+.find-detail-reference-files{padding-left:18px}
+.find-detail-reference-links a,.find-detail-reference-files a{color:#3f5b9e;font-size:12px;overflow-wrap:anywhere}
+#requestReferenceFilesStatus{margin-top:8px;color:#777982;font-size:11px}
 .find-detail-stats{display:flex;gap:13px;margin-top:17px;padding-top:13px;border-top:1px solid #eceef1;color:#777982;font-size:10px}
 .find-comments>header{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:11px}
 .find-comments h2,.find-similar-card h2{font-size:14px}
@@ -81,6 +86,11 @@
 .find-client-facts>div{display:grid;gap:4px;padding:12px;border-radius:9px;background:#f5f5f6}
 .find-client-facts small{color:#858891;font-size:9px;font-weight:800}
 .find-client-facts strong{font-size:11px}
+.find-client-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:0;border-top:1px solid #eceef1;border-bottom:1px solid #eceef1}
+.find-client-stats>div{display:grid;align-content:center;justify-items:center;gap:5px;padding:12px 6px;border-right:1px solid #eceef1;background:transparent}
+.find-client-stats>div:last-child{border-right:0}
+.find-client-stats small{color:#828792;font-size:10px;font-weight:800;letter-spacing:.04em;text-transform:uppercase}
+.find-client-stats strong{font-size:16px;color:#171719}
 .find-contact-button{min-height:38px;display:flex;align-items:center;justify-content:center;gap:8px;border-radius:8px;background:#171719;color:#fff;font-size:11px;font-weight:700}
 .find-contact-button svg{width:16px;height:16px;flex:none;fill:none;stroke:currentColor;stroke-width:2}
 .find-contact-button:hover{background:#333}
@@ -237,4 +247,34 @@
   .find-project-detail-page.is-modal-detail .find-request-preview-window{width:86%;height:78%}
   .find-project-detail-page.is-modal-detail .find-request-preview-content{padding:14px}
   .find-project-detail-page.is-modal-detail .find-detail-section h2{font-size:15px}
+}
+
+.find-detail-facts{grid-template-columns:minmax(0,1.15fr) minmax(0,.85fr);gap:10px;margin:19px 0 0;padding:0;background:transparent}
+.find-detail-facts>div{min-height:70px;display:grid;align-content:start;gap:6px;padding:12px;border:1px solid #e5e5e8;border-radius:11px;background:#fff}
+.find-detail-facts>.find-detail-budget-fact{align-content:center;background:#f1f1f3}
+.find-detail-facts dt{color:#828792;font-size:11px;font-weight:800;letter-spacing:.04em}
+.find-detail-facts dd{display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin:0;color:#30343d;font-size:14px;font-weight:700;overflow-wrap:anywhere}
+.find-detail-budget-fact dd{font-size:16px}
+.find-detail-negotiable{padding:5px 9px;border-radius:99px;background:#e8f7ef;color:#168548;font-size:12px;font-weight:700}
+.find-detail-negotiable[hidden]{display:none}
+.find-project-details{margin-top:23px}
+.find-project-details h2{margin-bottom:0;font-size:17px}
+.find-project-facts{margin-top:10px}
+.find-project-facts>div{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);align-items:center;gap:14px;padding:11px 0;border-top:1px solid #e8eaed}
+.find-project-facts>div:last-child{border-bottom:1px solid #e8eaed}
+.find-project-facts dt{color:#737883;font-size:13px}
+.find-project-facts dd{display:grid;justify-items:end;gap:5px;margin:0;color:#282b33;font-size:13px;font-weight:600;text-align:right;overflow-wrap:anywhere}
+.find-project-facts .find-detail-reference-links{display:grid;justify-items:end;gap:5px;margin:0}
+.find-project-facts .find-detail-reference-links a{color:inherit;font-size:13px;text-decoration:none}
+.find-project-facts .find-detail-reference-links a:hover{text-decoration:underline;text-underline-offset:3px}
+.find-project-detail-page.is-modal-detail .find-project-details h2{font-size:17px}
+@media(max-width:600px){
+  .find-detail-facts{grid-template-columns:minmax(0,1fr);gap:7px}
+  .find-detail-facts>div{min-height:66px;padding:10px}
+  .find-detail-facts dt{font-size:10px}
+  .find-detail-facts dd{font-size:12px}
+  .find-detail-budget-fact dd{font-size:14px}
+  .find-detail-negotiable{font-size:11px}
+  .find-project-facts>div{gap:8px}
+  .find-project-facts dt,.find-project-facts dd,.find-project-facts .find-detail-reference-links a{font-size:12px}
 }

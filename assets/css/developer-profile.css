@@ -36,6 +36,7 @@ html body .comments-panel article b{font-size:var(--text-sm)}
 html body .comments-panel article small,html body .comments-panel article p,html body .comments-panel>p{font-size:var(--text-xs)}
 @media(max-width:780px){html body .identity-title h1{font-size:var(--text-xl)}html body .identity-meta{font-size:var(--text-xs)}html body .portfolio-art{height:170px}html body .profile-sidebar .info-card{padding:19px}html body .portfolio-tabs>button{font-size:var(--text-sm)}}
 @media(max-width:480px){html body .identity-title h1{font-size:var(--text-xl)}html body .identity-meta{font-size:var(--text-xs)}html body .portfolio-art{height:185px}html body .profile-sidebar .info-card{padding:18px}html body .portfolio-grid{grid-template-columns:minmax(0,1fr)}html body .portfolio-tabs{gap:8px;min-width:0}html body .portfolio-tabs>button{font-size:var(--text-xs);white-space:nowrap}html body .sort-control{padding:0 6px}html body .sort-control select{max-width:88px}}
+@media(max-width:520px){html body .portfolio-tabs{flex-wrap:wrap;align-items:center;gap:0 12px;overflow:visible;padding:0 12px}html body .portfolio-tabs>.sort-control{width:100%;flex:0 0 100%;justify-content:flex-start;margin:0;padding:0 0 10px;border:0;background:transparent}html body .portfolio-tabs>.sort-control select{width:100%;max-width:none}}
 body{min-height:100vh;background:var(--page);color:var(--ink);font-family:"Plus Jakarta Sans",system-ui,-apple-system,"Segoe UI",sans-serif;font-size:13px;-webkit-font-smoothing:antialiased}
 button,input,select{font:inherit;color:inherit}button,a{-webkit-tap-highlight-color:transparent}a{color:inherit;text-decoration:none}svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex:none}
 :focus-visible{outline:2px solid var(--ink);outline-offset:2px}
@@ -190,4 +191,65 @@ body.page-scroll-shell > .profile-topbar ~ main {
   .profile-topbar .mode-switch::before {
     transition: none;
   }
+}
+
+.profile-tabs.portfolio-tabs {
+  min-height: 55px;
+}
+
+.profile-tabs.portfolio-tabs > .profile-tab {
+  height: 54px;
+  display: flex;
+  align-items: center;
+  padding: 0;
+  line-height: 1.4;
+}
+
+.profile-tabs.portfolio-tabs > .profile-tab.active::after {
+  content: none;
+}
+
+.portfolio-tabs .sort-control > .custom-select {
+  width: 82px;
+  flex: none;
+}
+
+.portfolio-tabs .sort-control .custom-select-trigger {
+  height: 26px;
+  padding: 0;
+  border: 0;
+  border-radius: 99px;
+  background: transparent;
+  color: #555761;
+  font-size: 11px;
+  box-shadow: none;
+}
+
+.portfolio-tabs .sort-control .custom-select-trigger:hover,
+.portfolio-tabs .sort-control .custom-select-trigger:focus-visible,
+.portfolio-tabs .sort-control .custom-select.open .custom-select-trigger {
+  border: 0;
+  outline: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.portfolio-tabs .sort-control .custom-select-options {
+  top: calc(100% + 6px);
+  right: -10px;
+  left: auto;
+  width: 108px;
+  padding: 4px;
+  border-radius: 9px;
+}
+
+.portfolio-tabs .sort-control .custom-select-option {
+  min-height: 28px;
+  padding: 5px 28px 5px 9px;
+  border-radius: 6px;
+  font-size: 11px;
+}
+
+.showcase-card > .tab-panel {
+  padding-top: 29px;
 }

@@ -1,0 +1,27 @@
+.project-request-detail-dialog:not([open]),.project-detail-route-dialog:not([open]){display:none}
+.project-request-detail-dialog[open],.project-detail-route-dialog[open]{width:min(1420px,calc(100vw - 80px));max-width:none;height:min(920px,calc(100dvh - 32px));max-height:none;display:flex;flex-direction:column;position:fixed;inset:0;margin:auto;padding:0;overflow:hidden;border:1px solid #dcdce0;border-radius:18px;background:#f7f7f8;color:#171719;box-shadow:0 28px 100px #0004}
+.project-request-detail-dialog::backdrop,.project-detail-route-dialog::backdrop{background:#17171970;backdrop-filter:blur(4px)}
+.project-detail-popup-bar{height:60px;display:flex;align-items:center;gap:14px;flex:none;padding:0 24px;border-bottom:1px solid #e5e5e8;background:#fff}
+.project-detail-popup-bar img{width:35px;height:35px;object-fit:contain}
+.project-detail-popup-bar strong{color:#171719;font-size:15px;font-weight:800}
+.project-detail-popup-bar span{color:#777982;font-size:13px;font-weight:600}
+.project-detail-popup-close{width:34px;height:34px;display:grid;place-items:center;margin-left:auto;border:0;border-radius:8px;background:transparent;color:#626772;font-size:25px;line-height:1;cursor:pointer}
+.project-detail-popup-close:hover{background:#f1f1f3;color:#22252c}
+.project-detail-popup-frame{width:100%;height:100%;flex:1;border:0;background:#f7f7f8}
+.project-detail-route-dialog>main{width:100%;max-width:none;min-height:0;flex:1;margin:0;padding:30px 36px 48px;overflow:auto}
+.project-detail-route-dialog .discover-detail-layout{grid-template-columns:minmax(0,1.65fr) minmax(280px,.8fr);gap:24px}
+.project-detail-route-dialog .find-detail-layout{grid-template-columns:minmax(0,1.65fr) minmax(280px,.8fr);gap:24px}
+@media(max-width:780px){
+  .project-request-detail-dialog[open],.project-detail-route-dialog[open]{width:calc(100vw - 28px);height:calc(100dvh - 28px);border-radius:15px}
+  .project-detail-popup-bar{height:54px;padding:0 16px}
+  .project-detail-route-dialog>main{padding:24px 20px 36px}
+  .project-detail-route-dialog .discover-detail-layout,.project-detail-route-dialog .find-detail-layout{grid-template-columns:minmax(0,1fr);gap:14px}
+}
+@media(max-width:480px){
+  .project-request-detail-dialog[open],.project-detail-route-dialog[open]{width:calc(100vw - 16px);height:calc(100dvh - 16px);border-radius:13px}
+  .project-detail-popup-bar{height:50px;gap:10px;padding:0 12px}
+  .project-detail-popup-bar img{width:29px;height:29px}
+  .project-detail-popup-bar strong{font-size:13px}
+  .project-detail-popup-bar span{font-size:11px}
+  .project-detail-route-dialog>main{padding:18px 13px 28px}
+}

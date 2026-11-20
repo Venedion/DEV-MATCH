@@ -11,7 +11,8 @@
   <link rel="stylesheet" href="assets/css/marketplace.css?v=20261118-pink-nav-badges">
   <link rel="stylesheet" href="assets/css/mode-switch-animation.css?v=20261030-active-indicator">
   <link rel="stylesheet" href="assets/css/mobile-navigation.css?v=20261120-mobile-bottom-nav-v11">
-  <link rel="stylesheet" href="assets/css/find-project-detail.css?v=20261120-comment-replies">
+  <link rel="stylesheet" href="assets/css/find-project-detail.css?v=20261121-rebase-merge">
+  <link rel="stylesheet" href="assets/css/project-detail-popup.css?v=20261120-popup-detail">
   <link rel="stylesheet" href="assets/css/favorite-feedback.css?v=20261120-confirmation-undo">
   <script src="assets/js/i18n.js?v=20261102-profile-details"></script>
   <script src="assets/vendor/supabase-2.119.0.js"></script>
@@ -47,13 +48,30 @@
       <div class="find-detail-main-column">
         <article class="find-detail-card">
           <header class="find-detail-client"><a class="find-detail-client-avatar-link" id="requestClientAvatarLink" href="#" aria-label="View client profile"><span class="find-detail-avatar" id="requestClientAvatar"></span></a><div><a class="find-detail-client-name-link" id="requestClientNameLink" href="#"><strong id="requestClientName"></strong></a><small id="requestClientMeta"></small></div><button class="find-detail-save" id="saveRequestButton" type="button" aria-pressed="false" aria-label="Save request"><svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></button></header>
-          <div class="find-detail-tags" id="requestTags"></div>
           <h1 id="requestTitle"></h1>
           <p class="find-detail-description" id="requestDescription"></p>
-          <div class="find-detail-facts"><div><small>BUDGET</small><strong id="requestBudget"></strong></div></div>
-          <section class="find-detail-section"><h2>Project details</h2><p id="requestOverview"></p></section>
-          <section class="find-detail-section"><h2>Key requirements</h2><ul id="requestFeatures"></ul></section>
-          <section class="find-detail-section"><h2>Required specialization</h2><div class="find-detail-tags" id="requestStack"></div></section>
+          <dl class="find-detail-facts">
+            <div class="find-detail-budget-fact"><dt>BUDGET</dt><dd><span id="requestBudget"></span><span class="find-detail-negotiable" id="requestNegotiableFact" hidden>Negotiable</span></dd></div>
+            <div id="requestDeadlineFact" hidden><dt>DEADLINE</dt><dd id="requestDeadline"></dd></div>
+          </dl>
+          <section class="find-detail-section find-project-details">
+            <h2>Project details</h2>
+            <dl class="find-project-facts">
+              <div><dt>Project type</dt><dd id="requestProjectType">Not provided</dd></div>
+              <div><dt>Category</dt><dd id="requestProjectCategory">Not provided</dd></div>
+              <div><dt>Target start</dt><dd id="requestTargetStart">Not provided</dd></div>
+              <div><dt>Reference links</dt><dd><div class="find-detail-reference-links" id="requestReferenceLinks"></div></dd></div>
+              <div><dt>Created</dt><dd id="requestCreated">Date unavailable</dd></div>
+            </dl>
+          </section>
+          <section class="find-detail-section" id="requestOverviewSection" hidden><h2>Project overview</h2><p id="requestOverview"></p></section>
+          <section class="find-detail-section" id="requestRequirementsSection" hidden><h2>Key requirements</h2><ul id="requestFeatures"></ul></section>
+          <section class="find-detail-section" id="requestSpecialtySection" hidden><h2>Required specialization</h2><div class="find-detail-tags" id="requestStack"></div></section>
+          <section class="find-detail-section" id="requestReferencesSection" hidden>
+            <h2>Reference files</h2>
+            <ul class="find-detail-reference-files" id="requestReferenceFiles"></ul>
+            <p id="requestReferenceFilesStatus" role="status" aria-live="polite" hidden></p>
+          </section>
           <footer class="find-detail-stats"><span id="requestPopularity"></span><span id="requestCommentCount"></span></footer>
         </article>
         <section class="find-detail-card find-comments">
@@ -67,7 +85,11 @@
         <section class="find-detail-card find-client-card">
           <p class="find-detail-eyebrow">ABOUT THE CLIENT</p>
           <div class="find-client-profile"><a class="find-client-avatar-link" id="asideClientAvatarLink" href="#" aria-label="View client profile"><span class="find-detail-avatar" id="asideClientAvatar"></span></a><div><a class="find-client-name-link" id="asideClientNameLink" href="#"><strong id="asideClientName"></strong></a><small class="find-client-location"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 10c0 6-8 12-8 12S4 16 4 10a8 8 0 0 1 16 0z"/><circle cx="12" cy="10" r="3"/></svg><span id="asideClientLocation"></span></small></div></div>
-          <div class="find-client-facts"><div><small>REQUESTS</small><strong id="asideClientRequestCount"></strong></div><div><small>STATUS</small><strong>Open</strong></div></div>
+          <div class="find-client-stats">
+            <div><strong id="asideClientProjects">—</strong><small>PROJECTS</small></div>
+            <div><strong id="asideClientViews">—</strong><small>VIEWS</small></div>
+            <div><strong id="asideClientFavorites">—</strong><small>FAVORITES</small></div>
+          </div>
           <a class="find-contact-button" id="contactClient" href="#"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 11.5a8.5 8.5 0 0 1-8.5 8.5H4l1.5-4A8.5 8.5 0 1 1 21 11.5z"/></svg>Contact via chat</a>
         </section>
         <section class="find-detail-card find-similar-card"><h2>Similar requests</h2><div id="similarRequests"></div></section>
@@ -84,7 +106,9 @@
     </form>
   </dialog>
   <script src="assets/js/favorite-feedback.js?v=20261120-confirmation-undo"></script>
-  <script src="assets/js/find-project-detail.js?v=20261120-confirmation-undo"></script>
+  <script src="assets/js/find-project-detail.js?v=20261121-rebase-merge"></script>
+  <script src="assets/js/project-detail-popup.js?v=20261120-popup-detail"></script>
+  <script src="assets/js/project-detail-route-popup.js?v=20261120-popup-detail"></script>
   <script src="assets/js/nav-behavior.js?v=20261120-mobile-bottom-nav-v4"></script>
 <script src="assets/js/presence.js?v=20261119-global"></script>
 </body>
