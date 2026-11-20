@@ -27,7 +27,7 @@
       ],
       account: [
         { key: 'profile', id: 'profileNavLink', label: 'Profile', href: 'devmatch-my-profile.html?role=dev', icon: 'profile' },
-        { key: 'settings', id: 'settingsLink', label: 'Settings', href: 'devmatch-settings.html', icon: 'settings' }
+        { key: 'settings', id: 'settingsLink', label: 'Settings', href: 'devmatch-settings.html?role=dev', icon: 'settings' }
       ]
     },
     client: {

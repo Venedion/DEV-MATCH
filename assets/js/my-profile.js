@@ -111,7 +111,7 @@
 
   function configureRole(){
     const profileUrl=`devmatch-my-profile.html?role=${role}`;
-    const settingsUrl=`devmatch-settings.html${isDeveloper?'':'?role=client'}#account`;
+    const settingsUrl=`devmatch-settings.html?role=${role}#account`;
     const specializationUrl=`devmatch-settings.html${isDeveloper?'?role=dev&edit=specialization':'?role=client&edit=specialization'}#profile-details`;
     const skillsUrl=`devmatch-settings.html${isDeveloper?'?role=dev&edit=skills':'?role=client&edit=skills'}#profile-details`;
     const experienceUrl=`devmatch-settings.html${isDeveloper?'?role=dev&edit=experience':'?role=client&edit=experience'}#profile-details`;
