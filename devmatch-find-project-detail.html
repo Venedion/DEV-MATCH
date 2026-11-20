@@ -58,11 +58,7 @@
         </article>
         <section class="find-detail-card find-comments">
           <header><h2>Comments <span id="commentsCount">0</span></h2><label>Oldest first<select id="commentSort" aria-label="Sort comments"><option value="oldest">Oldest first</option><option value="newest">Newest first</option></select></label></header>
-          <form id="commentForm" class="find-comment-form"><span class="find-detail-avatar" id="developerAvatar">DV</span><div><textarea id="commentInput" maxlength="1000" placeholder="Ask the client a question about this project..." aria-label="Your comment"></textarea><button type="submit">Post comment</button></div></form>
-          <p class="find-comment-replying" id="findReplyContext" role="status" aria-live="polite" hidden>
-            Replying to <strong id="findReplyTarget"></strong>
-            <button id="cancelFindReply" type="button">Cancel reply</button>
-          </p>
+          <form id="commentForm" class="find-comment-form"><span class="find-detail-avatar" id="developerAvatar">DV</span><div><textarea id="commentInput" maxlength="1000" placeholder="Ask the client a question about this project..." aria-label="Your comment"></textarea><button type="submit" aria-label="Post comment"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M22 2 11 13M22 2 15 22 11 13 2 9 22 2"/></svg></button></div></form>
           <div id="requestComments" class="find-comment-list" aria-live="polite"></div>
           <p id="commentsEmpty">No comments yet. Start the conversation with the client.</p>
         </section>

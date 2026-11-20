@@ -9,10 +9,10 @@
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=optional" rel="stylesheet">
   <link rel="stylesheet" href="assets/css/client-dashboard.css?v=20261119-rebase-merge">
   <link rel="stylesheet" href="assets/css/project-detail.css?v=20261119-rebase-merge">
+  <link rel="stylesheet" href="assets/css/favorite-feedback.css?v=20261120-confirmation-undo">
   <link rel="stylesheet" href="assets/css/mode-switch-animation.css?v=20261030-active-indicator">
   <link rel="stylesheet" href="assets/css/mobile-navigation.css?v=20261120-header-content-alignment-v47">
   <link rel="stylesheet" href="assets/css/arrow-motion.css?v=20261118-arrow-motion-global-v2">
-  <link rel="stylesheet" href="assets/css/favorite-feedback.css?v=20261120-confirmation-undo">
   <script>
     (() => {
       const storageKey = 'devmatch-mode-switch-navigation';
@@ -314,81 +314,6 @@
       <button class="dialog-close" type="button" data-close-request-activity aria-label="Close latest activity"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="m3 3 10 10M13 3 3 13"/></svg></button>
     </header>
     <div class="request-activity-dialog-list" id="requestActivityDialogList" aria-live="polite"></div>
-  </dialog>
-
-  <dialog class="project-detail-dialog" id="projectDetailDialog" aria-labelledby="projectTitle">
-    <div class="detail-dialog-bar">
-      <a class="detail-brand" href="devmatch-client-dashboard.html"><img class="brand-mark" src="assets/images/devmatch-logo.png" width="35" height="35" alt="" aria-hidden="true"><span>DEV-MATCH</span></a>
-      <span class="detail-modal-label">Project details</span>
-      <button class="close-detail" id="closeProjectDetail" type="button" aria-label="Close project details"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="m3 3 10 10M13 3 3 13"/></svg></button>
-    </div>
-    <div class="detail-page">
-      <div class="detail-error" id="detailError" role="alert" hidden></div>
-      <div id="projectContent" hidden>
-        <section class="project-heading">
-          <div>
-            <p class="detail-eyebrow" id="projectCategory"></p>
-            <h1 id="projectTitle"></h1>
-            <p class="project-subtitle" id="projectSummary"></p>
-            <p class="project-price" id="projectPrice"></p>
-          </div>
-        </section>
-        <section class="project-detail-grid">
-          <div class="detail-main-column">
-            <div class="project-cover" id="projectCover" aria-hidden="true"></div>
-            <section class="detail-section">
-              <h2>About this project</h2>
-              <p id="projectOverview"></p>
-              <p id="projectStack"></p>
-            </section>
-            <section class="detail-section included-section">
-              <h2>What's included</h2>
-              <div class="included-grid">
-                <div><span class="included-check">✓</span><span><b>Source code included</b><small>Full project files handed over</small></span></div>
-                <div><span class="included-check">✓</span><span><b>Deployment included</b><small>Ready for your hosting account</small></span></div>
-                <div><span class="included-check">✓</span><span><b>Documentation included</b><small>Setup and handover guide</small></span></div>
-                <div><span class="included-check">✓</span><span><b>Support included</b><small>Discuss the support period with developer</small></span></div>
-              </div>
-            </section>
-            <section class="detail-section">
-              <h2>Project details</h2>
-              <dl class="project-facts">
-                <div><dt>Project type</dt><dd id="projectType"></dd></div>
-                <div><dt>Category</dt><dd id="projectFactCategory"></dd></div>
-                <div><dt>Pricing type</dt><dd>Starting from</dd></div>
-                <div><dt>Project preview</dt><dd id="projectLink"></dd></div>
-                <div><dt>Created</dt><dd id="projectCreated"></dd></div>
-              </dl>
-            </section>
-            <section class="detail-section comments-section">
-              <div class="comments-heading"><h2>Comments <span id="commentCount">0</span></h2><label class="sort-comments"><select aria-label="Sort comments"><option>Newest</option><option>Oldest</option></select></label></div>
-              <form class="comment-form" id="commentForm">
-                <span class="comment-avatar" id="clientInitials">CL</span>
-                <div class="comment-compose"><label class="visually-hidden" for="commentInput">Write a comment</label><textarea id="commentInput" maxlength="500" placeholder="Ask the developer a question about this project..." required></textarea><button type="submit">Post comment</button></div>
-              </form>
-              <div class="comment-list" id="commentList" aria-live="polite"></div>
-              <p class="demo-disclaimer">Comments are saved in this browser for this demo.</p>
-            </section>
-          </div>
-          <aside class="developer-card">
-            <p class="developer-card-label">About the developer</p>
-            <div class="developer-profile"><span class="developer-profile-avatar" id="developerInitials"></span><div><h2 id="developerName"></h2><p><span id="developerHandle"></span> · <span id="developerLocation"></span></p></div></div>
-            <div class="developer-badges"><span class="developer-status"><i></i>Open for hiring</span><span class="developer-specialty" id="developerSpecialty"></span></div>
-            <p class="developer-help" id="developerBio"></p>
-            <dl class="developer-stats">
-              <div><dt>Projects</dt><dd id="developerProjects"></dd></div>
-              <div><dt>Views</dt><dd id="developerViews"></dd></div>
-              <div><dt>Favorites</dt><dd id="developerFavorites"></dd></div>
-            </dl>
-            <a class="view-developer-profile arrow-action" id="viewDeveloperProfile" href="devmatch-developer-profile.html?developer=restaurant">View full profile <svg class="arrow-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12h20M17 8l5 4-5 4"/></svg></a>
-            <a class="chat-developer chat-developer-secondary" id="chatDeveloperLink" href="devmatch-chat.html?role=client">
-              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.5 11.5a8 8 0 0 1-8 8H6l-2.5 1.5.8-4.1a8 8 0 1 1 16.2-5.4Z"/><path d="M8.5 12h.01M12.5 12h.01M16.5 12h.01"/></svg>
-              Chat with developer
-            </a>
-          </aside>
-        </section>
-      </div>
-    </div>
   </dialog>
 
   <a class="floating-chat" href="devmatch-chat.html?role=client" aria-label="Messages &amp; Chat" title="Open Messages &amp; Chat">

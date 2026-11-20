@@ -2,6 +2,9 @@
   const $=id=>document.getElementById(id);
   const backend=window.devMatchBackend;
   const auth=backend.client.auth;
+  const search=location.search||'';
+  const roleMatch=search.match(/[?&]role=(client|dev)(?:&|$)/);
+  const requestedRole=roleMatch?roleMatch[1]:null;
   let address='';let cooldownUntil=0;let busy=false;
   function status(text){$('otpStatus').textContent=text;}
   function tick(){
@@ -53,7 +56,10 @@
         status('Kode salah atau kedaluwarsa. Periksa kode terbaru atau kirim ulang.');
         return;
       }
-      const row=await backend.loadProfile(user);
+      let row=await backend.loadProfile(user);
+      if(requestedRole&&row.account_role!==requestedRole){
+        row=await backend.switchWorkspace(requestedRole,true);
+      }
       backend.clearCache();backend.cache(row,user);
       sessionStorage.setItem('devmatch-profile-draft',JSON.stringify({...backend.profileDataForCache(row.profile_data),username:row.username||'',role:row.account_role}));
       location.assign(backend.destination(row,user));

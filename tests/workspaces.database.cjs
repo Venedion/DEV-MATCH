@@ -203,6 +203,16 @@ const C = '33333333-3333-4333-8333-333333333333';
   assert.equal((await scalar('select public.is_whatsapp_phone_verified() ok')).ok,true);
   await asUser(B);
   assert.equal((await scalar('select public.is_whatsapp_phone_verified() ok')).ok,false);
+  await db.exec(`reset role;
+    insert into public.project_views(project_id,viewer_id,viewed_on) values('portfolio-a','${C}',current_date);
+    insert into public.favorites(user_id,workspace_role,item_type,item_id)
+      values('${C}','client','project','portfolio-a');
+  `);
+  const developerMetrics = await scalar(`select published_portfolio_count,published_portfolio_views_count,published_portfolio_favorites_count
+    from public.directory_people where id='${A}' and account_role='dev'`);
+  assert.equal(Number(developerMetrics.published_portfolio_count), 1);
+  assert.equal(Number(developerMetrics.published_portfolio_views_count), 1);
+  assert.equal(Number(developerMetrics.published_portfolio_favorites_count), 2);
   console.log('PASS: full schema, legacy history retained, shared identity, workspace profile isolation, dual-role projects/directory/metrics/reviews, role-aware chat/presence, favorites/notifications/read preferences, RLS and comment features');
   await db.close();
 })().catch(error => { console.error(error.message); process.exitCode = 1; });

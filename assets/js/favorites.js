@@ -193,7 +193,7 @@
     const projectOwners = new Map();
     if (ownerIds.length) {
       const {data, error} = await client.from('directory_people')
-        .select('id,display_name,account_role,profile_data')
+        .select('id,display_name,username,account_role,profile_data')
         .eq('account_role', isClient ? 'dev' : 'client')
         .in('id', ownerIds);
       if (error) throw error;
@@ -219,6 +219,7 @@
         category: String(row.category || data.category || 'Other'),
         description: String(data.description || data.overview || ''),
         developer: name,
+        handle: owner?.username ? `@${String(owner.username).replace(/^@/, '')}` : '',
         initials: (name.match(/\b\p{L}/gu) || []).slice(0, 2).join('').toUpperCase() || 'DM',
         price,
         detailUrl,
@@ -605,7 +606,7 @@
     }
 
     favGridEl.innerHTML = savedProjects.map(project => `
-      <article class="fav-card${isClient ? '' : ' fav-card-clickable'}" data-project-id="${escapeHtml(project.id)}" ${isClient ? '' : `data-detail-url="${escapeHtml(project.detailUrl)}"`}>
+      <article class="fav-card fav-card-clickable" data-project-id="${escapeHtml(project.id)}" ${isClient ? `data-project-detail="${escapeHtml(project.id)}" role="link" tabindex="0" aria-label="View ${escapeHtml(project.title)} details"` : `data-detail-url="${escapeHtml(project.detailUrl)}"`}>
         <div class="fav-card-art ${escapeHtml(project.art || '')}">
           <span class="fav-card-badge">${escapeHtml(project.category)}</span>
           <button class="fav-remove-btn" type="button" data-remove-fav="${escapeHtml(project.id)}" title="Remove from favorites" aria-label="Remove ${escapeHtml(project.title)} from favorites">
@@ -635,9 +636,9 @@
             ${!isClient ? `<span class="fav-card-price">${escapeHtml(project.price)}</span>` : ''}
             <a class="fav-dev-pill" href="${escapeHtml(project.profileUrl)}">
               <span class="fav-dev-avatar">${escapeHtml(project.initials)}</span>
-              <span class="fav-dev-name">${escapeHtml(project.developer)}</span>
+              <span class="fav-dev-name-wrap"><b>${escapeHtml(project.developer)}</b><small>${escapeHtml(project.handle||'')}</small></span>
             </a>
-            ${isClient ? `<span class="fav-card-price">${escapeHtml(project.price)}</span>` : ''}
+            ${isClient ? `<span class="fav-card-price">${escapeHtml(project.price)}</span><span class="fav-card-rating" aria-label="Rating 4.9 out of 5"><span>★</span> 4.9</span>` : ''}
           </div>
         </div>
 
@@ -646,7 +647,7 @@
             <svg viewBox="0 0 24 24"><path d="M21 11.5a8.5 8.5 0 0 1-8.5 8.5H4l1.5-4A8.5 8.5 0 1 1 21 11.5z"/></svg>
             ${isClient ? 'Contact' : 'Chat with Client'}
           </a>
-          ${isClient ? `<a class="fav-action-link" href="${escapeHtml(project.detailUrl)}">View Details</a>` : ''}
+          ${isClient ? `<a class="fav-action-link" href="${escapeHtml(project.detailUrl)}" data-project-detail="${escapeHtml(project.id)}">View Details</a>` : ''}
         </footer>
       </article>
     `).join('');
@@ -659,6 +660,30 @@
         confirmFavoriteRemoval('project', project.id, project.title);
       });
     });
+    if(isClient){
+      favGridEl.querySelectorAll('[data-project-detail]').forEach(element=>{
+        element.addEventListener('click',event=>{
+          if(element.tagName==='A'||element.tagName==='BUTTON'){
+            if(event.button!==0||event.metaKey||event.ctrlKey||event.shiftKey||event.altKey||typeof window.openProjectDetails!=='function')return;
+            event.preventDefault();
+            window.openProjectDetails(element.dataset.projectDetail);
+          }else{
+            if(event.target.closest('a,button')||typeof window.openProjectDetails!=='function')return;
+            window.openProjectDetails(element.dataset.projectDetail);
+          }
+        });
+        if(element.tagName==='ARTICLE'){
+          element.addEventListener('keydown',event=>{
+            if((event.key==='Enter'||event.key===' ')&&event.target===element){
+              event.preventDefault();
+              if(typeof window.openProjectDetails==='function'){
+                window.openProjectDetails(element.dataset.projectDetail);
+              }
+            }
+          });
+        }
+      });
+    }
     if (!isClient) {
       favGridEl.querySelectorAll('.fav-card-clickable').forEach(card => {
         card.addEventListener('click', event => {

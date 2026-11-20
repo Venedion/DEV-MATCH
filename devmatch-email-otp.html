@@ -8,5 +8,7 @@
 <form id="otpEmailForm"><label for="otpEmail">Email</label><div class="in"><input id="otpEmail" type="email" autocomplete="email" placeholder="nama@email.com" required></div><button class="submit" id="otpSend">Kirim kode login</button></form>
 <form id="otpCodeForm" hidden><label for="otpCode">Kode dari email</label><div class="in"><input id="otpCode" type="text" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6,10}" maxlength="10" required></div><button class="submit" id="otpVerify">Verifikasi dan masuk</button>
 <div class="otp-actions"><button id="otpResend" type="button">Kirim ulang</button><button id="otpChange" type="button">Ganti email</button></div></form>
-<p id="otpStatus" role="status" aria-live="polite"></p><a href="devmatch-auth.html?mode=login">Login dengan password</a></main><script src="assets/js/email-otp.js?v=20261118-delivery-errors"></script><script src="assets/js/presence.js?v=20261119-global"></script>
+<p id="otpStatus" role="status" aria-live="polite"></p><a id="otpPasswordLink" href="devmatch-auth.html?mode=login">Login dengan password</a></main>
+<script>const otpRole=new URLSearchParams(location.search).get('role');if(['client','dev'].includes(otpRole))document.getElementById('otpPasswordLink').href=`devmatch-auth.html?mode=login&role=${otpRole}`;</script>
+<script src="assets/js/email-otp.js?v=20261119-workspace-role"></script><script src="assets/js/presence.js?v=20261119-global"></script>
 </body></html>

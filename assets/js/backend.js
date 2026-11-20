@@ -278,7 +278,14 @@
   async function currentAccount(){
     const initial=await ready;
     const {data:{user},error}=await client.auth.getUser();
-    if(error||!initial||!user||initial.id!==user.id)throw new Error('Your session changed. Reload the page and log in again.');
+    if(error||!initial||!user){
+      clearCache();
+      throw new Error('Your login session has expired. Log in again.');
+    }
+    if(initial.id!==user.id){
+      clearCache();
+      throw new Error('Your login session changed. Reload the page and log in again.');
+    }
     return user;
   }
 

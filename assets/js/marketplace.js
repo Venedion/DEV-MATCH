@@ -30,6 +30,17 @@
   const catalogStatus = document.getElementById('catalogStatus');
   const projectTabCount = document.getElementById('projectTabCount');
   const developerTabCount = document.getElementById('developerTabCount');
+  function safeProjectCover(value) {
+    if (typeof value !== 'string' || !value.trim()) return '';
+    try {
+      const url = new URL(value);
+      return url.origin === 'https://yxwktllqbmhustmhdaqi.supabase.co'
+        && url.pathname.startsWith('/storage/v1/object/public/project-media/')
+        ? value : '';
+    } catch {
+      return '';
+    }
+  }
   let favoriteIds = readFavorites();
   const favoriteStateReady = window.devMatchBackend.ready.then(user => user
     ? window.devMatchBackend.loadFavorites()
@@ -443,6 +454,13 @@
     const art = isRequestsPage
       ? 'dashboard-art'
       : item.art || 'food-art';
+    const coverImage = safeProjectCover(item.coverImage);
+    if (!isRequestsPage && coverImage) {
+      const favorite = favoriteIds.includes(item.id);
+      const favoriteButton = includeFavorite ? `<button class="favorite-button" type="button" data-favorite="${escapeHtml(item.id)}" aria-pressed="${favorite}" aria-label="${favorite ? 'Remove from' : 'Save to'} Favorites"><svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></button>` : '';
+      const artLabel = item.type;
+      return `<div class="project-art ${escapeHtml(art)}"><span class="art-label">${escapeHtml(artLabel)}</span>${favoriteButton}<img class="marketplace-project-cover" src="${escapeHtml(coverImage)}" alt="${escapeHtml(item.title)}" loading="lazy"></div>`;
+    }
     let markup = '<span class="art-title"></span><span class="art-copy"></span><div class="art-graphic"></div>';
     if (art === 'dashboard-art') markup = '<div class="mini-bars"><i></i><i></i><i></i><i></i><i></i><i></i></div>';
     if (art === 'analytics-art') markup = '<div class="analytics-stats"><i></i><i></i><i></i></div><div class="analytics-graph"></div>';
@@ -460,10 +478,9 @@
       <strong class="catalog-price">${escapeHtml(item.price)}</strong>
       <div class="project-by catalog-project-by">
         <span class="developer-avatar">${escapeHtml(item.initials)}</span>
-        <span class="developer-info"><b>${escapeHtml(item.developer)}</b></span>
+        <span class="developer-info"><b>${escapeHtml(item.developer)}</b><small>${escapeHtml(item.handle || '')}</small></span>
         <span class="rating" aria-label="Rating 4.9 out of 5"><span>★</span> 4.9</span>
-      </div>
-      <div class="catalog-actions"><button class="catalog-detail-link arrow-action" type="button" data-detail="${escapeHtml(item.id)}">View details <svg class="arrow-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12h20M17 8l5 4-5 4"/></svg></button></div>`;
+      </div>`;
     const requestFavorite=favoriteIds.includes(item.id);
     const requestSpecialties=Array.isArray(item.specialties)
       ?item.specialties
@@ -479,7 +496,7 @@
       <p class="project-description">${escapeHtml(item.description)}</p>
       <div class="request-budget-box"><small>BUDGET</small><strong>${escapeHtml(item.budgetLabel)}</strong></div>
       <div class="request-required"><strong>Required</strong><div class="request-card-tags">${requiredTags.length?requiredTags.map(value=>`<span>${escapeHtml(value)}</span>`).join(''):'<span>Not specified</span>'}</div></div>
-      <footer class="request-card-footer">${requestMetrics}<button class="request-card-view" type="button" data-detail="${escapeHtml(item.id)}">View request <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14m-6-6 6 6-6 6"/></svg></button></footer>`;
+      <footer class="request-card-footer">${requestMetrics}</footer>`;
     if(isRequestsPage){
       return `<article class="project-card request-project-card" data-card-detail="${escapeHtml(item.id)}" tabindex="0" aria-label="Open details for ${escapeHtml(item.title)}"><div class="project-body request-card-body">${requestContent}</div></article>`;
     }
@@ -582,6 +599,8 @@
       } else {
         window.location.href = `devmatch-find-project-detail.html?request=${encodeURIComponent(item.id)}`;
       }
+    } else if (typeof window.openProjectDetails === 'function') {
+      window.openProjectDetails(item.id);
     } else {
       window.location.href = `devmatch-discover-project-detail.html?project=${encodeURIComponent(item.id)}`;
     }
@@ -798,11 +817,14 @@
         const description = String(data.description || data.overview || '');
         const budget = String(row.price || data.price || data.budgetLabel || data.budget || '');
         const tags = Array.isArray(data.stack) ? data.stack : String(data.stack || '').split(/\s+(?:and|,)\s+/).filter(Boolean);
+        const firstMedia = Array.isArray(data.media) ? data.media.find(value => typeof value === 'string') : '';
+        const coverImage = safeProjectCover(row.cover_image || data.coverImage || firstMedia);
         return {
           ...data, id:row.id, title:String(row.title || data.title || ''), type, category,
-          description, stack:tags, coverImage:row.cover_image || '',
+          description, stack:tags, coverImage,
           price:budget, budgetLabel:budget, budget:Number(String(data.budget || budget).replace(/[^\d]/g,'')) || 0,
           developer:name || 'DEV-MATCH member', client:name || 'DEV-MATCH member',
+          handle:person?.username ? `@${String(person.username).replace(/^@/, '')}` : '',
           initials:(name.match(/\b\p{L}/gu)||[]).slice(0,2).join('').toUpperCase() || 'DM',
           location:location || 'Location not provided',
           age:new Intl.DateTimeFormat(undefined,{dateStyle:'medium'}).format(new Date(row.created_at || row.updated_at)),

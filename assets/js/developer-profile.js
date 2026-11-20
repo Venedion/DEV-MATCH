@@ -19,6 +19,7 @@
     Other:{description:'Custom specialization',icon:'<path d="M12 5v14m-7-7h14"/>'}
   };
   let projects=[],favoriteDeveloper=false,accountRole=null,publicProfileProjects=null,commenterRoles=new Map();
+  let profileDeveloperIdentity={};
   let activeFilter='All',activeQuery='';
   const filters=['All','Website','Web App','Android / iOS','Desktop App'];
   const filtersRoot=document.getElementById('portfolioFilters');
@@ -27,6 +28,18 @@
   const reviewsPanel=document.getElementById('publicReviewsPanel');
   const commentsPanel=document.getElementById('commentsPanel');
   const sortSelect=document.getElementById('sortProjects');
+  grid.addEventListener('click',event=>{
+    const link=event.target.closest('[data-project-detail]');
+    if(!link||typeof window.openProjectDetails!=='function'||event.button!==0||event.metaKey||event.ctrlKey||event.shiftKey||event.altKey)return;
+    event.preventDefault();
+    window.openProjectDetails(link.dataset.projectDetail);
+  });
+  grid.addEventListener('keydown',event=>{
+    if((event.key==='Enter'||event.key===' ')&&event.target.matches('[data-project-detail]')){
+      event.preventDefault();
+      window.openProjectDetails(event.target.dataset.projectDetail);
+    }
+  });
   function showError(message){
     status.hidden=false;status.textContent=message;
     identity.hidden=true;columns.hidden=true;
@@ -35,7 +48,7 @@
     const data=row.data&&typeof row.data==='object'?row.data:{};
     return {...data,id:row.id,title:String(row.title||data.title||''),type:String(row.project_type||data.projectType||data.type||''),
       category:String(row.category||data.category||''),description:String(data.description||data.overview||''),
-      price:String(row.price||data.price||''),views:'—',favorites:'—',created:row.created_at||row.updated_at};
+      price:String(row.price||data.price||''),coverImage:String(row.cover_image||data.coverImage||''),views:'—',favorites:'—',created:row.created_at||row.updated_at};
   }
   function normalizeList(value){
     const items=Array.isArray(value)?value:typeof value==='string'?value.split(/[,;\n]/):[];
@@ -54,10 +67,23 @@
     const sort=sortSelect.value;
     filtered.sort((a,b)=>sort==='title'?a.title.localeCompare(b.title):sort==='newest'
       ?new Date(b.created)-new Date(a.created):a.title.localeCompare(b.title));
-    grid.innerHTML=filtered.map(item=>`<article class="showcase-project">
-      <div class="project-art art-dashboard"><div class="project-browser" aria-hidden="true"><div class="browser-bar"><i></i><i></i><i></i></div><div class="browser-content"><span class="art-accent"></span></div></div></div>
-      <div class="project-copy"><span class="project-category">${escapeHtml(item.category)}</span><h3>${escapeHtml(item.title)}</h3><p>${escapeHtml(item.description)}</p><footer class="project-footer"><strong>${escapeHtml(item.price||'Price not specified')}</strong><span class="project-metric">Views ${escapeHtml(item.views)}</span></footer>
-      <a href="devmatch-discover-project-detail.html?project=${encodeURIComponent(item.id)}">View project</a></div></article>`).join('');
+    grid.innerHTML=filtered.map(item=>`
+      <article class="showcase-project portfolio-catalog-card" data-project-detail="${escapeHtml(item.id)}" tabindex="0" role="link" aria-label="View ${escapeHtml(item.title)} details">
+        <div class="project-art art-dashboard">${item.coverImage
+          ?`<img class="portfolio-card-cover" src="${escapeHtml(item.coverImage)}" alt="${escapeHtml(item.title)}" loading="lazy">`
+          :'<div class="project-browser" aria-hidden="true"><div class="browser-bar"><i></i><i></i><i></i></div><div class="browser-content"><span class="art-accent"></span></div></div>'}</div>
+        <div class="project-copy">
+          <span class="project-category">${escapeHtml(item.category)}</span>
+          <h3>${escapeHtml(item.title)}</h3>
+          <p>${escapeHtml(item.description)}</p>
+          <strong class="portfolio-catalog-price">${escapeHtml(item.price||'Price not specified')}</strong>
+          <footer class="project-footer portfolio-catalog-footer">
+            <span class="developer-avatar">${escapeHtml(profileDeveloperIdentity.initials||'DM')}</span>
+            <span class="developer-info"><b>${escapeHtml(profileDeveloperIdentity.name||'DEV-MATCH member')}</b><small>${escapeHtml(profileDeveloperIdentity.handle||'')}</small></span>
+            <span class="rating" aria-label="Rating 4.9 out of 5"><span>★</span> 4.9</span>
+          </footer>
+        </div>
+      </article>`).join('');
     empty.hidden=filtered.length>0;
   }
   function renderComments(comments){
@@ -119,7 +145,7 @@
     }else{
       let ownerId=requestedId;
       let {data:publicProjects,error:projectError}=await window.devMatchBackend.client.from('projects')
-        .select('id,owner_id,title,project_type,category,price,data,status,created_at,updated_at')
+        .select('id,owner_id,title,project_type,category,price,cover_image,data,status,created_at,updated_at')
         .eq('owner_id',ownerId).eq('project_kind','portfolio').eq('status','published').order('updated_at',{ascending:false});
       if(projectError)throw projectError;
       if(!publicProjects.length){
@@ -129,7 +155,7 @@
         if(project){
           ownerId=project.owner_id;
           const result=await window.devMatchBackend.client.from('projects')
-            .select('id,owner_id,title,project_type,category,price,data,status,created_at,updated_at')
+            .select('id,owner_id,title,project_type,category,price,cover_image,data,status,created_at,updated_at')
             .eq('owner_id',ownerId).eq('project_kind','portfolio').eq('status','published').order('updated_at',{ascending:false});
           if(result.error)throw result.error;
           publicProjects=result.data||[];
@@ -152,7 +178,7 @@
     let rows=publicProfileProjects;
     if(!rows){
       const result=await window.devMatchBackend.client.from('projects')
-        .select('id,title,project_type,category,price,data,status,created_at,updated_at')
+        .select('id,title,project_type,category,price,cover_image,data,status,created_at,updated_at')
         .eq('owner_id',person.id).eq('project_kind','portfolio').eq('status','published').order('updated_at',{ascending:false});
       if(result.error)throw result.error;
       rows=result.data||[];
@@ -161,6 +187,7 @@
     projects=(rows||[]).map(projectRecord);
     const profile=person.profile_data||{};
     const name=String(person.display_name||'DEV-MATCH member');
+    profileDeveloperIdentity={name,handle:person.username?`@${String(person.username).replace(/^@/,'')}`:'',initials:initials(name)};
     const location=String(profile.city||'Location not provided');
     const specialtyValues=Array.isArray(profile.specialty)?profile.specialty:typeof profile.specialty==='string'?[profile.specialty]:[];
     const selectedSpecialties=specialtyValues.map(value=>String(value).trim()).filter(Boolean);

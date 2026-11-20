@@ -16,11 +16,15 @@ const favoritesKey='devmatch-client-project-favorites';
 if(localStorage.getItem(favoritesKey)===null){const legacy=localStorage.getItem('devmatch-client-favorites');if(legacy!==null)localStorage.setItem(favoritesKey,legacy);}
 const requestsKey='devmatch-client-requests';
 let favorites=JSON.parse(localStorage.getItem(favoritesKey)||'[]');
-const favoriteStateReady=window.devMatchBackend.ready.then(user=>user
-  ?window.devMatchBackend.loadFavorites()
-  :null
-).then(records=>{
-  if(!records)return false;
+let favoritesRevision=0;
+const favoriteStateReady=window.devMatchBackend.ready.then(user=>{
+  if(!user)return null;
+  const revision=favoritesRevision;
+  return window.devMatchBackend.loadFavorites().then(records=>({revision,records}));
+}).then(result=>{
+  if(!result)return false;
+  if(result.revision!==favoritesRevision)return true;
+  const records=result.records;
   favorites=records.filter(item=>item.type==='project').map(item=>item.id);
   const developerIds=records.filter(item=>item.type==='developer').map(item=>item.id);
   localStorage.setItem(favoritesKey,JSON.stringify(favorites));
@@ -137,9 +141,12 @@ function projectCardMarkup(project,discover=false){
       <div class="project-body">
         <div class="project-meta"><b>${escapeHtml(project.category)}</b><span>${escapeHtml(project.age)}</span></div>
         <h3>${escapeHtml(project.title)}</h3><p>${escapeHtml(project.description)}</p>
-        ${discover?`<div class="discover-card-price"><span>STARTING FROM</span><strong>${escapeHtml(project.price)}</strong><span class="discover-card-arrow" aria-hidden="true">→</span></div>`:`<div class="project-price">${escapeHtml(project.price)}</div>`}
-        <div class="project-by"><span class="developer-avatar">${escapeHtml(project.initials)}</span>${escapeHtml(project.developer)}<span class="developer-location">${escapeHtml(project.location)}</span></div>
-        <button class="project-card-view arrow-action" type="button" data-project-open="${escapeHtml(project.id)}">View details <svg class="arrow-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12h20M17 8l5 4-5 4"/></svg></button>
+        ${discover?`<strong class="project-price">${escapeHtml(project.price)}</strong>`:`<strong class="project-price">${escapeHtml(project.price)}</strong>`}
+        <div class="project-by catalog-project-by">
+          <span class="developer-avatar">${escapeHtml(project.initials)}</span>
+          <span class="developer-info"><b>${escapeHtml(project.developer)}</b><small>${escapeHtml(project.handle||'')}</small></span>
+          <span class="rating" aria-label="Rating 4.9 out of 5"><span>★</span> 4.9</span>
+        </div>
       </div>
     </article>`;
 }
@@ -171,6 +178,20 @@ function renderProjects(){
   document.getElementById('favoriteCount').textContent=String(favorites.length);
 }
 
+window.addEventListener('devmatch:project-favorite-change',event=>{
+  const change=event.detail;
+  if(!change||typeof change.projectId!=='string'||typeof change.saved!=='boolean')return;
+  favoritesRevision++;
+  favorites=Array.isArray(change.favorites)
+    ?[...new Set(change.favorites.filter(id=>typeof id==='string'))]
+    :change.saved
+      ?[...new Set([...favorites,change.projectId])]
+      :favorites.filter(id=>id!==change.projectId);
+  localStorage.setItem(favoritesKey,JSON.stringify(favorites));
+  renderProjects();
+  window.DEVMATCH_NAV_BADGES?.updateFavorites();
+});
+
 async function loadPublicProjects(){
   try{
     const user=await window.devMatchBackend.ready;
@@ -186,7 +207,7 @@ async function loadPublicProjects(){
     let peopleById=new Map();
     if(ownerIds.length){
       const {data:people,error:peopleError}=await client.from('directory_people')
-        .select('id,display_name,account_role,profile_data')
+        .select('id,display_name,username,account_role,profile_data')
         .eq('account_role','dev')
         .in('id',ownerIds);
       if(peopleError)throw peopleError;
@@ -214,6 +235,7 @@ async function loadPublicProjects(){
         specialties,
         price:rawPrice||'Contact for pricing',
         developer:displayName,
+        handle:person?.username?`@${String(person.username).replace(/^@/,'')}`:'',
         initials:(displayName.match(/\b\p{L}/gu)||[]).slice(0,2).join('').toUpperCase()||'DM',
         location:[profile.city,profile.country].filter(Boolean).join(', ')||'Location not provided',
         age:Number.isNaN(createdAt.getTime())
@@ -1113,16 +1135,29 @@ async function showRequestDetailPage(request,{preserveScroll=false}={}){
       input.maxLength=5000;
       input.required=true;
       input.placeholder='Write a reply…';
+      input.id=`request-detail-reply-${comment.id}`;
       input.setAttribute('aria-label',`Reply to ${comment.name||'member'}`);
+      input.addEventListener('keydown',event=>{
+        if(event.key!=='Enter'||event.shiftKey||event.isComposing||event.keyCode===229)return;
+        event.preventDefault();
+        if(!event.repeat&&!submit.disabled)form.requestSubmit();
+      });
+      const label=document.createElement('label');
+      label.htmlFor=input.id;
+      label.textContent='Reply';
+      const compose=document.createElement('div');
+      compose.className='request-detail-comment-reply-compose';
       const submit=document.createElement('button');
       submit.type='submit';
-      submit.textContent='Send reply';
+      submit.setAttribute('aria-label','Send reply');
+      submit.innerHTML='<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M22 2 11 13M22 2 15 22 11 13 2 9 22 2"/></svg>';
+      compose.append(input,submit);
       const status=document.createElement('p');
       status.className='request-detail-comment-reply-status';
       status.setAttribute('role','status');
       status.setAttribute('aria-live','polite');
       status.hidden=true;
-      form.append(input,submit,status);
+      form.append(label,compose,status);
       item.append(replyButton,form);
     }
     parentContainer.append(item);

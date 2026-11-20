@@ -67,6 +67,10 @@ async function requestRegistrationPermit(email){
 }
 function render(){
   const c=copy[role],reg=mode==='reg';
+  const otpLink=document.querySelector('.alt.log a');
+  if(otpLink){
+    otpLink.href=`devmatch-email-otp.html${role==='cli'?'?role=client':'?role=dev'}`;
+  }
   document.querySelectorAll('.reg').forEach(e=>e.classList.toggle('hide',!reg));
   document.querySelectorAll('.log').forEach(e=>e.classList.toggle('hide',reg));
   $('sideBadge').innerHTML=c.badge;$('sideTitle').innerHTML=reg?c.side:'Welcome back.';
@@ -142,7 +146,13 @@ $('form').addEventListener('submit',async e=>{
     }
     const {data:{user},error}=await backend.client.auth.getUser();
     if(error||!user)throw error||new Error('Unable to verify your session.');
-    const row=await backend.loadProfile(user);
+    let row=await backend.loadProfile(user);
+    if(!reg){
+      const requestedRole=params.get('role')==='client'?'client':params.get('role')==='dev'?'dev':null;
+      if(requestedRole&&row.account_role!==requestedRole){
+        row=await backend.switchWorkspace(requestedRole,true);
+      }
+    }
     backend.clearCache();
     backend.cache(row,user);
     sessionStorage.setItem('devmatch-profile-draft',JSON.stringify({...backend.profileDataForCache(row.profile_data),username:row.username||'',role:row.account_role}));
