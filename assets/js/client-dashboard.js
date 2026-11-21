@@ -56,6 +56,7 @@ let activeRequestFilter='all';
 let activeRequestQuery='';
 let activeRequestSort='newest';
 let activeRequestDetailId=null;
+const expandedRequestCommentReplies=new Set();
 let activeRequestViewId=null;
 let requestActivityEntries=[];
 let requestActivityState='loading';
@@ -1341,9 +1342,10 @@ function renderRequestDetailProjectFacts(request,{category,type}){
     container.append(row);
   });
 }
-async function showRequestDetailPage(request,{preserveScroll=false}={}){
+async function showRequestDetailPage(request,{preserveScroll=false,focusComments=false}={}){
   const detailDialog=document.getElementById('requestDetailPage');
   const previousScrollTop=detailDialog.scrollTop;
+  if(activeRequestDetailId!==request.id)expandedRequestCommentReplies.clear();
   activeRequestDetailId=request.id;
   let currentUserId=null;
   let repliesSupported=true;
@@ -1368,7 +1370,7 @@ async function showRequestDetailPage(request,{preserveScroll=false}={}){
   try{commenterRoles=await window.devMatchBackend.loadCommentAuthorRoles(comments);}
   catch(error){console.error('Unable to load request commenter profiles from Supabase.',error);}
   const profileLink=(comment,node,className)=>{
-    const href=window.devMatchBackend.publicProfileUrl(comment.userId,commenterRoles.get(comment.userId));
+    const href=window.devMatchBackend.publicProfileUrl(comment.userId,comment.workspaceRole||commenterRoles.get(comment.userId));
     if(!href)return node;
     const link=document.createElement('a');
     link.className=className;
@@ -1447,93 +1449,171 @@ async function showRequestDetailPage(request,{preserveScroll=false}={}){
   renderRequestDetailProjectFacts(request,{category,type});
   document.getElementById('requestDetailCommentCount').textContent=String(commentCount);
   const commentsList=document.getElementById('requestDetailCommentsList');
-  commentsList.replaceChildren();
   const commentsStatus=document.getElementById('requestDetailCommentsStatus');
   commentsStatus.hidden=!commentsLoadFailed&&repliesSupported;
   if(commentsLoadFailed)commentsStatus.textContent='Unable to load comments. Check your connection and try again.';
   else if(!repliesSupported)commentsStatus.textContent='Comments are visible, but replies require the latest database migration.';
-  const commentsByParent=new Map();
-  comments.forEach(comment=>{
-    const parentId=comment.parentCommentId||null;
-    if(!commentsByParent.has(parentId))commentsByParent.set(parentId,[]);
-    commentsByParent.get(parentId).push(comment);
-  });
-  const appendComment=(comment,parentContainer)=>{
-    const item=document.createElement('article');
-    item.className='request-detail-comment';
-    item.dataset.commentId=comment.id;
-    const authorRow=document.createElement('div');
-    authorRow.className='request-detail-comment-author';
-    const avatar=document.createElement('span');
-    avatar.className='request-detail-avatar';
-    avatar.textContent=comment.initials||String(comment.name||'Member').trim().split(/\s+/).filter(Boolean).slice(0,2).map(part=>part[0]).join('').toUpperCase();
-    const author=document.createElement('strong');
-    author.textContent=comment.name||'Member';
-    authorRow.append(
-      profileLink(comment,avatar,'comment-profile-avatar-link'),
-      profileLink(comment,author,'comment-profile-name-link')
-    );
-    const message=document.createElement('p');
-    message.textContent=comment.text||'';
-    item.append(authorRow,message);
-    if(repliesSupported&&currentUserId&&comment.userId!==currentUserId){
-      const replyButton=document.createElement('button');
-      replyButton.className='request-detail-comment-reply-toggle';
-      replyButton.type='button';
-      replyButton.dataset.commentReplyToggle='';
-      replyButton.setAttribute('aria-expanded','false');
-      replyButton.textContent='Reply';
-      const form=document.createElement('form');
-      form.className='request-detail-comment-reply-form';
-      form.dataset.commentReplyForm='';
-      form.dataset.parentCommentId=comment.id;
-      form.hidden=true;
-      const input=document.createElement('textarea');
-      input.maxLength=5000;
-      input.required=true;
-      input.placeholder='Write a reply…';
-      input.id=`request-detail-reply-${comment.id}`;
-      input.setAttribute('aria-label',`Reply to ${comment.name||'member'}`);
-      input.addEventListener('keydown',event=>{
-        if(event.key!=='Enter'||event.shiftKey||event.isComposing||event.keyCode===229)return;
-        event.preventDefault();
-        if(!event.repeat&&!submit.disabled)form.requestSubmit();
+  const commentSort=document.getElementById('requestDetailCommentSort');
+  const formatCommentTime=value=>{
+    if(typeof value!=='string'||!value)return '';
+    const date=new Date(value);
+    return Number.isNaN(date.getTime())?'':new Intl.DateTimeFormat(undefined,{dateStyle:'medium',timeStyle:'short'}).format(date);
+  };
+  const renderRequestDetailComments=()=>{
+    commentsList.replaceChildren();
+    const ordered=[...comments].sort((a,b)=>{
+      const aTime=Date.parse(a.time)||0;
+      const bTime=Date.parse(b.time)||0;
+      return commentSort.value==='newest'?bTime-aTime:aTime-bTime;
+    });
+    const commentsByParent=new Map();
+    ordered.forEach(comment=>{
+      const parentId=comment.parentCommentId||null;
+      if(!commentsByParent.has(parentId))commentsByParent.set(parentId,[]);
+      commentsByParent.get(parentId).push(comment);
+    });
+    const commentById=new Map(comments.map(comment=>[comment.id,comment]));
+    const collectDescendants=commentId=>{
+      const descendants=[];
+      const visit=commentsByParent.get(commentId)||[];
+      visit.forEach(reply=>{
+        descendants.push(reply);
+        descendants.push(...collectDescendants(reply.id));
       });
-      const label=document.createElement('label');
-      label.htmlFor=input.id;
-      label.textContent='Reply';
-      const compose=document.createElement('div');
-      compose.className='request-detail-comment-reply-compose';
-      const submit=document.createElement('button');
-      submit.type='submit';
-      submit.setAttribute('aria-label','Send reply');
-      submit.innerHTML='<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M22 2 11 13M22 2 15 22 11 13 2 9 22 2"/></svg>';
-      compose.append(input,submit);
-      const status=document.createElement('p');
-      status.className='request-detail-comment-reply-status';
-      status.setAttribute('role','status');
-      status.setAttribute('aria-live','polite');
-      status.hidden=true;
-      form.append(label,compose,status);
-      item.append(replyButton,form);
-    }
-    parentContainer.append(item);
-    const replies=commentsByParent.get(comment.id)||[];
-    if(replies.length){
-      const replyList=document.createElement('div');
-      replyList.className='request-detail-comment-replies';
-      replies.forEach(reply=>appendComment(reply,replyList));
-      parentContainer.append(replyList);
+      return descendants;
+    };
+    const appendComment=(comment,parentContainer,isRoot=false)=>{
+      const thread=document.createElement('div');
+      thread.className='request-detail-comment-thread';
+      const item=document.createElement('article');
+      item.className='request-detail-comment comment-system-item';
+      item.dataset.commentId=comment.id;
+      const authorRow=document.createElement('div');
+      authorRow.className='request-detail-comment-author comment-system-author';
+      const avatar=document.createElement('span');
+      avatar.className='request-detail-avatar comment-system-avatar';
+      avatar.textContent=comment.initials||String(comment.name||'Member').trim().split(/\s+/).filter(Boolean).slice(0,2).map(part=>part[0]).join('').toUpperCase();
+      const avatarLink=profileLink(comment,avatar,'comment-profile-avatar-link');
+      const author=document.createElement('strong');
+      author.textContent=comment.name||'Member';
+      authorRow.append(profileLink(comment,author,'comment-profile-name-link'));
+      const role=comment.workspaceRole||commenterRoles.get(comment.userId);
+      if(role==='dev'||role==='client'){
+        const roleBadge=document.createElement('small');
+        roleBadge.className='request-detail-comment-role comment-system-role';
+        roleBadge.textContent=role==='dev'?'Developer':'Client';
+        authorRow.append(roleBadge);
+      }
+      if(!isRoot&&comment.parentCommentId){
+        const parentComment=commentById.get(comment.parentCommentId);
+        const replyTarget=document.createElement('small');
+        replyTarget.className='request-detail-comment-reply-target comment-system-target';
+        const parentRole=parentComment?.workspaceRole||commenterRoles.get(parentComment?.userId);
+        replyTarget.innerHTML='';
+        const arrow=document.createElement('span');
+        arrow.className='request-detail-comment-reply-arrow comment-system-target-arrow';
+        arrow.textContent='▸';
+        const name=document.createElement('span');
+        name.className='request-detail-comment-reply-name comment-system-target-name';
+        name.textContent=parentComment?.name||'Member';
+        replyTarget.append(arrow,document.createTextNode(' '),name);
+        if(parentRole==='dev'||parentRole==='client'){
+          const roleBadge=document.createElement('small');
+          roleBadge.className='request-detail-comment-role comment-system-role';
+          roleBadge.textContent=parentRole==='dev'?'Developer':'Client';
+          replyTarget.append(document.createTextNode(' '),roleBadge);
+        }
+        authorRow.append(replyTarget);
+      }
+      const message=document.createElement('p');
+      message.className='comment-system-text';
+      message.textContent=comment.text||'';
+      const body=document.createElement('div');
+      body.className='comment-system-body';
+      body.append(authorRow,message);
+      item.append(avatarLink,body);
+      const actions=document.createElement('div');
+      actions.className='comment-system-actions';
+      const time=document.createElement('time');
+      time.className='comment-system-time';
+      time.dateTime=comment.time||'';
+      time.textContent=formatCommentTime(comment.time);
+      actions.append(time);
+      if(repliesSupported&&currentUserId&&comment.userId!==currentUserId){
+        const replyButton=document.createElement('button');
+        replyButton.className='request-detail-comment-reply-toggle comment-system-reply';
+        replyButton.type='button';
+        replyButton.dataset.commentReplyToggle='';
+        replyButton.setAttribute('aria-expanded','false');
+        replyButton.textContent='Reply';
+        const form=document.createElement('form');
+        form.className='request-detail-comment-reply-form comment-system-reply-form';
+        form.dataset.commentReplyForm='';
+        form.dataset.parentCommentId=comment.id;
+        form.hidden=true;
+        const input=document.createElement('textarea');
+        input.maxLength=1000;
+        input.required=true;
+        input.placeholder='Write a reply…';
+        input.id=`request-detail-reply-${comment.id}`;
+        input.setAttribute('aria-label',`Reply to ${comment.name||'member'}`);
+        input.addEventListener('keydown',event=>{
+          if(event.key!=='Enter'||event.shiftKey||event.isComposing||event.keyCode===229)return;
+          event.preventDefault();
+          if(!event.repeat&&!submit.disabled)form.requestSubmit();
+        });
+        const label=document.createElement('label');
+        label.htmlFor=input.id;
+        label.textContent='Reply';
+        const compose=document.createElement('div');
+        compose.className='request-detail-comment-reply-compose';
+        const submit=document.createElement('button');
+        submit.type='submit';
+        submit.setAttribute('aria-label','Send reply');
+        submit.innerHTML='<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M22 2 11 13M22 2 15 22 11 13 2 9 22 2"/></svg>';
+        compose.append(input,submit);
+        const status=document.createElement('p');
+        status.className='request-detail-comment-reply-status';
+        status.setAttribute('role','status');
+        status.setAttribute('aria-live','polite');
+        status.hidden=true;
+        form.append(label,compose,status);
+        actions.append(replyButton);
+        body.append(form);
+      }
+      body.append(actions);
+      thread.append(item);
+      const replies=isRoot?collectDescendants(comment.id):[];
+      if(replies.length){
+        const replyList=document.createElement('div');
+        replyList.className='request-detail-comment-replies comment-system-replies';
+        replyList.hidden=!expandedRequestCommentReplies.has(comment.id);
+        const replyToggle=document.createElement('button');
+        replyToggle.className='request-detail-comment-replies-toggle comment-system-view-replies';
+        replyToggle.type='button';
+        replyToggle.dataset.commentRepliesToggle='';
+        replyToggle.dataset.replyCount=String(replies.length);
+        replyToggle.setAttribute('aria-expanded',String(!replyList.hidden));
+        replyToggle.textContent=replyList.hidden
+          ?`View ${replies.length} ${replies.length===1?'reply':'replies'}`
+          :'Hide replies';
+        replies.forEach(reply=>appendComment(reply,replyList,false));
+        if(replyList.hidden)thread.append(replyToggle,replyList);
+        else thread.append(replyList,replyToggle);
+      }
+      parentContainer.append(thread);
+    };
+    (commentsByParent.get(null)||[]).forEach(comment=>appendComment(comment,commentsList,true));
+    document.getElementById('requestDetailCommentsEmpty').hidden=comments.length>0||commentCount>0;
+    if(commentCount>comments.length){
+      const note=document.createElement('p');
+      note.className='request-detail-comment-note';
+      note.textContent=`${commentCount} comment${commentCount===1?'':'s'} recorded. Full discussion is not available in this browser yet.`;
+      commentsList.append(note);
     }
   };
-  (commentsByParent.get(null)||[]).forEach(comment=>appendComment(comment,commentsList));
-  document.getElementById('requestDetailCommentsEmpty').hidden=comments.length>0||commentCount>0;
-  if(commentCount>comments.length){
-    const note=document.createElement('p');
-    note.className='request-detail-comment-note';
-    note.textContent=`${commentCount} comment${commentCount===1?'':'s'} recorded. Full discussion is not available in this browser yet.`;
-    commentsList.append(note);
-  }
+  commentSort.onchange=renderRequestDetailComments;
+  renderRequestDetailComments();
   const commenters=new Map(comments
     .filter(comment=>comment.userId!==currentUserId)
     .map(comment=>[comment.userId||comment.name,comment]));
@@ -1562,6 +1642,9 @@ async function showRequestDetailPage(request,{preserveScroll=false}={}){
   showClientView('request-detail');
   if(!detailDialog.open)detailDialog.showModal();
   detailDialog.scrollTop=preserveScroll?previousScrollTop:0;
+  if(focusComments){
+    document.getElementById('requestDetailComments').scrollIntoView({behavior:'smooth',block:'start'});
+  }
 }
 async function updateRequestStatus(requestId,status){
   if(!await requestsReady)return;
@@ -1996,6 +2079,21 @@ requestList.addEventListener('click',event=>{
   if(actionButton.dataset.requestAction==='delete')deleteRequest(request.id);
 });
 document.getElementById('requestDetailPage').addEventListener('click',event=>{
+  const repliesToggle=event.target.closest('[data-comment-replies-toggle]');
+  if(repliesToggle){
+    const thread=repliesToggle.closest('.request-detail-comment-thread');
+    const replyList=thread?.querySelector('.request-detail-comment-replies');
+    if(replyList){
+      replyList.hidden=!replyList.hidden;
+      repliesToggle.setAttribute('aria-expanded',String(!replyList.hidden));
+      if(replyList.hidden)expandedRequestCommentReplies.delete(repliesToggle.closest('.request-detail-comment-thread').querySelector('.request-detail-comment').dataset.commentId);
+      else expandedRequestCommentReplies.add(repliesToggle.closest('.request-detail-comment-thread').querySelector('.request-detail-comment').dataset.commentId);
+      repliesToggle.textContent=replyList.hidden
+        ?`View ${repliesToggle.dataset.replyCount} ${Number(repliesToggle.dataset.replyCount)===1?'reply':'replies'}`
+        :'Hide replies';
+    }
+    return;
+  }
   const replyToggle=event.target.closest('[data-comment-reply-toggle]');
   if(replyToggle){
     const form=replyToggle.parentElement.querySelector('[data-comment-reply-form]');
@@ -2045,6 +2143,7 @@ document.getElementById('requestDetailPage').addEventListener('submit',async eve
       form.dataset.parentCommentId,
       text
     );
+    expandedRequestCommentReplies.add(form.dataset.parentCommentId);
     if(activeRequestDetailId===requestId&&!document.getElementById('requestDetailPage').hidden){
       const request=requests.find(item=>item.id===requestId);
       if(request){
@@ -2313,13 +2412,16 @@ if(location.hash==='#discover')showClientView('discover');
 else if(location.hash==='#requests')showClientView('requests');
 else if(location.hash==='#request-new')openRequestComposer();
 else if(location.hash.startsWith('#request-detail/')){
-  try{
-    const requestId=decodeURIComponent(location.hash.slice('#request-detail/'.length));
-    const request=requests.find(item=>item.id===requestId);
-    if(request)showRequestDetailPage(request);
-    else showClientView('requests');
-  }catch(error){
-    console.error('Unable to open the requested project detail.',error);
-    showClientView('requests');
-  }
+  void (async()=>{
+    try{
+      await requestsReady;
+      const requestId=decodeURIComponent(location.hash.slice('#request-detail/'.length));
+      const request=requests.find(item=>item.id===requestId);
+      if(request)showRequestDetailPage(request,{focusComments:new URLSearchParams(location.search).get('section')==='comments'});
+      else showClientView('requests');
+    }catch(error){
+      console.error('Unable to open the requested project detail.',error);
+      showClientView('requests');
+    }
+  })();
 }

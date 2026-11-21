@@ -93,16 +93,49 @@
   function formatCommentTime(value){
     if(typeof value!=='string'||!value)return '';
     const date=new Date(value);
-    return Number.isNaN(date.getTime())?'':new Intl.DateTimeFormat(undefined,{dateStyle:'medium',timeStyle:'short'}).format(date);
+    if(Number.isNaN(date.getTime()))return '';
+    const minutes=Math.max(0,Math.floor((Date.now()-date.getTime())/60000));
+    if(minutes<1)return 'Just now';
+    if(minutes<60)return `${minutes}m ago`;
+    const hours=Math.floor(minutes/60);
+    if(hours<24)return `${hours}h ago`;
+    const days=Math.floor(hours/24);
+    return days<7?`${days}d ago`:date.toLocaleDateString();
   }
   let project=null,comments=[],favorites=[],viewRecordFailed=false,commenterRoles=new Map();
-  let currentUserId=null,repliesSupported=true,replyTo=null;
+  let currentUserId=null,repliesSupported=true,replyTo=null,expandedReplies=new Set();
   async function loadCommenterRoles(){
     try{commenterRoles=await window.devMatchBackend.loadCommentAuthorRoles(comments);}
     catch(error){console.error('Unable to load project commenter profiles from Supabase.',error);commenterRoles=new Map();}
   }
+  async function refreshProjectComments(){
+    const result=await window.devMatchBackend.loadProjectComments(project.id);
+    const replyInput=document.querySelector('#requestComments [data-inline-reply] textarea');
+    const replyDraft=replyInput?.value;
+    const replyHadFocus=replyInput===document.activeElement;
+    comments=result.comments;
+    repliesSupported=result.repliesSupported;
+    await loadCommenterRoles();
+    renderComments();
+    const refreshedReplyInput=document.querySelector('#requestComments [data-inline-reply] textarea');
+    if(refreshedReplyInput&&replyDraft!==undefined){
+      refreshedReplyInput.value=replyDraft;
+      if(replyHadFocus)refreshedReplyInput.focus();
+    }
+  }
+  function subscribeToProjectComments(){
+    const client=window.devMatchBackend.client;
+    const channel=client.channel(`project-comments:${project.id}`)
+      .on('postgres_changes',{event:'INSERT',schema:'public',table:'comments',filter:`project_id=eq.${project.id}`},()=>{
+        void refreshProjectComments().catch(error=>console.error('Unable to refresh project comments from Supabase.',error));
+      })
+      .subscribe(status=>{
+        if(status==='CHANNEL_ERROR'||status==='TIMED_OUT')console.error('Project comment real-time updates are unavailable.',status);
+      });
+    window.addEventListener('pagehide',()=>{void client.removeChannel(channel);},{once:true});
+  }
   function profileAnchor(comment,content,className){
-    const profileUrl=window.devMatchBackend.publicProfileUrl(comment.userId,commenterRoles.get(comment.userId));
+    const profileUrl=window.devMatchBackend.publicProfileUrl(comment.userId,comment.workspaceRole||commenterRoles.get(comment.userId));
     if(!profileUrl)return content;
     const name=comment.name||'DEV-MATCH member';
     return `<a class="${className}" href="${escapeHtml(profileUrl)}" aria-label="View ${escapeHtml(name)} profile">${content}</a>`;
@@ -110,7 +143,6 @@
   function renderComments(){
     const ordered=document.getElementById('commentSort').value==='newest'?[...comments].reverse():comments;
     document.getElementById('commentsCount').textContent=String(comments.length);
-    document.getElementById('requestCommentCount').textContent=`▢ ${comments.length} comments`;
     document.getElementById('commentsEmpty').hidden=comments.length>0;
     const commentIds=new Set(ordered.map(comment=>comment.id));
     const repliesByParent=new Map();
@@ -119,24 +151,51 @@
       if(!repliesByParent.has(comment.parentCommentId))repliesByParent.set(comment.parentCommentId,[]);
       repliesByParent.get(comment.parentCommentId).push(comment);
     });
-    const renderComment=comment=>{
+    const collectDescendants=commentId=>{
+      const descendants=[];
+      const visit=repliesByParent.get(commentId)||[];
+      visit.forEach(reply=>{
+        descendants.push(reply);
+        descendants.push(...collectDescendants(reply.id));
+      });
+      return descendants;
+    };
+    const commentById=new Map(comments.map(comment=>[comment.id,comment]));
+    const renderComment=(comment,isRoot=false)=>{
       const name=escapeHtml(comment.name||'DEV-MATCH member');
-      const avatar=profileAnchor(comment,`<span class="find-detail-avatar">${escapeHtml(comment.initials||'CL')}</span>`,'comment-profile-avatar-link');
+      const avatar=profileAnchor(comment,`<span class="find-detail-avatar comment-system-avatar">${escapeHtml(comment.initials||'CL')}</span>`,'comment-profile-avatar-link');
       const author=profileAnchor(comment,name,'comment-profile-name-link');
       const isReplying=replyTo===comment.id;
       const replyButton=currentUserId&&repliesSupported&&!isReplying
-        ?`<button class="find-comment-reply" type="button" data-comment-reply="${escapeHtml(comment.id)}" aria-expanded="false">Reply</button>`
+        ?`<button class="find-comment-reply comment-system-reply" type="button" data-comment-reply="${escapeHtml(comment.id)}" aria-expanded="false">Reply</button>`
         :'';
       const replyForm=isReplying
         ?`<form class="find-comment-reply-form" data-inline-reply="${escapeHtml(comment.id)}"><label for="findReplyInput">Reply</label><div><textarea id="findReplyInput" maxlength="1000" placeholder="Write a reply…" aria-label="Reply to ${name}" required></textarea><button type="submit" aria-label="Post reply"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M22 2 11 13M22 2 15 22 11 13 2 9 22 2"/></svg></button></div></form>`
         :'';
-      const replyBadge=comment.parentCommentId?'<small class="find-comment-reply-badge">Reply</small>':'';
-      const replies=repliesByParent.get(comment.id)||[];
-      return `<article class="find-comment"><div>${avatar}</div><div class="find-comment-body"><strong>${author} ${replyBadge}</strong><time datetime="${escapeHtml(comment.time||'')}">${escapeHtml(formatCommentTime(comment.time))}</time><p>${escapeHtml(comment.text||'')}</p>${replyButton}</div></article>${replyForm}${replies.length?`<div class="find-comment-replies">${replies.map(renderComment).join('')}</div>`:''}`;
+      const role=comment.workspaceRole||commenterRoles.get(comment.userId);
+      const roleBadge=role==='dev'
+        ?'<small class="find-comment-role-badge comment-system-role">Developer</small>'
+        :role==='client'
+          ?'<small class="find-comment-role-badge comment-system-role">Client</small>'
+          :'';
+      const parentComment=comment.parentCommentId?commentById.get(comment.parentCommentId):null;
+      const parentRole=parentComment?.workspaceRole||commenterRoles.get(parentComment?.userId);
+      const parentRoleBadge=parentRole==='dev'?'<small class="find-comment-role-badge comment-system-role">Developer</small>':parentRole==='client'?'<small class="find-comment-role-badge comment-system-role">Client</small>':'';
+      const replyTarget=parentComment&&!isRoot?`<small class="find-comment-reply-target comment-system-target"><span class="find-comment-reply-arrow comment-system-target-arrow">▸</span> <span class="find-comment-reply-name comment-system-target-name">${escapeHtml(parentComment.name||'Member')}</span> ${parentRoleBadge}</small>`:'';
+      const replies=isRoot?collectDescendants(comment.id):[];
+      const replyToggle=replies.length
+        ?(expandedReplies.has(comment.id)
+          ?''
+          :`<button class="find-comment-replies-toggle comment-system-view-replies" type="button" data-view-replies="${escapeHtml(comment.id)}" aria-expanded="false">View ${replies.length} ${replies.length===1?'reply':'replies'}</button>`)
+        :'';
+      const renderedReplies=isRoot&&expandedReplies.has(comment.id)
+        ?`<div class="find-comment-replies comment-system-replies">${replies.map(reply=>renderComment(reply,false)).join('')}<button class="find-comment-replies-toggle comment-system-view-replies hide-replies-toggle" type="button" data-view-replies="${escapeHtml(comment.id)}" aria-expanded="true">Hide replies</button></div>`
+        :'';
+      return `<article class="find-comment comment-system-item"><div>${avatar}</div><div class="find-comment-body comment-system-body"><strong class="comment-system-author">${author} ${roleBadge}${replyTarget}</strong><p class="comment-system-text">${escapeHtml(comment.text||'')}</p><div class="comment-system-actions"><time class="comment-system-time" datetime="${escapeHtml(comment.time||'')}">${escapeHtml(formatCommentTime(comment.time))}</time><span class="comment-system-action-controls">${replyButton}${replyToggle}</span></div>${replyForm}</div></article>${renderedReplies}`;
     };
     document.getElementById('requestComments').innerHTML=ordered
       .filter(comment=>!comment.parentCommentId||!commentIds.has(comment.parentCommentId))
-      .map(renderComment).join('');
+      .map(comment=>renderComment(comment,true)).join('');
   }
   function clearReplyTarget(){
     replyTo=null;
@@ -300,9 +359,18 @@
     if(commentsFailed)status.textContent='Project details loaded, but comments could not be loaded.';
     else if(viewRecordFailed)status.textContent='Project details loaded, but the view could not be recorded.';
     status.hidden=!commentsFailed&&!viewRecordFailed;layout.hidden=false;
+    subscribeToProjectComments();
     document.getElementById('commentSort').addEventListener('change',renderComments);
     document.getElementById('commentInput').addEventListener('keydown',submitCommentOnEnter);
     document.getElementById('requestComments').addEventListener('click',event=>{
+      const viewReplies=event.target.closest('[data-view-replies]');
+      if(viewReplies){
+        const commentId=viewReplies.dataset.viewReplies;
+        if(expandedReplies.has(commentId))expandedReplies.delete(commentId);
+        else expandedReplies.add(commentId);
+        renderComments();
+        return;
+      }
       const button=event.target.closest('[data-comment-reply]');
       if(!button||!currentUserId)return;
       const parent=comments.find(comment=>comment.id===button.dataset.commentReply);
@@ -327,7 +395,10 @@
       try{
         const user=await window.devMatchBackend.ready;
         if(!user){location.href='devmatch-auth.html?mode=login';return;}
-        comments.push(await window.devMatchBackend.addProjectCommentReply(project.id,form.dataset.inlineReply,text));
+        const parentId=form.dataset.inlineReply;
+        const addedReply=await window.devMatchBackend.addProjectCommentReply(project.id,parentId,text);
+        if(!comments.some(comment=>comment.id===addedReply.id))comments.push(addedReply);
+        expandedReplies.add(parentId);
         await loadCommenterRoles();
         clearReplyTarget();
         renderComments();
@@ -348,7 +419,8 @@
       if(!text){input.setCustomValidity('Please enter a comment before posting.');input.reportValidity();return;}
       input.setCustomValidity('');
       try{
-        comments.push(await window.devMatchBackend.addProjectComment(project.id,text));
+        const addedComment=await window.devMatchBackend.addProjectComment(project.id,text);
+        if(!comments.some(comment=>comment.id===addedComment.id))comments.push(addedComment);
         await loadCommenterRoles();
         input.value='';
         renderComments();

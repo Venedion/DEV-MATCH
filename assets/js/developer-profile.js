@@ -26,6 +26,8 @@
     Other:{description:'Custom specialization',icon:'<path d="M12 5v14m-7-7h14"/>'}
   };
   let projects=[],favoriteDeveloper=false,accountRole=null,publicProfileProjects=null,commenterRoles=new Map();
+  let profileComments=[],profileCommentSort='newest';
+  const expandedProfileCommentReplies=new Set();
   let profileDeveloperIdentity={};
   let profileRating=null,reviewsLoadFailed=false;
   let activeFilter='All',activeQuery='';
@@ -182,15 +184,75 @@
     empty.hidden=filtered.length>0;
   }
   function renderComments(comments){
-    commentsPanel.innerHTML=comments.length?comments.map(comment=>{
+    profileComments=comments;
+    const ordered=[...comments].sort((a,b)=>{
+      const aTime=Date.parse(a.time)||0;
+      const bTime=Date.parse(b.time)||0;
+      return profileCommentSort==='newest'?bTime-aTime:aTime-bTime;
+    });
+    const commentIds=new Set(ordered.map(comment=>comment.id));
+    const repliesByParent=new Map();
+    ordered.forEach(comment=>{
+      if(!comment.parentCommentId||!commentIds.has(comment.parentCommentId))return;
+      if(!repliesByParent.has(comment.parentCommentId))repliesByParent.set(comment.parentCommentId,[]);
+      repliesByParent.get(comment.parentCommentId).push(comment);
+    });
+    const collectDescendants=commentId=>{
+      const descendants=[];
+      const visit=repliesByParent.get(commentId)||[];
+      visit.forEach(reply=>{
+        descendants.push(reply);
+        descendants.push(...collectDescendants(reply.id));
+      });
+      return descendants;
+    };
+    const commentById=new Map(comments.map(comment=>[comment.id,comment]));
+    const renderComment=(comment,isRoot=false)=>{
       const name=comment.name||'DEV-MATCH member';
-      const profileUrl=window.devMatchBackend.publicProfileUrl(comment.userId,commenterRoles.get(comment.userId));
-      const avatar=`<span class="review-avatar">${escapeHtml(comment.initials||'CL')}</span>`;
+      const role=comment.workspaceRole||commenterRoles.get(comment.userId);
+      const profileUrl=window.devMatchBackend.publicProfileUrl(comment.userId,role);
+      const avatar=`<span class="review-avatar comment-system-avatar">${escapeHtml(comment.initials||'CL')}</span>`;
       const author=escapeHtml(name);
       const linkedAvatar=profileUrl?`<a class="comment-profile-avatar-link" href="${escapeHtml(profileUrl)}" aria-label="View ${escapeHtml(name)} profile">${avatar}</a>`:avatar;
       const linkedAuthor=profileUrl?`<a class="comment-profile-name-link" href="${escapeHtml(profileUrl)}">${author}</a>`:author;
-      return `<article class="review-item">${linkedAvatar}<div class="review-copy"><h3>${linkedAuthor}</h3><small>on ${escapeHtml(comment.project)}</small><p>${escapeHtml(comment.text)}</p></div></article>`;
-    }).join(''):'<p class="empty-state">No comments yet.</p>';
+      const roleLabel=role==='dev'?'Developer':role==='client'?'Client':'';
+      const roleBadge=roleLabel?`<small class="profile-comment-role comment-system-role">${roleLabel}</small>`:'';
+      const parentComment=comment.parentCommentId?commentById.get(comment.parentCommentId):null;
+      const parentRole=parentComment?.workspaceRole||commenterRoles.get(parentComment?.userId);
+      const parentRoleBadge=parentRole==='dev'?'<small class="profile-comment-role comment-system-role">Developer</small>':parentRole==='client'?'<small class="profile-comment-role comment-system-role">Client</small>':'';
+      const replyTarget=parentComment&&!isRoot?`<small class="profile-comment-reply-target comment-system-target"><span class="profile-comment-reply-arrow comment-system-target-arrow">▸</span> <span class="profile-comment-reply-name comment-system-target-name">${escapeHtml(parentComment.name||'Member')}</span> ${parentRoleBadge}</small>`:'';
+      const projectLink=`<a class="profile-comment-project-link" href="devmatch-discover-project-detail.html?project=${encodeURIComponent(comment.projectId)}#commentsSection">${escapeHtml(comment.project)}</a>`;
+      const time=comment.time?new Date(comment.time):null;
+      const minutes=time&&!Number.isNaN(time.getTime())?Math.max(0,Math.floor((Date.now()-time.getTime())/60000)):null;
+      const formattedTime=minutes===null?'':minutes<1?'Just now':minutes<60?`${minutes}m ago`:minutes<1440?`${Math.floor(minutes/60)}h ago`:minutes<10080?`${Math.floor(minutes/1440)}d ago`:time.toLocaleDateString();
+      const replies=isRoot?collectDescendants(comment.id):[];
+      const expanded=expandedProfileCommentReplies.has(comment.id);
+      const replyToggle=replies.length
+        ?(expanded
+          ?''
+          :`<button class="profile-comment-replies-toggle comment-system-view-replies" type="button" data-view-replies="${escapeHtml(comment.id)}" aria-expanded="false">View ${replies.length} ${replies.length===1?'reply':'replies'}</button>`)
+        :'';
+      const renderedReplies=isRoot&&expanded
+        ?`<div class="profile-comment-replies comment-system-replies">${replies.map(reply=>renderComment(reply,false)).join('')}<button class="profile-comment-replies-toggle comment-system-view-replies hide-replies-toggle" type="button" data-view-replies="${escapeHtml(comment.id)}" aria-expanded="true">Hide replies</button></div>`
+        :'';
+      return `<article class="profile-comment comment-system-item">${linkedAvatar}<div class="profile-comment-copy comment-system-body"><h3 class="profile-comment-author comment-system-author">${linkedAuthor} ${roleBadge}${replyTarget}</h3><small class="comment-system-project">${projectLink}</small><p class="comment-system-text">${escapeHtml(comment.text)}</p><div class="comment-system-actions"><time class="comment-system-time" datetime="${escapeHtml(comment.time||'')}">${escapeHtml(formattedTime)}</time><span class="comment-system-action-controls">${replyToggle}</span></div></div></article>${renderedReplies}`;
+    };
+    commentsPanel.innerHTML=`<header class="profile-comments-heading comment-system-heading"><h2>Comments <span>${comments.length}</span></h2><label><span class="visually-hidden">Sort comments</span><select id="profileCommentSort" aria-label="Sort comments"><option value="newest"${profileCommentSort==='newest'?' selected':''}>Newest</option><option value="oldest"${profileCommentSort==='oldest'?' selected':''}>Oldest</option></select></label></header>${comments.length
+      ?`<div class="profile-comment-list comment-system-list">${ordered.filter(comment=>!comment.parentCommentId||!commentIds.has(comment.parentCommentId)).map(comment=>renderComment(comment,true)).join('')}</div>`
+      :'<p class="empty-state comment-system-empty">No comments yet.</p>'}`;
+    commentsPanel.onclick=event=>{
+      const button=event.target.closest('[data-view-replies]');
+      if(!button)return;
+      const commentId=button.dataset.viewReplies;
+      if(expandedProfileCommentReplies.has(commentId))expandedProfileCommentReplies.delete(commentId);
+      else expandedProfileCommentReplies.add(commentId);
+      renderComments(profileComments);
+    };
+    commentsPanel.onchange=event=>{
+      if(event.target.id!=='profileCommentSort')return;
+      profileCommentSort=event.target.value;
+      renderComments(profileComments);
+    };
   }
   async function loadCommenterRoles(comments){
     try{commenterRoles=await window.devMatchBackend.loadCommentAuthorRoles(comments);}

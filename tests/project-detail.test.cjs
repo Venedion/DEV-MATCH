@@ -65,17 +65,189 @@ test('Opening Contact Developer checks for an existing thread without creating o
 
 test('Project detail comments show timestamp beside Reply',()=>{
   const source=fs.readFileSync('assets/js/project-detail.js','utf8');
-  assert.match(source,/comment-actions/);
+  assert.match(source,/comment-actions comment-system-actions/);
   assert.match(source,/commentTime/);
-  assert.match(source,/<button type="button" class="reply-link"/);
+  assert.match(source,/comment-system-time/);
+  assert.match(source,/<button type="button" class="reply-link comment-system-reply"/);
+});
+
+test('Every comment page loads the shared comment presentation',()=>{
+  const pages=[
+    'devmatch-client-dashboard.html',
+    'devmatch-dashboard.html',
+    'devmatch-developer-profile.html',
+    'devmatch-discover-project-detail.html',
+    'devmatch-discover-projects.html',
+    'devmatch-favorites.html',
+    'devmatch-find-project-detail.html',
+    'devmatch-landing.html'
+  ];
+  pages.forEach(page=>{
+    const source=fs.readFileSync(page,'utf8');
+    assert.match(source,/assets\/css\/comment-system\.css/);
+  });
 });
 
 test('Project detail comments expose View replies and collapse controls',()=>{
   const source=fs.readFileSync('assets/js/project-detail.js','utf8');
+  const styles=fs.readFileSync('assets/css/project-detail.css','utf8');
   assert.match(source,/expandedReplies/);
   assert.match(source,/View \$\{replies\.length\}/);
   assert.match(source,/Hide replies/);
   assert.match(source,/data-view-replies/);
+  assert.match(source,/comment-action-controls/);
+  assert.match(styles,/\.project-detail-dialog \.view-replies-link\{[^}]*margin-left:0/);
+  assert.match(styles,/\.project-detail-dialog \.view-replies-link:not\(.hide-replies-link\)::before/);
+  assert.match(source,/comment-actions comment-system-actions\$\{replies\.length\?' has-replies':''\}/);
+  const toggleIndex=source.indexOf('const replyToggle=replies.length');
+  const buttonIndex=source.indexOf('const replyButton=isReplying');
+  assert.ok(toggleIndex>=0&&buttonIndex>toggleIndex);
+});
+
+test('Expanded reply lists place Hide replies after all reply items',()=>{
+  const popup=fs.readFileSync('assets/js/project-detail.js','utf8');
+  const find=fs.readFileSync('assets/js/find-project-detail.js','utf8');
+  const discover=fs.readFileSync('assets/js/discover-project-detail.js','utf8');
+  const profile=fs.readFileSync('assets/js/developer-profile.js','utf8');
+  const client=fs.readFileSync('assets/js/client-dashboard.js','utf8');
+  assert.match(popup,/comment-replies[^`]*Hide replies/);
+  assert.match(find,/find-comment-replies[^`]*Hide replies/);
+  assert.match(discover,/discover-comment-replies[^`]*Hide replies/);
+  assert.match(profile,/profile-comment-replies[^`]*Hide replies/);
+  assert.match(client,/thread\.append\(replyList,replyToggle\)/);
+});
+
+test('View and Hide reply controls appear only on root comments',()=>{
+  const popup=fs.readFileSync('assets/js/project-detail.js','utf8');
+  const find=fs.readFileSync('assets/js/find-project-detail.js','utf8');
+  const discover=fs.readFileSync('assets/js/discover-project-detail.js','utf8');
+  const profile=fs.readFileSync('assets/js/developer-profile.js','utf8');
+  const client=fs.readFileSync('assets/js/client-dashboard.js','utf8');
+  assert.match(popup,/collectDescendants[\s\S]*renderComment=\(comment,isRoot=false\)/);
+  assert.match(find,/collectDescendants[\s\S]*renderComment=\(comment,isRoot=false\)/);
+  assert.match(discover,/collectDescendants[\s\S]*renderComment=\(comment,isRoot=false\)/);
+  assert.match(profile,/collectDescendants[\s\S]*renderComment=\(comment,isRoot=false\)/);
+  assert.match(client,/collectDescendants[\s\S]*appendComment=\(comment,parentContainer,isRoot=false\)/);
+});
+
+test('Reply targets render in one branch without recursively nesting descendants',()=>{
+  const popup=fs.readFileSync('assets/js/project-detail.js','utf8');
+  const find=fs.readFileSync('assets/js/find-project-detail.js','utf8');
+  const discover=fs.readFileSync('assets/js/discover-project-detail.js','utf8');
+  const profile=fs.readFileSync('assets/js/developer-profile.js','utf8');
+  const client=fs.readFileSync('assets/js/client-dashboard.js','utf8');
+  assert.match(popup,/comment-reply-target/);
+  assert.match(find,/find-comment-reply-target/);
+  assert.match(discover,/discover-comment-reply-target/);
+  assert.match(profile,/profile-comment-reply-target/);
+  assert.match(client,/request-detail-comment-reply-target/);
+  for(const source of [popup,find,discover,profile]){
+    assert.match(source,/replies\.map\(reply=>renderComment\(reply,false\)\)/);
+    assert.doesNotMatch(source,/nestedReplies/);
+  }
+  assert.match(client,/replies\.forEach\(reply=>appendComment\(reply,replyList,false\)\)/);
+  assert.doesNotMatch(client,/nestedList/);
+});
+
+test('Client request replies share one expanded thread and direct comment links open that section',()=>{
+  const client=fs.readFileSync('assets/js/client-dashboard.js','utf8');
+  const notifications=fs.readFileSync('assets/js/notifications.js','utf8');
+  const html=fs.readFileSync('devmatch-client-dashboard.html','utf8');
+  assert.match(client,/replies\.forEach\(reply=>appendComment\(reply,replyList,false\)\)/);
+  assert.doesNotMatch(client,/nestedList/);
+  assert.match(client,/focusComments=false/);
+  assert.match(client,/getElementById\('requestDetailComments'\)\.scrollIntoView/);
+  assert.match(client,/get\('section'\)==='comments'/);
+  assert.match(html,/id="requestDetailComments"/);
+  assert.match(notifications,/devmatch-client-dashboard\.html\?section=comments#request-detail/);
+  assert.match(notifications,/devmatch-discover-project-detail\.html\?project=.*#commentsSection/);
+});
+
+test('Dashboard comment summaries include reply targets and link to project discussions',()=>{
+  const dashboard=fs.readFileSync('assets/js/dashboard.js','utf8');
+  assert.match(dashboard,/parent_comment_id/);
+  assert.match(dashboard,/comment-reply-target/);
+  assert.match(dashboard,/comment-project-link/);
+  assert.match(dashboard,/devmatch-discover-project-detail\.html\?project=/);
+});
+
+test('Reply targets keep the arrow muted and add the parent role badge',()=>{
+  const popup=fs.readFileSync('assets/js/project-detail.js','utf8');
+  const find=fs.readFileSync('assets/js/find-project-detail.js','utf8');
+  const discover=fs.readFileSync('assets/js/discover-project-detail.js','utf8');
+  const profile=fs.readFileSync('assets/js/developer-profile.js','utf8');
+  const client=fs.readFileSync('assets/js/client-dashboard.js','utf8');
+  assert.match(popup,/comment-reply-arrow[\s\S]*comment-reply-name[\s\S]*parentRoleBadge/);
+  assert.match(find,/find-comment-reply-arrow[\s\S]*find-comment-reply-name[\s\S]*parentRoleBadge/);
+  assert.match(discover,/discover-comment-reply-arrow[\s\S]*discover-comment-reply-name[\s\S]*parentRoleBadge/);
+  assert.match(profile,/profile-comment-reply-arrow[\s\S]*profile-comment-reply-name[\s\S]*parentRoleBadge/);
+  assert.match(client,/request-detail-comment-reply-arrow[\s\S]*request-detail-comment-reply-name[\s\S]*parentRole/);
+});
+
+test('Reply target wrappers have no background while parent role badges keep it',()=>{
+  const files=[
+    'assets/css/project-detail.css',
+    'assets/css/find-project-detail.css',
+    'assets/css/discover-project-detail.css',
+    'assets/css/developer-public-profile.css',
+    'assets/css/client-dashboard.css'
+  ];
+  for(const file of files){
+    const styles=fs.readFileSync(file,'utf8');
+    assert.match(styles,/reply-target\{[^}]*background:none!important/);
+  }
+});
+
+test('Comment and nested reply display names use the 12.5px size',()=>{
+  const files=[
+    'assets/css/project-detail.css',
+    'assets/css/find-project-detail.css',
+    'assets/css/discover-project-detail.css',
+    'assets/css/developer-public-profile.css',
+    'assets/css/client-dashboard.css',
+    'assets/css/dashboard.css'
+  ];
+  for(const file of files){
+    const styles=fs.readFileSync(file,'utf8');
+    assert.match(styles,/12\.5px/);
+  }
+});
+
+test('Comment surfaces show author roles and expose replies without labeling them as a role',()=>{
+  const popup=fs.readFileSync('assets/js/project-detail.js','utf8');
+  const discover=fs.readFileSync('assets/js/discover-project-detail.js','utf8');
+  const request=fs.readFileSync('assets/js/find-project-detail.js','utf8');
+  const client=fs.readFileSync('assets/js/client-dashboard.js','utf8');
+  const profile=fs.readFileSync('assets/js/developer-profile.js','utf8');
+  const dashboard=fs.readFileSync('assets/js/dashboard.js','utf8');
+  const clientHtml=fs.readFileSync('devmatch-client-dashboard.html','utf8');
+  for(const source of [popup,discover,request,client,profile]){
+    assert.match(source,/workspaceRole\|\|commenterRoles\.get\(comment\.userId\)/);
+    assert.match(source,/Developer/);
+    assert.match(source,/Client/);
+  }
+  assert.match(request,/find-comment-role-badge/);
+  assert.doesNotMatch(request,/find-comment-reply-badge/);
+  assert.match(client,/requestDetailCommentSort/);
+  assert.match(client,/request-detail-comment-replies-toggle/);
+  assert.match(clientHtml,/id="requestDetailCommentSort"/);
+  assert.match(profile,/profile-comment-replies-toggle/);
+  assert.match(dashboard,/comment-role-badge/);
+});
+
+test('Comment role badges use the darker reference style',()=>{
+  const files=[
+    'assets/css/project-detail.css',
+    'assets/css/find-project-detail.css',
+    'assets/css/discover-project-detail.css',
+    'assets/css/client-dashboard.css',
+    'assets/css/developer-public-profile.css',
+    'assets/css/dashboard.css'
+  ];
+  for(const file of files){
+    const styles=fs.readFileSync(file,'utf8');
+    assert.match(styles,/background:#e2e3e7;color:#555962/);
+  }
 });
 
 test('Removing a project favorite asks for confirmation before saving',()=>{
@@ -133,6 +305,27 @@ test('Developer request detail fields match the page and saved request data',()=
   assert.match(source,/requestReferencesSection'\)\.hidden=project\.attachments\.length===0/);
   assert.match(styles,/\.find-detail-facts>\.find-detail-budget-fact\{[^}]*background:#f1f1f3/);
   assert.match(styles,/\.find-project-facts>div\{[^}]*border-top:1px solid/);
+});
+
+test('Find and Discover project comments show live counts and use the same inline reply style',()=>{
+  const findHtml=fs.readFileSync('devmatch-find-project-detail.html','utf8');
+  const discoverHtml=fs.readFileSync('devmatch-discover-project-detail.html','utf8');
+  const find=fs.readFileSync('assets/js/find-project-detail.js','utf8');
+  const discover=fs.readFileSync('assets/js/discover-project-detail.js','utf8');
+  const commonStyles=fs.readFileSync('assets/css/comment-system.css','utf8');
+  const discoverStyles=fs.readFileSync('assets/css/discover-project-detail.css','utf8');
+  assert.doesNotMatch(findHtml,/id="requestCommentCount"/);
+  assert.match(findHtml,/id="commentsCount" class="comment-system-count"/);
+  assert.match(find,/getElementById\('commentsCount'\)\.textContent=String\(comments\.length\)/);
+  assert.doesNotMatch(find,/requestCommentCount/);
+  assert.match(discoverHtml,/id="commentsHeadingCount" class="comment-system-count"/);
+  assert.match(commonStyles,/\.comment-system \.comment-system-heading h2>span\.comment-system-count\{display:inline/);
+  assert.match(discoverStyles,/\.comment-system\.discover-comments\{[^}]*background:#fff/);
+  for(const source of [find,discover]){
+    assert.match(source,/function refreshProjectComments\(\)/);
+    assert.match(source,/\.on\('postgres_changes',\{event:'INSERT',schema:'public',table:'comments'/);
+  }
+  assert.match(discover,/discover-comment-reply-form comment-system-reply-form/);
 });
 
 test('Client-owned request detail is a popup while request composition stays separate',()=>{

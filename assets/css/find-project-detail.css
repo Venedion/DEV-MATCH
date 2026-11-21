@@ -45,6 +45,7 @@
 #requestReferenceFilesStatus{margin-top:8px;color:#777982;font-size:11px}
 .find-detail-stats{display:flex;gap:13px;margin-top:17px;padding-top:13px;border-top:1px solid #eceef1;color:#777982;font-size:10px}
 .find-comments>header{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:11px}
+.find-detail-card.find-comments.comment-system{background:#fff}
 .find-comments h2,.find-similar-card h2{font-size:14px}
 .find-comments h2 span{margin-left:4px;color:#858a95;font-size:11px}
 .find-comments>header label{display:flex;align-items:center;gap:4px;color:#777982;font-size:10px}
@@ -59,14 +60,14 @@
 .find-comment-form button:disabled{opacity:.55;cursor:wait}
 .find-comment-form button svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 .find-comment{display:grid;grid-template-columns:27px minmax(0,1fr);gap:9px;padding:11px 0;border-top:1px solid #eeeef0}
-.find-comment strong{font-size:10px}
-.find-comment strong small{margin-left:4px;padding:2px 4px;border-radius:4px;background:#f0f0f2;font-size:8px}
+.find-comment strong{font-size:12.5px}
+.find-comment strong small{margin-left:4px;padding:2px 4px;border-radius:4px;background:#e2e3e7;color:#555962;font-size:8px;font-weight:600}
 .find-comment time{margin-left:6px;color:#9698a0;font-size:9px}
 .find-comment p{margin-top:4px;color:#555862;font-size:11px;line-height:1.5;overflow-wrap:anywhere}
 #commentsEmpty{padding:8px 0;color:#777982;font-size:11px}
 #commentsEmpty[hidden]{display:none}
 .find-comment-body{min-width:0}
-.find-comment-reply{margin-top:7px;padding:0;border:0;background:transparent;color:#626671;font:inherit;font-size:10px;font-weight:700;cursor:pointer}
+.find-comment-reply{display:block;margin-top:7px;padding:0;border:0;background:transparent;color:#626671;font-family:"Plus Jakarta Sans",system-ui,-apple-system,"Segoe UI",sans-serif;font-size:10px;font-weight:700;cursor:pointer}
 .find-comment-reply:hover{text-decoration:underline}
 .find-comment-reply-form{margin-top:10px}
 .find-comment-reply-form label{display:block;margin-bottom:6px;color:#555862;font-size:12px;font-weight:600}
@@ -78,7 +79,15 @@
 .find-comment-reply-form button:focus-visible{outline:2px solid #8a8d95;outline-offset:2px}
 .find-comment-reply-form button:disabled{opacity:.55;cursor:wait}
 .find-comment-reply-form button svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
-.find-comment-reply-badge{margin-left:5px;color:#858891;font-size:9px;font-weight:500}
+.find-comment-role-badge{margin-left:5px;padding:2px 5px;border-radius:4px;background:#e2e3e7;color:#555962;font-size:9px;font-weight:600}
+.find-comment-replies-toggle{position:relative;display:block;margin-top:7px;margin-left:0;padding:0;border:0;background:transparent;color:#626671;font-family:"Plus Jakarta Sans",system-ui,-apple-system,"Segoe UI",sans-serif;font-size:10px;font-weight:700;cursor:pointer}
+.find-comment-replies-toggle:not(.hide-replies-toggle)::after{content:"";position:absolute;left:-31px;top:-8px;width:58px;height:1px;background:#eceef1}
+.find-comment-replies-toggle:hover{text-decoration:underline}
+.find-comment-replies>.hide-replies-toggle{margin-top:8px;margin-left:0}
+.find-comment-reply-target{margin-left:5px;background:none!important;font-size:9px;font-weight:500}
+.find-comment-reply-target>small{padding:2px 5px;border-radius:4px;background:#e2e3e7!important;color:#555962!important;font-size:9px;font-weight:600}
+.find-comment-reply-arrow{color:#858891;font-size:10px}
+.find-comment-reply-name{color:#171719;font-size:12.5px;font-weight:700}
 .find-comment-replies{margin-left:36px;padding-left:12px;border-left:2px solid #eeeef0}
 .find-client-card{display:grid;gap:13px}
 .find-client-profile .find-detail-avatar{width:40px;height:40px}

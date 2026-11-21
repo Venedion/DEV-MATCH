@@ -55,13 +55,13 @@
                   <div><dt>Created</dt><dd id="projectCreated"></dd></div>
                 </dl>
               </section>
-              <section class="detail-section comments-section">
-                <div class="comments-heading"><h2>Comments</h2><label class="sort-comments"><select aria-label="Sort comments"><option>Newest</option><option>Oldest</option></select></label></div>
-                <form class="comment-form" id="commentForm">
-                  <span class="comment-avatar" id="clientInitials">CL</span>
-                  <div class="comment-compose"><label class="visually-hidden" for="commentInput">Write a comment</label><textarea id="commentInput" maxlength="500" placeholder="Ask the developer a question about this project..." required></textarea><button type="submit" aria-label="Post comment"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M22 2 11 13M22 2 15 22 11 13 2 9 22 2"/></svg></button></div>
+              <section class="detail-section comments-section comment-system">
+                <div class="comments-heading comment-system-heading"><h2>Comments</h2><label class="sort-comments"><select aria-label="Sort comments"><option>Newest</option><option>Oldest</option></select></label></div>
+                <form class="comment-form comment-system-form" id="commentForm">
+                  <span class="comment-avatar comment-system-avatar" id="clientInitials">CL</span>
+                  <div class="comment-compose"><label class="visually-hidden" for="commentInput">Write a comment</label><textarea id="commentInput" maxlength="1000" placeholder="Ask the developer a question about this project..." required></textarea><button type="submit" aria-label="Post comment"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M22 2 11 13M22 2 15 22 11 13 2 9 22 2"/></svg></button></div>
                 </form>
-                <div class="comment-list" id="commentList" aria-live="polite"></div>
+                <div class="comment-list comment-system-list" id="commentList" aria-live="polite"></div>
               </section>
             </article>
             <aside class="developer-card">
@@ -170,7 +170,7 @@
     catch(error){console.error('Unable to load project commenter profiles from Supabase.',error);commenterRoles=new Map();}
   }
   function profileAnchor(comment,content,className){
-    const profileUrl=window.devMatchBackend.publicProfileUrl(comment.userId,commenterRoles.get(comment.userId));
+    const profileUrl=window.devMatchBackend.publicProfileUrl(comment.userId,comment.workspaceRole||commenterRoles.get(comment.userId));
     if(!profileUrl)return content;
     const name=comment.name||'DEV-MATCH member';
     return `<a class="${className}" href="${escapeHtml(profileUrl)}" aria-label="View ${escapeHtml(name)} profile">${content}</a>`;
@@ -203,30 +203,48 @@
       if(!repliesByParent.has(comment.parentCommentId))repliesByParent.set(comment.parentCommentId,[]);
       repliesByParent.get(comment.parentCommentId).push(comment);
     });
-    const renderComment=comment=>{
+    const commentById=new Map(comments.map(comment=>[comment.id,comment]));
+    const collectDescendants=commentId=>{
+      const descendants=[];
+      const visit=repliesByParent.get(commentId)||[];
+      visit.forEach(reply=>{
+        descendants.push(reply);
+        descendants.push(...collectDescendants(reply.id));
+      });
+      return descendants;
+    };
+    const renderComment=(comment,isRoot=false)=>{
       const name=escapeHtml(comment.name||'DEV-MATCH member');
-      const avatar=profileAnchor(comment,`<span class="comment-avatar">${escapeHtml(comment.initials||'CL')}</span>`,'comment-profile-avatar-link');
+      const avatar=profileAnchor(comment,`<span class="comment-avatar comment-system-avatar">${escapeHtml(comment.initials||'CL')}</span>`,'comment-profile-avatar-link');
       const author=profileAnchor(comment,name,'comment-profile-name-link');
+      const role=comment.workspaceRole||commenterRoles.get(comment.userId);
+      const roleBadge=role==='dev'?'<small class="comment-system-role">Developer</small>':role==='client'?'<small class="comment-system-role">Client</small>':'';
+      const parentComment=comment.parentCommentId?commentById.get(comment.parentCommentId):null;
+      const parentRole=parentComment?.workspaceRole||commenterRoles.get(parentComment?.userId);
+      const parentRoleBadge=parentRole==='dev'?'<small class="comment-system-role">Developer</small>':parentRole==='client'?'<small class="comment-system-role">Client</small>':'';
+      const replyTarget=parentComment&&!isRoot?`<small class="comment-reply-target comment-system-target"><span class="comment-reply-arrow comment-system-target-arrow">▸</span> <span class="comment-reply-name comment-system-target-name">${escapeHtml(parentComment.name||'Member')}</span> ${parentRoleBadge}</small>`:'';
       const isReplying=replyTo===comment.id;
-      const replies=repliesByParent.get(comment.id)||[];
+      const replies=isRoot?collectDescendants(comment.id):[];
       const commentTime=formatCommentTime(comment.time);
+      const replyToggle=replies.length
+        ?(expandedReplies.has(comment.id)
+          ?''
+          :`<button type="button" class="view-replies-link comment-system-view-replies" data-view-replies="${escapeHtml(comment.id)}" aria-expanded="false">View ${replies.length} ${replies.length===1?'reply':'replies'}</button>`)
+        :'';
       const replyButton=isReplying
         ?''
-        :`<div class="comment-actions"><time>${escapeHtml(commentTime)}</time><button type="button" class="reply-link" data-reply="${escapeHtml(comment.id)}" aria-expanded="false">Reply</button></div>`;
+        :`<div class="comment-actions comment-system-actions${replies.length?' has-replies':''}"><time class="comment-system-time">${escapeHtml(commentTime)}</time><span class="comment-action-controls comment-system-action-controls"><button type="button" class="reply-link comment-system-reply" data-reply="${escapeHtml(comment.id)}" aria-expanded="false">Reply</button>${replyToggle}</span></div>`;
       const replyForm=isReplying
-        ?`<form class="comment-reply-form" data-inline-reply="${escapeHtml(comment.id)}"><label for="projectReplyInput">Reply</label><div><textarea id="projectReplyInput" maxlength="5000" placeholder="Write a reply…" aria-label="Reply to ${name}" required></textarea><button type="submit" aria-label="Post reply"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M22 2 11 13M22 2 15 22 11 13 2 9 22 2"/></svg></button></div></form>`
+        ?`<form class="comment-reply-form comment-system-reply-form" data-inline-reply="${escapeHtml(comment.id)}"><label for="projectReplyInput">Reply</label><div><textarea id="projectReplyInput" maxlength="1000" placeholder="Write a reply…" aria-label="Reply to ${name}" required></textarea><button type="submit" aria-label="Post reply"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M22 2 11 13M22 2 15 22 11 13 2 9 22 2"/></svg></button></div></form>`
         :'';
-      const replyToggle=!comment.parentCommentId&&replies.length
-        ?(expandedReplies.has(comment.id)?''
-          :`<button type="button" class="view-replies-link" data-view-replies="${escapeHtml(comment.id)}" aria-expanded="false">View ${replies.length} ${replies.length===1?'reply':'replies'}</button>`)
+      const expandedRepliesMarkup=isRoot&&expandedReplies.has(comment.id)
+        ?`<div class="comment-replies comment-system-replies">${replies.map(reply=>renderComment(reply,false)).join('')}<button type="button" class="view-replies-link comment-system-view-replies hide-replies-link" data-view-replies="${escapeHtml(comment.id)}" aria-expanded="true">Hide replies</button></div>`
         :'';
-      const renderedReplies=comment.parentCommentId||!expandedReplies.has(comment.id)?''
-        :`<div class="comment-replies">${replies.map(renderComment).join('')}<button type="button" class="view-replies-link hide-replies-link" data-view-replies="${escapeHtml(comment.id)}" aria-expanded="true">Hide replies</button></div>`;
-      return `<article class="comment-item">${avatar}<div><p class="comment-author">${author} ${comment.parentCommentId ? '<small>Reply</small>' : '<small>Client</small>'}</p><p class="comment-text">${escapeHtml(comment.text)}</p>${replyButton}${replyToggle}</div></article>${replyForm}${renderedReplies}`;
+      return `<article class="comment-item comment-system-item">${avatar}<div class="comment-system-body"><p class="comment-author comment-system-author">${author} ${roleBadge}${replyTarget}</p><p class="comment-text comment-system-text">${escapeHtml(comment.text)}</p>${replyButton}</div></article>${replyForm}${expandedRepliesMarkup}`;
     };
     commentsRoot.innerHTML=ordered
       .filter(comment=>!comment.parentCommentId||!commentIds.has(comment.parentCommentId))
-      .map(renderComment).join('');
+      .map(comment=>renderComment(comment,true)).join('');
   }
   commentsRoot.addEventListener('click',event=>{
     const viewReplies=event.target.closest('[data-view-replies]');

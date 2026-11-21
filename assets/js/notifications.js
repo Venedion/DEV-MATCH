@@ -57,7 +57,7 @@
     return days < 7 ? `${days}d ago` : date.toLocaleDateString();
   }
 
-  function actionHref(notification) {
+  function actionHref(notification, projects) {
     if (notification.conversation_id) {
       const role = workspace === 'client' ? '&role=client' : '';
       return `devmatch-chat.html?conversation=${encodeURIComponent(notification.conversation_id)}${role}`;
@@ -65,6 +65,13 @@
     const category = kindDetails(notification.kind).filter;
     if (category === 'messages') return workspace === 'client' ? 'devmatch-chat.html?role=client' : 'devmatch-chat.html';
     if (category === 'comments') {
+      const project=projects.get(notification.project_id);
+      if(project?.kind==='portfolio'){
+        return `devmatch-discover-project-detail.html?project=${encodeURIComponent(notification.project_id)}#commentsSection`;
+      }
+      if(project?.kind==='request'){
+        return `devmatch-client-dashboard.html?section=comments#request-detail/${encodeURIComponent(notification.project_id)}`;
+      }
       return workspace === 'client' ? 'devmatch-client-dashboard.html#requests' : 'devmatch-dashboard.html#interactions';
     }
     if (category === 'ratings') {
@@ -76,7 +83,7 @@
   function appendNotification(row, notification, actors, projects) {
     const detail = kindDetails(notification.kind);
     const actorName = actors.get(notification.actor_id + ':' + notification.actor_role) || 'A member';
-    const projectTitle = projects.get(notification.project_id) || 'your project';
+    const projectTitle = projects.get(notification.project_id)?.title || 'your project';
     const article = document.createElement('article');
     article.className = 'notification-row';
     article.dataset.notification = notification.id;
@@ -114,7 +121,7 @@
     time.textContent = timeLabel(notification.created_at);
     const action = document.createElement('a');
     action.className = 'notification-action';
-    action.href = actionHref(notification);
+    action.href = actionHref(notification,projects);
     action.dataset.markRead = '';
     action.textContent = detail.filter === 'comments' ? 'Reply' : detail.filter === 'messages' ? 'Open chat' : 'View';
     article.append(dot, avatar, copy, time, action);
@@ -254,12 +261,15 @@
     const projectIds = [...new Set(notifications.map(item => item.project_id).filter(Boolean))];
     const [actorsResult, projectsResult] = await Promise.all([
       actorIds.length ? client.from('directory_people').select('id,username,display_name,account_role').in('id', actorIds) : Promise.resolve({data: [], error: null}),
-      projectIds.length ? client.from('projects').select('id,title').in('id', projectIds) : Promise.resolve({data: [], error: null})
+      projectIds.length ? client.from('projects').select('id,title,project_kind').in('id', projectIds) : Promise.resolve({data: [], error: null})
     ]);
     if (actorsResult.error) throw actorsResult.error;
     if (projectsResult.error) throw projectsResult.error;
     const actors = new Map((actorsResult.data || []).map(actor => [actor.id + ':' + actor.account_role, actor.username || actor.display_name]));
-    const projects = new Map((projectsResult.data || []).map(project => [project.id, project.title]));
+    const projects = new Map((projectsResult.data || []).map(project => [project.id, {
+      title:project.title,
+      kind:project.project_kind
+    }]));
     itemsContainer.replaceChildren();
     stateReady = true;
     notificationStatus.hidden = true;

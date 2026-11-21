@@ -7,10 +7,11 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=optional" rel="stylesheet">
-  <link rel="stylesheet" href="assets/css/client-dashboard.css?v=20261120-client-home-a11y">
-  <link rel="stylesheet" href="assets/css/project-detail.css?v=20261119-rebase-merge">
+  <link rel="stylesheet" href="assets/css/client-dashboard.css?v=20261122-comment-system-v1">
+  <link rel="stylesheet" href="assets/css/project-detail.css?v=20261122-comment-system-v1">
   <link rel="stylesheet" href="assets/css/favorite-feedback.css?v=20261120-confirmation-undo">
   <link rel="stylesheet" href="assets/css/mode-switch-animation.css?v=20261030-active-indicator">
+  <link rel="stylesheet" href="assets/css/comment-system.css?v=20261122-reference-ui-v2">
   <link rel="stylesheet" href="assets/css/mobile-navigation.css?v=20261120-mobile-bottom-nav-v11">
   <link rel="stylesheet" href="assets/css/arrow-motion.css?v=20261118-arrow-motion-global-v2">
   <script>
@@ -35,7 +36,7 @@
   </script>
   <script src="assets/js/i18n.js?v=20261102-profile-details"></script>
 <script src="assets/vendor/supabase-2.119.0.js"></script>
-<script src="assets/js/backend.js?v=20261120-project-created-at"></script>
+<script src="assets/js/backend.js?v=20261122-comment-roles"></script>
 </head>
 <body class="page-scroll-shell">
   <header class="client-topbar">
@@ -280,11 +281,11 @@
             <section class="request-detail-specialties"><h2>Required specialization</h2><div id="requestDetailSpecialties"></div></section>
             <footer class="request-detail-stats"><span id="requestDetailViews"></span><span id="requestDetailSaves"></span><span id="requestDetailComments"></span></footer>
           </article>
-          <section class="request-detail-comments">
-            <header><h2>Comments <span id="requestDetailCommentCount">0</span></h2><span class="request-detail-comment-sort">Oldest first</span></header>
-            <div id="requestDetailCommentsList"></div>
+          <section class="request-detail-comments comment-system" id="requestDetailComments">
+            <header class="comment-system-heading"><h2>Comments <span id="requestDetailCommentCount">0</span></h2><label><span class="visually-hidden">Sort comments</span><select class="request-detail-comment-sort" id="requestDetailCommentSort" aria-label="Sort comments"><option value="newest">Newest</option><option value="oldest">Oldest</option></select></label></header>
+            <div id="requestDetailCommentsList" class="comment-system-list"></div>
             <p class="request-detail-comments-status" id="requestDetailCommentsStatus" role="status" aria-live="polite" hidden></p>
-            <p id="requestDetailCommentsEmpty">No comments yet. Developer comments will appear here.</p>
+            <p id="requestDetailCommentsEmpty" class="comment-system-empty">No comments yet. Developer comments will appear here.</p>
           </section>
         </div>
         <aside class="request-detail-aside">
@@ -416,8 +417,8 @@
     </form>
   </dialog>
   <script src="assets/js/favorite-feedback.js?v=20261120-confirmation-undo"></script>
-  <script src="assets/js/project-detail.js?v=20261119-rebase-merge"></script>
-  <script src="assets/js/client-dashboard.js?v=20261121-rebase-merge"></script>
+  <script src="assets/js/project-detail.js?v=20261122-comment-system-v1"></script>
+  <script src="assets/js/client-dashboard.js?v=20261122-comment-system-v1"></script>
   <script src="assets/js/nav-behavior.js?v=20261120-mobile-bottom-nav-v4"></script>
 <script src="assets/js/presence.js?v=20261119-global"></script>
 </body>

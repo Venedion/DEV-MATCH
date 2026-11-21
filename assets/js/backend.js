@@ -509,21 +509,37 @@
     if (typeof projectId !== 'string' || !projectId) {
       throw new TypeError('A project ID is required.');
     }
-    let result = await client.from('comments')
-      .select('id,project_id,parent_comment_id,user_id,text,author_name,author_initials,created_at')
+    let columns = ['id', 'project_id', 'parent_comment_id', 'user_id', 'workspace_role', 'text', 'author_name', 'author_initials', 'created_at'];
+    const loadComments = () => client.from('comments')
+      .select(columns.join(','))
       .eq('project_id', projectId)
       .order('created_at', {ascending: true});
+    let result = await loadComments();
     let repliesSupported = true;
-    if (result.error && (
-      result.error.code === '42703'
-      || result.error.code === 'PGRST204'
-      || /parent_comment_id.*(does not exist|not found|schema cache)/i.test(result.error.message || '')
-    )) {
-      repliesSupported = false;
-      result = await client.from('comments')
-        .select('id,project_id,user_id,text,author_name,author_initials,created_at')
-        .eq('project_id', projectId)
-        .order('created_at', {ascending: true});
+    let workspaceRolesSupported = true;
+    for (let attempt = 0; result.error && attempt < 2; attempt++) {
+      const error = result.error;
+      const message = error.message || '';
+      if (error.code !== '42703' && error.code !== 'PGRST204'
+        && !/parent_comment_id.*(does not exist|not found|schema cache)/i.test(message)
+        && !/workspace_role.*(does not exist|not found|schema cache)/i.test(message)) break;
+      const identifiesMissingColumn = /parent_comment_id|workspace_role/i.test(message);
+      const parentColumnMissing = /parent_comment_id/i.test(message) || !identifiesMissingColumn;
+      const workspaceRoleColumnMissing = /workspace_role/i.test(message) || !identifiesMissingColumn;
+      if (parentColumnMissing && repliesSupported) {
+        repliesSupported = false;
+        columns = columns.filter(column => column !== 'parent_comment_id');
+      }
+      if (workspaceRoleColumnMissing && workspaceRolesSupported) {
+        workspaceRolesSupported = false;
+        columns = columns.filter(column => column !== 'workspace_role');
+      }
+      if (!parentColumnMissing && !workspaceRoleColumnMissing) {
+        repliesSupported = false;
+        workspaceRolesSupported = false;
+        columns = columns.filter(column => column !== 'parent_comment_id' && column !== 'workspace_role');
+      }
+      result = await loadComments();
     }
     if (result.error) throw result.error;
     return {
@@ -533,6 +549,7 @@
         projectId: comment.project_id,
         parentCommentId: comment.parent_comment_id || null,
         userId: comment.user_id,
+        workspaceRole: comment.workspace_role || null,
         text: comment.text,
         name: comment.author_name,
         initials: comment.author_initials,
@@ -598,13 +615,14 @@
     const user = await currentAccount();
     const {data, error} = await client.from('comments')
       .insert({project_id: projectId, user_id: user.id, workspace_role: await getWorkspaceRole(), text: text.trim()})
-      .select('id,project_id,user_id,text,author_name,author_initials,created_at')
+      .select('id,project_id,user_id,workspace_role,text,author_name,author_initials,created_at')
       .single();
     if (error) throw error;
     return {
       id: data.id,
       projectId: data.project_id,
       userId: data.user_id,
+      workspaceRole: data.workspace_role || null,
       text: data.text,
       name: data.author_name,
       initials: data.author_initials,
@@ -621,7 +639,7 @@
     const user = await currentAccount();
     const {data, error} = await client.from('comments')
       .insert({project_id: projectId, parent_comment_id: parentCommentId, user_id: user.id, workspace_role: await getWorkspaceRole(), text: text.trim()})
-      .select('id,project_id,parent_comment_id,user_id,text,author_name,author_initials,created_at')
+      .select('id,project_id,parent_comment_id,user_id,workspace_role,text,author_name,author_initials,created_at')
       .single();
     if (error) throw error;
     return {
@@ -629,6 +647,7 @@
       projectId: data.project_id,
       parentCommentId: data.parent_comment_id,
       userId: data.user_id,
+      workspaceRole: data.workspace_role || null,
       text: data.text,
       name: data.author_name,
       initials: data.author_initials,

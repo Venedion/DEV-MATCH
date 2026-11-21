@@ -13,17 +13,50 @@
   function formatCommentTime(value){
     if(typeof value!=='string'||!value)return '';
     const date=new Date(value);
-    return Number.isNaN(date.getTime())?'':new Intl.DateTimeFormat(undefined,{dateStyle:'medium',timeStyle:'short'}).format(date);
+    if(Number.isNaN(date.getTime()))return '';
+    const minutes=Math.max(0,Math.floor((Date.now()-date.getTime())/60000));
+    if(minutes<1)return 'Just now';
+    if(minutes<60)return `${minutes}m ago`;
+    const hours=Math.floor(minutes/60);
+    if(hours<24)return `${hours}h ago`;
+    const days=Math.floor(hours/24);
+    return days<7?`${days}d ago`:date.toLocaleDateString();
   }
   let project=null,comments=[],favorites=[],viewRecordFailed=false,commenterRoles=new Map();
-  let currentUserId=null,repliesSupported=true,replyTo=null;
+  let currentUserId=null,repliesSupported=true,replyTo=null,expandedReplies=new Set();
   function readJson(key,fallback){try{const value=localStorage.getItem(key);return value?JSON.parse(value):fallback;}catch{return fallback;}}
   async function loadCommenterRoles(){
     try{commenterRoles=await window.devMatchBackend.loadCommentAuthorRoles(comments);}
     catch(error){console.error('Unable to load project commenter profiles from Supabase.',error);commenterRoles=new Map();}
   }
+  async function refreshProjectComments(){
+    const result=await window.devMatchBackend.loadProjectComments(project.id);
+    const replyInput=document.querySelector('#commentList [data-inline-reply] textarea');
+    const replyDraft=replyInput?.value;
+    const replyHadFocus=replyInput===document.activeElement;
+    comments=result.comments;
+    repliesSupported=result.repliesSupported;
+    await loadCommenterRoles();
+    renderComments();
+    const refreshedReplyInput=document.querySelector('#commentList [data-inline-reply] textarea');
+    if(refreshedReplyInput&&replyDraft!==undefined){
+      refreshedReplyInput.value=replyDraft;
+      if(replyHadFocus)refreshedReplyInput.focus();
+    }
+  }
+  function subscribeToProjectComments(){
+    const client=window.devMatchBackend.client;
+    const channel=client.channel(`project-comments:${project.id}`)
+      .on('postgres_changes',{event:'INSERT',schema:'public',table:'comments',filter:`project_id=eq.${project.id}`},()=>{
+        void refreshProjectComments().catch(error=>console.error('Unable to refresh project comments from Supabase.',error));
+      })
+      .subscribe(status=>{
+        if(status==='CHANNEL_ERROR'||status==='TIMED_OUT')console.error('Project comment real-time updates are unavailable.',status);
+      });
+    window.addEventListener('pagehide',()=>{void client.removeChannel(channel);},{once:true});
+  }
   function profileAnchor(comment,content,className){
-    const profileUrl=window.devMatchBackend.publicProfileUrl(comment.userId,commenterRoles.get(comment.userId));
+    const profileUrl=window.devMatchBackend.publicProfileUrl(comment.userId,comment.workspaceRole||commenterRoles.get(comment.userId));
     if(!profileUrl)return content;
     const name=comment.name||'DEV-MATCH member';
     return `<a class="${className}" href="${escapeHtml(profileUrl)}" aria-label="View ${escapeHtml(name)} profile">${content}</a>`;
@@ -46,29 +79,58 @@
       if(!repliesByParent.has(comment.parentCommentId))repliesByParent.set(comment.parentCommentId,[]);
       repliesByParent.get(comment.parentCommentId).push(comment);
     });
-    const renderComment=comment=>{
+    const collectDescendants=commentId=>{
+      const descendants=[];
+      const visit=repliesByParent.get(commentId)||[];
+      visit.forEach(reply=>{
+        descendants.push(reply);
+        descendants.push(...collectDescendants(reply.id));
+      });
+      return descendants;
+    };
+    const commentById=new Map(comments.map(comment=>[comment.id,comment]));
+    const renderComment=(comment,isRoot=false)=>{
       const name=escapeHtml(comment.name||'DEV-MATCH member');
-      const avatar=profileAnchor(comment,`<span class="discover-detail-avatar">${escapeHtml(comment.initials||'CL')}</span>`,'comment-profile-avatar-link');
+      const avatar=profileAnchor(comment,`<span class="discover-detail-avatar comment-system-avatar">${escapeHtml(comment.initials||'CL')}</span>`,'comment-profile-avatar-link');
       const author=profileAnchor(comment,name,'comment-profile-name-link');
-      const replyButton=currentUserId&&repliesSupported
-        ?`<button class="discover-comment-reply" type="button" data-comment-reply="${escapeHtml(comment.id)}">Reply</button>`
+      const role=comment.workspaceRole||commenterRoles.get(comment.userId);
+      const roleBadge=role==='dev'
+        ?'<small class="discover-comment-role-badge comment-system-role">Developer</small>'
+        :role==='client'
+          ?'<small class="discover-comment-role-badge comment-system-role">Client</small>'
+          :'';
+      const parentComment=comment.parentCommentId?commentById.get(comment.parentCommentId):null;
+      const parentRole=parentComment?.workspaceRole||commenterRoles.get(parentComment?.userId);
+      const parentRoleBadge=parentRole==='dev'?'<small class="discover-comment-role-badge comment-system-role">Developer</small>':parentRole==='client'?'<small class="discover-comment-role-badge comment-system-role">Client</small>':'';
+      const replyTarget=parentComment&&!isRoot?`<small class="discover-comment-reply-target comment-system-target"><span class="discover-comment-reply-arrow comment-system-target-arrow">▸</span> <span class="discover-comment-reply-name comment-system-target-name">${escapeHtml(parentComment.name||'Member')}</span> ${parentRoleBadge}</small>`:'';
+      const isReplying=replyTo===comment.id;
+      const replyButton=currentUserId&&repliesSupported&&!isReplying
+        ?`<button class="discover-comment-reply comment-system-reply" type="button" data-comment-reply="${escapeHtml(comment.id)}">Reply</button>`
         :'';
-      const replyBadge=comment.parentCommentId?'<small class="discover-comment-reply-badge">Reply</small>':'';
-      const replies=repliesByParent.get(comment.id)||[];
-      return `<article class="discover-comment"><div>${avatar}</div><div class="discover-comment-body"><strong>${author} ${replyBadge}</strong><time datetime="${escapeHtml(comment.time||'')}">${escapeHtml(formatCommentTime(comment.time))}</time><p>${escapeHtml(comment.text||'')}</p>${replyButton}</div></article>${replies.length?`<div class="discover-comment-replies">${replies.map(renderComment).join('')}</div>`:''}`;
+      const replyForm=isReplying
+        ?`<form class="discover-comment-reply-form comment-system-reply-form" data-inline-reply="${escapeHtml(comment.id)}"><label for="discoverReplyInput">Reply</label><div><textarea id="discoverReplyInput" maxlength="1000" placeholder="Write a reply…" aria-label="Reply to ${name}" required></textarea><button type="submit" aria-label="Post reply"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M22 2 11 13M22 2 15 22 11 13 2 9 22 2"/></svg></button></div></form>`
+        :'';
+      const replies=isRoot?collectDescendants(comment.id):[];
+      const replyToggle=replies.length
+        ?(expandedReplies.has(comment.id)
+          ?''
+          :`<button class="discover-comment-replies-toggle comment-system-view-replies" type="button" data-view-replies="${escapeHtml(comment.id)}" aria-expanded="false">View ${replies.length} ${replies.length===1?'reply':'replies'}</button>`)
+        :'';
+      const renderedReplies=isRoot&&expandedReplies.has(comment.id)
+        ?`<div class="discover-comment-replies comment-system-replies">${replies.map(reply=>renderComment(reply,false)).join('')}<button class="discover-comment-replies-toggle comment-system-view-replies hide-replies-toggle" type="button" data-view-replies="${escapeHtml(comment.id)}" aria-expanded="true">Hide replies</button></div>`
+        :'';
+      return `<article class="discover-comment comment-system-item"><div>${avatar}</div><div class="discover-comment-body comment-system-body"><strong class="comment-system-author">${author} ${roleBadge}${replyTarget}</strong><p class="comment-system-text">${escapeHtml(comment.text||'')}</p><div class="comment-system-actions"><time class="comment-system-time" datetime="${escapeHtml(comment.time||'')}">${escapeHtml(formatCommentTime(comment.time))}</time><span class="comment-system-action-controls">${replyButton}${replyToggle}</span></div>${replyForm}</div></article>${renderedReplies}`;
     };
     document.getElementById('commentList').innerHTML=ordered
       .filter(comment=>!comment.parentCommentId||!commentIds.has(comment.parentCommentId))
-      .map(renderComment).join('');
+      .map(comment=>renderComment(comment,true)).join('');
   }
-  function clearReplyTarget(){
-    replyTo=null;
-    document.getElementById('discoverReplyContext').hidden=true;
-    document.getElementById('discoverReplyTarget').textContent='';
-    const input=document.getElementById('commentInput');
-    input.placeholder='Ask the developer a question about this project...';
-    input.setAttribute('aria-label','Your comment');
-    document.querySelector('#commentForm button[type="submit"]').textContent='Post comment';
+  function submitCommentOnEnter(event){
+    if(event.key!=='Enter'||event.shiftKey||event.isComposing||event.keyCode===229)return;
+    event.preventDefault();
+    if(event.repeat)return;
+    const form=event.target.form;
+    if(form&&!form.querySelector('button[type="submit"]').disabled)form.requestSubmit();
   }
   function initializeDetailLayout(){
     const preview=document.getElementById('projectPreview');
@@ -211,23 +273,59 @@
     catch(error){console.error('Unable to load public project comments from Supabase.',error);commentsFailed=true;}
     await loadCommenterRoles();
     initializeDetailLayout();renderComments();layout.hidden=false;
+    subscribeToProjectComments();
     document.getElementById('detailFavoriteAction').addEventListener('click',setFavorite);
     document.getElementById('commentSort').addEventListener('change',renderComments);
+    document.getElementById('commentInput').addEventListener('keydown',submitCommentOnEnter);
     document.getElementById('commentList').addEventListener('click',event=>{
+      const viewReplies=event.target.closest('[data-view-replies]');
+      if(viewReplies){
+        const commentId=viewReplies.dataset.viewReplies;
+        if(expandedReplies.has(commentId))expandedReplies.delete(commentId);
+        else expandedReplies.add(commentId);
+        renderComments();
+        return;
+      }
       const button=event.target.closest('[data-comment-reply]');
       if(!button||!currentUserId)return;
       const parent=comments.find(comment=>comment.id===button.dataset.commentReply);
       if(!parent)return;
-      replyTo=parent.id;
-      document.getElementById('discoverReplyTarget').textContent=parent.name||'member';
-      document.getElementById('discoverReplyContext').hidden=false;
-      const input=document.getElementById('commentInput');
-      input.placeholder=`Reply to ${parent.name||'member'}…`;
-      input.setAttribute('aria-label',`Reply to ${parent.name||'member'}`);
-      document.querySelector('#commentForm button[type="submit"]').textContent='Post reply';
-      input.focus();
+      replyTo=replyTo===parent.id?null:parent.id;
+      renderComments();
+      if(replyTo)document.querySelector('#commentList [data-inline-reply] textarea').focus();
     });
-    document.getElementById('cancelDiscoverReply').addEventListener('click',clearReplyTarget);
+    document.getElementById('commentList').addEventListener('keydown',event=>{
+      if(event.target.matches('[data-inline-reply] textarea'))submitCommentOnEnter(event);
+    });
+    document.getElementById('commentList').addEventListener('input',event=>{
+      if(event.target.matches('[data-inline-reply] textarea'))event.target.setCustomValidity('');
+    });
+    document.getElementById('commentList').addEventListener('submit',async event=>{
+      const form=event.target.closest('[data-inline-reply]');
+      if(!form)return;
+      event.preventDefault();
+      const input=form.querySelector('textarea');
+      const text=input.value.trim();
+      if(!text){input.setCustomValidity('Please enter a reply before posting.');input.reportValidity();return;}
+      input.setCustomValidity('');
+      const submit=form.querySelector('button[type="submit"]');
+      submit.disabled=true;
+      try{
+        const user=await window.devMatchBackend.ready;
+        if(!user){location.href='devmatch-auth.html?mode=login';return;}
+        const parentId=form.dataset.inlineReply;
+        const addedReply=await window.devMatchBackend.addProjectCommentReply(project.id,parentId,text);
+        if(!comments.some(comment=>comment.id===addedReply.id))comments.push(addedReply);
+        expandedReplies.add(parentId);
+        await loadCommenterRoles();
+        replyTo=null;
+        renderComments();
+      }catch(error){
+        console.error('Unable to save the project reply to Supabase.',error);
+        window.alert('Unable to post your reply. Please try again.');
+        submit.disabled=false;
+      }
+    });
     document.getElementById('commentForm').addEventListener('submit',async event=>{
       event.preventDefault();const input=document.getElementById('commentInput');const text=input.value.trim();
       if(!text){input.setCustomValidity('Please enter a comment before posting.');input.reportValidity();return;}
@@ -235,17 +333,16 @@
       try{
         const user=await window.devMatchBackend.ready;
         if(!user){location.href='devmatch-auth.html?mode=login';return;}
-        comments.push(await (replyTo
-          ?window.devMatchBackend.addProjectCommentReply(project.id,replyTo,text)
-          :window.devMatchBackend.addProjectComment(project.id,text)));
+        const addedComment=await window.devMatchBackend.addProjectComment(project.id,text);
+        if(!comments.some(comment=>comment.id===addedComment.id))comments.push(addedComment);
         await loadCommenterRoles();
         input.value='';
-        clearReplyTarget();
         renderComments();
       }
       catch(error){console.error('Unable to save the project comment to Supabase.',error);window.alert('Unable to post your comment. Please log in and try again.');}
     });
     document.getElementById('commentInput').addEventListener('input',event=>event.target.setCustomValidity(''));
+    if(location.hash==='#commentsSection')document.querySelector('[data-project-tab="comments"]').click();
     if(commentsFailed)status.textContent='Project details loaded, but comments could not be loaded.';
     else if(viewRecordFailed)status.textContent='Project details loaded, but the view could not be recorded.';
     status.hidden=!commentsFailed&&!viewRecordFailed;

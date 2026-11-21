@@ -623,13 +623,31 @@
       }
       return;
     }
-    let query = client.from('comments')
-      .select('id,project_id,user_id,text,author_name,created_at')
-      .in('project_id', projects.map(project => project.id));
-    query = filterByRange(query, range);
-    const { data, error } = await query
-      .order('created_at', { ascending: false })
-      .limit(5);
+    const loadCommentRows = async (includeParentComment, includeWorkspaceRole) => {
+      const columns = ['id','project_id','user_id','text','author_name','created_at'];
+      if (includeParentComment) columns.push('parent_comment_id');
+      if (includeWorkspaceRole) columns.push('workspace_role');
+      let query = client.from('comments')
+        .select(columns.join(','))
+        .in('project_id', projects.map(project => project.id));
+      query = filterByRange(query, range);
+      return query.order('created_at', { ascending: false }).limit(5);
+    };
+    let includeParentComment=true;
+    let includeWorkspaceRole=true;
+    let result=await loadCommentRows(includeParentComment,includeWorkspaceRole);
+    for(let attempt=0;result.error&&attempt<2;attempt++){
+      const message=result.error.message||'';
+      const missingColumnError=['42703','PGRST204'].includes(result.error.code);
+      if(!missingColumnError)break;
+      if(includeParentComment&&/parent_comment_id/i.test(message)){
+        includeParentComment=false;
+      }else if(includeWorkspaceRole&&/workspace_role/i.test(message)){
+        includeWorkspaceRole=false;
+      }else break;
+      result=await loadCommentRows(includeParentComment,includeWorkspaceRole);
+    }
+    const { data, error } = result;
     if (error) throw error;
     if (requestId !== rangeRequestId) return;
     if (!data?.length) {
@@ -637,21 +655,37 @@
       return;
     }
     const titles = new Map(projects.map(project => [project.id, project.title || 'Project']));
+    const parentIds=[...new Set(data.map(comment=>comment.parent_comment_id).filter(Boolean))];
+    let parentComments=[];
+    if(parentIds.length){
+      let parentResult=await client.from('comments')
+        .select('id,user_id,workspace_role,author_name')
+        .in('id',parentIds);
+      if(parentResult.error&&['42703','PGRST204'].includes(parentResult.error.code)
+        &&/workspace_role/i.test(parentResult.error.message||'')){
+        parentResult=await client.from('comments')
+          .select('id,user_id,author_name')
+          .in('id',parentIds);
+      }
+      if(parentResult.error)throw parentResult.error;
+      parentComments=parentResult.data||[];
+    }
     let commenterRoles=new Map();
     try {
-      commenterRoles=await backend.loadCommentAuthorRoles(data.map(comment=>({
+      commenterRoles=await backend.loadCommentAuthorRoles([...data,...parentComments].map(comment=>({
         userId:comment.user_id,
         name:comment.author_name
       })));
     } catch (profileError) {
       console.error('Unable to load dashboard commenter profiles from Supabase.', profileError);
     }
+    const parentsById=new Map(parentComments.map(comment=>[comment.id,comment]));
     commentsList.replaceChildren();
     data.forEach(comment => {
       const item = document.createElement('article');
-      item.className = 'comment';
+      item.className = 'comment comment-system-item';
       const avatar = document.createElement('span');
-      avatar.className = 'comment-avatar';
+      avatar.className = 'comment-avatar comment-system-avatar';
       avatar.textContent = initials(comment.author_name);
       const profileUrl=backend.publicProfileUrl(comment.user_id,commenterRoles.get(comment.user_id));
       const avatarLink=profileUrl?document.createElement('a'):avatar;
@@ -661,7 +695,10 @@
         avatarLink.setAttribute('aria-label',`View ${comment.author_name||'member'} profile`);
         avatarLink.append(avatar);
       }
-      const copy = document.createElement('p');
+      const copy = document.createElement('div');
+      copy.className='comment-system-body';
+      const authorRow=document.createElement('p');
+      authorRow.className='comment-system-author';
       const name = document.createElement('b');
       name.textContent = comment.author_name || 'A member';
       const nameLink=profileUrl?document.createElement('a'):name;
@@ -671,15 +708,55 @@
         nameLink.setAttribute('aria-label',`View ${comment.author_name||'member'} profile`);
         nameLink.append(name);
       }
-      const projectTitle = document.createElement('strong');
+      const projectTitle = document.createElement('a');
+      projectTitle.href=`devmatch-discover-project-detail.html?project=${encodeURIComponent(comment.project_id)}#commentsSection`;
       projectTitle.textContent = titles.get(comment.project_id) || 'Project';
+      projectTitle.setAttribute('aria-label',`View comments on ${projectTitle.textContent}`);
+      projectTitle.className='comment-project-link';
+      const role=comment.workspace_role||commenterRoles.get(comment.user_id);
+      const roleBadge=document.createElement('small');
+      roleBadge.className='comment-role-badge comment-system-role';
+      roleBadge.textContent=role==='dev'?'Developer':role==='client'?'Client':'';
       const body = document.createElement('span');
       body.textContent = comment.text || '';
-      copy.append(nameLink, document.createTextNode(' on '), projectTitle, body);
+      authorRow.append(nameLink);
+      if(roleBadge.textContent)authorRow.append(roleBadge);
+      copy.append(authorRow);
+      const project=document.createElement('small');
+      project.className='comment-system-project';
+      project.append(projectTitle);
+      copy.append(project);
+      const parent=comment.parent_comment_id?parentsById.get(comment.parent_comment_id):null;
+      if(parent){
+        const parentRole=parent.workspace_role||commenterRoles.get(parent.user_id);
+        const replyTarget=document.createElement('small');
+        replyTarget.className='comment-reply-target comment-system-target';
+        const arrow=document.createElement('span');
+        arrow.className='comment-reply-arrow comment-system-target-arrow';
+        arrow.textContent='▸';
+        const parentName=document.createElement('span');
+        parentName.className='comment-reply-name comment-system-target-name';
+        parentName.textContent=parent.author_name||'Member';
+        replyTarget.append(arrow,document.createTextNode(' '),parentName);
+        if(parentRole==='dev'||parentRole==='client'){
+          const parentBadge=document.createElement('small');
+          parentBadge.className='comment-role-badge comment-system-role';
+          parentBadge.textContent=parentRole==='dev'?'Developer':'Client';
+          replyTarget.append(document.createTextNode(' '),parentBadge);
+        }
+        authorRow.append(replyTarget);
+      }
+      body.className='comment-system-text';
+      copy.append(body);
       const time = document.createElement('time');
+      time.className='comment-system-time';
       time.dateTime = comment.created_at;
       time.textContent = timeAgo(comment.created_at);
-      item.append(avatarLink, copy, time);
+      const actions=document.createElement('div');
+      actions.className='comment-system-actions';
+      actions.append(time);
+      copy.append(actions);
+      item.append(avatarLink, copy);
       commentsList.append(item);
     });
   }

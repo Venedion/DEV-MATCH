@@ -201,11 +201,21 @@ test('Project comment replies require a parent and nonempty text within the comm
   await assert.rejects(backend.addProjectCommentReply('project','','A reply'),/required/);
   await assert.rejects(backend.addProjectCommentReply('project','comment','x'.repeat(5001)),/required/);
 });
+test('Project comments expose workspace roles without relying on commenter profiles',async()=>{
+  const {backend}=await setup({commentResults:[{data:[{
+    id:'comment-1',project_id:'project-1',parent_comment_id:'parent-1',user_id:'developer-1',
+    workspace_role:'dev',text:'Developer reply',author_name:'Developer',author_initials:'D',
+    created_at:'2026-11-17T00:00:00Z'
+  }],error:null}]});
+  const result=await backend.loadProjectComments('project-1');
+  assert.equal(result.comments[0].workspaceRole,'dev');
+});
 test('Existing project comments remain available before the reply migration is applied',async()=>{
   const existingComment={id:'comment-1',project_id:'project-1',user_id:'developer-1',text:'Existing comment',
     author_name:'Developer',author_initials:'D',created_at:'2026-11-17T00:00:00Z'};
   const {backend,commentSelects}=await setup({commentResults:[
     {data:null,error:{code:'42703',message:'column comments.parent_comment_id does not exist'}},
+    {data:null,error:{code:'42703',message:'column comments.workspace_role does not exist'}},
     {data:[existingComment],error:null}
   ]});
   const result=await backend.loadProjectComments('project-1');
@@ -213,7 +223,9 @@ test('Existing project comments remain available before the reply migration is a
   assert.equal(result.comments.length,1);
   assert.equal(result.comments[0].text,'Existing comment');
   assert.equal(result.comments[0].parentCommentId,null);
+  assert.equal(result.comments[0].workspaceRole,null);
   assert.doesNotMatch(commentSelects[1],/parent_comment_id/);
+  assert.doesNotMatch(commentSelects[2],/workspace_role/);
 });
 
 test('Connected developer workspace preserves the primary client profile on save',async()=>{
