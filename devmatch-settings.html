@@ -16,7 +16,7 @@
   <script src="assets/js/mode-switch-state.js?v=20261030-client-mode-indicator"></script>
   <script src="assets/js/i18n.js?v=20261119-experience-delete-undo"></script>
 <script src="assets/vendor/supabase-2.119.0.js"></script>
-<script src="assets/js/backend.js?v=20261119-phone-onboarding"></script>
+<script src="120261121-backend-reliability"></script>
 </head>
 <body class="page-scroll-shell">
   <!-- Topbar -->
@@ -163,12 +163,17 @@
               </div>
 
               <div class="settings-field">
-                <label class="settings-label" for="settingsPhone">Account phone number</label>
-                <input class="settings-input" id="settingsPhone" type="tel" readonly>
+                <span class="settings-label">Active account phone number</span>
+                <span class="settings-hint" id="activeAccountPhone"></span>
+                <label class="settings-label" for="settingsPhone">Number to verify</label>
+                <input class="settings-input" id="settingsPhone" type="tel" autocomplete="tel" placeholder="08… or +62…">
                 <span class="settings-hint" id="phoneVerificationStatus" role="status">Checking phone verification…</span>
-                <button class="settings-btn" id="startWhatsAppVerification" type="button" disabled>Prepare WhatsApp verification</button>
-    <a class="login-link" id="openWhatsAppVerification" target="_blank" rel="noopener noreferrer" hidden>Open WhatsApp</a>
-    <button class="settings-btn" id="checkWhatsAppVerification" type="button" hidden>Check verification</button>
+                <button class="settings-btn" id="startWhatsAppVerification" type="button" disabled>Kirim kode via WhatsApp</button>
+                <div id="whatsappOtpPanel" hidden>
+                  <label class="settings-label" for="whatsappOtpCode" id="whatsappOtpDestination">WhatsApp code</label>
+                  <input class="settings-input" id="whatsappOtpCode" inputmode="numeric" autocomplete="one-time-code" maxlength="6">
+                  <button class="settings-btn" id="checkWhatsAppVerification" type="button">Verify code</button>
+                </div>
               </div>
 
               <div class="settings-field">
@@ -823,10 +828,10 @@
 
   </a>
 
-  <script src="assets/js/phone-verification.js?v=20261119-whatsapp"></script>
-  <script src="assets/js/settings.js?v=20261119-experience-edit-reset"></script>
+  <script src="assets/js/phone-verification.js?v=20261120-otp"></script>
+  <script src="assets/js/settings.js?v=20261120-otp"></script>
   <script src="assets/js/custom-select.js?v=20261028-custom-dropdowns-v3"></script>
-  <script src="assets/js/nav-behavior.js?v=20261119-rebase-merge"></script>
-<script src="assets/js/presence.js?v=20261119-global"></script>
+  <script src="120261121-backend-reliability"></script>
+<script src="120261121-backend-reliability"></script>
 </body>
 </html>

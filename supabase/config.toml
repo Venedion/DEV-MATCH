@@ -33,3 +33,6 @@ entrypoint = "./functions/DEV-MATCH/index.ts"
 
 [functions.whatsapp-verification]
 verify_jwt = false
+
+[functions.whatsapp-otp]
+verify_jwt = false

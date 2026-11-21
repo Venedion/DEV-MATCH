@@ -609,23 +609,40 @@
   }
 
   let activityTimer;
+  let activityPending = false;
   async function syncActivity() {
-    if (!currentUser || document.visibilityState !== 'visible') return;
-    const conversation=getActiveConversation();
-    const last=conversation?.messages?.at(-1);
-    const {data,error}=await client.rpc('sync_chat_activity', {p_role:currentProfile.account_role,p_conversation:conversation?.id||null,p_read_at:last?.created_at||null});
-    if(error){console.warn('Unable to update chat status.',error);return;}
-    if(conversation && conversation.id===activeConvId){
-      const changed=conversation.online!==data.online || conversation.peerReadAt!==data.read_at;
-      conversation.online=data.online;conversation.peerReadAt=data.read_at;
-      if(changed)renderMessagesThread();
+    if (activityPending || !currentUser || !currentProfile || document.visibilityState !== 'visible') return;
+    activityPending = true;
+    try {
+      const {data: sessionData, error: sessionError} = await client.auth.getSession();
+      if (sessionError || !sessionData.session?.access_token || sessionData.session.user?.id !== currentUser.id) return;
+      const conversation = getActiveConversation();
+      const last = conversation?.messages?.at(-1);
+      const {data, error} = await client.rpc('sync_chat_activity', {
+        p_role: currentProfile.account_role,
+        p_conversation: conversation?.id || null,
+        p_read_at: last?.created_at || null
+      });
+      if (error) throw error;
+      if (conversation && conversation.id === activeConvId && data) {
+        const changed = conversation.online !== data.online || conversation.peerReadAt !== data.read_at;
+        conversation.online = data.online;
+        conversation.peerReadAt = data.read_at;
+        if (changed) renderMessagesThread();
+      }
+    } catch (error) {
+      console.warn('Unable to update chat status.', error);
+    } finally {
+      activityPending = false;
     }
   }
   document.addEventListener('visibilitychange',()=>{if(currentUser)void syncActivity();});
   async function startRealtime() {
     const {data, error} = await client.auth.getSession();
     if (error) throw error;
-    if (!data.session?.access_token) throw new Error('Your session expired. Please log in again.');
+    if (!data.session?.access_token || data.session.user?.id !== currentUser.id) {
+      throw new Error('Your session expired. Please log in again.');
+    }
     await client.realtime.setAuth(data.session.access_token);
     presenceReady = true;
     syncPresenceChannels();

@@ -316,7 +316,6 @@
     setVal('settingsDisplayName', profileData.displayName);
     setVal('settingsUsername', profileData.username || '');
     setVal('settingsEmail', profileData.email || '');
-    setVal('settingsPhone', profileData.phone || '');
     setVal('settingsCity', profileData.city || '');
     setVal('settingsBio', profileData.bio || '');
     setVal('settingsWhatsapp', profileData.whatsapp || '');

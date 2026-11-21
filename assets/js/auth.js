@@ -98,16 +98,16 @@ $('pass').addEventListener('input',()=>{
   $('strength').textContent=t;$('strength').style.color=s<=1?'var(--bad)':s<=2?'#d97706':'var(--ok)';
 });
 $('user').addEventListener('input',userHint);
-$('phone').addEventListener('input',e=>{e.target.value=e.target.value.replace(/\D/g,'').replace(/^0+/,'')});
 $('eye').onclick=()=>{const s=$('pass').type==='password';$('pass').type=s?'text':'password';$('eye').setAttribute('aria-label',s?'Hide password':'Show password')};
 $('form').addEventListener('submit',async e=>{
   e.preventDefault();clearErr();let bad=false;const reg=mode==='reg';
-  const u=$('user').value.trim(),em=$('email').value.trim(),ph=$('phone').value,pw=$('pass').value;
+  const u=$('user').value.trim(),em=$('email').value.trim(),pw=$('pass').value;
+  const ph=$('phone').value.trim().replace(/[\s()-]/g,'').replace(/^(?:\+?62|0)/,'');
   if(reg){
     if(!/^[A-Za-z0-9_.]{3,24}$/.test(u)){setErr('user','Use 3–24 letters, numbers, dots or underscores.');bad=true}
     if(em.toLowerCase() === (sessionStorage.getItem('devmatch-separate-account-email') || '').toLowerCase()){setErr('email','Use a different email for a separate account, or log in to your existing account and choose Connect.');bad=true}
     if(!emailRe.test(em)){setErr('email','Enter a valid email address, like you@example.com.');bad=true}
-    if(ph.length<9||ph.length>13){setErr('phone','Enter your number without the leading 0, like 812 3456 7890.');bad=true}
+    if(!/^8\d{8,12}$/.test(ph)){setErr('phone','Enter an Indonesian WhatsApp number, such as 08… or +62….');bad=true}
     if(pw.length<8){setErr('pass','Password needs at least 8 characters.');bad=true}
     else if(!/[A-Z]/.test(pw)){setErr('pass','Password needs at least one uppercase letter.');bad=true}
     else if(!/[^A-Za-z0-9]/.test(pw)){setErr('pass','Password needs at least one special character, such as ! or #.');bad=true}

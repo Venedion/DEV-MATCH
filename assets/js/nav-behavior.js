@@ -569,6 +569,7 @@
   let notificationRealtimeUserId = null;
   let notificationRealtimeSetup = null;
   let notificationAuthSubscription = null;
+  let notificationRealtimeConnected = false;
 
   async function ensureNotificationRealtime(backend, user) {
     if (notificationRealtimeSetup) await notificationRealtimeSetup;
@@ -582,14 +583,24 @@
 
       const {data, error} = await backend.client.auth.getSession();
       if (error) throw error;
-      if (!data.session?.access_token) throw new Error('Your session is unavailable.');
+      if (!data.session?.access_token || data.session.user?.id !== user.id) throw new Error('Your session is unavailable.');
       await backend.client.realtime.setAuth(data.session.access_token);
 
       if (!notificationAuthSubscription) {
         const {data: authListener} = backend.client.auth.onAuthStateChange((_event, session) => {
-          if (session?.access_token) {
+          if (session?.access_token && session.user?.id === notificationRealtimeUserId) {
             void backend.client.realtime.setAuth(session.access_token).catch(error => {
               console.error('Unable to refresh the notification real-time session.', error);
+            });
+          } else if (notificationRealtimeChannel) {
+            const channel = notificationRealtimeChannel;
+            notificationRealtimeChannel = null;
+            notificationRealtimeUserId = null;
+            notificationRealtimeConnected = false;
+            queueMicrotask(() => {
+              void backend.client.removeChannel(channel).catch(error => {
+                console.warn('Unable to close the notification channel.', error);
+              });
             });
           }
         });
@@ -602,10 +613,12 @@
         .on('postgres_changes', {
           event: 'INSERT',
           schema: 'public',
-          table: 'notifications',
-          filter: `recipient_id=eq.${user.id}`
-        }, () => {
+          table: 'notifications'
+        }, ({new: row}) => {
+          // SELECT RLS is the server-side filter. Recheck the recipient before updating the UI.
+          if (row?.recipient_id !== user.id) return;
           refreshNotificationBadges();
+          window.dispatchEvent(new Event('devmatch:notification-received'));
         })
         .on('postgres_changes', {
           event: 'INSERT',
@@ -615,6 +628,11 @@
           refreshMessageBadges();
         })
         .subscribe(status => {
+          notificationRealtimeConnected = status === 'SUBSCRIBED';
+          if (notificationRealtimeConnected) {
+            refreshNotificationBadges();
+            window.dispatchEvent(new Event('devmatch:notification-received'));
+          }
           if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
             console.error('Navigation real-time updates are unavailable.', status);
           }
@@ -728,6 +746,11 @@
   window.addEventListener('storage', updateNavBadges);
   window.addEventListener('devmatch:notifications-changed', refreshNotificationBadges);
   window.addEventListener('devmatch:messages-changed', refreshMessageBadges);
+  window.setInterval(() => {
+    if (document.visibilityState !== 'visible' || notificationRealtimeConnected || !notificationRealtimeUserId) return;
+    refreshNotificationBadges();
+    window.dispatchEvent(new Event('devmatch:notification-received'));
+  }, 30000);
 
   document.addEventListener('click', event => {
     if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;

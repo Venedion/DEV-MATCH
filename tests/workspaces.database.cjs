@@ -190,19 +190,52 @@ const C = '33333333-3333-4333-8333-333333333333';
   await assert.rejects(db.query("select public.sync_chat_activity('client','bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',now())"));
   await asUser(C);
   await assert.rejects(db.query("select public.sync_chat_activity('client','bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',now())"));
-  await db.exec(`reset role; update public.profiles set phone='+6281234567890' where id='${A}'`);
+  const oldPhone = '+6281234567890';
+  const newPhone = '+6282222222222';
+  const first = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+  const second = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
+  const digest = 'a'.repeat(64);
+  const wrong = 'b'.repeat(64);
+  const reserve = async (user, challenge, phone) =>
+    (await db.query('select public.reserve_whatsapp_otp($1,$2,$3,$4) result',[user,challenge,phone,digest])).rows[0].result;
+  const verify = async (user, challenge, phone, hash = digest) =>
+    (await db.query('select public.verify_whatsapp_otp($1,$2,$3,$4) result',[user,challenge,phone,hash])).rows[0].result;
+  async function ageChallenge(interval) {
+    await db.exec('reset role');
+    await db.query('update private.whatsapp_otp set issued_at = clock_timestamp() - $1::interval where user_id = $2',[interval,A]);
+    await db.exec('set role service_role');
+  }
+  await db.exec('reset role');
+  await db.query('update public.profiles set phone=$1, verified_phone=$1, phone_verified_at=now() where id=$2',[oldPhone,A]);
   await asUser(A);
-  const whatsappCode=(await scalar('select public.start_whatsapp_phone_verification() code')).code;
+  await assert.rejects(reserve(A,first,newPhone));
+  await assert.rejects(db.query('update public.profiles set phone=$1 where id=$2',[newPhone,A]));
   await assert.rejects(db.query('select public.start_whatsapp_phone_verification()'));
-  await assert.rejects(db.query('select public.confirm_whatsapp_phone_verification($1,$2)',[whatsappCode,'+6281234567890']));
   await db.exec('reset role; set role service_role');
-  assert.equal((await db.query('select public.confirm_whatsapp_phone_verification($1,$2) ok',[whatsappCode,'+6282222222222'])).rows[0].ok,false);
-  assert.equal((await db.query('select public.confirm_whatsapp_phone_verification($1,$2) ok',[whatsappCode,'+6281234567890'])).rows[0].ok,true);
-  assert.equal((await db.query('select public.confirm_whatsapp_phone_verification($1,$2) ok',[whatsappCode,'+6281234567890'])).rows[0].ok,false);
+  assert.equal(await reserve(A,first,newPhone),true);
+  assert.equal(await reserve(A,second,oldPhone),false);
+  assert.equal(await reserve(B,second,newPhone),false);
+  assert.equal(await verify(B,first,newPhone),'expired');
+  assert.equal(await verify(A,first,oldPhone),'expired');
+  for (let i = 1; i < 5; i++) assert.equal(await verify(A,first,newPhone,wrong),'invalid');
+  assert.equal(await verify(A,first,newPhone,wrong),'locked');
+  assert.equal(await verify(A,first,newPhone),'locked');
+  await ageChallenge('61 seconds');
+  assert.equal(await reserve(A,second,newPhone),true);
+  assert.equal(await verify(A,first,newPhone),'expired');
+  await ageChallenge('301 seconds');
+  assert.equal(await verify(A,second,newPhone),'expired');
   await asUser(A);
-  assert.equal((await scalar('select public.is_whatsapp_phone_verified() ok')).ok,true);
-  await asUser(B);
-  assert.equal((await scalar('select public.is_whatsapp_phone_verified() ok')).ok,false);
+  assert.equal((await scalar("select phone from public.switch_account_workspace('client',false)")).phone,oldPhone);
+  await db.exec('reset role; set role service_role');
+  assert.equal(await reserve(A,first,newPhone),true);
+  assert.equal(await verify(A,first,newPhone),'verified');
+  assert.equal(await verify(A,first,newPhone),'expired');
+  await asUser(A);
+  for (const role of ['client','dev']) {
+    assert.equal((await scalar("select phone from public.switch_account_workspace('" + role + "',false)")).phone,newPhone);
+  }
+  assert.equal((await scalar("select verified_phone from public.profiles where id='" + A + "'")).verified_phone,newPhone);
   console.log('PASS: full schema, legacy history retained, shared identity, workspace profile isolation, dual-role projects/directory/metrics/reviews, role-aware chat/presence, favorites/notifications/read preferences, RLS and comment features');
   await db.close();
 })().catch(error => { console.error(error.message); process.exitCode = 1; });

@@ -81,6 +81,7 @@
       document.getElementById('projectLink').textContent=activeProject.link;
       const cover=document.getElementById('projectCover');
       cover.className=`project-cover ${['food-art','dashboard-art','analytics-art','store-art','inventory-art'].includes(data.art)?data.art:'dashboard-art'}`;
+      window.renderProjectMedia(document.getElementById('projectMedia'),row.cover_image,data.media);
       document.getElementById('developerInitials').textContent=initials(developerName);
       document.getElementById('developerName').textContent=developerName;
       document.getElementById('developerHandle').textContent='';

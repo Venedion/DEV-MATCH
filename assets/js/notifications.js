@@ -219,7 +219,7 @@
     updateNotifications();
   }
 
-  const notificationStateReady = (async () => {
+  async function loadNotificationState(markOnOpen = false) {
     if (!backend || !client) throw new Error('Supabase is unavailable.');
     const user = await backend.ready;
     if (!user) throw new Error('Your session is unavailable.');
@@ -237,7 +237,7 @@
     const unreadIds = notifications
       .map(notification => notification.id)
       .filter(id => !readIdsSet.has(id));
-    if (unreadIds.length) {
+    if (markOnOpen && unreadIds.length) {
       await backend.markNotificationsRead(unreadIds);
       unreadIds.forEach(id => readIdsSet.add(id));
       window.dispatchEvent(new Event('devmatch:notifications-changed'));
@@ -267,9 +267,24 @@
     notificationEmpty.hidden = false;
     renderNotifications(notifications, actors, projects);
     return true;
-  })().catch(error => {
+  }
+
+  const notificationStateReady = loadNotificationState(true).catch(error => {
     showLoadError(error);
     return false;
+  });
+  let refreshing = false;
+  window.addEventListener('devmatch:notification-received', async () => {
+    if (refreshing || document.visibilityState !== 'visible') return;
+    refreshing = true;
+    try {
+      await notificationStateReady;
+      await loadNotificationState();
+    } catch (error) {
+      console.warn('Unable to refresh the notification list.', error);
+    } finally {
+      refreshing = false;
+    }
   });
 
   positionMarkAllReadButton();
@@ -287,7 +302,8 @@
   });
 
   async function markRead(notificationId) {
-    if (!await notificationStateReady) throw new Error('Notifications are not ready.');
+    await notificationStateReady;
+    if (!stateReady) throw new Error('Notifications are not ready.');
     const row = notificationRows.find(item => item.dataset.notification === notificationId);
     if (!row || !row.classList.contains('is-unread')) return;
     await backend.markNotificationsRead([notificationId]);
@@ -298,7 +314,8 @@
   }
 
   markAllReadButton?.addEventListener('click', async () => {
-    if (!await notificationStateReady) return;
+    await notificationStateReady;
+    if (!stateReady) return;
     const ids = notificationRows.filter(row => row.classList.contains('is-unread')).map(row => row.dataset.notification);
     if (!ids.length) return;
     markAllReadButton.disabled = true;

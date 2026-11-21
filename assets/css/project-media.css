@@ -1,0 +1,20 @@
+.project-media:not([hidden]) {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 14rem), 1fr));
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.project-media img,
+.project-media video {
+  display: block;
+  width: 100%;
+  max-height: 30rem;
+  object-fit: contain;
+  border-radius: 0.65rem;
+}
+
+.project-media video {
+  grid-column: 1 / -1;
+  background: #171719;
+}

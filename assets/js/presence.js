@@ -11,6 +11,8 @@
       const user=await backend.ready;
       if(!user?.email_confirmed_at)return;
       const role=await backend.getWorkspaceRole();
+      const {data,error:sessionError}=await backend.client.auth.getSession();
+      if(stopped||sessionError||!data.session?.access_token||data.session.user?.id!==user.id)return;
       // Presence only: opening another page must never mark any chat as read.
       const {error}=await backend.client.rpc('sync_chat_activity',{p_role:role,p_conversation:null,p_read_at:null});
       if(error)console.warn('Unable to refresh online status.',error);

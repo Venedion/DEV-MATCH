@@ -144,6 +144,7 @@
   const ready = (async () => {
     const {data: {user}, error} = await client.auth.getUser();
     if (!user || error) {
+      if (error?.name === 'AuthRetryableFetchError' || error?.status >= 500) throw error;
       if(sessionStorage.getItem('devmatch-recovery')==='1' && page!=='devmatch-reset-password.html'){
         location.replace('devmatch-reset-password.html');return null;
       }

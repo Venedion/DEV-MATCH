@@ -110,6 +110,7 @@
     if(error)throw error;
     if(!row){status.hidden=true;notFound.hidden=false;layout.hidden=true;return;}
     const data=row.data&&typeof row.data==='object'?row.data:{};
+    window.renderProjectMedia(document.getElementById('projectMedia'),row.cover_image,data.media);
     project={...data,id:row.id,title:row.title,type:row.project_type,category:row.category,
       price:row.price||data.price||'',description:String(data.description||data.overview||''),
       overview:String(data.overview||data.description||''),stack:Array.isArray(data.stack)?data.stack.join(', '):String(data.stack||''),

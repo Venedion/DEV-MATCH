@@ -12,7 +12,8 @@ Deno.serve(async request => {
 
   if (request.method === 'GET' && url.searchParams.has('availability')) {
     const origin = request.headers.get('origin') || '';
-    const headers = allowedOrigins.has(origin) ? {'Access-Control-Allow-Origin': origin, 'Vary': 'Origin'} : {};
+    const headers = new Headers({'Vary': 'Origin'});
+    if (allowedOrigins.has(origin)) headers.set('Access-Control-Allow-Origin', origin);
     return Response.json({available: configured, ...(configured ? {number: businessNumber} : {})}, {headers});
   }
 

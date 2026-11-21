@@ -66,6 +66,7 @@ let currentStatus=new URLSearchParams(location.search).get('status')==='favorite
 let currentPage=1;
 let query='';
 let editingId=null;
+let savingProject=false;
 let previewingProject=null;
 let visibleProjects=[];
 
@@ -268,6 +269,7 @@ async function restoreUnsavedProjectDraft(){
   updateEditor();
 }
 function showEditor(project=null){
+  if(savingProject)return;
   form.reset();
   selectedMedia.length=0;
   previewUrls.forEach(url=>URL.revokeObjectURL(url));
@@ -628,10 +630,10 @@ function addMedia(files){
     document.getElementById('mediaMessage').textContent=error.message;
   });
 }
-async function uploadSelectedMedia(projectId){
+async function uploadSelectedMedia(projectId,files){
   const uploaded=[];
   try{
-    for(const file of selectedMedia){
+    for(const file of files){
       uploaded.push(await window.devMatchBackend.uploadPortfolioMedia(projectId,file));
     }
     return uploaded;
@@ -646,19 +648,43 @@ async function uploadSelectedMedia(projectId){
     throw error;
   }
 }
+function showProjectSaveError(message){
+  document.getElementById('projectMessage').textContent=message;
+  document.getElementById('projectPreviewMode').hidden=true;
+  editor.hidden=false;
+}
+
 async function saveProject(status){
+  if(savingProject)return;
+  savingProject=true;
+  const controls=document.querySelectorAll('[data-save-draft], [data-publish-preview], [data-editor-cancel], [form="projectForm"][type="submit"]');
+  controls.forEach(button=>{button.disabled=true;});
+  try{
+    await persistProject(status);
+  }catch(error){
+    console.error('Unable to save your portfolio project.',error);
+    showProjectSaveError(error.message||'Unable to save this project. Check your connection and try again.');
+  }finally{
+    savingProject=false;
+    controls.forEach(button=>{button.disabled=false;});
+  }
+}
+
+async function persistProject(status){
   if(!await ownedProjectsReady){
-    document.getElementById('projectMessage').textContent='Your account projects are not ready to save. Reload the page and try again.';
+    showProjectSaveError('Your account projects are not ready to save. Reload the page and try again.');
     return;
   }
   const title=form.elements.title.value.trim();
   const description=form.elements.description.value.trim();
   const priceType=form.elements.priceType.value;
+  const files=[...selectedMedia];
   const projectMessage=document.getElementById('projectMessage');
+  projectMessage.textContent='';
   if(status==='published'){
     const missing=[];
     if(!title||!description)missing.push('project name and description');
-    if(!selectedMedia.some(file=>file.type.startsWith('image/'))&&!existingCoverImage)missing.push('at least one screenshot');
+    if(!files.some(file=>file.type.startsWith('image/'))&&!existingCoverImage)missing.push('at least one screenshot');
     if(!form.elements.type.value||!form.elements.category.value)missing.push('project type and category');
     else if(form.elements.type.value==='Other'&&!form.elements.typeOther.value.trim())missing.push('a description for the other project type');
     if(form.elements.category.value==='Other'&&!form.elements.categoryOther.value.trim())missing.push('a description for the other project category');
@@ -687,7 +713,7 @@ async function saveProject(status){
     priceMin:form.elements.priceMin.value.trim(),
     priceMax:form.elements.priceMax.value.trim(),
     services:[...form.querySelectorAll('[name="services"]:checked')].map(input=>input.value),
-    mediaCount:selectedMedia.length||(existingCoverImage?1:0),
+    mediaCount:files.length||(existingCoverImage?1:0),
     media:Array.isArray(projects.find(item=>item.id===editingId)?.media)
       ?projects.find(item=>item.id===editingId).media
       :[],
@@ -703,10 +729,10 @@ async function saveProject(status){
         let updatedProject={...savedProjects[savedIndex],...projectData,id:editingId};
         let uploaded=[];
         try{
-          if(selectedMedia.length){
-            uploaded=await uploadSelectedMedia(editingId);
+          if(files.length){
+            uploaded=await uploadSelectedMedia(editingId,files);
             updatedProject.media=[...new Set([...(updatedProject.media||[]),...uploaded.map(item=>item.url)])];
-            const coverIndex=selectedMedia.findIndex(file=>file.type.startsWith('image/'));
+            const coverIndex=files.findIndex(file=>file.type.startsWith('image/'));
             if(coverIndex>=0)updatedProject.coverImage=uploaded[coverIndex].url;
           }
           await window.devMatchBackend.saveOwnedProject('portfolio',updatedProject);
@@ -719,11 +745,11 @@ async function saveProject(status){
             }
           }
           console.error('Unable to save your portfolio project to Supabase.',error);
-          projectMessage.textContent=error.message||'Unable to save this project. Check your connection and try again.';
+          showProjectSaveError(error.message||'Unable to save this project. Check your connection and try again.');
           return;
         }
         savedProjects[savedIndex]=updatedProject;
-        Object.assign(existing,projectData);
+        Object.assign(existing,updatedProject);
         storeSavedProjects();
       }
     }
@@ -732,10 +758,10 @@ async function saveProject(status){
     let uploaded=[];
     try{
       newProject.id=await window.devMatchBackend.saveOwnedProject('portfolio',newProject);
-      if(selectedMedia.length){
-        uploaded=await uploadSelectedMedia(newProject.id);
+      if(files.length){
+        uploaded=await uploadSelectedMedia(newProject.id,files);
         newProject.media=uploaded.map(item=>item.url);
-        newProject.coverImage=uploaded.find((item,index)=>selectedMedia[index].type.startsWith('image/'))?.url||'';
+        newProject.coverImage=uploaded.find((item,index)=>files[index].type.startsWith('image/'))?.url||'';
       }
       newProject.status=status;
       await window.devMatchBackend.saveOwnedProject('portfolio',newProject);
@@ -748,13 +774,14 @@ async function saveProject(status){
         }
       }
       console.error('Unable to create your portfolio project in Supabase.',error);
-      projectMessage.textContent=error.message||'Unable to save this project. Check your connection and try again.';
+      showProjectSaveError(error.message||'Unable to save this project. Check your connection and try again.');
       if(newProject.id){
         newProject.status='draft';
         newProject.coverImage='';
         newProject.media=[];
         savedProjects.unshift(newProject);
         projects.push(newProject);
+        editingId=newProject.id;
         storeSavedProjects();
         render();
       }
@@ -769,6 +796,7 @@ async function saveProject(status){
 }
 
 document.querySelectorAll('[data-open-project]').forEach(button=>button.addEventListener('click',()=>{
+  if(savingProject)return;
   showEditor();
   restoreUnsavedProjectDraft();
 }));
