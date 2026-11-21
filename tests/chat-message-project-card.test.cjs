@@ -70,6 +70,39 @@ test('Virtual threads reuse the existing source conversation and retain their ac
   assert.match(send,/pendingConversationDraft = null[\s\S]*?activeConvId = conversation\.id/);
 });
 
+test('Existing direct chat opens with its already-loaded messages without a second list-messages call',()=>{
+  const chat=fs.readFileSync('assets/js/chat.js','utf8');
+  const openExisting=chat.slice(chat.indexOf('async function openExistingOrDraft('),chat.indexOf('\n  async function openFromQuery'));
+  const select=chat.slice(chat.indexOf('async function selectConversation('),chat.indexOf('\n  async function sendMessage'));
+  assert.doesNotMatch(openExisting,/await loadConversationList\(\)/);
+  assert.match(openExisting,/await selectConversation\(existing\.id, \{initialMessages: messages\}\)/);
+  assert.match(select,/async function selectConversation\(id, \{focusReview = false, initialMessages = null\} = \{\}\)/);
+  assert.match(select,/Array\.isArray\(initialMessages\)[\s\S]*?conversation\.messages = initialMessages/);
+  assert.match(select,/if \(Array\.isArray\(initialMessages\)\)[\s\S]*?renderMessagesThread\(\)[\s\S]*?scrollThreadToBottom\(\)[\s\S]*?else/);
+});
+
+test('Project chat opening has a dedicated endpoint with legacy find-project fallback',()=>{
+  const chat=fs.readFileSync('assets/js/chat.js','utf8');
+  const api=fs.readFileSync('supabase/functions/chat-api/index.ts','utf8');
+  assert.match(chat,/invokeChat\('open-project-chat', \{projectId: project\.id\}\)/);
+  assert.match(chat,/invokeChat\('find-project', \{projectId: project\.id\}\)/);
+  assert.match(chat,/Open-project chat endpoint unavailable; using legacy lookup/);
+  assert.match(api,/body\.action === 'open-project-chat'/);
+  assert.match(api,/body\.action === 'find-project' \|\| body\.action === 'open-project-chat/);
+});
+
+test('Initial message loading uses a 75-message limit, cursor pagination, and deferred read marking',()=>{
+  const chat=fs.readFileSync('assets/js/chat.js','utf8');
+  const api=fs.readFileSync('supabase/functions/chat-api/index.ts','utf8');
+  assert.match(api,/const INITIAL_MESSAGE_ROWS = 75/);
+  assert.match(api,/body\.action === 'mark-messages-read'/);
+  assert.match(api,/created_at: `lt\.\$\{body\.before\}`/);
+  assert.match(chat,/limit: 75, markRead: false/);
+  assert.match(chat,/before: oldestMessage\.created_at/);
+  assert.match(chat,/async function markMessagesRead/);
+  assert.match(chat,/activityTimer=setInterval\(\(\)=>void syncActivity\(\),30000\)/);
+});
+
 test('Message API only returns available project context owned by a participant with the expected role',()=>{
   const chat=fs.readFileSync('assets/js/chat.js','utf8');
   const api=fs.readFileSync('supabase/functions/chat-api/index.ts','utf8');

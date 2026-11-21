@@ -272,6 +272,14 @@ test('Finding an existing project conversation returns it without creating anoth
   assert.equal(result.project_id,'portfolio-project');
   assert(!x.calls.some(c=>c.u.pathname.endsWith('/rpc/get_or_create_conversation')));
 });
+test('Open-project-chat lookup is read-only and uses the same canonical result as find-project',async()=>{
+  const existing={id:C,participant_a_id:A,participant_b_id:B,participant_a_role:'client',participant_b_role:'dev',project_id:'portfolio-project',workspace_pair_key:projectPairKey('client','portfolio-project')};
+  const x=setup({existingProjectConversation:existing});
+  const result=await x.run({action:'open-project-chat',workspaceRole:'client',projectId:'portfolio-project'});
+  assert.equal(result.id,C);
+  assert.equal(result.project_id,'portfolio-project');
+  assert(!x.calls.some(c=>c.u.pathname.endsWith('/rpc/get_or_create_conversation')));
+});
 test('A project conversation is not reused for a different project',async()=>{
   const existing={id:C,participant_a_id:A,participant_b_id:B,participant_a_role:'client',participant_b_role:'dev',project_id:'portfolio-project',workspace_pair_key:projectPairKey('client','portfolio-project')};
   const x=setup({existingProjectConversation:existing});

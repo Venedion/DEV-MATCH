@@ -9,6 +9,7 @@ import {
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const MAX_MESSAGE_LENGTH = 5000;
+const INITIAL_MESSAGE_ROWS = 75;
 const MAX_MESSAGE_ROWS = 200;
 const MAX_ATTACHMENT_BYTES = 2 * 1024 * 1024;
 const ALLOWED_ATTACHMENT_TYPES = new Set([
@@ -675,7 +676,7 @@ async function handleAction(body, user, keyring, supabaseUrl, serviceRoleKey, au
     );
   }
 
-  if (body.action === 'start-project' || body.action === 'find-project') {
+  if (body.action === 'start-project' || body.action === 'find-project' || body.action === 'open-project-chat') {
     const projectId = body.projectId;
     if (typeof projectId !== 'string' || !/^[A-Za-z0-9_-]{1,160}$/.test(projectId)) {
       throw new ChatApiError('A valid project is required.', 400);
@@ -723,7 +724,7 @@ async function handleAction(body, user, keyring, supabaseUrl, serviceRoleKey, au
       expectedOwnerRole,
       project.id
     );
-    if (body.action === 'find-project') return existing;
+    if (body.action === 'find-project' || body.action === 'open-project-chat') return existing;
     return startConversation(
       supabaseUrl,
       serviceRoleKey,
@@ -783,6 +784,7 @@ async function handleAction(body, user, keyring, supabaseUrl, serviceRoleKey, au
   }
 
   if (body.action === 'list-messages'
+    || body.action === 'mark-messages-read'
     || body.action === 'send-message'
     || body.action === 'download-attachment') {
     const requestedConversation = await getConversation(
@@ -796,7 +798,7 @@ async function handleAction(body, user, keyring, supabaseUrl, serviceRoleKey, au
     const sourceIds = sourceConversations.map(source => source.id);
     const sourceFilter = `in.(${sourceIds.join(',')})`;
 
-    if (body.action === 'list-messages') {
+    if (body.action === 'mark-messages-read') {
       await requestRows(supabaseUrl, serviceRoleKey, 'messages', {
         select: 'id',
         conversation_id: sourceFilter,
@@ -807,11 +809,34 @@ async function handleAction(body, user, keyring, supabaseUrl, serviceRoleKey, au
         headers: {Prefer: 'return=representation'},
         body: JSON.stringify({read_at: new Date().toISOString()})
       });
+      return {marked: true};
+    }
+
+    if (body.action === 'list-messages') {
+      if (body.markRead !== false) {
+        await requestRows(supabaseUrl, serviceRoleKey, 'messages', {
+          select: 'id',
+          conversation_id: sourceFilter,
+          sender_id: `neq.${user.id}`,
+          read_at: 'is.null'
+        }, {
+          method: 'PATCH',
+          headers: {Prefer: 'return=representation'},
+          body: JSON.stringify({read_at: new Date().toISOString()})
+        });
+      }
+      const requestedLimit = Number(body.limit);
+      const limit = Number.isInteger(requestedLimit)
+        ? Math.max(1, Math.min(requestedLimit, MAX_MESSAGE_ROWS))
+        : INITIAL_MESSAGE_ROWS;
       const rows = await requestRows(supabaseUrl, serviceRoleKey, 'messages', {
         select: 'id,conversation_id,sender_id,ciphertext,nonce,key_version,created_at,read_at,project_id,project_reference_id,project_kind',
         conversation_id: sourceFilter,
+        ...(typeof body.before === 'string' && !Number.isNaN(Date.parse(body.before))
+          ? {created_at: `lt.${body.before}`}
+          : {}),
         order: 'created_at.desc',
-        limit: String(MAX_MESSAGE_ROWS)
+        limit: String(limit)
       });
       const orderedRows = rows.reverse();
       const messages = await Promise.all(orderedRows.map(row => decryptRow(row, keyring)));

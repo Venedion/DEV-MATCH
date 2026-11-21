@@ -776,8 +776,16 @@
     threadContainerEl?.scrollTo({top: threadContainerEl.scrollHeight, behavior: 'auto'});
   }
 
+  async function markMessagesRead(conversationId) {
+    try {
+      await invokeChat('mark-messages-read', {conversationId});
+    } catch (error) {
+      console.warn('Unable to mark chat messages read.', error);
+    }
+  }
+
   async function loadMessages(conversationId) {
-    const messages = await invokeChat('list-messages', {conversationId});
+    const messages = await invokeChat('list-messages', {conversationId, limit: 75, markRead: false});
     if (!Array.isArray(messages)) throw new Error('Chat service returned an invalid message list.');
     const conversation = conversations.find(item => item.id === conversationId);
     if (!conversation) return;
@@ -795,10 +803,54 @@
     if (conversation.lastMessage?.sender_id !== currentUser.id && conversationId !== activeConvId) {
       if (!wasReadAfterLastMessage(conversation)) conversation.unreadCount = 1;
     }
-    if (conversationId === activeConvId) markRead(conversation);
+    if (conversationId === activeConvId) {
+      markRead(conversation);
+      void markMessagesRead(conversationId);
+    }
     updateUnreadCounts();
     renderConversationsList();
-    if (conversationId === activeConvId) { renderMessagesThread(); await syncActivity(); }
+    if (conversationId === activeConvId) renderMessagesThread();
+  }
+
+  async function loadOlderMessages(conversation) {
+    if (!conversation || conversation.loadingOlderMessages || conversation.loadedAllMessages) return;
+    const oldestMessage = conversation.messages[0];
+    if (!oldestMessage?.created_at) return;
+    conversation.loadingOlderMessages = true;
+    const previousScrollHeight = threadContainerEl?.scrollHeight || 0;
+    try {
+      const olderMessages = await invokeChat('list-messages', {
+        conversationId: conversation.id,
+        limit: 75,
+        before: oldestMessage.created_at,
+        markRead: false
+      });
+      if (!Array.isArray(olderMessages)) throw new Error('Chat service returned an invalid older message list.');
+      if (!olderMessages.length) {
+        conversation.loadedAllMessages = true;
+        return;
+      }
+      const existingIds = new Set(conversation.messages.map(message => message.id));
+      const uniqueOlderMessages = olderMessages.filter(message => !existingIds.has(message.id));
+      if (!uniqueOlderMessages.length) {
+        conversation.loadedAllMessages = true;
+        return;
+      }
+      conversation.messages = [...uniqueOlderMessages, ...conversation.messages];
+      conversation.lastMessage = conversation.messages[conversation.messages.length - 1] || null;
+      if (conversation.id === activeConvId) {
+        renderMessagesThread();
+        if (threadContainerEl) {
+          const heightDifference = threadContainerEl.scrollHeight - previousScrollHeight;
+          threadContainerEl.scrollTop = heightDifference;
+        }
+      }
+    } catch (error) {
+      console.error('Unable to load older chat messages.', error);
+      setStatus(error.message || 'Unable to load older messages.', true);
+    } finally {
+      conversation.loadingOlderMessages = false;
+    }
   }
 
   let activityTimer;
@@ -877,9 +929,13 @@
       });
   }
 
-  async function selectConversation(id, {focusReview = false} = {}) {
+  async function selectConversation(id, {focusReview = false, initialMessages = null} = {}) {
     const conversation = conversations.find(item => item.id === id);
     if (!conversation) return;
+    if (Array.isArray(initialMessages)) {
+      conversation.messages = initialMessages;
+      conversation.lastMessage = initialMessages[initialMessages.length - 1] || conversation.lastMessage;
+    }
     pendingConversationDraft = null;
     activeConvId = id;
     updateConversationQuery(id, focusReview);
@@ -904,7 +960,13 @@
     setStatus('Loading encrypted messages…');
     if (messageInputEl) messageInputEl.focus();
     try {
-      await loadMessages(id);
+      if (Array.isArray(initialMessages)) {
+        renderMessagesThread();
+        scrollThreadToBottom();
+        void markMessagesRead(id);
+      } else {
+        await loadMessages(id);
+      }
       if (!realtimeChannel) await startRealtime();
       setStatus('Connected securely · messages encrypted at rest.');
     } catch (error) {
@@ -1238,7 +1300,7 @@
   async function openExistingOrDraft(row, recipient, project = null) {
     let messages;
     try {
-      messages = await invokeChat('list-messages', {conversationId: row.id});
+      messages = await invokeChat('list-messages', {conversationId: row.id, limit: 75, markRead: false});
     } catch (error) {
       console.error('Unable to load the existing conversation.', error);
       activateConversationDraft(
@@ -1248,7 +1310,6 @@
       return;
     }
     if (messages.length) {
-      await loadConversationList();
       let existing = conversations.find(item =>
         item.id === row.id || item.sourceConversationIds.includes(row.id)
       );
@@ -1268,7 +1329,7 @@
             : ''
         });
       }
-      await selectConversation(existing.id);
+      await selectConversation(existing.id, {initialMessages: messages});
       return;
     }
     activateConversationDraft(makeConversationDraft(recipient, project));
@@ -1327,7 +1388,13 @@
       activateConversationDraft(draft);
       void (async () => {
         try {
-          const existingRow = await invokeChat('find-project', {projectId: project.id});
+          let existingRow;
+          try {
+            existingRow = await invokeChat('open-project-chat', {projectId: project.id});
+          } catch (openError) {
+            console.warn('Open-project chat endpoint unavailable; using legacy lookup.', openError);
+            existingRow = await invokeChat('find-project', {projectId: project.id});
+          }
           if (existingRow && getActiveConversation() === draft) {
             await openExistingOrDraft(existingRow, recipient, project);
           }
@@ -1460,6 +1527,13 @@
       searchQuery = searchInputEl.value.trim();
       renderConversationsList();
     });
+    threadContainerEl?.addEventListener('scroll', () => {
+      if (threadContainerEl.scrollTop > 80) return;
+      const conversation = getActiveConversation();
+      if (conversation && conversation !== pendingConversationDraft) {
+        void loadOlderMessages(conversation);
+      }
+    });
     chatFormEl?.addEventListener('submit', event => {
       event.preventDefault();
       const value = messageInputEl?.value || '';
@@ -1584,7 +1658,7 @@
     setStatus('Loading conversations…');
     await loadConversationList();
     await startRealtime();
-    activityTimer=setInterval(()=>void syncActivity(),10000);
+    activityTimer=setInterval(()=>void syncActivity(),30000);
     await openFromQuery();
     await syncActivity();
     if (legacyChatRemoved) {
