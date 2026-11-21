@@ -18,6 +18,8 @@
   let hasOpenRequestsOnly = false;
   let sortOrder = 'az';
   let favoriteIds = getSavedFavorites();
+  let mobileFilterDraft = null;
+  const mobileClientsFilterBreakpoint = window.matchMedia('(max-width: 860px)');
 
   // Elements
   const searchInput = document.getElementById('clientSearchInput');
@@ -35,6 +37,15 @@
   const btnToggleOpenRequests = document.getElementById('btnToggleOpenRequests');
   const sortNewestBtn = document.getElementById('sortNewestBtn');
   const sortOldestBtn = document.getElementById('sortOldestBtn');
+  const mobileClientsActions = document.querySelector('.mobile-clients-actions');
+  const mobileClientsSortControl = document.querySelector('.mobile-clients-sort-control');
+  const mobileClientsSortToggle = document.getElementById('mobileClientsSortToggle');
+  const mobileClientsSortMenu = document.getElementById('mobileClientsSortMenu');
+  const mobileClientsFilterToggle = document.getElementById('mobileClientsFilterToggle');
+  const mobileClientsFilterPanel = document.getElementById('mobileClientsFilterPanel');
+  const mobileClientsFilterFields = document.getElementById('mobileClientsFilterFields');
+  const mobileClientsFilterReset = document.getElementById('mobileClientsFilterReset');
+  const mobileClientsFilterApply = document.getElementById('mobileClientsFilterApply');
   const clientDialog = document.getElementById('clientDialog');
   const dialogContent = document.getElementById('dialogContent');
   const dialogCloseBtn = document.getElementById('dialogCloseBtn');
@@ -94,6 +105,208 @@
   function updateFavoriteBadge() {
     if (window.DEVMATCH_NAV_BADGES) window.DEVMATCH_NAV_BADGES.updateFavorites();
     else if (favoriteCountEl) favoriteCountEl.textContent = String(favoriteIds.length);
+  }
+
+  function syncClientFilterDropdown(dropdown, value, defaultLabel) {
+    if (!dropdown) return;
+    const trigger = dropdown.querySelector('.filter-pill-btn');
+    const label = trigger?.querySelector('.filter-label-text');
+    const items = [...dropdown.querySelectorAll('.dropdown-item')];
+    const selectedItem = items.find(item => item.dataset.value === value);
+    items.forEach(item => item.classList.toggle('selected', item === selectedItem));
+    if (label) {
+      label.textContent = value === 'all'
+        ? defaultLabel
+        : selectedItem?.textContent.trim().replace('✓', '') || defaultLabel;
+    }
+    trigger?.classList.toggle('has-value', value !== 'all');
+    trigger?.setAttribute('aria-expanded', 'false');
+    dropdown.classList.remove('open');
+  }
+
+  function syncClientFilterControls(state) {
+    syncClientFilterDropdown(businessTypeDropdown, state.businessType, 'Business type');
+    syncClientFilterDropdown(locationDropdown, state.location, 'Location');
+    if (btnToggleOpenRequests) {
+      btnToggleOpenRequests.classList.toggle('inactive', !state.hasOpenRequestsOnly);
+      btnToggleOpenRequests.setAttribute('aria-pressed', String(state.hasOpenRequestsOnly));
+    }
+  }
+
+  function setMobileClientFilterPanelOpen(isOpen) {
+    if (!mobileClientsFilterPanel || !mobileClientsFilterToggle) return;
+    mobileClientsFilterPanel.hidden = !isOpen;
+    mobileClientsFilterToggle.setAttribute('aria-expanded', String(isOpen));
+    mobileClientsActions?.classList.toggle('mobile-filter-open', isOpen);
+  }
+
+  function discardMobileClientFilterDraft() {
+    mobileFilterDraft = null;
+    syncClientFilterControls({
+      businessType: selectedBusinessType,
+      location: selectedLocation,
+      hasOpenRequestsOnly
+    });
+    setMobileClientFilterPanelOpen(false);
+  }
+
+  function applyMobileClientFilterDraft() {
+    if (!mobileFilterDraft) return;
+    selectedBusinessType = mobileFilterDraft.businessType;
+    selectedLocation = mobileFilterDraft.location;
+    hasOpenRequestsOnly = mobileFilterDraft.hasOpenRequestsOnly;
+    mobileFilterDraft = null;
+    setMobileClientFilterPanelOpen(false);
+    renderClients();
+  }
+
+  function resetMobileClientFilters() {
+    selectedBusinessType = 'all';
+    selectedLocation = 'all';
+    hasOpenRequestsOnly = false;
+    mobileFilterDraft = null;
+    syncClientFilterControls({
+      businessType: selectedBusinessType,
+      location: selectedLocation,
+      hasOpenRequestsOnly
+    });
+    setMobileClientFilterPanelOpen(false);
+    renderClients();
+  }
+
+  function syncClientSortControls() {
+    const isAscending = sortOrder === 'az';
+    sortNewestBtn?.classList.toggle('active', isAscending);
+    sortOldestBtn?.classList.toggle('active', !isAscending);
+    mobileClientsSortMenu?.querySelectorAll('[data-sort-value]').forEach(option => {
+      option.setAttribute('aria-checked', String(option.dataset.sortValue === sortOrder));
+    });
+  }
+
+  function setClientSortOrder(order) {
+    sortOrder = order;
+    syncClientSortControls();
+    renderClients();
+  }
+
+  function initializeMobileClientActions() {
+    const filterRow = document.querySelector('.clients-filter-row');
+    const filterPills = filterRow?.querySelector('.filter-left-pills');
+    if (!filterRow || !filterPills || !mobileClientsActions
+      || !mobileClientsFilterToggle || !mobileClientsFilterFields) return;
+
+    const filterPlaceholder = document.createComment('client filter controls placement');
+    filterPills.before(filterPlaceholder);
+
+    function syncLayout() {
+      if (mobileClientsFilterBreakpoint.matches) {
+        mobileClientsFilterFields.append(filterPills);
+        return;
+      }
+
+      if (mobileFilterDraft) discardMobileClientFilterDraft();
+      filterPlaceholder.parentNode?.insertBefore(filterPills, filterPlaceholder.nextSibling);
+    }
+
+    mobileClientsFilterToggle.addEventListener('click', () => {
+      if (mobileFilterDraft) {
+        discardMobileClientFilterDraft();
+        return;
+      }
+      mobileFilterDraft = {
+        businessType: selectedBusinessType,
+        location: selectedLocation,
+        hasOpenRequestsOnly
+      };
+      syncClientFilterControls(mobileFilterDraft);
+      setMobileClientFilterPanelOpen(true);
+    });
+
+    mobileClientsFilterReset?.addEventListener('click', resetMobileClientFilters);
+    mobileClientsFilterApply?.addEventListener('click', applyMobileClientFilterDraft);
+
+    function closeSortMenu({focusToggle = false} = {}) {
+      if (mobileClientsSortMenu?.matches(':popover-open')) mobileClientsSortMenu.hidePopover();
+      mobileClientsSortToggle?.setAttribute('aria-expanded', 'false');
+      ['left', 'top', 'width', 'min-width'].forEach(property => {
+        mobileClientsSortMenu?.style.removeProperty(property);
+      });
+      if (focusToggle) mobileClientsSortToggle?.focus();
+    }
+
+    mobileClientsSortToggle?.addEventListener('click', () => {
+      if (!mobileClientsSortMenu) return;
+      if (mobileClientsSortMenu.matches(':popover-open')) {
+        closeSortMenu();
+        return;
+      }
+
+      mobileClientsSortMenu.showPopover();
+      const triggerBounds = mobileClientsSortToggle.getBoundingClientRect();
+      const menuBounds = mobileClientsSortMenu.getBoundingClientRect();
+      const menuWidth = Math.min(220, window.innerWidth - 20);
+      const left = Math.max(10, Math.min(
+        triggerBounds.right - menuWidth,
+        window.innerWidth - menuWidth - 10
+      ));
+      const spaceBelow = window.innerHeight - triggerBounds.bottom - 8;
+      const top = spaceBelow >= menuBounds.height || spaceBelow >= triggerBounds.top
+        ? triggerBounds.bottom + 6
+        : Math.max(10, triggerBounds.top - menuBounds.height - 6);
+      mobileClientsSortMenu.style.left = `${left}px`;
+      mobileClientsSortMenu.style.top = `${top}px`;
+      mobileClientsSortMenu.style.width = `${menuWidth}px`;
+      mobileClientsSortMenu.style.minWidth = `${menuWidth}px`;
+      mobileClientsSortToggle.setAttribute('aria-expanded', 'true');
+      mobileClientsSortMenu.querySelector(`[data-sort-value="${sortOrder}"]`)?.focus({preventScroll: true});
+    });
+
+    mobileClientsSortMenu?.addEventListener('click', event => {
+      const option = event.target.closest('[data-sort-value]');
+      if (!option) return;
+      setClientSortOrder(option.dataset.sortValue);
+      closeSortMenu({focusToggle: true});
+    });
+
+    mobileClientsSortMenu?.addEventListener('keydown', event => {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        closeSortMenu({focusToggle: true});
+      }
+    });
+    mobileClientsSortMenu?.addEventListener('toggle', () => {
+      mobileClientsSortToggle?.setAttribute(
+        'aria-expanded',
+        String(mobileClientsSortMenu.matches(':popover-open'))
+      );
+    });
+
+    document.addEventListener('click', event => {
+      if (mobileClientsSortMenu?.matches(':popover-open')
+        && !mobileClientsSortControl?.contains(event.target)) {
+        closeSortMenu();
+      }
+    });
+    window.addEventListener('resize', () => closeSortMenu());
+    window.addEventListener('scroll', () => closeSortMenu(), {capture: true, passive: true});
+
+    document.addEventListener('click', event => {
+      if (mobileFilterDraft
+        && !mobileClientsFilterPanel?.contains(event.target)
+        && !mobileClientsFilterToggle.contains(event.target)) {
+        discardMobileClientFilterDraft();
+      }
+    });
+
+    document.addEventListener('keydown', event => {
+      if (event.key === 'Escape' && mobileFilterDraft) {
+        discardMobileClientFilterDraft();
+        mobileClientsFilterToggle.focus();
+      }
+    });
+
+    mobileClientsFilterBreakpoint.addEventListener('change', syncLayout);
+    syncLayout();
   }
 
   // Filter & Sort Logic
@@ -285,6 +498,8 @@
 
   // Event Listeners Setup
   function initEvents() {
+    initializeMobileClientActions();
+
     // Search input
     if (searchInput) {
       searchInput.addEventListener('input', e => {
@@ -312,7 +527,7 @@
     document.addEventListener('keydown', e => {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
         e.preventDefault();
-        if (searchInput) searchInput.focus();
+        (searchInput || topSearchInput)?.focus();
       }
     });
 
@@ -393,27 +608,27 @@
     // Business Type Dropdown
     if (businessTypeDropdown) {
       const trigger = businessTypeDropdown.querySelector('.filter-pill-btn');
-      const label = trigger ? trigger.querySelector('.filter-label-text') : null;
 
       businessTypeDropdown.addEventListener('click', e => {
         const item = e.target.closest('.dropdown-item');
         if (item) {
           const val = item.dataset.value;
-          selectedBusinessType = val;
-          businessTypeDropdown.querySelectorAll('.dropdown-item').forEach(el => el.classList.remove('selected'));
-          item.classList.add('selected');
-          if (label) {
-            label.textContent = val === 'all' ? 'Business type' : item.textContent.trim().replace('✓', '');
-          }
-          trigger.classList.toggle('has-value', val !== 'all');
-          businessTypeDropdown.classList.remove('open');
-          renderClients();
+          const isDraft = Boolean(mobileFilterDraft);
+          if (isDraft) mobileFilterDraft.businessType = val;
+          else selectedBusinessType = val;
+          syncClientFilterDropdown(businessTypeDropdown, val, 'Business type');
+          if (!isDraft) renderClients();
           return;
         }
 
         if (e.target.closest('.filter-pill-btn')) {
-          businessTypeDropdown.classList.toggle('open');
-          if (locationDropdown) locationDropdown.classList.remove('open');
+          const isOpen = !businessTypeDropdown.classList.contains('open');
+          businessTypeDropdown.classList.toggle('open', isOpen);
+          trigger?.setAttribute('aria-expanded', String(isOpen));
+          if (locationDropdown) {
+            locationDropdown.classList.remove('open');
+            locationDropdown.querySelector('.filter-pill-btn')?.setAttribute('aria-expanded', 'false');
+          }
         }
       });
     }
@@ -421,27 +636,27 @@
     // Location Dropdown
     if (locationDropdown) {
       const trigger = locationDropdown.querySelector('.filter-pill-btn');
-      const label = trigger ? trigger.querySelector('.filter-label-text') : null;
 
       locationDropdown.addEventListener('click', e => {
         const item = e.target.closest('.dropdown-item');
         if (item) {
           const val = item.dataset.value;
-          selectedLocation = val;
-          locationDropdown.querySelectorAll('.dropdown-item').forEach(el => el.classList.remove('selected'));
-          item.classList.add('selected');
-          if (label) {
-            label.textContent = val === 'all' ? 'Location' : item.textContent.trim().replace('✓', '');
-          }
-          trigger.classList.toggle('has-value', val !== 'all');
-          locationDropdown.classList.remove('open');
-          renderClients();
+          const isDraft = Boolean(mobileFilterDraft);
+          if (isDraft) mobileFilterDraft.location = val;
+          else selectedLocation = val;
+          syncClientFilterDropdown(locationDropdown, val, 'Location');
+          if (!isDraft) renderClients();
           return;
         }
 
         if (e.target.closest('.filter-pill-btn')) {
-          locationDropdown.classList.toggle('open');
-          if (businessTypeDropdown) businessTypeDropdown.classList.remove('open');
+          const isOpen = !locationDropdown.classList.contains('open');
+          locationDropdown.classList.toggle('open', isOpen);
+          trigger?.setAttribute('aria-expanded', String(isOpen));
+          if (businessTypeDropdown) {
+            businessTypeDropdown.classList.remove('open');
+            businessTypeDropdown.querySelector('.filter-pill-btn')?.setAttribute('aria-expanded', 'false');
+          }
         }
       });
     }
@@ -455,34 +670,37 @@
         if (searchScopeMenu) searchScopeMenu.inert = true;
       }
       if (!e.target.closest('.filter-dropdown-container')) {
-        if (businessTypeDropdown) businessTypeDropdown.classList.remove('open');
-        if (locationDropdown) locationDropdown.classList.remove('open');
+        if (businessTypeDropdown) {
+          businessTypeDropdown.classList.remove('open');
+          businessTypeDropdown.querySelector('.filter-pill-btn')?.setAttribute('aria-expanded', 'false');
+        }
+        if (locationDropdown) {
+          locationDropdown.classList.remove('open');
+          locationDropdown.querySelector('.filter-pill-btn')?.setAttribute('aria-expanded', 'false');
+        }
       }
     });
 
     // Has Open Requests Toggle
     if (btnToggleOpenRequests) {
       btnToggleOpenRequests.addEventListener('click', () => {
-        hasOpenRequestsOnly = !hasOpenRequestsOnly;
-        btnToggleOpenRequests.classList.toggle('inactive', !hasOpenRequestsOnly);
-        btnToggleOpenRequests.setAttribute('aria-pressed', String(hasOpenRequestsOnly));
-        renderClients();
+        const isDraft = Boolean(mobileFilterDraft);
+        const nextValue = !(isDraft ? mobileFilterDraft.hasOpenRequestsOnly : hasOpenRequestsOnly);
+        if (isDraft) mobileFilterDraft.hasOpenRequestsOnly = nextValue;
+        else hasOpenRequestsOnly = nextValue;
+        btnToggleOpenRequests.classList.toggle('inactive', !nextValue);
+        btnToggleOpenRequests.setAttribute('aria-pressed', String(nextValue));
+        if (!isDraft) renderClients();
       });
     }
 
     // Sort Newest / Oldest
     if (sortNewestBtn && sortOldestBtn) {
       sortNewestBtn.addEventListener('click', () => {
-        sortOrder = 'az';
-        sortNewestBtn.classList.add('active');
-        sortOldestBtn.classList.remove('active');
-        renderClients();
+        setClientSortOrder('az');
       });
       sortOldestBtn.addEventListener('click', () => {
-        sortOrder = 'za';
-        sortOldestBtn.classList.add('active');
-        sortNewestBtn.classList.remove('active');
-        renderClients();
+        setClientSortOrder('za');
       });
     }
 
@@ -573,27 +791,15 @@
         selectedBusinessType = 'all';
         selectedLocation = 'all';
         hasOpenRequestsOnly = false;
+        mobileFilterDraft = null;
+        setMobileClientFilterPanelOpen(false);
         if (searchInput) searchInput.value = '';
         if (topSearchInput) topSearchInput.value = '';
-        if (btnToggleOpenRequests) {
-          btnToggleOpenRequests.classList.add('inactive');
-          btnToggleOpenRequests.setAttribute('aria-pressed', 'false');
-        }
-
-        const btTrigger = businessTypeDropdown ? businessTypeDropdown.querySelector('.filter-label-text') : null;
-        if (btTrigger) btTrigger.textContent = 'Business type';
-        if (businessTypeDropdown) {
-          businessTypeDropdown.querySelector('.filter-pill-btn').classList.remove('has-value');
-          businessTypeDropdown.querySelectorAll('.dropdown-item').forEach(el => el.classList.toggle('selected', el.dataset.value === 'all'));
-        }
-
-        const locTrigger = locationDropdown ? locationDropdown.querySelector('.filter-label-text') : null;
-        if (locTrigger) locTrigger.textContent = 'Location';
-        if (locationDropdown) {
-          locationDropdown.querySelector('.filter-pill-btn').classList.remove('has-value');
-          locationDropdown.querySelectorAll('.dropdown-item').forEach(el => el.classList.toggle('selected', el.dataset.value === 'all'));
-        }
-
+        syncClientFilterControls({
+          businessType: selectedBusinessType,
+          location: selectedLocation,
+          hasOpenRequestsOnly
+        });
         renderClients();
       });
     }

@@ -70,7 +70,7 @@
 @starting-style{.market-menu:popover-open{opacity:0;transform:translateY(-5px) scale(.985)}}
 .market-menu button{min-height:35px;display:flex;align-items:center;width:100%;padding:0 10px;border:0;border-radius:7px;background:transparent;color:#4c515d;font:500 12.5px "Plus Jakarta Sans",system-ui,sans-serif;text-align:left;white-space:nowrap;cursor:pointer}
 .market-menu button:hover,.market-menu button[aria-checked="true"]{background:#f1f2f5;color:var(--market-ink)}
-.budget-menu{width:auto;transform-origin:left center;transition:width .24s ease,opacity .18s ease,transform .18s ease,display .18s allow-discrete,overlay .18s allow-discrete}
+.budget-menu{width:auto;overflow:visible;transform-origin:left center;transition:width .24s ease,opacity .18s ease,transform .18s ease,display .18s allow-discrete,overlay .18s allow-discrete}
 .budget-menu:popover-open{display:flex;align-items:center;gap:12px;padding:9px}
 .budget-menu-options{display:grid;flex:0 0 145px;gap:2px}
 .budget-menu-options button{min-height:37px}
@@ -82,16 +82,24 @@
 .budget-currency-input{box-sizing:border-box;height:36px;display:flex;align-items:center;gap:7px;min-width:0;padding:0 9px;border:1px solid #dfe1e6;border-radius:8px;background:#fff;color:#30343b}
 .budget-currency-input>span{flex:none;color:#646a75;font-size:12px;font-weight:600}
 .budget-currency-input input{box-sizing:border-box;flex:1;width:0;height:100%;min-width:0;padding:0;border:0;outline:0;background:transparent;color:inherit;font:500 12px "Plus Jakarta Sans",system-ui,sans-serif}
-.budget-currency-input:focus-within{border-color:#777b84;outline:2px solid #777b84;outline-offset:1px}
+.budget-currency-input:focus-within{border-color:#000;outline:none;box-shadow:none}
 .budget-range-values{display:grid;grid-template-columns:minmax(0,1fr);gap:10px}
 .budget-range-hint{margin-top:7px;color:#777d87;font-size:10px;line-height:1.4}
 .budget-range-error{margin-top:7px;color:#b3313c;font-size:10px;line-height:1.4}
+.budget-entry-actions{display:flex;align-items:center;justify-content:flex-end}
+.market-menu .budget-back-button{display:none}
+.budget-save-filter-mobile{display:none}
 .budget-save-filter{width:auto!important;min-height:32px!important;justify-content:center!important;margin:10px 0 0 auto;padding:0 12px!important;background:#000!important;color:#fff!important;font-weight:700!important}
 .budget-save-filter:hover{background:#252525!important;color:#fff!important}
 .market-sort{align-items:center;gap:12px}
 .market-sort>span{color:#4b5563;font-size:12.5px;font-weight:600;white-space:nowrap}
 .sort-control{display:flex;align-items:center;gap:7px;color:#646974;font-size:12px;font-weight:600;white-space:nowrap}
 .sort-control .market-select{min-width:155px}
+.sort-direction-icon{display:none}
+.mobile-market-actions{display:none}
+.mobile-filter-options{display:none}
+.mobile-sort-menu-heading{display:none}
+.market-menu button>svg{display:none}
 .view-toggle{display:flex;gap:3px;padding:3px;border:1px solid var(--market-line);border-radius:9px;background:#fff}
 .view-toggle button{width:31px;height:30px;display:grid;place-items:center;border:0;border-radius:6px;background:transparent;color:#626773;cursor:pointer}
 .view-toggle button svg{width:16px;height:16px}
@@ -254,19 +262,19 @@
     background:transparent;
   }
   .marketplace-main[data-marketplace="requests"] .market-request-hero::after,
-  .marketplace-main[data-marketplace="requests"] .market-request-hero .market-eyebrow{
+  .marketplace-main[data-marketplace="requests"] .market-discovery-header .market-eyebrow{
     display:none;
   }
-  .marketplace-main[data-marketplace="requests"] .market-request-hero .market-discovery-header{
+  .marketplace-main[data-marketplace="requests"] .market-discovery-header{
     align-items:flex-start;
     min-height:60.6px;
     margin-bottom:24px;
   }
-  .marketplace-main[data-marketplace="requests"] .market-request-hero .market-discovery-header h1{
+  .marketplace-main[data-marketplace="requests"] .market-discovery-header h1{
     margin:0;
     font-size:28px;
   }
-  .marketplace-main[data-marketplace="requests"] .market-request-hero .market-intro{
+  .marketplace-main[data-marketplace="requests"] .market-discovery-header .market-intro{
     max-width:720px;
   }
   .marketplace-main[data-marketplace="requests"] .find-projects-switch{
@@ -305,10 +313,10 @@
 }
 
 @media(max-width:860px){
-  .marketplace-main[data-marketplace="requests"] .market-request-hero .market-discovery-header{
+  .marketplace-main[data-marketplace="requests"] .market-discovery-header{
     margin-bottom:0;
   }
-  .marketplace-main[data-marketplace="requests"] .market-request-hero .market-discovery-header .market-eyebrow{
+  .marketplace-main[data-marketplace="requests"] .market-discovery-header .market-eyebrow{
     display:flex;
     margin-top:0;
     color:#666a73;
@@ -401,4 +409,824 @@
   .request-detail-dialog-brand .brand-mark{width:27px;height:27px}
   .request-detail-dialog-label{font-size:11px}
   .request-detail-dialog-close{width:30px;height:30px}
+}
+
+@media(max-width:860px){
+  .find-projects-page .marketplace-main[data-marketplace="requests"] .market-request-hero{
+    overflow:visible;
+    padding:0;
+    border:0;
+    border-radius:0;
+    background:transparent;
+  }
+  .find-projects-page .marketplace-main[data-marketplace="requests"] .market-request-hero::after,
+  .find-projects-page .marketplace-main[data-marketplace="requests"] .market-discovery-header .market-eyebrow{
+    display:none;
+  }
+  .find-projects-page .marketplace-main[data-marketplace="requests"] .market-discovery-header{
+    align-items:flex-start;
+    flex-direction:column;
+    margin-bottom:16px;
+  }
+  .find-projects-page .marketplace-main[data-marketplace="requests"] .find-projects-switch{
+    order:0;
+  }
+  .find-projects-page .marketplace-main[data-marketplace="requests"] .market-discovery-header-copy{
+    order:1;
+  }
+  .find-projects-page .marketplace-main[data-marketplace="requests"] .market-discovery-header h1{
+    margin:0;
+    font-size:28px;
+  }
+  .find-projects-page .marketplace-main[data-marketplace="requests"] .market-intro{
+    margin-top:6px;
+    font-size:14px;
+  }
+  .find-projects-page .marketplace-main[data-marketplace="requests"] .market-discovery-search{
+    display:none;
+  }
+  .find-projects-page .marketplace-main[data-marketplace="requests"] .find-projects-switch{
+    display:inline-flex;
+    align-self:flex-start;
+    width:min(258px, 100%);
+    max-width:100%;
+    margin-top:0;
+  }
+  .find-projects-page .marketplace-main[data-marketplace="requests"] .find-projects-switch.projects-active::before{
+    animation:mobile-opportunity-indicator-to-projects 380ms cubic-bezier(.22,.61,.36,1) both;
+  }
+  .find-projects-page .marketplace-main[data-marketplace="requests"] .find-projects-switch.projects-active .market-discovery-tab:first-child{
+    animation:mobile-opportunity-label-to-active 380ms cubic-bezier(.22,.61,.36,1) both;
+  }
+  .find-projects-page .marketplace-main[data-marketplace="requests"] .find-projects-switch.projects-active .market-discovery-tab:last-child{
+    animation:mobile-opportunity-label-to-inactive 380ms cubic-bezier(.22,.61,.36,1) both;
+  }
+  .find-projects-page .marketplace-main[data-marketplace="requests"] .find-projects-switch.projects-active .market-discovery-tab:first-child .market-discovery-tab-count{
+    animation:mobile-opportunity-count-to-active 380ms cubic-bezier(.22,.61,.36,1) both;
+  }
+  .find-projects-page .marketplace-main[data-marketplace="requests"] .find-projects-switch.projects-active .market-discovery-tab:last-child .market-discovery-tab-count{
+    animation:mobile-opportunity-count-to-inactive 380ms cubic-bezier(.22,.61,.36,1) both;
+  }
+  .find-projects-page .marketplace-main[data-marketplace="requests"] .find-projects-switch .market-discovery-tab:first-child,
+  .find-projects-page .marketplace-main[data-marketplace="requests"] .find-projects-switch .market-discovery-tab:last-child{
+    width:auto;
+    min-width:0;
+    flex:1;
+    padding-right:16px;
+    padding-left:16px;
+  }
+  .find-projects-page .marketplace-main[data-marketplace="requests"] .market-categories{
+    margin-top:20px;
+    margin-bottom:23px;
+  }
+  .find-projects-page .marketplace-main[data-marketplace="requests"] .market-category{
+    flex-basis:156px;
+    min-height:88px;
+  }
+}
+
+@keyframes mobile-opportunity-indicator-to-projects{
+  from{transform:translateX(calc(100% + 2px))}
+  to{transform:translateX(0)}
+}
+
+@keyframes mobile-opportunity-label-to-active{
+  from{color:#555761}
+  to{color:var(--market-ink)}
+}
+
+@keyframes mobile-opportunity-label-to-inactive{
+  from{color:var(--market-ink)}
+  to{color:#555761}
+}
+
+@keyframes mobile-opportunity-count-to-active{
+  from{color:#64748b}
+  to{color:var(--market-ink)}
+}
+
+@keyframes mobile-opportunity-count-to-inactive{
+  from{color:var(--market-ink)}
+  to{color:#64748b}
+}
+
+@media(max-width:640px){
+  .find-projects-page .marketplace-main[data-marketplace="requests"]{
+    padding-top:72px;
+    padding-right:14px;
+  }
+  .find-projects-page .marketplace-main[data-marketplace="requests"] .find-projects-switch{
+    width:100%;
+    justify-content:space-between;
+    margin-top:1px;
+  }
+}
+
+@media(prefers-reduced-motion:reduce){
+  .find-projects-page .marketplace-main[data-marketplace="requests"] .find-projects-switch.projects-active .market-discovery-tab,
+  .find-projects-page .marketplace-main[data-marketplace="requests"] .find-projects-switch.projects-active .market-discovery-tab-count{
+    animation-duration:1ms;
+  }
+}
+
+@media(min-width:861px){
+  .find-projects-page .marketplace-main[data-marketplace="requests"] .market-discovery-header{
+    flex-direction:row;
+    align-items:flex-start;
+  }
+  .find-projects-page .marketplace-main[data-marketplace="requests"] .market-discovery-header-copy{
+    order:0;
+  }
+  .find-projects-page .marketplace-main[data-marketplace="requests"] .find-projects-switch{
+    order:1;
+    margin-top:20px;
+  }
+}
+
+@media(max-width:860px){
+  .find-projects-page .marketplace-main[data-marketplace="requests"] .find-projects-switch.scroll-aware-switch{
+    position:sticky;
+    top:0;
+    z-index:10;
+    margin-bottom:20px;
+    border-color:rgb(255 255 255 / 74%);
+    background:linear-gradient(145deg, rgb(255 255 255 / 58%), rgb(255 255 255 / 24%) 52%, rgb(236 243 255 / 30%));
+    box-shadow:0 12px 32px rgb(23 23 25 / 15%), inset 0 1px 0 rgb(255 255 255 / 90%), inset 0 -1px 0 rgb(255 255 255 / 32%);
+    -webkit-backdrop-filter:blur(26px) saturate(180%);
+    backdrop-filter:blur(26px) saturate(180%);
+    transition:transform 240ms cubic-bezier(.22,.61,.36,1);
+  }
+  .find-projects-page .marketplace-main[data-marketplace="requests"] .find-projects-switch.scroll-aware-switch-hidden{
+    transform:translateY(calc(-100% - 32px));
+    pointer-events:none;
+  }
+}
+
+@media(max-width:600px){
+  .find-projects-page .marketplace-main[data-marketplace="requests"]{
+    --page-scroll-mobile-top:60px;
+  }
+}
+
+@media(prefers-reduced-motion:reduce){
+  .find-projects-page .marketplace-main[data-marketplace="requests"] .find-projects-switch.scroll-aware-switch{
+    transition-duration:1ms;
+  }
+}
+
+.find-projects-page .marketplace-main[data-marketplace="requests"] .mobile-filter-toggle{
+  display:none;
+}
+.find-projects-page .marketplace-main[data-marketplace="requests"] .mobile-filters-panel[hidden]{
+  display:none;
+}
+
+@media(max-width:860px){
+  .find-projects-page .marketplace-main[data-marketplace="requests"] .market-request-hero .quick-search{
+    display:none;
+  }
+  .find-projects-page .marketplace-main[data-marketplace="requests"] .market-discovery-header{
+    margin-bottom:0;
+  }
+  .find-projects-page .marketplace-main[data-marketplace="requests"] .find-projects-switch.scroll-aware-switch{
+    margin-bottom:0;
+  }
+  .find-projects-page .marketplace-main[data-marketplace="requests"] .market-discovery-header h1{
+    font-size:22px;
+  }
+  .find-projects-page .marketplace-main[data-marketplace="requests"] .market-intro{
+    font-size:12.5px;
+  }
+  .find-projects-page .marketplace-main[data-marketplace="requests"] .market-toolbar{
+    align-items:stretch;
+    gap:0;
+    border-top:0;
+  }
+  .find-projects-page .marketplace-main[data-marketplace="requests"] .market-discovery-header-copy{
+    display:none;
+  }
+  .find-projects-page .marketplace-main[data-marketplace="requests"] .mobile-market-actions{
+    --mobile-actions-edge-gap:14px;
+    display:grid;
+    grid-template-columns:minmax(0,1fr) 42px;
+    grid-template-rows:38px 38px;
+    gap:6px;
+    margin:4px 0 0;
+    padding-bottom:10px;
+    position:sticky;
+    top:42px;
+    z-index:30;
+    isolation:isolate;
+    background:var(--market-soft);
+    border-bottom:1px solid var(--market-line);
+    transition:top 240ms cubic-bezier(.22,.61,.36,1);
+  }
+  .find-projects-page .marketplace-main[data-marketplace="requests"] .mobile-actions-background-bleed{
+    position:absolute;
+    z-index:-1;
+    top:0;
+    bottom:0;
+    left:calc(50% - 50vw + 1px);
+    width:100vw;
+    background:var(--market-soft);
+    pointer-events:none;
+  }
+  .find-projects-page .marketplace-main[data-marketplace="requests"] .mobile-market-actions.mobile-filter-open{
+    z-index:1001;
+  }
+  .find-projects-page .marketplace-main[data-marketplace="requests"] .mobile-market-actions.switch-hidden{
+    top:0;
+    margin-top:0;
+  }
+  .find-projects-page .marketplace-main[data-marketplace="requests"] .mobile-market-actions::before{
+    position:absolute;
+    z-index:1;
+    top:0;
+    right:calc(100% + 12px - 100vw);
+    width:42px;
+    height:82px;
+    border:1px solid var(--market-line);
+    border-radius:9px 0 0 9px;
+    background:#fff;
+    content:"";
+    pointer-events:auto;
+  }
+  .find-projects-page .marketplace-main[data-marketplace="requests"] .mobile-market-actions .market-categories{
+    grid-column:1/-1;
+    grid-row:1/3;
+    width:calc(100% + 12px);
+    height:82px;
+    align-items:center;
+    gap:8px;
+    margin:0 0 0 -12px;
+    padding:0 50px 0 12px;
+    overflow-y:hidden;
+    overscroll-behavior-x:contain;
+    scrollbar-width:none;
+    position:relative;
+    z-index:0;
+  }
+  .find-projects-page .marketplace-main[data-marketplace="requests"] .mobile-market-actions .market-categories::-webkit-scrollbar{
+    display:none;
+    width:0;
+    height:0;
+  }
+  .find-projects-page .marketplace-main[data-marketplace="requests"] .mobile-market-actions .market-category:first-child{
+    scroll-margin-left:12px;
+  }
+  .find-projects-page .marketplace-main[data-marketplace="requests"] .mobile-market-actions .market-category{
+    flex:0 0 max-content;
+    width:max-content;
+    min-width:128px;
+    height:70px;
+    min-height:70px;
+    align-self:center;
+    grid-template-columns:28px max-content;
+    column-gap:6px;
+    padding:4px 8px;
+  }
+  .find-projects-page .marketplace-main[data-marketplace="requests"] .mobile-market-actions .category-symbol{
+    width:28px;
+    height:28px;
+  }
+  .find-projects-page .marketplace-main[data-marketplace="requests"] .mobile-market-actions .market-category b{
+    overflow:visible;
+    font-size:11.5px;
+    text-overflow:clip;
+    white-space:nowrap;
+  }
+  .find-projects-page .marketplace-main[data-marketplace="requests"] .mobile-market-actions .market-category small{
+    font-size:10.5px;
+    white-space:nowrap;
+  }
+  .find-projects-page .marketplace-main[data-marketplace="requests"] .mobile-market-actions .market-category[data-category="Android / iOS"]{
+    flex-basis:max-content;
+  }
+  .find-projects-page .marketplace-main[data-marketplace="requests"] .filter-controls{
+    width:100%;
+  }
+  .find-projects-page .marketplace-main[data-marketplace="requests"] .filter-controls label{
+    min-width:0;
+  }
+  .find-projects-page .marketplace-main[data-marketplace="requests"] .filter-controls label:first-child{
+    min-width:100%;
+  }
+  .find-projects-page .marketplace-main[data-marketplace="requests"] .market-sort{
+    display:flex;
+    align-items:center;
+    justify-content:flex-start;
+    width:100%;
+  }
+  .find-projects-page .marketplace-main[data-marketplace="requests"] #resultsSummary{
+    width:auto;
+  }
+  .find-projects-page .marketplace-main[data-marketplace="requests"] .mobile-filter-toggle{
+    width:42px;
+    height:38px;
+    display:grid;
+    grid-column:2;
+    grid-row:2;
+    justify-self:end;
+    margin-right:calc(0px - var(--mobile-actions-edge-gap));
+    position:relative;
+    z-index:2;
+    place-items:center;
+    padding:0;
+    border:0;
+    border-radius:0;
+    background:transparent;
+    color:var(--market-ink);
+    cursor:pointer;
+  }
+  .find-projects-page .marketplace-main[data-marketplace="requests"] .mobile-filter-toggle[aria-expanded="true"]{
+    background:var(--market-ink);
+    border-radius:0 0 0 9px;
+    color:#fff;
+  }
+  .find-projects-page .marketplace-main[data-marketplace="requests"] .mobile-filter-toggle svg{
+    width:18px;
+    height:18px;
+  }
+  .find-projects-page .marketplace-main[data-marketplace="requests"] .mobile-market-actions .sort-control{
+    display:block;
+    grid-column:2;
+    grid-row:1;
+    justify-self:end;
+    width:42px;
+    height:38px;
+    margin-right:calc(0px - var(--mobile-actions-edge-gap));
+    position:relative;
+    z-index:2;
+  }
+  .find-projects-page .marketplace-main[data-marketplace="requests"] .sort-label,
+  .find-projects-page .marketplace-main[data-marketplace="requests"] .sort-select-label,
+  .find-projects-page .marketplace-main[data-marketplace="requests"] .sort-select-chevron{
+    display:none;
+  }
+  .find-projects-page .marketplace-main[data-marketplace="requests"] .mobile-market-actions .sort-control .market-dropdown,
+  .find-projects-page .marketplace-main[data-marketplace="requests"] .mobile-market-actions .sort-select{
+    width:42px;
+    min-width:42px;
+    height:38px;
+  }
+  .find-projects-page .marketplace-main[data-marketplace="requests"] .mobile-market-actions .sort-select{
+    justify-content:center;
+    padding:0;
+    border:0;
+    border-radius:0;
+    background:transparent;
+    transition:background .15s ease,border-radius .15s ease,color .15s ease;
+  }
+  .find-projects-page .marketplace-main[data-marketplace="requests"] .mobile-market-actions .sort-select:hover{
+    background:transparent;
+  }
+  .find-projects-page .marketplace-main[data-marketplace="requests"] .mobile-market-actions .sort-direction-icon{
+    display:block;
+    width:20px;
+    height:20px;
+    color:currentColor;
+    fill:none;
+    stroke:currentColor;
+    stroke-width:1.8;
+    stroke-linecap:round;
+    stroke-linejoin:round;
+  }
+  .find-projects-page .marketplace-main[data-marketplace="requests"] .mobile-market-actions .sort-select[aria-expanded="true"]{
+    border-color:var(--market-ink);
+    background:var(--market-ink);
+    border-radius:9px 0 0 0;
+    color:#fff;
+  }
+  .find-projects-page .marketplace-main[data-marketplace="requests"] .sort-control .market-select svg{
+    color:currentColor;
+    transition:none;
+  }
+  .find-projects-page .marketplace-main[data-marketplace="requests"] .sort-control .sort-direction-icon{
+    transform:none;
+  }
+  .find-projects-page .marketplace-main[data-marketplace="requests"] .market-sort .sort-control{
+    width:42px;
+    min-width:0;
+  }
+  .find-projects-page .marketplace-main[data-marketplace="requests"] .view-toggle{
+    display:none;
+  }
+  .find-projects-page .marketplace-main[data-marketplace="requests"] .mobile-filters-panel:not([hidden]){
+    display:grid;
+  }
+  .find-projects-page .marketplace-main[data-marketplace="requests"] .mobile-filters-panel{
+    position:absolute;
+    z-index:20;
+    top:min(92px,calc(100dvh - 650px));
+    right:0;
+    left:auto;
+    width:min(280px,100%);
+    gap:0;
+    margin:0;
+    max-height:none;
+    overflow:visible;
+    padding:6px;
+    border:1px solid var(--market-line);
+    border-radius:20px;
+    background:#fff;
+    box-shadow:0 14px 34px rgb(23 23 25 / 12%);
+    opacity:0;
+    transform:translateY(-5px) scale(.985);
+    transition:opacity .18s ease,transform .18s ease,display .18s allow-discrete;
+  }
+  .find-projects-page .marketplace-main[data-marketplace="requests"] .mobile-filters-panel:not([hidden]){
+    opacity:1;
+    transform:translateY(0) scale(1);
+  }
+  @starting-style{
+    .find-projects-page .marketplace-main[data-marketplace="requests"] .mobile-filters-panel:not([hidden]){
+      opacity:0;
+      transform:translateY(-5px) scale(.985);
+    }
+  }
+  .find-projects-page .marketplace-main[data-marketplace="requests"] .mobile-filter-selects{
+    display:grid;
+    gap:8px;
+  }
+  .find-projects-page .marketplace-main[data-marketplace="requests"] .mobile-filter-actions{
+    position:static;
+    z-index:1;
+    display:flex;
+    gap:8px;
+    margin:4px -6px -6px;
+    padding:8px 6px 6px;
+    border-top:1px solid var(--market-line);
+    border-radius:0 0 19px 19px;
+    background:#fff;
+  }
+  .find-projects-page .marketplace-main[data-marketplace="requests"] .mobile-filter-actions button{
+    flex:1;
+    min-width:0;
+    min-height:38px;
+    border:1px solid var(--market-line);
+    border-radius:8px;
+    font:600 12px "Plus Jakarta Sans",system-ui,sans-serif;
+    cursor:pointer;
+  }
+  .find-projects-page .marketplace-main[data-marketplace="requests"] .mobile-filter-reset{
+    background:#fff;
+    color:var(--market-ink);
+  }
+  .find-projects-page .marketplace-main[data-marketplace="requests"] .mobile-filter-apply{
+    border-color:#000!important;
+    background:#000!important;
+    color:#fff!important;
+  }
+  .find-projects-page .marketplace-main[data-marketplace="requests"] .mobile-filter-actions button:focus-visible{
+    outline:2px solid #000;
+    outline-offset:2px;
+  }
+  .find-projects-page .marketplace-main[data-marketplace="requests"] .mobile-filter-selects label{
+    min-width:0;
+    display:grid;
+    gap:4px;
+  }
+  .find-projects-page .marketplace-main[data-marketplace="requests"] .mobile-filter-selects .filter-label{
+    padding-left:8px;
+  }
+  .find-projects-page .marketplace-main[data-marketplace="requests"] .mobile-filter-selects label:first-child .filter-label{
+    padding-top:2px;
+  }
+  .find-projects-page .marketplace-main[data-marketplace="requests"] .mobile-filter-selects label+label{
+    padding-top:6px;
+    border-top:1px solid var(--market-line);
+  }
+  .find-projects-page .marketplace-main[data-marketplace="requests"] .mobile-filter-selects .market-dropdown{
+    display:none;
+  }
+  .find-projects-page .marketplace-main[data-marketplace="requests"] .mobile-filter-selects .mobile-budget-filter .market-dropdown{
+    display:block;
+    width:100%;
+  }
+  .find-projects-page .marketplace-main[data-marketplace="requests"] .mobile-filter-selects .mobile-budget-filter .market-select{
+    width:100%;
+    min-width:0;
+  }
+  .find-projects-page .marketplace-main[data-marketplace="requests"] .mobile-filter-options{
+    display:grid;
+    gap:2px;
+    grid-template-columns:repeat(2,minmax(0,1fr));
+  }
+  .find-projects-page .marketplace-main[data-marketplace="requests"] .mobile-filter-options button{
+    min-width:0;
+    min-height:36px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:6px;
+    width:100%;
+    padding:0 8px;
+    border:0;
+    border-radius:10px;
+    background:transparent;
+    color:#555b65;
+    font:500 12px "Plus Jakarta Sans",system-ui,sans-serif;
+    text-align:left;
+    cursor:pointer;
+  }
+  .find-projects-page .marketplace-main[data-marketplace="requests"] .mobile-filter-options button[aria-pressed="true"]{
+    background:#f1f2f5;
+    color:var(--market-ink);
+    font-weight:700;
+  }
+  .find-projects-page .marketplace-main[data-marketplace="requests"] .mobile-filter-options button:hover{
+    background:#f1f2f5;
+    color:var(--market-ink);
+  }
+  .find-projects-page .marketplace-main[data-marketplace="requests"] .mobile-filter-options button svg{
+    display:none;
+    width:14px;
+    height:14px;
+    flex:none;
+    fill:none;
+    stroke:currentColor;
+    stroke-linecap:round;
+    stroke-linejoin:round;
+    stroke-width:2;
+  }
+  .find-projects-page .marketplace-main[data-marketplace="requests"] .mobile-filter-options button[aria-pressed="true"] svg{
+    display:block;
+  }
+  .find-projects-page .marketplace-main[data-marketplace="requests"] .mobile-filter-options button:focus-visible{
+    outline:2px solid #000;
+    outline-offset:2px;
+  }
+  .find-projects-page .marketplace-main[data-marketplace="requests"] #sortFilterMenu{
+    padding:4px;
+    border-radius:18px;
+    box-shadow:0 14px 34px rgb(23 23 25 / 14%);
+  }
+  .find-projects-page .marketplace-main[data-marketplace="requests"] #sortFilterMenu:popover-open{
+    gap:2px;
+  }
+  .find-projects-page .marketplace-main[data-marketplace="requests"] #sortFilterMenu .mobile-sort-menu-heading{
+    display:block;
+    padding:4px 8px 6px;
+    margin-bottom:2px;
+    border-bottom:1px solid var(--market-line);
+    color:#7a7f89;
+    font-size:11px;
+    font-weight:800;
+    letter-spacing:.06em;
+  }
+  .find-projects-page .marketplace-main[data-marketplace="requests"] #sortFilterMenu button{
+    min-height:36px;
+    justify-content:space-between;
+    padding:0 8px;
+    border-radius:9px;
+    font-size:12px;
+  }
+  .find-projects-page .marketplace-main[data-marketplace="requests"] #sortFilterMenu button[aria-checked="true"]{
+    background:#f1f2f5;
+    color:var(--market-ink);
+    font-weight:700;
+  }
+  .find-projects-page .marketplace-main[data-marketplace="requests"] #sortFilterMenu button[aria-checked="true"]>svg{
+    display:block;
+    width:18px;
+    height:18px;
+    flex:none;
+    fill:none;
+    stroke:currentColor;
+    stroke-linecap:round;
+    stroke-linejoin:round;
+    stroke-width:2;
+  }
+}
+
+@media(min-width:641px) and (max-width:860px){
+  .find-projects-page .marketplace-main[data-marketplace="requests"] .mobile-market-actions{
+    --mobile-actions-edge-gap:18px;
+  }
+  .find-projects-page .marketplace-main[data-marketplace="requests"] .mobile-market-actions.switch-hidden{
+    top:0;
+  }
+}
+
+@media(max-width:600px){
+  .find-projects-page .marketplace-main[data-marketplace="requests"] .mobile-market-actions.switch-hidden{
+    top:calc(56px - var(--page-scroll-mobile-top));
+  }
+}
+
+@media(max-width:600px){
+  .find-projects-page .marketplace-main[data-marketplace="requests"] .mobile-market-actions::after{
+    position:absolute;
+    z-index:1;
+    bottom:-1px;
+    left:calc(50% - 50vw + 1px);
+    width:100vw;
+    height:1px;
+    background:var(--market-line);
+    content:"";
+    pointer-events:none;
+  }
+}
+
+@media(max-width:860px) and (max-height:500px){
+  .find-projects-page .marketplace-main[data-marketplace="requests"] .mobile-filters-panel:not([hidden]){
+    position:fixed;
+    top:8px;
+    right:8px;
+    bottom:8px;
+    left:8px;
+    width:auto;
+    max-width:none;
+    grid-template-rows:minmax(0,1fr) auto;
+    gap:4px;
+  }
+  .find-projects-page .marketplace-main[data-marketplace="requests"] .mobile-filter-selects{
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    align-content:start;
+    gap:4px 8px;
+  }
+  .find-projects-page .marketplace-main[data-marketplace="requests"] .mobile-filter-selects label+label{
+    padding-top:0;
+    border-top:0;
+  }
+  .find-projects-page .marketplace-main[data-marketplace="requests"] .mobile-filter-selects .mobile-budget-filter{
+    grid-column:1/-1;
+  }
+  .find-projects-page .marketplace-main[data-marketplace="requests"] .mobile-filter-selects .mobile-budget-filter .budget-menu-options{
+    grid-template-columns:repeat(2,minmax(0,1fr));
+  }
+  .find-projects-page .marketplace-main[data-marketplace="requests"] .mobile-filter-selects .mobile-budget-filter .budget-menu-options button{
+    min-height:28px;
+    padding:0 6px;
+  }
+  .find-projects-page .marketplace-main[data-marketplace="requests"] .mobile-filter-actions{
+    margin-top:0;
+  }
+  .find-projects-page .marketplace-main[data-marketplace="requests"] .mobile-filter-actions button{
+    min-height:32px;
+  }
+}
+
+@media(max-width:860px) and (max-height:700px){
+  .find-projects-page .marketplace-main[data-marketplace="requests"] .mobile-filter-selects .mobile-budget-filter .budget-range-values{
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    gap:6px;
+  }
+  .find-projects-page .marketplace-main[data-marketplace="requests"] .mobile-filter-selects .mobile-budget-filter .budget-entry-actions{
+    margin-top:6px;
+  }
+}
+
+@media(max-width:860px) and (min-height:501px) and (max-height:700px){
+  .find-projects-page .marketplace-main[data-marketplace="requests"] .mobile-filters-panel:not([hidden]){
+    position:fixed;
+    top:auto;
+    right:8px;
+    bottom:calc(env(safe-area-inset-bottom) + 8px);
+    left:auto;
+    width:min(340px,calc(100vw - 16px));
+    max-width:none;
+  }
+  .find-projects-page .marketplace-main[data-marketplace="requests"] .mobile-filter-options button,
+  .find-projects-page .marketplace-main[data-marketplace="requests"] .mobile-filter-selects .mobile-budget-filter .budget-menu-options button{
+    min-height:32px;
+  }
+  .find-projects-page .marketplace-main[data-marketplace="requests"] .mobile-filter-actions button{
+    min-height:34px;
+  }
+}
+
+@media(prefers-reduced-motion:reduce){
+  .find-projects-page .marketplace-main[data-marketplace="requests"] .mobile-filters-panel{
+    transition-duration:1ms;
+  }
+  .find-projects-page .marketplace-main[data-marketplace="requests"] .mobile-market-actions{
+    transition-duration:1ms;
+  }
+  .find-projects-page .marketplace-main[data-marketplace="requests"] .mobile-filter-toggle,
+  .find-projects-page .marketplace-main[data-marketplace="requests"] .mobile-market-actions .sort-select{
+    transition-duration:1ms;
+  }
+}
+
+@media(max-width:860px){
+  .find-projects-page .marketplace-main[data-marketplace="requests"] .mobile-filter-selects .mobile-budget-filter .market-select{
+    display:none;
+  }
+  .find-projects-page .marketplace-main[data-marketplace="requests"] .mobile-filter-selects .mobile-budget-filter #budgetFilterMenu{
+    position:static;
+    inset:auto;
+    display:grid;
+    grid-template-columns:1fr;
+    gap:0;
+    width:100%;
+    min-width:0;
+    max-width:none;
+    margin:0;
+    padding:0;
+    border:0;
+    border-radius:0;
+    background:transparent;
+    box-shadow:none;
+    opacity:1;
+    transform:none;
+    transition:none;
+  }
+  .find-projects-page .marketplace-main[data-marketplace="requests"] .mobile-filter-selects .mobile-budget-filter .budget-menu-options{
+    grid-template-columns:minmax(0,1fr);
+    gap:2px;
+    width:100%;
+  }
+  .find-projects-page .marketplace-main[data-marketplace="requests"] .mobile-filter-selects .mobile-budget-filter .budget-menu-options button{
+    min-width:0;
+    min-height:36px;
+    padding:0 8px;
+    border:0;
+    border-radius:10px;
+    background:transparent;
+    color:#555b65;
+    font:500 12px "Plus Jakarta Sans",system-ui,sans-serif;
+    text-align:left;
+    white-space:nowrap;
+  }
+  .find-projects-page .marketplace-main[data-marketplace="requests"] .mobile-filter-selects .mobile-budget-filter .budget-menu-options button[aria-pressed="true"],
+  .find-projects-page .marketplace-main[data-marketplace="requests"] .mobile-filter-selects .mobile-budget-filter .budget-menu-options button:hover{
+    background:#f1f2f5;
+    color:var(--market-ink);
+  }
+  .find-projects-page .marketplace-main[data-marketplace="requests"] .mobile-filter-selects .mobile-budget-filter .budget-menu-values{
+    min-width:0;
+    padding:2px 8px 4px;
+  }
+  .find-projects-page .marketplace-main[data-marketplace="requests"] .mobile-filter-selects .mobile-budget-filter .budget-menu:not(.mobile-budget-editing) .budget-menu-values{
+    display:none;
+  }
+  .find-projects-page .marketplace-main[data-marketplace="requests"] .mobile-filter-selects .mobile-budget-filter .budget-menu.mobile-budget-editing .budget-menu-options{
+    display:none;
+  }
+  .find-projects-page .marketplace-main[data-marketplace="requests"] .mobile-filter-selects .mobile-budget-filter .budget-menu.mobile-budget-editing .budget-menu-values{
+    display:flex;
+  }
+  .find-projects-page .marketplace-main[data-marketplace="requests"] .mobile-filter-selects .mobile-budget-filter .filter-label .budget-mode-heading:not([hidden]){
+    margin-left:6px;
+    color:#59606b;
+    font-size:11.5px;
+    font-weight:700;
+    letter-spacing:0;
+  }
+  .find-projects-page .marketplace-main[data-marketplace="requests"] .mobile-filter-selects .mobile-budget-filter .filter-label .budget-mode-heading:not([hidden])::before{
+    margin-right:6px;
+    color:#777d87;
+    content:"·";
+  }
+  .find-projects-page .marketplace-main[data-marketplace="requests"] .mobile-filter-selects .mobile-budget-filter .budget-menu-values label{
+    gap:6px;
+  }
+  .find-projects-page .marketplace-main[data-marketplace="requests"] .mobile-filter-selects .mobile-budget-filter #budgetSingleValueLabel[hidden]{
+    display:none;
+  }
+  .find-projects-page .marketplace-main[data-marketplace="requests"] .mobile-filter-selects .mobile-budget-filter .budget-range-values{
+    gap:8px;
+  }
+  .find-projects-page .marketplace-main[data-marketplace="requests"] .mobile-filter-selects .mobile-budget-filter .budget-entry-actions{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:12px;
+    margin-top:10px;
+  }
+  .find-projects-page .marketplace-main[data-marketplace="requests"] .mobile-filter-selects .mobile-budget-filter .budget-back-button{
+    display:inline-flex;
+    align-items:center;
+    gap:5px;
+    width:auto;
+    flex:none;
+    min-height:32px;
+    padding:0;
+    border:0;
+    background:transparent;
+    color:#30343b;
+    font:600 12px "Plus Jakarta Sans",system-ui,sans-serif;
+    text-decoration:underline;
+    text-underline-offset:3px;
+    cursor:pointer;
+  }
+  .find-projects-page .marketplace-main[data-marketplace="requests"] .mobile-filter-selects .mobile-budget-filter .budget-back-button svg{
+    width:15px;
+    height:15px;
+    fill:none;
+    stroke:currentColor;
+    stroke-linecap:round;
+    stroke-linejoin:round;
+    stroke-width:1.8;
+  }
+  .find-projects-page .marketplace-main[data-marketplace="requests"] .mobile-filter-selects .mobile-budget-filter .budget-save-filter{
+    display:none!important;
+  }
+  .find-projects-page .marketplace-main[data-marketplace="requests"] .mobile-filter-selects .mobile-budget-filter .budget-save-filter-desktop{
+    display:none;
+  }
+  .find-projects-page .marketplace-main[data-marketplace="requests"] .mobile-filter-selects .mobile-budget-filter .budget-save-filter-mobile{
+    display:inline;
+  }
 }

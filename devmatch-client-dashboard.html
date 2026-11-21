@@ -34,9 +34,10 @@
       }
     })();
   </script>
-  <script src="assets/js/i18n.js?v=20261102-profile-details"></script>
+  <script src="assets/js/i18n.js?v=20261121-expertise-labels-v1"></script>
 <script src="assets/vendor/supabase-2.119.0.js"></script>
-<script src="assets/js/backend.js?v=20261122-comment-roles"></script>
+<link rel="stylesheet" href="assets/css/form-controls.css?v=20261122-textbox-focus-v1">
+<script src="assets/js/backend.js?v=20261122-rebase-sync-v1"></script>
 </head>
 <body class="page-scroll-shell">
   <header class="client-topbar">
@@ -66,7 +67,7 @@
     </nav>
     <div class="client-sidebar-foot"><span></span>Client workspace</div>
   </aside>
-  <script src="assets/js/sidebar-navigation.js?v=20261120-mobile-bottom-nav-v9"></script>
+  <script src="assets/js/sidebar-navigation.js?v=20261121-explore-direct-find-projects-v2"></script>
 
   <main class="client-main" id="home">
     <section class="client-home" id="homeDashboard">
@@ -330,9 +331,9 @@
           <section class="request-form-card">
             <header><h2>Budget &amp; timeline</h2><p>Ranges help developers decide quickly.</p></header>
             <div class="request-budget-row">
-              <label class="request-form-field">Budget from<div class="request-currency"><span>Rp</span><input name="budgetFrom" inputmode="numeric" placeholder="8.000.000" aria-label="Budget from in rupiah"></div></label>
+              <label class="request-form-field">Budget from<div class="request-currency"><span>Rp</span><input name="budgetFrom" inputmode="numeric" data-money-input placeholder="8.000.000" aria-label="Budget from in rupiah"></div></label>
               <span class="request-budget-separator" aria-hidden="true">—</span>
-              <label class="request-form-field">Budget to<div class="request-currency"><span>Rp</span><input name="budgetTo" inputmode="numeric" placeholder="15.000.000" aria-label="Budget to in rupiah"></div></label>
+              <label class="request-form-field">Budget to<div class="request-currency"><span>Rp</span><input name="budgetTo" inputmode="numeric" data-money-input placeholder="15.000.000" aria-label="Budget to in rupiah"></div></label>
             </div>
             <label class="request-negotiable"><span><b>Budget is negotiable</b><small>Show a “Negotiable” badge so developers can propose alternatives.</small></span><input type="checkbox" name="negotiable"><i aria-hidden="true"></i></label>
             <div class="request-budget-row request-timeline-row">
@@ -358,8 +359,8 @@
             </div>
           </section>
           <section class="request-form-card">
-            <header><h2>Required specialization</h2><p>Select one or more — developers filter requests by these.</p></header>
-            <fieldset class="request-chip-field"><legend class="visually-hidden">Required specialization</legend><div class="request-chip-list request-specialty-list">
+            <header><h2>Expertise Needed</h2><p>Select one or more — developers filter requests by these.</p></header>
+            <fieldset class="request-chip-field"><legend class="visually-hidden">Expertise Needed</legend><div class="request-chip-list request-specialty-list">
               <label><input type="checkbox" name="specialties" value="Frontend"><span>＋ &nbsp;Frontend</span></label><label><input type="checkbox" name="specialties" value="Backend"><span>＋ &nbsp;Backend</span></label><label><input type="checkbox" name="specialties" value="UI/UX"><span>＋ &nbsp;UI/UX</span></label><label><input type="checkbox" name="specialties" value="Full-stack"><span>＋ &nbsp;Full-stack</span></label><label><input type="checkbox" name="specialties" value="Mobile"><span>＋ &nbsp;Mobile</span></label><label><input type="checkbox" name="specialties" value="Game Development"><span>＋ &nbsp;Game Development</span></label><label><input type="checkbox" name="specialties" value="Other"><span>＋ &nbsp;Other</span></label>
             </div></fieldset>
             <label class="request-form-field request-conditional-field" data-specialty-other hidden>Which specialization do you need?<input class="request-control" name="specialtyOther" maxlength="80" placeholder="e.g. Blockchain development"></label>
@@ -417,8 +418,9 @@
     </form>
   </dialog>
   <script src="assets/js/favorite-feedback.js?v=20261120-confirmation-undo"></script>
-  <script src="assets/js/project-detail.js?v=20261122-comment-system-v1"></script>
-  <script src="assets/js/client-dashboard.js?v=20261122-comment-system-v1"></script>
+  <script src="assets/js/project-detail.js?v=20261122-rebase-sync-v1"></script>
+  <script src="assets/js/money-input.js?v=20261122-rebase-sync-v1"></script>
+  <script src="assets/js/client-dashboard.js?v=20261122-rebase-sync-v1"></script>
   <script src="assets/js/nav-behavior.js?v=20261120-mobile-bottom-nav-v4"></script>
 <script src="assets/js/presence.js?v=20261119-global"></script>
 </body>

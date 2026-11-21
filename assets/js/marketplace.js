@@ -14,6 +14,7 @@
     if (legacy !== null) localStorage.setItem(favoritesKey, legacy);
   }
   const searchInput = document.getElementById('marketSearch');
+  const searchForm = document.getElementById('marketSearchForm');
   const topSearchInput = document.getElementById('topSearchInput');
   const grid = document.getElementById('projectGrid');
   const emptyState = document.getElementById('emptyState');
@@ -32,6 +33,7 @@
   const developerTabCount = document.getElementById('developerTabCount');
   const projectRequestsTabCount = document.getElementById('projectRequestsTabCount');
   const clientsTabCount = document.getElementById('clientsTabCount');
+  const moneyInput=window.devMatchMoneyInput;
   function safeProjectCover(value) {
     if (typeof value !== 'string' || !value.trim()) return '';
     try {
@@ -59,21 +61,48 @@
     return null;
   });
   let activeCategory = 'all';
+  let appliedTypeFilter = 'all';
+  let appliedStackFilter = 'all';
   let query = '';
   let view = 'grid';
   let visibleCount = 3;
   const budgetValues = { mode: 'all', lower: '', from: '', to: '' };
+  let mobileBudgetDraft = null;
   let committedBudgetValues = { ...budgetValues };
   let rollbackIncompleteBudget = () => {};
+  let resetMobileBudgetEditor = () => {};
+  let suppressedProjectCardClick = null;
+  function isMobileFilterPanelOpen() {
+    const panel = document.getElementById('mobileFiltersPanel');
+    return window.matchMedia('(max-width: 860px)').matches && Boolean(panel && !panel.hidden);
+  }
+
+  function createCheckmarkIcon() {
+    const icon = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    icon.setAttribute('viewBox', '0 0 24 24');
+    icon.setAttribute('aria-hidden', 'true');
+    const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    path.setAttribute('d', 'm5 12 4 4L19 6');
+    icon.append(path);
+    return icon;
+  }
+
   const dropdownConfigs = [
     { selectId: 'typeFilter', triggerId: 'typeFilterTrigger', menuId: 'typeFilterMenu', width: 180 },
     { selectId: 'budgetFilter', triggerId: 'budgetFilterTrigger', menuId: 'budgetFilterMenu', width: 180, align: 'left', custom: true },
     { selectId: 'stackFilter', triggerId: 'stackFilterTrigger', menuId: 'stackFilterMenu', width: 180 },
     { selectId: 'sortFilter', triggerId: 'sortFilterTrigger', menuId: 'sortFilterMenu', width: 205, align: 'right' }
   ];
+  const budgetModeLabels = {
+    all: 'All budgets',
+    'lower-than': 'Lower than...',
+    'higher-than': 'Higher than...',
+    range: 'Price Range'
+  };
+  const requestSpecializationOptions = ['Frontend', 'Backend', 'UI/UX', 'Full-stack', 'Mobile', 'Game Development'];
 
   function closeDropdown(menu, trigger){
-    if(menu.id==='budgetFilterMenu')rollbackIncompleteBudget();
+    if(menu.id==='budgetFilterMenu'&&menu.matches(':popover-open'))rollbackIncompleteBudget();
     if(menu.matches(':popover-open'))menu.hidePopover();
     trigger.setAttribute('aria-expanded','false');
   }
@@ -97,21 +126,33 @@
       const trigger=document.getElementById(triggerId);
       const menu=document.getElementById(menuId);
       if(!select||!trigger||!menu)return;
+      document.querySelectorAll(`.mobile-filter-options[data-select-id="${selectId}"] button`).forEach(option=>{
+        option.setAttribute('aria-pressed',String(option.dataset.value===select.value));
+      });
       if(selectId==='budgetFilter'){
-        const amount=Number(budgetValues.lower);
-        const from=Number(budgetValues.from);
-        const to=Number(budgetValues.to);
+        const values=mobileBudgetDraft||budgetValues;
+        const amount=Number(values.lower);
+        const from=Number(values.from);
+        const to=Number(values.to);
         let label='All budgets';
-        if(budgetValues.mode==='lower-than')label=budgetValues.lower?`Lower than Rp ${amount.toLocaleString('id-ID')}`:'Lower than...';
-        if(budgetValues.mode==='higher-than')label=budgetValues.lower?`Higher than Rp ${amount.toLocaleString('id-ID')}`:'Higher than...';
-        if(budgetValues.mode==='range'){
-          const fromText=budgetValues.from?from.toLocaleString('id-ID'):'From...';
-          const toText=budgetValues.to?to.toLocaleString('id-ID'):'To...';
+        if(values.mode==='lower-than')label=values.lower?`Lower than Rp ${amount.toLocaleString('id-ID')}`:'Lower than...';
+        if(values.mode==='higher-than')label=values.lower?`Higher than Rp ${amount.toLocaleString('id-ID')}`:'Higher than...';
+        if(values.mode==='range'){
+          const fromText=values.from?from.toLocaleString('id-ID'):'From...';
+          const toText=values.to?to.toLocaleString('id-ID'):'To...';
           label=`Rp ${fromText} – ${toText}`;
         }
         trigger.querySelector('span').textContent=label;
+        const showAppliedValue=window.matchMedia('(max-width: 860px)').matches
+          &&Boolean(menu.closest('.mobile-budget-filter'))
+          &&!menu.classList.contains('mobile-budget-editing');
+        const selectedOptionLabel=values.mode==='range'?`Price Range · ${label}`:label;
         menu.querySelectorAll('[data-budget-mode]').forEach(option=>{
-          option.setAttribute('aria-pressed',String(option.dataset.budgetMode===budgetValues.mode));
+          const selected=option.dataset.budgetMode===values.mode;
+          option.setAttribute('aria-pressed',String(selected));
+          option.textContent=showAppliedValue&&selected
+            ?selectedOptionLabel
+            :budgetModeLabels[option.dataset.budgetMode];
         });
         return;
       }
@@ -121,6 +162,109 @@
         option.setAttribute('aria-checked',String(option.dataset.value===select.value));
       });
     });
+  }
+
+  function getRequestSpecialties(item){
+    const values=Array.isArray(item.specialties)
+      ?item.specialties
+      :typeof item.specialty==='string'?[item.specialty]:[];
+    return values.map(value=>String(value).trim()).filter(Boolean);
+  }
+
+  function requestMatchesSpecialization(item,selectedValue){
+    const specialties=getRequestSpecialties(item);
+    if(selectedValue.startsWith('other:')){
+      return specialties.some(value=>value.toLowerCase()==='other')
+        &&String(item.specialtyOther||'').trim().toLowerCase()===selectedValue.slice(6);
+    }
+    return specialties.some(value=>value.toLowerCase()===selectedValue.toLowerCase());
+  }
+
+  function updateRequiredSpecializationOptions(records){
+    if(!isRequestsPage)return false;
+    const select=document.getElementById('stackFilter');
+    const menu=document.getElementById('stackFilterMenu');
+    if(!select||!menu)return false;
+
+    const baseOptions=requestSpecializationOptions.map(value=>({value,label:value}));
+    const knownValues=new Set(baseOptions.map(option=>option.value.toLowerCase()));
+    const additionalOptions=new Map();
+    const customOptions=new Map();
+    records.forEach(request=>{
+      const specialties=getRequestSpecialties(request);
+      specialties.forEach(specialty=>{
+        if(specialty.toLowerCase()==='other'||knownValues.has(specialty.toLowerCase()))return;
+        const key=specialty.toLowerCase();
+        if(!additionalOptions.has(key))additionalOptions.set(key,{value:specialty,label:specialty});
+      });
+      if(specialties.some(value=>value.toLowerCase()==='other')){
+        const custom=String(request.specialtyOther||'').trim();
+        if(custom){
+          const key=custom.toLowerCase();
+          if(!customOptions.has(key)){
+            customOptions.set(key,{value:`other:${key}`,label:`Other · ${custom}`});
+          }
+        }
+      }
+    });
+    const options=[
+      {value:'all',label:'All Expertise'},
+      ...baseOptions,
+      ...[...additionalOptions.values()].sort((first,second)=>first.label.localeCompare(second.label)),
+      ...[...customOptions.values()].sort((first,second)=>first.label.localeCompare(second.label))
+    ];
+    const previousValue=select.value||'all';
+    const selectedValue=options.some(option=>option.value===previousValue)?previousValue:'all';
+    select.replaceChildren(...options.map(option=>{
+      const element=document.createElement('option');
+      element.value=option.value;
+      element.textContent=option.label;
+      return element;
+    }));
+    select.value=selectedValue;
+    let selectionWasRemoved=selectedValue!==previousValue;
+    if(!options.some(option=>option.value===appliedStackFilter)){
+      appliedStackFilter='all';
+      selectionWasRemoved=true;
+    }
+    menu.replaceChildren(...options.map(option=>{
+      const item=document.createElement('button');
+      item.type='button';
+      item.setAttribute('role','menuitemradio');
+      item.dataset.value=option.value;
+      const label=document.createElement('span');
+      label.textContent=option.label;
+      item.append(label,createCheckmarkIcon());
+      item.addEventListener('click',()=>{
+        select.value=option.value;
+        syncDropdownLabels();
+        select.dispatchEvent(new Event('change',{bubbles:true}));
+        closeDropdown(menu,document.getElementById('stackFilterTrigger'));
+        document.getElementById('stackFilterTrigger').focus();
+      });
+      return item;
+    }));
+    const mobileOptions=document.querySelector('.mobile-filter-options[data-select-id="stackFilter"]');
+    if(mobileOptions){
+      mobileOptions.setAttribute('aria-label','EXPERTISE options');
+      mobileOptions.replaceChildren(...options.map(option=>{
+        const item=document.createElement('button');
+        item.type='button';
+        item.dataset.value=option.value;
+        item.setAttribute('aria-pressed',String(option.value===select.value));
+        const label=document.createElement('span');
+        label.textContent=option.label;
+        item.append(label,createCheckmarkIcon());
+        item.addEventListener('click',()=>{
+          select.value=option.value;
+          syncDropdownLabels();
+          select.dispatchEvent(new Event('change',{bubbles:true}));
+        });
+        return item;
+      }));
+    }
+    syncDropdownLabels();
+    return selectionWasRemoved;
   }
 
   function initializeDropdowns(){
@@ -134,7 +278,9 @@
         item.type='button';
         item.setAttribute('role','menuitemradio');
         item.dataset.value=option.value;
-        item.textContent=option.textContent;
+        const label=document.createElement('span');
+        label.textContent=option.textContent;
+        item.append(label,createCheckmarkIcon());
         item.addEventListener('click',()=>{
           select.value=option.value;
           syncDropdownLabels();
@@ -144,7 +290,15 @@
         });
         menu.append(item);
       });
-      trigger.addEventListener('click',()=>{
+      trigger.addEventListener('click',event=>{
+        if(config.custom&&trigger.closest('.mobile-budget-filter')
+          &&window.matchMedia('(max-width: 860px)').matches){
+          event.preventDefault();
+          if(menu.matches(':popover-open'))menu.hidePopover();
+          trigger.setAttribute('aria-expanded','false');
+          ['left','top','width','min-width'].forEach(property=>menu.style.removeProperty(property));
+          return;
+        }
         if(menu.matches(':popover-open')){
           closeDropdown(menu,trigger);
           return;
@@ -156,10 +310,13 @@
         menu.showPopover();
         const triggerBounds=trigger.getBoundingClientRect();
         const menuBounds=menu.getBoundingClientRect();
+        const mobileSort=config.selectId==='sortFilter'&&window.matchMedia('(max-width: 860px)').matches;
         const preferredWidth=config.custom
           ?budgetValues.mode==='all'?165:430
-          :config.width;
-        const menuWidth=Math.min(config.custom?preferredWidth:Math.max(triggerBounds.width,preferredWidth),window.innerWidth-20);
+          :mobileSort?Math.min(280,window.innerWidth-20):config.width;
+        const menuWidth=mobileSort
+          ?preferredWidth
+          :Math.min(config.custom?preferredWidth:Math.max(triggerBounds.width,preferredWidth),window.innerWidth-20);
         const left=config.align==='right'
           ?Math.max(10,Math.min(triggerBounds.right-menuWidth,window.innerWidth-menuWidth-10))
           :Math.max(10,Math.min(triggerBounds.left,window.innerWidth-menuWidth-10));
@@ -180,7 +337,7 @@
       menu.addEventListener('toggle',()=>{
         trigger.setAttribute('aria-expanded',String(menu.matches(':popover-open')));
       });
-      menu.addEventListener('keydown',event=>{
+      if(!config.custom)menu.addEventListener('keydown',event=>{
         if(event.key==='Escape'){
           closeDropdown(menu,trigger);
           trigger.focus();
@@ -201,6 +358,15 @@
     const budgetMenuValues=document.getElementById('budgetMenuValues');
     const budgetRangeError=document.getElementById('budgetRangeError');
     const budgetRangeHint=document.getElementById('budgetRangeHint');
+    const budgetSingleHeading=document.getElementById('budgetSingleValueHeading');
+    const budgetLabel=budgetTrigger.closest('label');
+    const mobileBudgetBreakpoint=window.matchMedia('(max-width: 860px)');
+    const isMobileBudgetPanel=()=>mobileBudgetBreakpoint.matches
+      &&Boolean(document.querySelector('.mobile-filter-selects')?.contains(budgetLabel));
+    const budgetModeHeading=document.createElement('span');
+    budgetModeHeading.className='budget-mode-heading';
+    budgetModeHeading.hidden=true;
+    budgetLabel.querySelector('.filter-label').append(budgetModeHeading);
     const budgetSaveError=document.createElement('p');
     budgetSaveError.className='budget-range-error';
     budgetSaveError.setAttribute('role','alert');
@@ -208,11 +374,31 @@
     const budgetSaveButton=document.createElement('button');
     budgetSaveButton.className='budget-save-filter';
     budgetSaveButton.type='button';
-    budgetSaveButton.textContent='Save Filter';
-    budgetMenuValues.append(budgetSaveError,budgetSaveButton);
-    budgetSingleInput.value=budgetValues.lower;
-    budgetFromInput.value=budgetValues.from;
-    budgetToInput.value=budgetValues.to;
+    const desktopSaveLabel=document.createElement('span');
+    desktopSaveLabel.className='budget-save-filter-desktop';
+    desktopSaveLabel.textContent='Save Filter';
+    const mobileApplyLabel=document.createElement('span');
+    mobileApplyLabel.className='budget-save-filter-mobile';
+    mobileApplyLabel.textContent='Apply';
+    budgetSaveButton.append(desktopSaveLabel,mobileApplyLabel);
+    const budgetBackButton=document.createElement('button');
+    budgetBackButton.className='budget-back-button';
+    budgetBackButton.type='button';
+    budgetBackButton.setAttribute('aria-label','Back to budget options');
+    const backIcon=document.createElementNS('http://www.w3.org/2000/svg','svg');
+    backIcon.setAttribute('viewBox','0 0 24 24');
+    backIcon.setAttribute('aria-hidden','true');
+    const backPath=document.createElementNS('http://www.w3.org/2000/svg','path');
+    backPath.setAttribute('d','M19 12H5m7 7-7-7 7-7');
+    backIcon.append(backPath);
+    budgetBackButton.append(backIcon,document.createTextNode('Back'));
+    const budgetActions=document.createElement('div');
+    budgetActions.className='budget-entry-actions';
+    budgetActions.append(budgetBackButton,budgetSaveButton);
+    budgetMenuValues.append(budgetSaveError,budgetActions);
+    budgetSingleInput.value=moneyInput.format(budgetValues.lower);
+    budgetFromInput.value=moneyInput.format(budgetValues.from);
+    budgetToInput.value=moneyInput.format(budgetValues.to);
 
     function positionBudgetMenu(){
       const triggerBounds=budgetTrigger.getBoundingClientRect();
@@ -231,16 +417,31 @@
     }
 
     function updateBudgetFields(){
-      const needsValues=budgetValues.mode!=='all';
-      const isRange=budgetValues.mode==='range';
+      const values=mobileBudgetDraft||budgetValues;
+      const needsValues=values.mode!=='all';
+      const isRange=values.mode==='range';
       budgetMenuValues.hidden=!needsValues;
       budgetSingleLabel.hidden=isRange;
       budgetRangeValues.hidden=!isRange;
+      const isMobileEditing=isMobileBudgetPanel()&&budgetMenu.classList.contains('mobile-budget-editing');
+      budgetSingleHeading.textContent=isMobileBudgetPanel()
+        ?values.mode==='lower-than'?'Lower than'
+          :values.mode==='higher-than'?'Higher than':'Amount'
+        :'Amount';
+      budgetSingleHeading.classList.toggle('visually-hidden',isMobileEditing&&!isRange);
+      budgetModeHeading.textContent=values.mode==='lower-than'
+        ?'Lower than'
+        :values.mode==='higher-than'
+          ?'Higher than'
+          :isRange?'Price Range':'';
+      budgetModeHeading.hidden=!(isMobileEditing&&needsValues);
       budgetRangeHint.textContent=isRange
         ?'Enter both amounts to filter projects.'
         :'Enter an amount to filter projects.';
-      budgetRangeError.hidden=!(isRange&&budgetValues.from&&budgetValues.to&&Number(budgetValues.from)>Number(budgetValues.to));
+      const hasRangeError=isRange&&values.from&&values.to&&Number(values.from)>Number(values.to);
+      budgetRangeError.hidden=!hasRangeError;
       budgetSaveError.hidden=true;
+      budgetRangeHint.hidden=isMobileBudgetPanel()&&Boolean(hasRangeError);
       budgetMenu.classList.toggle('has-values',needsValues);
       if(budgetMenu.matches(':popover-open'))positionBudgetMenu();
       syncDropdownLabels();
@@ -254,16 +455,52 @@
       const changed=Object.keys(committedBudgetValues).some(key=>budgetValues[key]!==committedBudgetValues[key]);
       Object.assign(budgetValues,committedBudgetValues);
       document.getElementById('budgetFilter').value=budgetValues.mode;
-      budgetSingleInput.value=budgetValues.lower;
-      budgetFromInput.value=budgetValues.from;
-      budgetToInput.value=budgetValues.to;
+      budgetSingleInput.value=moneyInput.format(budgetValues.lower);
+      budgetFromInput.value=moneyInput.format(budgetValues.from);
+      budgetToInput.value=moneyInput.format(budgetValues.to);
       updateBudgetFields();
       if(changed)document.getElementById('budgetFilter').dispatchEvent(new Event('change',{bubbles:true}));
     };
 
+    function closeMobileBudgetEditor(){
+      if(!budgetMenu.classList.contains('mobile-budget-editing')&&!mobileBudgetDraft)return;
+      mobileBudgetDraft=null;
+      document.getElementById('budgetFilter').value=budgetValues.mode;
+      budgetSingleInput.value=moneyInput.format(budgetValues.lower);
+      budgetFromInput.value=moneyInput.format(budgetValues.from);
+      budgetToInput.value=moneyInput.format(budgetValues.to);
+      budgetMenu.classList.remove('mobile-budget-editing');
+      budgetSaveError.hidden=true;
+      updateBudgetFields();
+    }
+    resetMobileBudgetEditor=closeMobileBudgetEditor;
+
     budgetMenu.querySelectorAll('[data-budget-mode]').forEach(option=>{
       option.addEventListener('click',()=>{
-        budgetValues.mode=option.dataset.budgetMode;
+        const nextMode=option.dataset.budgetMode;
+        if(isMobileBudgetPanel()){
+          if(nextMode==='all'){
+            mobileBudgetDraft={mode:'all',lower:'',from:'',to:''};
+            budgetSingleInput.value='';
+            budgetFromInput.value='';
+            budgetToInput.value='';
+            budgetMenu.classList.remove('mobile-budget-editing');
+            document.getElementById('budgetFilter').value='all';
+            updateBudgetFields();
+            option.focus({preventScroll:true});
+            return;
+          }
+          mobileBudgetDraft={...(mobileBudgetDraft||budgetValues),mode:nextMode};
+          document.getElementById('budgetFilter').value=nextMode;
+          budgetSingleInput.value=moneyInput.format(mobileBudgetDraft.lower);
+          budgetFromInput.value=moneyInput.format(mobileBudgetDraft.from);
+          budgetToInput.value=moneyInput.format(mobileBudgetDraft.to);
+          budgetMenu.classList.add('mobile-budget-editing');
+          updateBudgetFields();
+          (mobileBudgetDraft.mode==='range'?budgetFromInput:budgetSingleInput).focus({preventScroll:true});
+          return;
+        }
+        budgetValues.mode=nextMode;
         document.getElementById('budgetFilter').value=budgetValues.mode;
         if(budgetValues.mode==='all'){
           budgetValues.lower='';
@@ -285,9 +522,16 @@
       });
     });
     const updateBudgetValue=()=>{
-      budgetValues.lower=budgetSingleInput.value;
-      budgetValues.from=budgetFromInput.value;
-      budgetValues.to=budgetToInput.value;
+      if(isMobileBudgetPanel()&&mobileBudgetDraft){
+        mobileBudgetDraft.lower=moneyInput.digits(budgetSingleInput.value);
+        mobileBudgetDraft.from=moneyInput.digits(budgetFromInput.value);
+        mobileBudgetDraft.to=moneyInput.digits(budgetToInput.value);
+        updateBudgetFields();
+        return;
+      }
+      budgetValues.lower=moneyInput.digits(budgetSingleInput.value);
+      budgetValues.from=moneyInput.digits(budgetFromInput.value);
+      budgetValues.to=moneyInput.digits(budgetToInput.value);
       updateBudgetFields();
       if(isBudgetValuesValid(budgetValues))committedBudgetValues={...budgetValues};
       document.getElementById('budgetFilter').dispatchEvent(new Event('change',{bubbles:true}));
@@ -295,22 +539,41 @@
     [budgetSingleInput,budgetFromInput,budgetToInput].forEach(input=>input.addEventListener('input',updateBudgetValue));
     const saveBudgetFilter=()=>{
       updateBudgetValue();
-      if(!isBudgetValuesValid(budgetValues)){
-        budgetSaveError.textContent=budgetValues.mode==='range'
-          ?budgetValues.from&&budgetValues.to
+      const isMobileEditing=isMobileBudgetPanel()&&mobileBudgetDraft!==null;
+      const values=isMobileEditing?mobileBudgetDraft:budgetValues;
+      if(!isBudgetValuesValid(values)){
+        budgetSaveError.textContent=values.mode==='range'
+          ?values.from&&values.to
             ?'From must be less than or equal to To.'
             :'Enter both amounts to save this filter.'
           :'Enter a valid amount to save this filter.';
         budgetSaveError.hidden=false;
+        if(isMobileBudgetPanel()){
+          budgetRangeHint.hidden=true;
+          if(values.mode==='range'&&values.from&&values.to&&Number(values.from)>Number(values.to)){
+            budgetRangeError.hidden=true;
+          }
+        }
         let focusTarget=budgetSingleInput;
-        if(budgetValues.mode==='range'){
-          focusTarget=!budgetValues.from||Number(budgetValues.from)<0
+        if(values.mode==='range'){
+          focusTarget=!values.from||Number(values.from)<0
             ?budgetFromInput
-            :!budgetValues.to||Number(budgetValues.to)<0||Number(budgetValues.from)>Number(budgetValues.to)
+            :!values.to||Number(values.to)<0||Number(values.from)>Number(values.to)
               ?budgetToInput
               :budgetFromInput;
         }
         focusTarget.focus({preventScroll:true});
+        return;
+      }
+      if(isMobileEditing){
+        Object.assign(budgetValues,mobileBudgetDraft);
+        document.getElementById('budgetFilter').value=budgetValues.mode;
+        committedBudgetValues={...budgetValues};
+        document.getElementById('budgetFilter').dispatchEvent(new Event('change',{bubbles:true}));
+        mobileBudgetDraft=null;
+        budgetMenu.classList.remove('mobile-budget-editing');
+        updateBudgetFields();
+        budgetMenu.querySelector(`[data-budget-mode="${budgetValues.mode}"]`)?.focus({preventScroll:true});
         return;
       }
       committedBudgetValues={...budgetValues};
@@ -318,14 +581,24 @@
       budgetTrigger.focus();
     };
     budgetSaveButton.addEventListener('click',saveBudgetFilter);
+    budgetBackButton.addEventListener('click',()=>{
+      closeMobileBudgetEditor();
+      budgetMenu.querySelector(`[data-budget-mode="${budgetValues.mode}"]`)?.focus({preventScroll:true});
+    });
     [budgetSingleInput,budgetFromInput,budgetToInput].forEach(input=>input.addEventListener('keydown',event=>{
       if(event.key==='Enter'){
         event.preventDefault();
-        budgetSaveButton.click();
+        if(!isMobileBudgetPanel())budgetSaveButton.click();
       }
     }));
     budgetMenu.addEventListener('keydown',event=>{
       if(event.key==='Escape'){
+        if(isMobileBudgetPanel()&&budgetMenu.classList.contains('mobile-budget-editing')){
+          event.stopPropagation();
+          budgetBackButton.click();
+          return;
+        }
+        if(isMobileBudgetPanel())return;
         closeDropdown(budgetMenu,budgetTrigger);
         budgetTrigger.focus();
       }
@@ -340,6 +613,184 @@
         }
       });
     });
+    syncDropdownLabels();
+  }
+
+  function resetFilterOptions() {
+    resetMobileBudgetEditor();
+    ['typeFilter', 'budgetFilter', 'stackFilter'].forEach(id => {
+      document.getElementById(id).value = 'all';
+    });
+    Object.assign(budgetValues, { mode: 'all', lower: '', from: '', to: '' });
+    committedBudgetValues = { ...budgetValues };
+    ['budgetSingleValue', 'budgetFromValue', 'budgetToValue'].forEach(id => {
+      document.getElementById(id).value = '';
+    });
+    document.getElementById('budgetMenuValues').hidden = true;
+    document.getElementById('budgetSingleValueLabel').hidden = false;
+    document.getElementById('budgetRangeValues').hidden = true;
+    document.getElementById('budgetRangeError').hidden = true;
+    document.getElementById('budgetRangeHint').hidden = false;
+    const budgetMenu = document.getElementById('budgetFilterMenu');
+    budgetMenu.classList.remove('has-values', 'mobile-budget-editing');
+    appliedTypeFilter = 'all';
+    appliedStackFilter = 'all';
+    budgetMenu.querySelectorAll('.budget-range-error').forEach(error => {
+      error.hidden = true;
+    });
+    syncDropdownLabels();
+  }
+
+  function initializeMobileFilters() {
+    const toggle = document.getElementById('mobileFiltersToggle');
+    const panel = document.getElementById('mobileFiltersPanel');
+    const actions = document.querySelector('.mobile-market-actions');
+    const categories = document.querySelector('.market-categories');
+    const sortControl = document.querySelector('.sort-control');
+    const typeSelect = document.getElementById('typeFilter');
+    const stackSelect = document.getElementById('stackFilter');
+    const budgetSelect = document.getElementById('budgetFilter');
+    const resetButton = document.getElementById('mobileFilterReset');
+    const applyButton = document.getElementById('mobileFilterApply');
+    const budgetSaveButton = document.querySelector('.budget-save-filter');
+    const typeLabel = typeSelect?.closest('label');
+    const stackLabel = stackSelect?.closest('label');
+    const budgetLabel = budgetSelect?.closest('label');
+    const selectContainer = panel?.querySelector('.mobile-filter-selects');
+    if (!toggle || !panel || !actions || !categories || !sortControl || !typeSelect || !stackSelect || !budgetSelect || !resetButton || !applyButton || !budgetSaveButton || !typeLabel || !stackLabel || !budgetLabel || !selectContainer) return;
+
+    const categoriesPlaceholder = document.createComment('project categories placement');
+    const typePlaceholder = document.createComment('project type filter placement');
+    const stackPlaceholder = document.createComment('tech stack filter placement');
+    const budgetPlaceholder = document.createComment('budget filter placement');
+    const togglePlaceholder = document.createComment('project filter button placement');
+    const sortPlaceholder = document.createComment('project sort button placement');
+    const panelPlaceholder = document.createComment('project filter panel placement');
+    categories.before(categoriesPlaceholder);
+    typeLabel.before(typePlaceholder);
+    stackLabel.before(stackPlaceholder);
+    budgetLabel.before(budgetPlaceholder);
+    toggle.before(togglePlaceholder);
+    sortControl.before(sortPlaceholder);
+    panel.before(panelPlaceholder);
+    budgetLabel.classList.add('mobile-budget-filter');
+
+    [[typeLabel, typeSelect], [stackLabel, stackSelect]].forEach(([label, select]) => {
+      const options = document.createElement('div');
+      options.className = 'mobile-filter-options';
+      options.dataset.selectId = select.id;
+      options.setAttribute('role', 'group');
+      options.setAttribute('aria-label', `${label.querySelector('.filter-label').textContent} options`);
+      [...select.options].forEach(option => {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.dataset.value = option.value;
+        button.setAttribute('aria-pressed', String(option.value === select.value));
+        const label = document.createElement('span');
+        label.textContent = option.textContent;
+        button.append(label, createCheckmarkIcon());
+        button.addEventListener('click', () => {
+          select.value = option.value;
+          syncDropdownLabels();
+          select.dispatchEvent(new Event('change', { bubbles: true }));
+        });
+        options.append(button);
+      });
+      label.append(options);
+    });
+
+    const mobileFilterBreakpoint = window.matchMedia('(max-width: 860px)');
+
+    function setPanelOpen(isOpen) {
+      panel.hidden = !isOpen;
+      toggle.setAttribute('aria-expanded', String(isOpen));
+      actions.classList.toggle('mobile-filter-open', isOpen);
+    }
+
+    function discardMobileFilterDraft() {
+      typeSelect.value = appliedTypeFilter;
+      stackSelect.value = appliedStackFilter;
+      resetMobileBudgetEditor();
+      syncDropdownLabels();
+    }
+
+    function closePanelWithoutApplying() {
+      discardMobileFilterDraft();
+      setPanelOpen(false);
+    }
+
+    resetButton.addEventListener('click', () => {
+      resetFilterOptions();
+      visibleCount = 3;
+      render();
+      setPanelOpen(false);
+      toggle.focus();
+    });
+    applyButton.addEventListener('click', () => {
+      if (mobileBudgetDraft) {
+        budgetSaveButton.click();
+        if (mobileBudgetDraft) return;
+      }
+      appliedTypeFilter = typeSelect.value;
+      appliedStackFilter = stackSelect.value;
+      visibleCount = 3;
+      render();
+      setPanelOpen(false);
+      toggle.focus();
+    });
+
+    function syncMobileFilterLayout() {
+      if (mobileFilterBreakpoint.matches) {
+        actions.append(categories, sortControl, toggle, panel);
+        selectContainer.append(typeLabel, stackLabel, budgetLabel);
+        const budgetMenu=document.getElementById('budgetFilterMenu');
+        budgetMenu.setAttribute('role', 'group');
+        ['left','top','width','min-width'].forEach(property=>budgetMenu.style.removeProperty(property));
+      } else {
+        typeSelect.value = appliedTypeFilter;
+        stackSelect.value = appliedStackFilter;
+        categoriesPlaceholder.parentNode?.insertBefore(categories, categoriesPlaceholder.nextSibling);
+        typePlaceholder.parentNode?.insertBefore(typeLabel, typePlaceholder.nextSibling);
+        stackPlaceholder.parentNode?.insertBefore(stackLabel, stackPlaceholder.nextSibling);
+        budgetPlaceholder.parentNode?.insertBefore(budgetLabel, budgetPlaceholder.nextSibling);
+        document.getElementById('budgetFilterMenu').setAttribute('role', 'dialog');
+        sortPlaceholder.parentNode?.insertBefore(sortControl, sortPlaceholder.nextSibling);
+        togglePlaceholder.parentNode?.insertBefore(toggle, togglePlaceholder.nextSibling);
+        resetMobileBudgetEditor();
+        syncDropdownLabels();
+        setPanelOpen(false);
+        panelPlaceholder.parentNode?.insertBefore(panel, panelPlaceholder.nextSibling);
+      }
+    }
+
+    toggle.addEventListener('click', () => {
+      if (panel.hidden) {
+        setPanelOpen(true);
+        return;
+      }
+      closePanelWithoutApplying();
+    });
+    panel.addEventListener('keydown', event => {
+      if (event.key === 'Escape') {
+        closePanelWithoutApplying();
+        toggle.focus();
+      }
+    });
+    document.addEventListener('pointerdown', event => {
+      if (!panel.hidden && !panel.contains(event.target) && !toggle.contains(event.target)) {
+        closePanelWithoutApplying();
+      }
+    });
+    document.addEventListener('pointerdown', event => {
+      const target = event.target instanceof Element ? event.target : null;
+      const card = target?.closest('[data-card-detail]');
+      const openPopover = dropdownConfigs.some(({ menuId }) =>
+        document.getElementById(menuId)?.matches(':popover-open')
+      );
+      suppressedProjectCardClick = card && (!panel.hidden || openPopover) ? card : null;
+    }, true);
+    mobileFilterBreakpoint.addEventListener('change', syncMobileFilterLayout);
+    syncMobileFilterLayout();
     syncDropdownLabels();
   }
 
@@ -407,8 +858,26 @@
     return metrics;
   }
 
+  function parseBudgetAmount(value) {
+    const digits=String(value??'').replace(/\D/g,'');
+    if(!digits)return null;
+    const amount=Number(digits);
+    return Number.isFinite(amount)?amount:null;
+  }
+
+  function projectBudgetRange(project) {
+    const from=parseBudgetAmount(project[isRequestsPage?'budgetFrom':'priceMin']);
+    const to=parseBudgetAmount(project[isRequestsPage?'budgetTo':'priceMax']);
+    if(from!==null&&to!==null&&from<=to)return {min:from,max:to};
+
+    const prices=String(project.price||project.budgetLabel||project.budget||'').match(/\d[\d.,]*/g)||[];
+    const amounts=prices.map(parseBudgetAmount).filter(amount=>amount!==null);
+    if(!amounts.length)return null;
+    return {min:amounts[0],max:amounts.length>1?amounts[amounts.length-1]:amounts[0]};
+  }
+
   function priceValue(project) {
-    return isRequestsPage ? project.budget : Number(String(project.price).replace(/\D/g, '')) || 0;
+    return projectBudgetRange(project)?.min??0;
   }
 
   function categoryMatch(item) {
@@ -419,10 +888,10 @@
 
   function getItems() {
     const source = isRequestsPage ? requests : projects;
-    const type = document.getElementById('typeFilter').value;
-    const stack = document.getElementById('stackFilter').value.toLowerCase();
+    const type = appliedTypeFilter;
+    const stack = appliedStackFilter.toLowerCase();
     const filtered = source.filter(item => {
-      const price = priceValue(item);
+      const budgetRange=projectBudgetRange(item);
       const lower = Number(committedBudgetValues.mode === 'range' ? committedBudgetValues.from : committedBudgetValues.lower);
       const upper = Number(committedBudgetValues.to);
       const hasLower = committedBudgetValues.mode === 'range' ? committedBudgetValues.from !== '' : committedBudgetValues.lower !== '';
@@ -430,12 +899,14 @@
       const invalidRange = committedBudgetValues.mode === 'range' && hasLower && hasUpper && lower > upper;
       const budgetMatch = !invalidRange && (
         committedBudgetValues.mode === 'all'
-        || committedBudgetValues.mode === 'lower-than' && hasLower && price < lower
-        || committedBudgetValues.mode === 'higher-than' && hasLower && price > lower
-        || committedBudgetValues.mode === 'range' && hasLower && hasUpper && price >= lower && price <= upper
+        || committedBudgetValues.mode === 'lower-than' && hasLower && budgetRange && budgetRange.min < lower
+        || committedBudgetValues.mode === 'higher-than' && hasLower && budgetRange && budgetRange.max > lower
+        || committedBudgetValues.mode === 'range' && hasLower && hasUpper && budgetRange && budgetRange.max >= lower && budgetRange.min <= upper
       );
       const stacks = isRequestsPage ? item.stack : String(item.stack).split(/\s+(?:and|,)\s+/);
-      const stackMatch = stack === 'all' || stacks.some(value => value.toLowerCase().includes(stack));
+      const stackMatch = stack === 'all' || (isRequestsPage
+        ?requestMatchesSpecialization(item,appliedStackFilter)
+        :stacks.some(value => value.toLowerCase().includes(stack)));
       const text = isRequestsPage
         ? [item.title, item.description, item.category, item.type, item.client, item.location, ...item.stack, 'developer'].join(' ')
         : [item.title, item.description, item.category, item.type, item.developer, item.location, item.stack, 'developer'].join(' ');
@@ -628,31 +1099,36 @@
   }
 
   initializeDropdowns();
-  document.getElementById('marketSearchForm').addEventListener('submit', event => {
-    event.preventDefault();
-    query = searchInput.value.trim().toLowerCase();
-    searchInput.value = query ? searchInput.value : '';
-    visibleCount = 3;
-    render();
-  });
-  searchInput.addEventListener('input', () => {
-    query = searchInput.value.trim().toLowerCase();
-    visibleCount = 3;
-    render();
-  });
-  topSearchInput.addEventListener('input', () => {
-    searchInput.value = topSearchInput.value;
+  initializeMobileFilters();
+  if (searchForm && searchInput) {
+    searchForm.addEventListener('submit', event => {
+      event.preventDefault();
+      query = searchInput.value.trim().toLowerCase();
+      searchInput.value = query ? searchInput.value : '';
+      visibleCount = 3;
+      render();
+    });
+  }
+  if (searchInput) {
+    searchInput.addEventListener('input', () => {
+      query = searchInput.value.trim().toLowerCase();
+      visibleCount = 3;
+      render();
+    });
+  }
+  if (topSearchInput) topSearchInput.addEventListener('input', () => {
+    if (searchInput) searchInput.value = topSearchInput.value;
     query = topSearchInput.value.trim().toLowerCase();
     visibleCount = 3;
     render();
   });
   document.querySelectorAll('[data-query]').forEach(button => button.addEventListener('click', () => {
-    searchInput.value = button.dataset.query;
-    topSearchInput.value = button.dataset.query;
+    if (searchInput) searchInput.value = button.dataset.query;
+    if (topSearchInput) topSearchInput.value = button.dataset.query;
     query = button.dataset.query.toLowerCase();
     visibleCount = 3;
     render();
-    searchInput.focus();
+    (searchInput || topSearchInput)?.focus();
   }));
   categoryButtons.forEach(button => button.addEventListener('click', () => {
     activeCategory = button.dataset.category;
@@ -665,6 +1141,9 @@
     render();
   }));
   ['typeFilter', 'budgetFilter', 'stackFilter', 'sortFilter'].forEach(id => document.getElementById(id).addEventListener('change', () => {
+    if(isMobileFilterPanelOpen()&&(id==='typeFilter'||id==='budgetFilter'||id==='stackFilter'))return;
+    if(id==='typeFilter')appliedTypeFilter=document.getElementById(id).value;
+    if(id==='stackFilter')appliedStackFilter=document.getElementById(id).value;
     visibleCount = 3;
     render();
   }));
@@ -680,21 +1159,10 @@
   document.querySelector('[data-reset]').addEventListener('click', () => {
     query = '';
     activeCategory = 'all';
-    searchInput.value = '';
-    topSearchInput.value = '';
-    ['typeFilter', 'budgetFilter', 'stackFilter'].forEach(id => { document.getElementById(id).value = 'all'; });
+    if (searchInput) searchInput.value = '';
+    if (topSearchInput) topSearchInput.value = '';
+    resetFilterOptions();
     document.getElementById('sortFilter').value = 'popular';
-    budgetValues.mode = 'all';
-    budgetValues.lower = '';
-    budgetValues.from = '';
-    budgetValues.to = '';
-    committedBudgetValues = { ...budgetValues };
-    ['budgetSingleValue', 'budgetFromValue', 'budgetToValue'].forEach(id => { document.getElementById(id).value = ''; });
-    document.getElementById('budgetMenuValues').hidden = true;
-    document.getElementById('budgetSingleValueLabel').hidden = false;
-    document.getElementById('budgetRangeValues').hidden = true;
-    document.getElementById('budgetRangeError').hidden = true;
-    document.getElementById('budgetFilterMenu').classList.remove('has-values');
     syncDropdownLabels();
     categoryButtons.forEach(button => {
       const active = button.dataset.category === 'all';
@@ -705,6 +1173,15 @@
     render();
   });
   grid.addEventListener('click', async event => {
+    const clickedCard = event.target instanceof Element
+      ? event.target.closest('[data-card-detail]')
+      : null;
+    if (clickedCard && clickedCard === suppressedProjectCardClick) {
+      suppressedProjectCardClick = null;
+      event.preventDefault();
+      return;
+    }
+    suppressedProjectCardClick = null;
     const favoriteButton = event.target.closest('[data-favorite]');
     if (favoriteButton) {
       const authenticated = await favoriteStateReady;
@@ -787,7 +1264,7 @@
   document.addEventListener('keydown', event => {
     if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') {
       event.preventDefault();
-      searchInput.focus();
+      (searchInput || topSearchInput)?.focus();
     }
   });
 
@@ -869,6 +1346,7 @@
       });
       if (isRequestsPage) requests = records;
       else projects = records;
+      if (isRequestsPage) updateRequiredSpecializationOptions(records);
       if (!isRequestsPage && projectTabCount) {
         projectTabCount.textContent = projectCount === null ? '0' : String(projectCount);
       }
@@ -883,11 +1361,29 @@
       catalogLoaded = true;
       projects = [];
       requests = [];
+      if (isRequestsPage) updateRequiredSpecializationOptions([]);
       render();
     } finally {
       grid.removeAttribute('aria-busy');
     }
   }
+  async function refreshRequiredSpecializationOptions(){
+    if(!isRequestsPage||!catalogLoaded)return;
+    try{
+      const {data,error}=await window.devMatchBackend.client.from('projects')
+        .select('data')
+        .eq('project_kind','request')
+        .eq('status','open');
+      if(error)throw error;
+      const records=(data||[]).map(row=>row.data&&typeof row.data==='object'?row.data:{});
+      if(updateRequiredSpecializationOptions(records))render();
+    }catch(error){
+      console.error('Unable to refresh required specialization options from Supabase.',error);
+    }
+  }
+  document.addEventListener('visibilitychange',()=>{
+    if(document.visibilityState==='visible')void refreshRequiredSpecializationOptions();
+  });
   loadDeveloperTabCount();
   loadClientDirectoryTabCount();
   loadCatalog();

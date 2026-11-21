@@ -1,0 +1,273 @@
+{
+  "countries": {
+    "Malaysia": [
+      {
+        "code": "MY-FT",
+        "name": "Federal Territories",
+        "cities": [
+          { "code": "MY-KUL", "name": "Kuala Lumpur" },
+          { "code": "MY-LBN", "name": "Labuan" },
+          { "code": "MY-PJY", "name": "Putrajaya" }
+        ]
+      },
+      {
+        "code": "MY-JHR",
+        "name": "Johor",
+        "cities": [
+          { "code": "MY-JHR-BP", "name": "Batu Pahat" },
+          { "code": "MY-JHR-JB", "name": "Johor Bahru" },
+          { "code": "MY-JHR-KL", "name": "Kluang" },
+          { "code": "MY-JHR-KT", "name": "Kota Tinggi" },
+          { "code": "MY-JHR-KU", "name": "Kulai" },
+          { "code": "MY-JHR-ME", "name": "Mersing" },
+          { "code": "MY-JHR-MU", "name": "Muar" },
+          { "code": "MY-JHR-PG", "name": "Pasir Gudang" },
+          { "code": "MY-JHR-PT", "name": "Pontian" },
+          { "code": "MY-JHR-SG", "name": "Segamat" },
+          { "code": "MY-JHR-TG", "name": "Tangkak" }
+        ]
+      },
+      {
+        "code": "MY-KDH",
+        "name": "Kedah",
+        "cities": [
+          { "code": "MY-KDH-AS", "name": "Alor Setar" },
+          { "code": "MY-KDH-BL", "name": "Baling" },
+          { "code": "MY-KDH-JT", "name": "Jitra" },
+          { "code": "MY-KDH-KS", "name": "Kuala Kedah" },
+          { "code": "MY-KDH-KL", "name": "Kulim" },
+          { "code": "MY-KDH-KH", "name": "Kuah" },
+          { "code": "MY-KDH-SP", "name": "Sungai Petani" }
+        ]
+      },
+      {
+        "code": "MY-KTN",
+        "name": "Kelantan",
+        "cities": [
+          { "code": "MY-KTN-GM", "name": "Gua Musang" },
+          { "code": "MY-KTN-KB", "name": "Kota Bharu" },
+          { "code": "MY-KTN-KK", "name": "Kuala Krai" },
+          { "code": "MY-KTN-PM", "name": "Pasir Mas" },
+          { "code": "MY-KTN-TM", "name": "Tanah Merah" }
+        ]
+      },
+      {
+        "code": "MY-MLK",
+        "name": "Melaka",
+        "cities": [
+          { "code": "MY-MLK-AG", "name": "Alor Gajah" },
+          { "code": "MY-MLK-JS", "name": "Jasin" },
+          { "code": "MY-MLK-MC", "name": "Melaka City" }
+        ]
+      },
+      {
+        "code": "MY-NSN",
+        "name": "Negeri Sembilan",
+        "cities": [
+          { "code": "MY-NSN-BH", "name": "Bahau" },
+          { "code": "MY-NSN-JL", "name": "Jelebu" },
+          { "code": "MY-NSN-NL", "name": "Nilai" },
+          { "code": "MY-NSN-PD", "name": "Port Dickson" },
+          { "code": "MY-NSN-SR", "name": "Seremban" },
+          { "code": "MY-NSN-TM", "name": "Tampin" }
+        ]
+      },
+      {
+        "code": "MY-PHG",
+        "name": "Pahang",
+        "cities": [
+          { "code": "MY-PHG-BT", "name": "Bentong" },
+          { "code": "MY-PHG-CH", "name": "Cameron Highlands" },
+          { "code": "MY-PHG-JT", "name": "Jerantut" },
+          { "code": "MY-PHG-KT", "name": "Kuantan" },
+          { "code": "MY-PHG-PK", "name": "Pekan" },
+          { "code": "MY-PHG-RB", "name": "Raub" },
+          { "code": "MY-PHG-TM", "name": "Temerloh" }
+        ]
+      },
+      {
+        "code": "MY-PNG",
+        "name": "Penang",
+        "cities": [
+          { "code": "MY-PNG-BL", "name": "Bayan Lepas" },
+          { "code": "MY-PNG-BM", "name": "Bukit Mertajam" },
+          { "code": "MY-PNG-BW", "name": "Butterworth" },
+          { "code": "MY-PNG-GT", "name": "George Town" },
+          { "code": "MY-PNG-NT", "name": "Nibong Tebal" }
+        ]
+      },
+      {
+        "code": "MY-PRK",
+        "name": "Perak",
+        "cities": [
+          { "code": "MY-PRK-BG", "name": "Batu Gajah" },
+          { "code": "MY-PRK-KP", "name": "Kampar" },
+          { "code": "MY-PRK-KK", "name": "Kuala Kangsar" },
+          { "code": "MY-PRK-IP", "name": "Ipoh" },
+          { "code": "MY-PRK-LM", "name": "Lumut" },
+          { "code": "MY-PRK-SI", "name": "Sitiawan" },
+          { "code": "MY-PRK-TP", "name": "Taiping" },
+          { "code": "MY-PRK-TI", "name": "Teluk Intan" }
+        ]
+      },
+      {
+        "code": "MY-PLS",
+        "name": "Perlis",
+        "cities": [
+          { "code": "MY-PLS-AR", "name": "Arau" },
+          { "code": "MY-PLS-KG", "name": "Kangar" },
+          { "code": "MY-PLS-PB", "name": "Padang Besar" }
+        ]
+      },
+      {
+        "code": "MY-SBH",
+        "name": "Sabah",
+        "cities": [
+          { "code": "MY-SBH-BF", "name": "Beaufort" },
+          { "code": "MY-SBH-KN", "name": "Keningau" },
+          { "code": "MY-SBH-KK", "name": "Kota Kinabalu" },
+          { "code": "MY-SBH-KM", "name": "Kota Marudu" },
+          { "code": "MY-SBH-KD", "name": "Kudat" },
+          { "code": "MY-SBH-LD", "name": "Lahad Datu" },
+          { "code": "MY-SBH-PN", "name": "Papar" },
+          { "code": "MY-SBH-PG", "name": "Penampang" },
+          { "code": "MY-SBH-RN", "name": "Ranau" },
+          { "code": "MY-SBH-SD", "name": "Sandakan" },
+          { "code": "MY-SBH-SM", "name": "Semporna" },
+          { "code": "MY-SBH-TW", "name": "Tawau" },
+          { "code": "MY-SBH-TN", "name": "Tenom" },
+          { "code": "MY-SBH-TR", "name": "Tuaran" }
+        ]
+      },
+      {
+        "code": "MY-SWK",
+        "name": "Sarawak",
+        "cities": [
+          { "code": "MY-SWK-BT", "name": "Bintulu" },
+          { "code": "MY-SWK-KP", "name": "Kapit" },
+          { "code": "MY-SWK-KC", "name": "Kuching" },
+          { "code": "MY-SWK-LB", "name": "Limbang" },
+          { "code": "MY-SWK-MI", "name": "Miri" },
+          { "code": "MY-SWK-SA", "name": "Samarahan" },
+          { "code": "MY-SWK-SR", "name": "Sarikei" },
+          { "code": "MY-SWK-SB", "name": "Sibu" },
+          { "code": "MY-SWK-SI", "name": "Sri Aman" }
+        ]
+      },
+      {
+        "code": "MY-SGR",
+        "name": "Selangor",
+        "cities": [
+          { "code": "MY-SGR-AB", "name": "Ampang" },
+          { "code": "MY-SGR-BB", "name": "Bandar Baru Bangi" },
+          { "code": "MY-SGR-CY", "name": "Cyberjaya" },
+          { "code": "MY-SGR-KJ", "name": "Kajang" },
+          { "code": "MY-SGR-KL", "name": "Klang" },
+          { "code": "MY-SGR-PJ", "name": "Petaling Jaya" },
+          { "code": "MY-SGR-RW", "name": "Rawang" },
+          { "code": "MY-SGR-SA", "name": "Shah Alam" },
+          { "code": "MY-SGR-SJ", "name": "Subang Jaya" }
+        ]
+      },
+      {
+        "code": "MY-TRG",
+        "name": "Terengganu",
+        "cities": [
+          { "code": "MY-TRG-BS", "name": "Besut" },
+          { "code": "MY-TRG-DG", "name": "Dungun" },
+          { "code": "MY-TRG-KM", "name": "Kemaman" },
+          { "code": "MY-TRG-KN", "name": "Kuala Nerus" },
+          { "code": "MY-TRG-KT", "name": "Kuala Terengganu" },
+          { "code": "MY-TRG-MR", "name": "Marang" },
+          { "code": "MY-TRG-ST", "name": "Setiu" }
+        ]
+      }
+    ],
+    "Singapore": [
+      {
+        "code": "SG-CENTRAL",
+        "name": "Central Region",
+        "cities": [
+          { "code": "SG-BISHAN", "name": "Bishan" },
+          { "code": "SG-BUKIT-MERAH", "name": "Bukit Merah" },
+          { "code": "SG-BUKIT-TIMAH", "name": "Bukit Timah" },
+          { "code": "SG-DOWNTOWN-CORE", "name": "Downtown Core" },
+          { "code": "SG-GEYLANG", "name": "Geylang" },
+          { "code": "SG-KALLANG", "name": "Kallang" },
+          { "code": "SG-MARINA-EAST", "name": "Marina East" },
+          { "code": "SG-MARINA-SOUTH", "name": "Marina South" },
+          { "code": "SG-MARINE-PARADE", "name": "Marine Parade" },
+          { "code": "SG-MUSEUM", "name": "Museum" },
+          { "code": "SG-NEWTON", "name": "Newton" },
+          { "code": "SG-NOVENA", "name": "Novena" },
+          { "code": "SG-ORCHARD", "name": "Orchard" },
+          { "code": "SG-OUTRAM", "name": "Outram" },
+          { "code": "SG-QUEENSTOWN", "name": "Queenstown" },
+          { "code": "SG-RIVER-VALLEY", "name": "River Valley" },
+          { "code": "SG-ROCHOR", "name": "Rochor" },
+          { "code": "SG-SINGAPORE-RIVER", "name": "Singapore River" },
+          { "code": "SG-SOUTHERN-ISLANDS", "name": "Southern Islands" },
+          { "code": "SG-STRAITS-VIEW", "name": "Straits View" },
+          { "code": "SG-TANGLIN", "name": "Tanglin" },
+          { "code": "SG-TOA-PAYOH", "name": "Toa Payoh" }
+        ]
+      },
+      {
+        "code": "SG-EAST",
+        "name": "East Region",
+        "cities": [
+          { "code": "SG-BEDOK", "name": "Bedok" },
+          { "code": "SG-CHANGI", "name": "Changi" },
+          { "code": "SG-PASIR-RIS", "name": "Pasir Ris" },
+          { "code": "SG-PAYA-LEBAR", "name": "Paya Lebar" },
+          { "code": "SG-TAMPINES", "name": "Tampines" }
+        ]
+      },
+      {
+        "code": "SG-NORTH",
+        "name": "North Region",
+        "cities": [
+          { "code": "SG-CENTRAL-WATER-CATCHMENT", "name": "Central Water Catchment" },
+          { "code": "SG-LIM-CHU-KANG", "name": "Lim Chu Kang" },
+          { "code": "SG-MANDAI", "name": "Mandai" },
+          { "code": "SG-SEMBAWANG", "name": "Sembawang" },
+          { "code": "SG-SIMPANG", "name": "Simpang" },
+          { "code": "SG-SUNGEI-KADUT", "name": "Sungei Kadut" },
+          { "code": "SG-WOODLANDS", "name": "Woodlands" },
+          { "code": "SG-YISHUN", "name": "Yishun" }
+        ]
+      },
+      {
+        "code": "SG-NORTHEAST",
+        "name": "North-East Region",
+        "cities": [
+          { "code": "SG-ANG-MO-KIO", "name": "Ang Mo Kio" },
+          { "code": "SG-HOUGANG", "name": "Hougang" },
+          { "code": "SG-NORTH-EASTERN-ISLANDS", "name": "North-Eastern Islands" },
+          { "code": "SG-PUNGGOL", "name": "Punggol" },
+          { "code": "SG-SELETAR", "name": "Seletar" },
+          { "code": "SG-SENGKANG", "name": "Sengkang" },
+          { "code": "SG-SERANGOON", "name": "Serangoon" }
+        ]
+      },
+      {
+        "code": "SG-WEST",
+        "name": "West Region",
+        "cities": [
+          { "code": "SG-BOON-LAY", "name": "Boon Lay" },
+          { "code": "SG-BUKIT-BATOK", "name": "Bukit Batok" },
+          { "code": "SG-BUKIT-PANJANG", "name": "Bukit Panjang" },
+          { "code": "SG-CHOA-CHU-KANG", "name": "Choa Chu Kang" },
+          { "code": "SG-CLEMENTI", "name": "Clementi" },
+          { "code": "SG-JURONG-EAST", "name": "Jurong East" },
+          { "code": "SG-JURONG-WEST", "name": "Jurong West" },
+          { "code": "SG-PIONEER", "name": "Pioneer" },
+          { "code": "SG-TENGAH", "name": "Tengah" },
+          { "code": "SG-TUAS", "name": "Tuas" },
+          { "code": "SG-WESTERN-ISLANDS", "name": "Western Islands" },
+          { "code": "SG-WESTERN-WATER-CATCHMENT", "name": "Western Water Catchment" }
+        ]
+      }
+    ]
+  }
+}

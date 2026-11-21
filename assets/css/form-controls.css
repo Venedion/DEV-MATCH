@@ -1,0 +1,32 @@
+input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="button"]):not([type="submit"]):not([type="reset"]):not([type="image"]):not([type="hidden"]):not([type="color"]):focus,
+textarea:focus {
+  border-color: #171719 !important;
+  outline: none !important;
+  outline-offset: 0 !important;
+  box-shadow: none !important;
+}
+
+:is(
+  .in,
+  .client-search,
+  .hero-search,
+  .discover-search,
+  .search,
+  .top-search,
+  .table-search,
+  .market-search,
+  .chat-search-box,
+  .chat-composer-form,
+  .request-search,
+  .request-currency,
+  .devs-search-box,
+  .clients-search-box,
+  .fav-search-box,
+  .currency-input,
+  .budget-currency-input,
+  .settings-skill-editor
+):has(input:focus, textarea:focus) {
+  border-color: #171719 !important;
+  outline: none !important;
+  box-shadow: none !important;
+}

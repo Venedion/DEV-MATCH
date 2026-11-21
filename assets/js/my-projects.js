@@ -1,4 +1,5 @@
 (function(){
+const moneyInput=window.devMatchMoneyInput;
 const profile=JSON.parse(localStorage.getItem('devmatch-profile-dev')||'{}');
 const displayName=typeof profile.displayName==='string'&&profile.displayName.trim()
   ? profile.displayName.trim()
@@ -242,7 +243,7 @@ function saveUnsavedProjectDraftFields(){
   if(editingId)return;
   const fields=[...form.elements]
     .filter(field=>field.name&&field.type!=='file'&&field.type!=='submit'&&field.type!=='button')
-    .map(field=>({name:field.name,type:field.type,value:field.value,checked:field.checked}));
+    .map(field=>({name:field.name,type:field.type,value:field.hasAttribute('data-money-input')?moneyInput.digits(field.value):field.value,checked:field.checked}));
   try{
     localStorage.setItem(unsavedProjectDraftKey,JSON.stringify({fields}));
   }catch(error){
@@ -296,7 +297,9 @@ async function restoreUnsavedProjectDraft(){
       const field=matchingFields.find(item=>item.value===savedField.value);
       if(field)field.checked=savedField.checked;
     }else if(matchingFields[0]){
-      matchingFields[0].value=savedField.value;
+      matchingFields[0].value=matchingFields[0].hasAttribute('data-money-input')
+        ?moneyInput.format(savedField.value)
+        :savedField.value;
     }
   });
   try{
@@ -342,9 +345,9 @@ function showEditor(project=null){
     form.elements.typeOther.value=project.typeOther||'';
     form.elements.categoryOther.value=project.categoryOther||'';
     [...form.elements.priceType].find(option=>option.value===project.priceType)?.click();
-    form.elements.price.value=digitsOnly(project.priceValue||project.price||'');
-    form.elements.priceMin.value=digitsOnly(project.priceMin||'');
-    form.elements.priceMax.value=digitsOnly(project.priceMax||'');
+    form.elements.price.value=moneyInput.format(project.priceValue||project.price||'');
+    form.elements.priceMin.value=moneyInput.format(project.priceMin||'');
+    form.elements.priceMax.value=moneyInput.format(project.priceMax||'');
     form.querySelectorAll('[name="services"]').forEach(input=>{input.checked=(project.services||[]).includes(input.value)});
   }
   projectsPage.hidden=true;
@@ -794,9 +797,9 @@ async function saveProject(status){
     categoryOther:form.elements.categoryOther.value.trim(),
     priceType,
     price:currentPrice()||'Contact for price',
-    priceValue:priceType==='Custom quote'?'':form.elements.price.value.trim(),
-    priceMin:form.elements.priceMin.value.trim(),
-    priceMax:form.elements.priceMax.value.trim(),
+    priceValue:priceType==='Custom quote'?'':moneyInput.digits(form.elements.price.value),
+    priceMin:moneyInput.digits(form.elements.priceMin.value),
+    priceMax:moneyInput.digits(form.elements.priceMax.value),
     services:[...form.querySelectorAll('[name="services"]:checked')].map(input=>input.value),
     mediaCount:selectedMedia.length||(existingCoverImage?1:0),
     media:Array.isArray(projects.find(item=>item.id===editingId)?.media)
@@ -902,13 +905,6 @@ document.querySelector('[data-publish-preview]').addEventListener('click',()=>{
   saveProject('published');
 });
 form.addEventListener('input',event=>{
-  if(['price','priceMin','priceMax'].includes(event.target.name)){
-    const input=event.target;
-    const caret=input.selectionStart;
-    const digitsBeforeCaret=digitsOnly(input.value.slice(0,caret)).length;
-    input.value=digitsOnly(input.value);
-    input.setSelectionRange(digitsBeforeCaret,digitsBeforeCaret);
-  }
   updateEditor();
   if(publishValidationShown)validatePublishForm();
   saveUnsavedProjectDraftFields();

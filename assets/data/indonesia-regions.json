@@ -1,0 +1,2327 @@
+{
+  "source": "wilayah.id",
+  "provinces": [
+    {
+      "code": "11",
+      "name": "Aceh",
+      "cities": [
+        {
+          "code": "11.05",
+          "name": "Aceh Barat"
+        },
+        {
+          "code": "11.12",
+          "name": "Aceh Barat Daya"
+        },
+        {
+          "code": "11.06",
+          "name": "Aceh Besar"
+        },
+        {
+          "code": "11.14",
+          "name": "Aceh Jaya"
+        },
+        {
+          "code": "11.01",
+          "name": "Aceh Selatan"
+        },
+        {
+          "code": "11.10",
+          "name": "Aceh Singkil"
+        },
+        {
+          "code": "11.16",
+          "name": "Aceh Tamiang"
+        },
+        {
+          "code": "11.04",
+          "name": "Aceh Tengah"
+        },
+        {
+          "code": "11.02",
+          "name": "Aceh Tenggara"
+        },
+        {
+          "code": "11.03",
+          "name": "Aceh Timur"
+        },
+        {
+          "code": "11.08",
+          "name": "Aceh Utara"
+        },
+        {
+          "code": "11.71",
+          "name": "Banda Aceh"
+        },
+        {
+          "code": "11.17",
+          "name": "Bener Meriah"
+        },
+        {
+          "code": "11.11",
+          "name": "Bireuen"
+        },
+        {
+          "code": "11.13",
+          "name": "Gayo Lues"
+        },
+        {
+          "code": "11.74",
+          "name": "Langsa"
+        },
+        {
+          "code": "11.73",
+          "name": "Lhokseumawe"
+        },
+        {
+          "code": "11.15",
+          "name": "Nagan Raya"
+        },
+        {
+          "code": "11.07",
+          "name": "Pidie"
+        },
+        {
+          "code": "11.18",
+          "name": "Pidie Jaya"
+        },
+        {
+          "code": "11.72",
+          "name": "Sabang"
+        },
+        {
+          "code": "11.09",
+          "name": "Simeulue"
+        },
+        {
+          "code": "11.75",
+          "name": "Subulussalam"
+        }
+      ],
+      "localName": "Aceh"
+    },
+    {
+      "code": "51",
+      "name": "Bali",
+      "cities": [
+        {
+          "code": "51.03",
+          "name": "Badung"
+        },
+        {
+          "code": "51.06",
+          "name": "Bangli"
+        },
+        {
+          "code": "51.08",
+          "name": "Buleleng"
+        },
+        {
+          "code": "51.71",
+          "name": "Denpasar"
+        },
+        {
+          "code": "51.04",
+          "name": "Gianyar"
+        },
+        {
+          "code": "51.01",
+          "name": "Jembrana"
+        },
+        {
+          "code": "51.07",
+          "name": "Karangasem"
+        },
+        {
+          "code": "51.05",
+          "name": "Klungkung"
+        },
+        {
+          "code": "51.02",
+          "name": "Tabanan"
+        }
+      ],
+      "localName": "Bali"
+    },
+    {
+      "code": "19",
+      "name": "Bangka Belitung Islands",
+      "cities": [
+        {
+          "code": "19.01",
+          "name": "Bangka"
+        },
+        {
+          "code": "19.05",
+          "name": "Bangka Barat"
+        },
+        {
+          "code": "19.03",
+          "name": "Bangka Selatan"
+        },
+        {
+          "code": "19.04",
+          "name": "Bangka Tengah"
+        },
+        {
+          "code": "19.02",
+          "name": "Belitung"
+        },
+        {
+          "code": "19.06",
+          "name": "Belitung Timur"
+        },
+        {
+          "code": "19.71",
+          "name": "Pangkal Pinang"
+        }
+      ],
+      "localName": "Kepulauan Bangka Belitung"
+    },
+    {
+      "code": "36",
+      "name": "Banten",
+      "cities": [
+        {
+          "code": "36.72",
+          "name": "Cilegon"
+        },
+        {
+          "code": "36.02",
+          "name": "Lebak"
+        },
+        {
+          "code": "36.01",
+          "name": "Pandeglang"
+        },
+        {
+          "code": "36.04",
+          "name": "Serang"
+        },
+        {
+          "code": "36.73",
+          "name": "Serang"
+        },
+        {
+          "code": "36.03",
+          "name": "Tangerang"
+        },
+        {
+          "code": "36.71",
+          "name": "Tangerang"
+        },
+        {
+          "code": "36.74",
+          "name": "Tangerang Selatan"
+        }
+      ],
+      "localName": "Banten"
+    },
+    {
+      "code": "17",
+      "name": "Bengkulu",
+      "cities": [
+        {
+          "code": "17.71",
+          "name": "Bengkulu"
+        },
+        {
+          "code": "17.01",
+          "name": "Bengkulu Selatan"
+        },
+        {
+          "code": "17.09",
+          "name": "Bengkulu Tengah"
+        },
+        {
+          "code": "17.03",
+          "name": "Bengkulu Utara"
+        },
+        {
+          "code": "17.04",
+          "name": "Kaur"
+        },
+        {
+          "code": "17.08",
+          "name": "Kepahiang"
+        },
+        {
+          "code": "17.07",
+          "name": "Lebong"
+        },
+        {
+          "code": "17.06",
+          "name": "Mukomuko"
+        },
+        {
+          "code": "17.02",
+          "name": "Rejang Lebong"
+        },
+        {
+          "code": "17.05",
+          "name": "Seluma"
+        }
+      ],
+      "localName": "Bengkulu"
+    },
+    {
+      "code": "33",
+      "name": "Central Java",
+      "cities": [
+        {
+          "code": "33.04",
+          "name": "Banjarnegara"
+        },
+        {
+          "code": "33.02",
+          "name": "Banyumas"
+        },
+        {
+          "code": "33.25",
+          "name": "Batang"
+        },
+        {
+          "code": "33.16",
+          "name": "Blora"
+        },
+        {
+          "code": "33.09",
+          "name": "Boyolali"
+        },
+        {
+          "code": "33.29",
+          "name": "Brebes"
+        },
+        {
+          "code": "33.01",
+          "name": "Cilacap"
+        },
+        {
+          "code": "33.21",
+          "name": "Demak"
+        },
+        {
+          "code": "33.15",
+          "name": "Grobogan"
+        },
+        {
+          "code": "33.20",
+          "name": "Jepara"
+        },
+        {
+          "code": "33.13",
+          "name": "Karanganyar"
+        },
+        {
+          "code": "33.05",
+          "name": "Kebumen"
+        },
+        {
+          "code": "33.24",
+          "name": "Kendal"
+        },
+        {
+          "code": "33.10",
+          "name": "Klaten"
+        },
+        {
+          "code": "33.19",
+          "name": "Kudus"
+        },
+        {
+          "code": "33.08",
+          "name": "Magelang"
+        },
+        {
+          "code": "33.71",
+          "name": "Magelang"
+        },
+        {
+          "code": "33.18",
+          "name": "Pati"
+        },
+        {
+          "code": "33.26",
+          "name": "Pekalongan"
+        },
+        {
+          "code": "33.75",
+          "name": "Pekalongan"
+        },
+        {
+          "code": "33.27",
+          "name": "Pemalang"
+        },
+        {
+          "code": "33.03",
+          "name": "Purbalingga"
+        },
+        {
+          "code": "33.06",
+          "name": "Purworejo"
+        },
+        {
+          "code": "33.17",
+          "name": "Rembang"
+        },
+        {
+          "code": "33.73",
+          "name": "Salatiga"
+        },
+        {
+          "code": "33.22",
+          "name": "Semarang"
+        },
+        {
+          "code": "33.74",
+          "name": "Semarang"
+        },
+        {
+          "code": "33.14",
+          "name": "Sragen"
+        },
+        {
+          "code": "33.11",
+          "name": "Sukoharjo"
+        },
+        {
+          "code": "33.72",
+          "name": "Surakarta"
+        },
+        {
+          "code": "33.28",
+          "name": "Tegal"
+        },
+        {
+          "code": "33.76",
+          "name": "Tegal"
+        },
+        {
+          "code": "33.23",
+          "name": "Temanggung"
+        },
+        {
+          "code": "33.12",
+          "name": "Wonogiri"
+        },
+        {
+          "code": "33.07",
+          "name": "Wonosobo"
+        }
+      ],
+      "localName": "Jawa Tengah"
+    },
+    {
+      "code": "62",
+      "name": "Central Kalimantan",
+      "cities": [
+        {
+          "code": "62.04",
+          "name": "Barito Selatan"
+        },
+        {
+          "code": "62.13",
+          "name": "Barito Timur"
+        },
+        {
+          "code": "62.05",
+          "name": "Barito Utara"
+        },
+        {
+          "code": "62.10",
+          "name": "Gunung Mas"
+        },
+        {
+          "code": "62.03",
+          "name": "Kapuas"
+        },
+        {
+          "code": "62.06",
+          "name": "Katingan"
+        },
+        {
+          "code": "62.01",
+          "name": "Kotawaringin Barat"
+        },
+        {
+          "code": "62.02",
+          "name": "Kotawaringin Timur"
+        },
+        {
+          "code": "62.09",
+          "name": "Lamandau"
+        },
+        {
+          "code": "62.12",
+          "name": "Murung Raya"
+        },
+        {
+          "code": "62.71",
+          "name": "Palangkaraya"
+        },
+        {
+          "code": "62.11",
+          "name": "Pulang Pisau"
+        },
+        {
+          "code": "62.07",
+          "name": "Seruyan"
+        },
+        {
+          "code": "62.08",
+          "name": "Sukamara"
+        }
+      ],
+      "localName": "Kalimantan Tengah"
+    },
+    {
+      "code": "94",
+      "name": "Central Papua",
+      "cities": [
+        {
+          "code": "94.08",
+          "name": "Deiyai"
+        },
+        {
+          "code": "94.06",
+          "name": "Dogiyai"
+        },
+        {
+          "code": "94.07",
+          "name": "Intan Jaya"
+        },
+        {
+          "code": "94.04",
+          "name": "Mimika"
+        },
+        {
+          "code": "94.01",
+          "name": "Nabire"
+        },
+        {
+          "code": "94.03",
+          "name": "Paniai"
+        },
+        {
+          "code": "94.05",
+          "name": "Puncak"
+        },
+        {
+          "code": "94.02",
+          "name": "Puncak Jaya"
+        }
+      ],
+      "localName": "Papua Tengah"
+    },
+    {
+      "code": "72",
+      "name": "Central Sulawesi",
+      "cities": [
+        {
+          "code": "72.01",
+          "name": "Banggai"
+        },
+        {
+          "code": "72.07",
+          "name": "Banggai Kepulauan"
+        },
+        {
+          "code": "72.11",
+          "name": "Banggai Laut"
+        },
+        {
+          "code": "72.05",
+          "name": "Buol"
+        },
+        {
+          "code": "72.03",
+          "name": "Donggala"
+        },
+        {
+          "code": "72.06",
+          "name": "Morowali"
+        },
+        {
+          "code": "72.12",
+          "name": "Morowali Utara"
+        },
+        {
+          "code": "72.71",
+          "name": "Palu"
+        },
+        {
+          "code": "72.08",
+          "name": "Parigi Moutong"
+        },
+        {
+          "code": "72.02",
+          "name": "Poso"
+        },
+        {
+          "code": "72.10",
+          "name": "Sigi"
+        },
+        {
+          "code": "72.09",
+          "name": "Tojo Una Una"
+        },
+        {
+          "code": "72.04",
+          "name": "Toli-Toli"
+        }
+      ],
+      "localName": "Sulawesi Tengah"
+    },
+    {
+      "code": "35",
+      "name": "East Java",
+      "cities": [
+        {
+          "code": "35.26",
+          "name": "Bangkalan"
+        },
+        {
+          "code": "35.10",
+          "name": "Banyuwangi"
+        },
+        {
+          "code": "35.79",
+          "name": "Batu"
+        },
+        {
+          "code": "35.05",
+          "name": "Blitar"
+        },
+        {
+          "code": "35.72",
+          "name": "Blitar"
+        },
+        {
+          "code": "35.22",
+          "name": "Bojonegoro"
+        },
+        {
+          "code": "35.11",
+          "name": "Bondowoso"
+        },
+        {
+          "code": "35.25",
+          "name": "Gresik"
+        },
+        {
+          "code": "35.09",
+          "name": "Jember"
+        },
+        {
+          "code": "35.17",
+          "name": "Jombang"
+        },
+        {
+          "code": "35.06",
+          "name": "Kediri"
+        },
+        {
+          "code": "35.71",
+          "name": "Kediri"
+        },
+        {
+          "code": "35.24",
+          "name": "Lamongan"
+        },
+        {
+          "code": "35.08",
+          "name": "Lumajang"
+        },
+        {
+          "code": "35.19",
+          "name": "Madiun"
+        },
+        {
+          "code": "35.77",
+          "name": "Madiun"
+        },
+        {
+          "code": "35.20",
+          "name": "Magetan"
+        },
+        {
+          "code": "35.07",
+          "name": "Malang"
+        },
+        {
+          "code": "35.73",
+          "name": "Malang"
+        },
+        {
+          "code": "35.16",
+          "name": "Mojokerto"
+        },
+        {
+          "code": "35.76",
+          "name": "Mojokerto"
+        },
+        {
+          "code": "35.18",
+          "name": "Nganjuk"
+        },
+        {
+          "code": "35.21",
+          "name": "Ngawi"
+        },
+        {
+          "code": "35.01",
+          "name": "Pacitan"
+        },
+        {
+          "code": "35.28",
+          "name": "Pamekasan"
+        },
+        {
+          "code": "35.14",
+          "name": "Pasuruan"
+        },
+        {
+          "code": "35.75",
+          "name": "Pasuruan"
+        },
+        {
+          "code": "35.02",
+          "name": "Ponorogo"
+        },
+        {
+          "code": "35.13",
+          "name": "Probolinggo"
+        },
+        {
+          "code": "35.74",
+          "name": "Probolinggo"
+        },
+        {
+          "code": "35.27",
+          "name": "Sampang"
+        },
+        {
+          "code": "35.15",
+          "name": "Sidoarjo"
+        },
+        {
+          "code": "35.12",
+          "name": "Situbondo"
+        },
+        {
+          "code": "35.29",
+          "name": "Sumenep"
+        },
+        {
+          "code": "35.78",
+          "name": "Surabaya"
+        },
+        {
+          "code": "35.03",
+          "name": "Trenggalek"
+        },
+        {
+          "code": "35.23",
+          "name": "Tuban"
+        },
+        {
+          "code": "35.04",
+          "name": "Tulungagung"
+        }
+      ],
+      "localName": "Jawa Timur"
+    },
+    {
+      "code": "64",
+      "name": "East Kalimantan",
+      "cities": [
+        {
+          "code": "64.71",
+          "name": "Balikpapan"
+        },
+        {
+          "code": "64.03",
+          "name": "Berau"
+        },
+        {
+          "code": "64.74",
+          "name": "Bontang"
+        },
+        {
+          "code": "64.07",
+          "name": "Kutai Barat"
+        },
+        {
+          "code": "64.02",
+          "name": "Kutai Kartanegara"
+        },
+        {
+          "code": "64.08",
+          "name": "Kutai Timur"
+        },
+        {
+          "code": "64.11",
+          "name": "Mahakam Ulu"
+        },
+        {
+          "code": "64.01",
+          "name": "Paser"
+        },
+        {
+          "code": "64.09",
+          "name": "Penajam Paser Utara"
+        },
+        {
+          "code": "64.72",
+          "name": "Samarinda"
+        }
+      ],
+      "localName": "Kalimantan Timur"
+    },
+    {
+      "code": "53",
+      "name": "East Nusa Tenggara",
+      "cities": [
+        {
+          "code": "53.05",
+          "name": "Alor"
+        },
+        {
+          "code": "53.04",
+          "name": "Belu"
+        },
+        {
+          "code": "53.08",
+          "name": "Ende"
+        },
+        {
+          "code": "53.06",
+          "name": "Flores Timur"
+        },
+        {
+          "code": "53.01",
+          "name": "Kupang"
+        },
+        {
+          "code": "53.71",
+          "name": "Kupang"
+        },
+        {
+          "code": "53.13",
+          "name": "Lembata"
+        },
+        {
+          "code": "53.21",
+          "name": "Malaka"
+        },
+        {
+          "code": "53.10",
+          "name": "Manggarai"
+        },
+        {
+          "code": "53.15",
+          "name": "Manggarai Barat"
+        },
+        {
+          "code": "53.19",
+          "name": "Manggarai Timur"
+        },
+        {
+          "code": "53.16",
+          "name": "Nagekeo"
+        },
+        {
+          "code": "53.09",
+          "name": "Ngada"
+        },
+        {
+          "code": "53.14",
+          "name": "Rote Ndao"
+        },
+        {
+          "code": "53.20",
+          "name": "Sabu Raijua"
+        },
+        {
+          "code": "53.07",
+          "name": "Sikka"
+        },
+        {
+          "code": "53.12",
+          "name": "Sumba Barat"
+        },
+        {
+          "code": "53.18",
+          "name": "Sumba Barat Daya"
+        },
+        {
+          "code": "53.17",
+          "name": "Sumba Tengah"
+        },
+        {
+          "code": "53.11",
+          "name": "Sumba Timur"
+        },
+        {
+          "code": "53.02",
+          "name": "Timor Tengah Selatan"
+        },
+        {
+          "code": "53.03",
+          "name": "Timor Tengah Utara"
+        }
+      ],
+      "localName": "Nusa Tenggara Timur"
+    },
+    {
+      "code": "75",
+      "name": "Gorontalo",
+      "cities": [
+        {
+          "code": "75.02",
+          "name": "Boalemo"
+        },
+        {
+          "code": "75.03",
+          "name": "Bone Bolango"
+        },
+        {
+          "code": "75.01",
+          "name": "Gorontalo"
+        },
+        {
+          "code": "75.71",
+          "name": "Gorontalo"
+        },
+        {
+          "code": "75.05",
+          "name": "Gorontalo Utara"
+        },
+        {
+          "code": "75.04",
+          "name": "Pohuwato"
+        }
+      ],
+      "localName": "Gorontalo"
+    },
+    {
+      "code": "95",
+      "name": "Highland Papua",
+      "cities": [
+        {
+          "code": "95.01",
+          "name": "Jayawijaya"
+        },
+        {
+          "code": "95.07",
+          "name": "Lanny Jaya"
+        },
+        {
+          "code": "95.05",
+          "name": "Mamberamo Tengah"
+        },
+        {
+          "code": "95.08",
+          "name": "Nduga"
+        },
+        {
+          "code": "95.02",
+          "name": "Pegunungan Bintang"
+        },
+        {
+          "code": "95.04",
+          "name": "Tolikara"
+        },
+        {
+          "code": "95.03",
+          "name": "Yahukimo"
+        },
+        {
+          "code": "95.06",
+          "name": "Yalimo"
+        }
+      ],
+      "localName": "Papua Pegunungan"
+    },
+    {
+      "code": "31",
+      "name": "Jakarta",
+      "cities": [
+        {
+          "code": "31.73",
+          "name": "Jakarta Barat"
+        },
+        {
+          "code": "31.71",
+          "name": "Jakarta Pusat"
+        },
+        {
+          "code": "31.74",
+          "name": "Jakarta Selatan"
+        },
+        {
+          "code": "31.75",
+          "name": "Jakarta Timur"
+        },
+        {
+          "code": "31.72",
+          "name": "Jakarta Utara"
+        },
+        {
+          "code": "31.01",
+          "name": "Kepulauan Seribu"
+        }
+      ],
+      "localName": "DKI Jakarta"
+    },
+    {
+      "code": "15",
+      "name": "Jambi",
+      "cities": [
+        {
+          "code": "15.04",
+          "name": "Batanghari"
+        },
+        {
+          "code": "15.08",
+          "name": "Bungo"
+        },
+        {
+          "code": "15.71",
+          "name": "Jambi"
+        },
+        {
+          "code": "15.01",
+          "name": "Kerinci"
+        },
+        {
+          "code": "15.02",
+          "name": "Merangin"
+        },
+        {
+          "code": "15.05",
+          "name": "Muaro Jambi"
+        },
+        {
+          "code": "15.03",
+          "name": "Sarolangun"
+        },
+        {
+          "code": "15.72",
+          "name": "Sungai Penuh"
+        },
+        {
+          "code": "15.06",
+          "name": "Tanjung Jabung Barat"
+        },
+        {
+          "code": "15.07",
+          "name": "Tanjung Jabung Timur"
+        },
+        {
+          "code": "15.09",
+          "name": "Tebo"
+        }
+      ],
+      "localName": "Jambi"
+    },
+    {
+      "code": "18",
+      "name": "Lampung",
+      "cities": [
+        {
+          "code": "18.71",
+          "name": "Bandar Lampung"
+        },
+        {
+          "code": "18.04",
+          "name": "Lampung Barat"
+        },
+        {
+          "code": "18.01",
+          "name": "Lampung Selatan"
+        },
+        {
+          "code": "18.02",
+          "name": "Lampung Tengah"
+        },
+        {
+          "code": "18.07",
+          "name": "Lampung Timur"
+        },
+        {
+          "code": "18.03",
+          "name": "Lampung Utara"
+        },
+        {
+          "code": "18.11",
+          "name": "Mesuji"
+        },
+        {
+          "code": "18.72",
+          "name": "Metro"
+        },
+        {
+          "code": "18.09",
+          "name": "Pesawaran"
+        },
+        {
+          "code": "18.13",
+          "name": "Pesisir Barat"
+        },
+        {
+          "code": "18.10",
+          "name": "Pringsewu"
+        },
+        {
+          "code": "18.06",
+          "name": "Tanggamus"
+        },
+        {
+          "code": "18.05",
+          "name": "Tulang Bawang"
+        },
+        {
+          "code": "18.12",
+          "name": "Tulang Bawang Barat"
+        },
+        {
+          "code": "18.08",
+          "name": "Way Kanan"
+        }
+      ],
+      "localName": "Lampung"
+    },
+    {
+      "code": "81",
+      "name": "Maluku",
+      "cities": [
+        {
+          "code": "81.71",
+          "name": "Ambon"
+        },
+        {
+          "code": "81.04",
+          "name": "Buru"
+        },
+        {
+          "code": "81.09",
+          "name": "Buru Selatan"
+        },
+        {
+          "code": "81.07",
+          "name": "Kepulauan Aru"
+        },
+        {
+          "code": "81.03",
+          "name": "Kepulauan Tanimbar"
+        },
+        {
+          "code": "81.08",
+          "name": "Maluku Barat Daya"
+        },
+        {
+          "code": "81.01",
+          "name": "Maluku Tengah"
+        },
+        {
+          "code": "81.02",
+          "name": "Maluku Tenggara"
+        },
+        {
+          "code": "81.06",
+          "name": "Seram Bagian Barat"
+        },
+        {
+          "code": "81.05",
+          "name": "Seram Bagian Timur"
+        },
+        {
+          "code": "81.72",
+          "name": "Tual"
+        }
+      ],
+      "localName": "Maluku"
+    },
+    {
+      "code": "65",
+      "name": "North Kalimantan",
+      "cities": [
+        {
+          "code": "65.01",
+          "name": "Bulungan"
+        },
+        {
+          "code": "65.02",
+          "name": "Malinau"
+        },
+        {
+          "code": "65.03",
+          "name": "Nunukan"
+        },
+        {
+          "code": "65.04",
+          "name": "Tana Tidung"
+        },
+        {
+          "code": "65.71",
+          "name": "Tarakan"
+        }
+      ],
+      "localName": "Kalimantan Utara"
+    },
+    {
+      "code": "82",
+      "name": "North Maluku",
+      "cities": [
+        {
+          "code": "82.01",
+          "name": "Halmahera Barat"
+        },
+        {
+          "code": "82.04",
+          "name": "Halmahera Selatan"
+        },
+        {
+          "code": "82.02",
+          "name": "Halmahera Tengah"
+        },
+        {
+          "code": "82.06",
+          "name": "Halmahera Timur"
+        },
+        {
+          "code": "82.03",
+          "name": "Halmahera Utara"
+        },
+        {
+          "code": "82.05",
+          "name": "Kepulauan Sula"
+        },
+        {
+          "code": "82.07",
+          "name": "Pulau Morotai"
+        },
+        {
+          "code": "82.08",
+          "name": "Pulau Taliabu"
+        },
+        {
+          "code": "82.71",
+          "name": "Ternate"
+        },
+        {
+          "code": "82.72",
+          "name": "Tidore Kepulauan"
+        }
+      ],
+      "localName": "Maluku Utara"
+    },
+    {
+      "code": "71",
+      "name": "North Sulawesi",
+      "cities": [
+        {
+          "code": "71.72",
+          "name": "Bitung"
+        },
+        {
+          "code": "71.01",
+          "name": "Bolaang Mongondow"
+        },
+        {
+          "code": "71.11",
+          "name": "Bolaang Mongondow Selatan"
+        },
+        {
+          "code": "71.10",
+          "name": "Bolaang Mongondow Timur"
+        },
+        {
+          "code": "71.08",
+          "name": "Bolaang Mongondow Utara"
+        },
+        {
+          "code": "71.09",
+          "name": "Kep. Siau Tagulandang Biaro"
+        },
+        {
+          "code": "71.03",
+          "name": "Kepulauan Sangihe"
+        },
+        {
+          "code": "71.04",
+          "name": "Kepulauan Talaud"
+        },
+        {
+          "code": "71.74",
+          "name": "Kotamobagu"
+        },
+        {
+          "code": "71.71",
+          "name": "Manado"
+        },
+        {
+          "code": "71.02",
+          "name": "Minahasa"
+        },
+        {
+          "code": "71.05",
+          "name": "Minahasa Selatan"
+        },
+        {
+          "code": "71.07",
+          "name": "Minahasa Tenggara"
+        },
+        {
+          "code": "71.06",
+          "name": "Minahasa Utara"
+        },
+        {
+          "code": "71.73",
+          "name": "Tomohon"
+        }
+      ],
+      "localName": "Sulawesi Utara"
+    },
+    {
+      "code": "12",
+      "name": "North Sumatra",
+      "cities": [
+        {
+          "code": "12.09",
+          "name": "Asahan"
+        },
+        {
+          "code": "12.19",
+          "name": "Batu Bara"
+        },
+        {
+          "code": "12.75",
+          "name": "Binjai"
+        },
+        {
+          "code": "12.11",
+          "name": "Dairi"
+        },
+        {
+          "code": "12.07",
+          "name": "Deli Serdang"
+        },
+        {
+          "code": "12.78",
+          "name": "Gunungsitoli"
+        },
+        {
+          "code": "12.16",
+          "name": "Humbang Hasundutan"
+        },
+        {
+          "code": "12.06",
+          "name": "Karo"
+        },
+        {
+          "code": "12.10",
+          "name": "Labuhanbatu"
+        },
+        {
+          "code": "12.22",
+          "name": "Labuhanbatu Selatan"
+        },
+        {
+          "code": "12.23",
+          "name": "Labuhanbatu Utara"
+        },
+        {
+          "code": "12.05",
+          "name": "Langkat"
+        },
+        {
+          "code": "12.13",
+          "name": "Mandailing Natal"
+        },
+        {
+          "code": "12.71",
+          "name": "Medan"
+        },
+        {
+          "code": "12.04",
+          "name": "Nias"
+        },
+        {
+          "code": "12.25",
+          "name": "Nias Barat"
+        },
+        {
+          "code": "12.14",
+          "name": "Nias Selatan"
+        },
+        {
+          "code": "12.24",
+          "name": "Nias Utara"
+        },
+        {
+          "code": "12.21",
+          "name": "Padang Lawas"
+        },
+        {
+          "code": "12.20",
+          "name": "Padang Lawas Utara"
+        },
+        {
+          "code": "12.77",
+          "name": "Padangsidimpuan"
+        },
+        {
+          "code": "12.15",
+          "name": "Pakpak Bharat"
+        },
+        {
+          "code": "12.72",
+          "name": "Pematangsiantar"
+        },
+        {
+          "code": "12.17",
+          "name": "Samosir"
+        },
+        {
+          "code": "12.18",
+          "name": "Serdang Bedagai"
+        },
+        {
+          "code": "12.73",
+          "name": "Sibolga"
+        },
+        {
+          "code": "12.08",
+          "name": "Simalungun"
+        },
+        {
+          "code": "12.74",
+          "name": "Tanjungbalai"
+        },
+        {
+          "code": "12.03",
+          "name": "Tapanuli Selatan"
+        },
+        {
+          "code": "12.01",
+          "name": "Tapanuli Tengah"
+        },
+        {
+          "code": "12.02",
+          "name": "Tapanuli Utara"
+        },
+        {
+          "code": "12.76",
+          "name": "Tebing Tinggi"
+        },
+        {
+          "code": "12.12",
+          "name": "Toba"
+        }
+      ],
+      "localName": "Sumatera Utara"
+    },
+    {
+      "code": "91",
+      "name": "Papua",
+      "cities": [
+        {
+          "code": "91.06",
+          "name": "Biak Numfor"
+        },
+        {
+          "code": "91.03",
+          "name": "Jayapura"
+        },
+        {
+          "code": "91.71",
+          "name": "Jayapura"
+        },
+        {
+          "code": "91.11",
+          "name": "Keerom"
+        },
+        {
+          "code": "91.05",
+          "name": "Kepulauan Yapen"
+        },
+        {
+          "code": "91.20",
+          "name": "Mamberamo Raya"
+        },
+        {
+          "code": "91.10",
+          "name": "Sarmi"
+        },
+        {
+          "code": "91.19",
+          "name": "Supiori"
+        },
+        {
+          "code": "91.15",
+          "name": "Waropen"
+        }
+      ],
+      "localName": "Papua"
+    },
+    {
+      "code": "14",
+      "name": "Riau",
+      "cities": [
+        {
+          "code": "14.03",
+          "name": "Bengkalis"
+        },
+        {
+          "code": "14.72",
+          "name": "Dumai"
+        },
+        {
+          "code": "14.04",
+          "name": "Indragiri Hilir"
+        },
+        {
+          "code": "14.02",
+          "name": "Indragiri Hulu"
+        },
+        {
+          "code": "14.01",
+          "name": "Kampar"
+        },
+        {
+          "code": "14.10",
+          "name": "Kepulauan Meranti"
+        },
+        {
+          "code": "14.09",
+          "name": "Kuantan Singingi"
+        },
+        {
+          "code": "14.71",
+          "name": "Pekanbaru"
+        },
+        {
+          "code": "14.05",
+          "name": "Pelalawan"
+        },
+        {
+          "code": "14.07",
+          "name": "Rokan Hilir"
+        },
+        {
+          "code": "14.06",
+          "name": "Rokan Hulu"
+        },
+        {
+          "code": "14.08",
+          "name": "Siak"
+        }
+      ],
+      "localName": "Riau"
+    },
+    {
+      "code": "21",
+      "name": "Riau Islands",
+      "cities": [
+        {
+          "code": "21.71",
+          "name": "Batam"
+        },
+        {
+          "code": "21.01",
+          "name": "Bintan"
+        },
+        {
+          "code": "21.02",
+          "name": "Karimun"
+        },
+        {
+          "code": "21.05",
+          "name": "Kepulauan Anambas"
+        },
+        {
+          "code": "21.04",
+          "name": "Lingga"
+        },
+        {
+          "code": "21.03",
+          "name": "Natuna"
+        },
+        {
+          "code": "21.72",
+          "name": "Tanjung Pinang"
+        }
+      ],
+      "localName": "Kepulauan Riau"
+    },
+    {
+      "code": "63",
+      "name": "South Kalimantan",
+      "cities": [
+        {
+          "code": "63.11",
+          "name": "Balangan"
+        },
+        {
+          "code": "63.03",
+          "name": "Banjar"
+        },
+        {
+          "code": "63.72",
+          "name": "Banjarbaru"
+        },
+        {
+          "code": "63.71",
+          "name": "Banjarmasin"
+        },
+        {
+          "code": "63.04",
+          "name": "Barito Kuala"
+        },
+        {
+          "code": "63.06",
+          "name": "Hulu Sungai Selatan"
+        },
+        {
+          "code": "63.07",
+          "name": "Hulu Sungai Tengah"
+        },
+        {
+          "code": "63.08",
+          "name": "Hulu Sungai Utara"
+        },
+        {
+          "code": "63.02",
+          "name": "Kotabaru"
+        },
+        {
+          "code": "63.09",
+          "name": "Tabalong"
+        },
+        {
+          "code": "63.10",
+          "name": "Tanah Bumbu"
+        },
+        {
+          "code": "63.01",
+          "name": "Tanah Laut"
+        },
+        {
+          "code": "63.05",
+          "name": "Tapin"
+        }
+      ],
+      "localName": "Kalimantan Selatan"
+    },
+    {
+      "code": "96",
+      "name": "South Papua",
+      "cities": [
+        {
+          "code": "96.05",
+          "name": "Maybrat"
+        },
+        {
+          "code": "96.03",
+          "name": "Raja Ampat"
+        },
+        {
+          "code": "96.01",
+          "name": "Sorong"
+        },
+        {
+          "code": "96.71",
+          "name": "Sorong"
+        },
+        {
+          "code": "96.02",
+          "name": "Sorong Selatan"
+        },
+        {
+          "code": "96.04",
+          "name": "Tambrauw"
+        }
+      ],
+      "localName": "Papua Barat Daya"
+    },
+    {
+      "code": "73",
+      "name": "South Sulawesi",
+      "cities": [
+        {
+          "code": "73.03",
+          "name": "Bantaeng"
+        },
+        {
+          "code": "73.11",
+          "name": "Barru"
+        },
+        {
+          "code": "73.08",
+          "name": "Bone"
+        },
+        {
+          "code": "73.02",
+          "name": "Bulukumba"
+        },
+        {
+          "code": "73.16",
+          "name": "Enrekang"
+        },
+        {
+          "code": "73.06",
+          "name": "Gowa"
+        },
+        {
+          "code": "73.04",
+          "name": "Jeneponto"
+        },
+        {
+          "code": "73.01",
+          "name": "Kepulauan Selayar"
+        },
+        {
+          "code": "73.17",
+          "name": "Luwu"
+        },
+        {
+          "code": "73.24",
+          "name": "Luwu Timur"
+        },
+        {
+          "code": "73.22",
+          "name": "Luwu Utara"
+        },
+        {
+          "code": "73.71",
+          "name": "Makassar"
+        },
+        {
+          "code": "73.09",
+          "name": "Maros"
+        },
+        {
+          "code": "73.73",
+          "name": "Palopo"
+        },
+        {
+          "code": "73.10",
+          "name": "Pangkajene dan Kepulauan"
+        },
+        {
+          "code": "73.72",
+          "name": "Parepare"
+        },
+        {
+          "code": "73.15",
+          "name": "Pinrang"
+        },
+        {
+          "code": "73.14",
+          "name": "Sidenreng Rappang"
+        },
+        {
+          "code": "73.07",
+          "name": "Sinjai"
+        },
+        {
+          "code": "73.12",
+          "name": "Soppeng"
+        },
+        {
+          "code": "73.05",
+          "name": "Takalar"
+        },
+        {
+          "code": "73.18",
+          "name": "Tana Toraja"
+        },
+        {
+          "code": "73.26",
+          "name": "Toraja Utara"
+        },
+        {
+          "code": "73.13",
+          "name": "Wajo"
+        }
+      ],
+      "localName": "Sulawesi Selatan"
+    },
+    {
+      "code": "16",
+      "name": "South Sumatra",
+      "cities": [
+        {
+          "code": "16.07",
+          "name": "Banyuasin"
+        },
+        {
+          "code": "16.11",
+          "name": "Empat Lawang"
+        },
+        {
+          "code": "16.04",
+          "name": "Lahat"
+        },
+        {
+          "code": "16.73",
+          "name": "Lubuk Linggau"
+        },
+        {
+          "code": "16.03",
+          "name": "Muara Enim"
+        },
+        {
+          "code": "16.06",
+          "name": "Musi Banyuasin"
+        },
+        {
+          "code": "16.05",
+          "name": "Musi Rawas"
+        },
+        {
+          "code": "16.13",
+          "name": "Musi Rawas Utara"
+        },
+        {
+          "code": "16.10",
+          "name": "Ogan Ilir"
+        },
+        {
+          "code": "16.02",
+          "name": "Ogan Komering Ilir"
+        },
+        {
+          "code": "16.01",
+          "name": "Ogan Komering Ulu"
+        },
+        {
+          "code": "16.09",
+          "name": "Ogan Komering Ulu Selatan"
+        },
+        {
+          "code": "16.08",
+          "name": "Ogan Komering Ulu Timur"
+        },
+        {
+          "code": "16.72",
+          "name": "Pagar Alam"
+        },
+        {
+          "code": "16.71",
+          "name": "Palembang"
+        },
+        {
+          "code": "16.12",
+          "name": "Penukal Abab Lematang Ilir"
+        },
+        {
+          "code": "16.74",
+          "name": "Prabumulih"
+        }
+      ],
+      "localName": "Sumatera Selatan"
+    },
+    {
+      "code": "74",
+      "name": "Southeast Sulawesi",
+      "cities": [
+        {
+          "code": "74.72",
+          "name": "Bau Bau"
+        },
+        {
+          "code": "74.06",
+          "name": "Bombana"
+        },
+        {
+          "code": "74.04",
+          "name": "Buton"
+        },
+        {
+          "code": "74.15",
+          "name": "Buton Selatan"
+        },
+        {
+          "code": "74.14",
+          "name": "Buton Tengah"
+        },
+        {
+          "code": "74.10",
+          "name": "Buton Utara"
+        },
+        {
+          "code": "74.71",
+          "name": "Kendari"
+        },
+        {
+          "code": "74.01",
+          "name": "Kolaka"
+        },
+        {
+          "code": "74.11",
+          "name": "Kolaka Timur"
+        },
+        {
+          "code": "74.08",
+          "name": "Kolaka Utara"
+        },
+        {
+          "code": "74.02",
+          "name": "Konawe"
+        },
+        {
+          "code": "74.12",
+          "name": "Konawe Kepulauan"
+        },
+        {
+          "code": "74.05",
+          "name": "Konawe Selatan"
+        },
+        {
+          "code": "74.09",
+          "name": "Konawe Utara"
+        },
+        {
+          "code": "74.03",
+          "name": "Muna"
+        },
+        {
+          "code": "74.13",
+          "name": "Muna Barat"
+        },
+        {
+          "code": "74.07",
+          "name": "Wakatobi"
+        }
+      ],
+      "localName": "Sulawesi Tenggara"
+    },
+    {
+      "code": "93",
+      "name": "Southwest Papua",
+      "cities": [
+        {
+          "code": "93.04",
+          "name": "Asmat"
+        },
+        {
+          "code": "93.02",
+          "name": "Boven Digoel"
+        },
+        {
+          "code": "93.03",
+          "name": "Mappi"
+        },
+        {
+          "code": "93.01",
+          "name": "Merauke"
+        }
+      ],
+      "localName": "Papua Selatan"
+    },
+    {
+      "code": "32",
+      "name": "West Java",
+      "cities": [
+        {
+          "code": "32.04",
+          "name": "Bandung"
+        },
+        {
+          "code": "32.73",
+          "name": "Bandung"
+        },
+        {
+          "code": "32.17",
+          "name": "Bandung Barat"
+        },
+        {
+          "code": "32.79",
+          "name": "Banjar"
+        },
+        {
+          "code": "32.16",
+          "name": "Bekasi"
+        },
+        {
+          "code": "32.75",
+          "name": "Bekasi"
+        },
+        {
+          "code": "32.01",
+          "name": "Bogor"
+        },
+        {
+          "code": "32.71",
+          "name": "Bogor"
+        },
+        {
+          "code": "32.07",
+          "name": "Ciamis"
+        },
+        {
+          "code": "32.03",
+          "name": "Cianjur"
+        },
+        {
+          "code": "32.77",
+          "name": "Cimahi"
+        },
+        {
+          "code": "32.09",
+          "name": "Cirebon"
+        },
+        {
+          "code": "32.74",
+          "name": "Cirebon"
+        },
+        {
+          "code": "32.76",
+          "name": "Depok"
+        },
+        {
+          "code": "32.05",
+          "name": "Garut"
+        },
+        {
+          "code": "32.12",
+          "name": "Indramayu"
+        },
+        {
+          "code": "32.15",
+          "name": "Karawang"
+        },
+        {
+          "code": "32.08",
+          "name": "Kuningan"
+        },
+        {
+          "code": "32.10",
+          "name": "Majalengka"
+        },
+        {
+          "code": "32.18",
+          "name": "Pangandaran"
+        },
+        {
+          "code": "32.14",
+          "name": "Purwakarta"
+        },
+        {
+          "code": "32.13",
+          "name": "Subang"
+        },
+        {
+          "code": "32.02",
+          "name": "Sukabumi"
+        },
+        {
+          "code": "32.72",
+          "name": "Sukabumi"
+        },
+        {
+          "code": "32.11",
+          "name": "Sumedang"
+        },
+        {
+          "code": "32.06",
+          "name": "Tasikmalaya"
+        },
+        {
+          "code": "32.78",
+          "name": "Tasikmalaya"
+        }
+      ],
+      "localName": "Jawa Barat"
+    },
+    {
+      "code": "61",
+      "name": "West Kalimantan",
+      "cities": [
+        {
+          "code": "61.07",
+          "name": "Bengkayang"
+        },
+        {
+          "code": "61.06",
+          "name": "Kapuas Hulu"
+        },
+        {
+          "code": "61.11",
+          "name": "Kayong Utara"
+        },
+        {
+          "code": "61.04",
+          "name": "Ketapang"
+        },
+        {
+          "code": "61.12",
+          "name": "Kubu Raya"
+        },
+        {
+          "code": "61.08",
+          "name": "Landak"
+        },
+        {
+          "code": "61.10",
+          "name": "Melawi"
+        },
+        {
+          "code": "61.02",
+          "name": "Mempawah"
+        },
+        {
+          "code": "61.71",
+          "name": "Pontianak"
+        },
+        {
+          "code": "61.01",
+          "name": "Sambas"
+        },
+        {
+          "code": "61.03",
+          "name": "Sanggau"
+        },
+        {
+          "code": "61.09",
+          "name": "Sekadau"
+        },
+        {
+          "code": "61.72",
+          "name": "Singkawang"
+        },
+        {
+          "code": "61.05",
+          "name": "Sintang"
+        }
+      ],
+      "localName": "Kalimantan Barat"
+    },
+    {
+      "code": "52",
+      "name": "West Nusa Tenggara",
+      "cities": [
+        {
+          "code": "52.06",
+          "name": "Bima"
+        },
+        {
+          "code": "52.72",
+          "name": "Bima"
+        },
+        {
+          "code": "52.05",
+          "name": "Dompu"
+        },
+        {
+          "code": "52.01",
+          "name": "Lombok Barat"
+        },
+        {
+          "code": "52.02",
+          "name": "Lombok Tengah"
+        },
+        {
+          "code": "52.03",
+          "name": "Lombok Timur"
+        },
+        {
+          "code": "52.08",
+          "name": "Lombok Utara"
+        },
+        {
+          "code": "52.71",
+          "name": "Mataram"
+        },
+        {
+          "code": "52.04",
+          "name": "Sumbawa"
+        },
+        {
+          "code": "52.07",
+          "name": "Sumbawa Barat"
+        }
+      ],
+      "localName": "Nusa Tenggara Barat"
+    },
+    {
+      "code": "92",
+      "name": "West Papua",
+      "cities": [
+        {
+          "code": "92.03",
+          "name": "Fak Fak"
+        },
+        {
+          "code": "92.08",
+          "name": "Kaimana"
+        },
+        {
+          "code": "92.02",
+          "name": "Manokwari"
+        },
+        {
+          "code": "92.11",
+          "name": "Manokwari Selatan"
+        },
+        {
+          "code": "92.12",
+          "name": "Pegunungan Arfak"
+        },
+        {
+          "code": "92.06",
+          "name": "Teluk Bintuni"
+        },
+        {
+          "code": "92.07",
+          "name": "Teluk Wondama"
+        }
+      ],
+      "localName": "Papua Barat"
+    },
+    {
+      "code": "76",
+      "name": "West Sulawesi",
+      "cities": [
+        {
+          "code": "76.05",
+          "name": "Majene"
+        },
+        {
+          "code": "76.03",
+          "name": "Mamasa"
+        },
+        {
+          "code": "76.02",
+          "name": "Mamuju"
+        },
+        {
+          "code": "76.06",
+          "name": "Mamuju Tengah"
+        },
+        {
+          "code": "76.01",
+          "name": "Pasangkayu"
+        },
+        {
+          "code": "76.04",
+          "name": "Polewali Mandar"
+        }
+      ],
+      "localName": "Sulawesi Barat"
+    },
+    {
+      "code": "13",
+      "name": "West Sumatra",
+      "cities": [
+        {
+          "code": "13.06",
+          "name": "Agam"
+        },
+        {
+          "code": "13.75",
+          "name": "Bukittinggi"
+        },
+        {
+          "code": "13.10",
+          "name": "Dharmasraya"
+        },
+        {
+          "code": "13.09",
+          "name": "Kepulauan Mentawai"
+        },
+        {
+          "code": "13.07",
+          "name": "Lima Puluh Kota"
+        },
+        {
+          "code": "13.71",
+          "name": "Padang"
+        },
+        {
+          "code": "13.74",
+          "name": "Padang Panjang"
+        },
+        {
+          "code": "13.05",
+          "name": "Padang Pariaman"
+        },
+        {
+          "code": "13.77",
+          "name": "Pariaman"
+        },
+        {
+          "code": "13.08",
+          "name": "Pasaman"
+        },
+        {
+          "code": "13.12",
+          "name": "Pasaman Barat"
+        },
+        {
+          "code": "13.76",
+          "name": "Payakumbuh"
+        },
+        {
+          "code": "13.01",
+          "name": "Pesisir Selatan"
+        },
+        {
+          "code": "13.73",
+          "name": "Sawahlunto"
+        },
+        {
+          "code": "13.03",
+          "name": "Sijunjung"
+        },
+        {
+          "code": "13.02",
+          "name": "Solok"
+        },
+        {
+          "code": "13.72",
+          "name": "Solok"
+        },
+        {
+          "code": "13.11",
+          "name": "Solok Selatan"
+        },
+        {
+          "code": "13.04",
+          "name": "Tanah Datar"
+        }
+      ],
+      "localName": "Sumatera Barat"
+    },
+    {
+      "code": "34",
+      "name": "Yogyakarta",
+      "cities": [
+        {
+          "code": "34.02",
+          "name": "Bantul"
+        },
+        {
+          "code": "34.03",
+          "name": "Gunungkidul"
+        },
+        {
+          "code": "34.01",
+          "name": "Kulon Progo"
+        },
+        {
+          "code": "34.04",
+          "name": "Sleman"
+        },
+        {
+          "code": "34.71",
+          "name": "Yogyakarta"
+        }
+      ],
+      "localName": "Daerah Istimewa Yogyakarta"
+    }
+  ]
+}

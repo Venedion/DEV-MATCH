@@ -1193,8 +1193,8 @@ function openRequestComposer(request=null){
     requestForm.elements.projectType.value=request.projectType||'';
     requestForm.elements.references.value=(request.references||[]).join('\n');
     requestForm.elements.specialtyOther.value=request.specialtyOther||'';
-    requestForm.elements.budgetFrom.value=request.budgetFrom||'';
-    requestForm.elements.budgetTo.value=request.budgetTo||'';
+    requestForm.elements.budgetFrom.value=window.devMatchMoneyInput.format(request.budgetFrom||'');
+    requestForm.elements.budgetTo.value=window.devMatchMoneyInput.format(request.budgetTo||'');
     requestForm.elements.negotiable.checked=Boolean(request.negotiable);
     requestForm.elements.deadline.value=request.deadline||'';
     requestForm.elements.targetStart.value=request.targetStart||'';
@@ -1922,9 +1922,6 @@ requestForm.addEventListener('input',updateRequestPreview);
 requestForm.addEventListener('change',event=>{
   if(event.target.name==='category'||event.target.name==='specialties')syncConditionalFields();
   updateRequestPreview();
-});
-requestForm.addEventListener('input',event=>{
-  if(event.target.name==='budgetFrom'||event.target.name==='budgetTo')event.target.value=event.target.value.replace(/\D/g,'');
 });
 document.getElementById('requestReferenceFiles').addEventListener('change',event=>{
   const message=document.getElementById('requestComposerMessage');

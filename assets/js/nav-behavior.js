@@ -5,6 +5,87 @@
   const accountReturnStorageKey = 'devmatch-account-dropdown-return';
   const modeSwitchSelector = '.mode-switch a, .client-mode-switch a';
   const mobileNavigationBreakpoint = window.matchMedia('(max-width: 820px)');
+  const exploreSwitch = document.querySelector(
+    '.find-projects-page .find-projects-switch, .find-clients-main .clients-tabs-toggle'
+  );
+  const explorePageHeader = exploreSwitch?.closest('header');
+  const exploreScrollContainer = exploreSwitch?.closest('main');
+  const exploreFilterActions = document.querySelector(
+    '.find-projects-page .mobile-market-actions, .find-clients-main .mobile-clients-actions'
+  );
+  const exploreSwitchBreakpoint = window.matchMedia('(max-width: 860px)');
+
+  if (exploreSwitch && explorePageHeader && exploreScrollContainer) {
+    const exploreSwitchPlaceholder = document.createComment('explore switch placement');
+    exploreSwitch.before(exploreSwitchPlaceholder);
+    let previousScrollTop = exploreScrollContainer.scrollTop;
+    let scrollDirection = 0;
+    let accumulatedScroll = 0;
+
+    function setExploreSwitchHidden(isHidden) {
+      exploreSwitch.classList.toggle('scroll-aware-switch-hidden', isHidden);
+      exploreFilterActions?.classList.toggle('switch-hidden', isHidden);
+    }
+
+    function syncExploreSwitchBreakpoint() {
+      if (exploreSwitchBreakpoint.matches) {
+        if (exploreSwitch.parentElement !== exploreScrollContainer) {
+          exploreScrollContainer.insertBefore(exploreSwitch, explorePageHeader);
+        }
+        exploreSwitch.classList.add('scroll-aware-switch');
+        setExploreSwitchHidden(false);
+      } else {
+        if (exploreSwitch.parentElement !== explorePageHeader) {
+          exploreSwitchPlaceholder.parentNode?.insertBefore(
+            exploreSwitch,
+            exploreSwitchPlaceholder.nextSibling
+          );
+        }
+        exploreSwitch.classList.remove('scroll-aware-switch', 'scroll-aware-switch-hidden');
+        exploreFilterActions?.classList.remove('switch-hidden');
+      }
+      previousScrollTop = exploreScrollContainer.scrollTop;
+      scrollDirection = 0;
+      accumulatedScroll = 0;
+    }
+
+    exploreScrollContainer.addEventListener('scroll', () => {
+      if (!exploreSwitchBreakpoint.matches) return;
+
+      const currentScrollTop = exploreScrollContainer.scrollTop;
+      const delta = currentScrollTop - previousScrollTop;
+      previousScrollTop = currentScrollTop;
+
+      if (currentScrollTop <= 24) {
+        setExploreSwitchHidden(false);
+        scrollDirection = 0;
+        accumulatedScroll = 0;
+        return;
+      }
+
+      if (exploreSwitch.contains(document.activeElement)) {
+        setExploreSwitchHidden(false);
+        scrollDirection = 0;
+        accumulatedScroll = 0;
+        return;
+      }
+
+      const nextDirection = Math.sign(delta);
+      if (!nextDirection) return;
+      if (nextDirection !== scrollDirection) {
+        scrollDirection = nextDirection;
+        accumulatedScroll = 0;
+      }
+      accumulatedScroll += Math.abs(delta);
+
+      if (accumulatedScroll < 8) return;
+      setExploreSwitchHidden(nextDirection > 0);
+      accumulatedScroll = 0;
+    }, { passive: true });
+
+    exploreSwitchBreakpoint.addEventListener('change', syncExploreSwitchBreakpoint);
+    syncExploreSwitchBreakpoint();
+  }
 
   function getMode(link) {
     if (link.dataset.workspaceMode) return link.dataset.workspaceMode;

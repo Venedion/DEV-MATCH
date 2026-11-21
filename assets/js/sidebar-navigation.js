@@ -58,6 +58,7 @@
         if (hash === '#discover') return 'discover';
         return 'home';
       }
+      if (page === 'devmatch-find-projects.html') return 'findProjects';
       if (page === 'devmatch-discover-projects.html' || page === 'devmatch-discover-project-detail.html') return 'discover';
       if (page === 'devmatch-find-developers.html' || page === 'devmatch-developer-profile.html') return 'developers';
       if (page === 'devmatch-notifications.html') return 'notifications';
@@ -158,57 +159,28 @@
       ? [
         {key: 'home', label: 'Home', href: 'devmatch-client-dashboard.html#home', icon: 'home'},
         {key: 'requests', label: 'My Requests', href: 'devmatch-client-dashboard.html#requests', icon: 'projects'},
-        {key: 'explore', label: 'Explore', icon: 'discover'},
+        {key: 'explore', label: 'Explore', href: 'devmatch-find-projects.html', icon: 'discover'},
         {key: 'notifications', label: 'Notifications', href: 'devmatch-notifications.html', icon: 'notifications'},
         {key: 'profile', label: 'Profile', href: 'devmatch-my-profile.html?role=client', icon: 'profile'}
       ]
       : [
         {key: 'overview', label: 'Overview', href: 'devmatch-dashboard.html', icon: 'overview'},
         {key: 'projects', label: 'My Projects', href: 'devmatch-my-projects.html', icon: 'projects'},
-        {key: 'explore', label: 'Explore', icon: 'discover'},
+        {key: 'explore', label: 'Explore', href: 'devmatch-find-projects.html', icon: 'discover'},
         {key: 'notifications', label: 'Notifications', href: 'devmatch-developer-notifications.html', icon: 'notifications'},
         {key: 'profile', label: 'Profile', href: 'devmatch-my-profile.html?role=dev', icon: 'profile'}
-      ];
-    const exploreItems = isClient
-      ? [
-        {key: 'discover', label: 'Discover Projects', href: 'devmatch-discover-projects.html', icon: 'discover'},
-        {key: 'developers', label: 'Developers', href: 'devmatch-find-developers.html', icon: 'people'}
-      ]
-      : [
-        {key: 'findProjects', label: 'Find Projects', href: 'devmatch-find-projects.html', icon: 'discover'},
-        {key: 'findClients', label: 'Find Clients', href: 'devmatch-find-clients.html', icon: 'people'}
       ];
 
     nav.setAttribute('aria-label', isClient ? 'Client navigation' : 'Developer navigation');
     nav.dataset.workspace = role;
-    nav.classList.remove('is-explore-open');
     nav.replaceChildren();
 
     items.forEach(item => {
       const active = item.key === 'explore'
-        ? exploreItems.some(exploreItem => exploreItem.key === activeKey)
+        ? ['findProjects', 'findClients', 'discover', 'developers'].includes(activeKey)
         : item.key === 'profile'
           ? activeKey === 'profile' || activeKey === 'settings'
           : item.key === activeKey;
-
-      if (item.key === 'explore') {
-        const button = document.createElement('button');
-        button.className = `mobile-bottom-nav__item mobile-bottom-nav__explore-button${active ? ' active' : ''}`;
-        button.type = 'button';
-        button.setAttribute('aria-label', item.label);
-        button.setAttribute('aria-haspopup', 'true');
-        button.setAttribute('aria-controls', 'mobileExploreMenu');
-        button.setAttribute('aria-expanded', 'false');
-        button.title = item.label;
-        button.dataset.mobileNavKey = item.key;
-        if (isClient) {
-          button.classList.add('client-nav-item');
-          button.dataset.navKey = 'discover';
-        }
-        button.innerHTML = `${icons[item.icon]}<span class="mobile-bottom-nav__sr-only">${item.label}</span>`;
-        nav.appendChild(button);
-        return;
-      }
 
       const isClientDashboardShortcut = isClient
         && page === 'devmatch-client-dashboard.html'
@@ -222,9 +194,9 @@
       } else {
         link.href = item.href;
       }
-      if (isClient && (item.key === 'home' || item.key === 'requests')) {
+      if (isClient && (item.key === 'home' || item.key === 'requests' || item.key === 'explore')) {
         link.classList.add('client-nav-item');
-        link.dataset.navKey = item.key;
+        link.dataset.navKey = item.key === 'explore' ? 'discover' : item.key;
         if (item.key === 'requests') link.setAttribute('data-request-nav', '');
       }
       link.setAttribute('aria-label', item.label);
@@ -234,23 +206,6 @@
       nav.appendChild(link);
     });
 
-    const exploreMenu = document.createElement('div');
-    exploreMenu.className = 'mobile-explore-menu';
-    exploreMenu.id = 'mobileExploreMenu';
-    exploreMenu.setAttribute('aria-label', isClient ? 'Explore developers and projects' : 'Explore projects and clients');
-    exploreMenu.hidden = true;
-    exploreItems.forEach(item => {
-      const link = document.createElement('a');
-      link.className = 'mobile-explore-menu__item';
-      link.href = item.href;
-      link.dataset.mobileNavKey = 'explore';
-      link.setAttribute('aria-label', item.label);
-      if (item.key === activeKey) link.setAttribute('aria-current', 'page');
-      link.innerHTML = `${icons[item.icon]}<span>${item.label}</span>`;
-      exploreMenu.appendChild(link);
-    });
-    nav.appendChild(exploreMenu);
-
     document.body.classList.add('has-mobile-bottom-navigation');
     document.body.classList.toggle('mobile-bottom-nav-hidden', nav.classList.contains('is-hidden'));
     updateMobileBottomNavigationIndicator(nav, role);
@@ -259,16 +214,7 @@
   function initializeMobileBottomNavigationEvents(nav) {
     nav.addEventListener('click', event => {
       if (!(event.target instanceof Element)) return;
-      const exploreButton = event.target.closest('.mobile-bottom-nav__explore-button');
-      if (exploreButton) {
-        const isOpen = exploreButton.getAttribute('aria-expanded') === 'true';
-        const menu = nav.querySelector('.mobile-explore-menu');
-        exploreButton.setAttribute('aria-expanded', String(!isOpen));
-        nav.classList.toggle('is-explore-open', !isOpen);
-        if (menu) menu.hidden = isOpen;
-        return;
-      }
-      const clickedItem = event.target.closest('.mobile-bottom-nav__item, .mobile-explore-menu__item');
+      const clickedItem = event.target.closest('.mobile-bottom-nav__item');
       if (!clickedItem) return;
       if (clickedItem instanceof HTMLAnchorElement) {
         const activeItem = nav.querySelector('.mobile-bottom-nav__item.active');
@@ -284,20 +230,9 @@
           sessionStorage.removeItem(mobileNavigationTransitionKey);
         }
       }
-      closeMobileExploreMenu(nav);
       if (clickedItem instanceof HTMLButtonElement) {
         requestAnimationFrame(() => updateMobileBottomNavigationIndicator(nav, nav.dataset.workspace));
       }
-    });
-
-    document.addEventListener('click', event => {
-      if (!nav.contains(event.target)) closeMobileExploreMenu(nav);
-    });
-
-    document.addEventListener('keydown', event => {
-      if (event.key !== 'Escape' || !nav.classList.contains('is-explore-open')) return;
-      closeMobileExploreMenu(nav);
-      nav.querySelector('.mobile-bottom-nav__explore-button')?.focus();
     });
 
     const main = document.querySelector('main');
@@ -341,13 +276,11 @@
       if (directionDistance < 8) return;
 
       setMobileBottomNavigationHidden(nav, direction > 0);
-      if (direction > 0) closeMobileExploreMenu(nav);
       directionDistance = 0;
     }, {capture: true, passive: true});
 
     window.addEventListener('resize', () => {
       setMobileBottomNavigationHidden(nav, false);
-      closeMobileExploreMenu(nav);
       updateMobileBottomNavigationIndicator(nav, nav.dataset.workspace);
     });
   }
@@ -414,14 +347,6 @@
   function setMobileBottomNavigationHidden(nav, hidden) {
     nav.classList.toggle('is-hidden', hidden);
     document.body.classList.toggle('mobile-bottom-nav-hidden', hidden);
-  }
-
-  function closeMobileExploreMenu(nav) {
-    const button = nav.querySelector('.mobile-bottom-nav__explore-button');
-    const menu = nav.querySelector('.mobile-explore-menu');
-    button?.setAttribute('aria-expanded', 'false');
-    if (menu) menu.hidden = true;
-    nav.classList.remove('is-explore-open');
   }
 
   function initializeSidebarActionLabels() {
