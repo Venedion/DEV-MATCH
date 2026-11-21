@@ -311,6 +311,90 @@ async function decryptRow(row, keyring) {
   };
 }
 
+async function attachMessageProjectContexts(
+  messages,
+  rows,
+  conversation,
+  supabaseUrl,
+  serviceRoleKey
+) {
+  const projectIds = [...new Set(rows
+    .map(row => row.project_id || row.project_reference_id)
+    .filter(id => typeof id === 'string' && /^[A-Za-z0-9_-]{1,160}$/.test(id)))];
+  if (!projectIds.length) return messages;
+
+  const projects = [];
+  for (let offset = 0; offset < projectIds.length; offset += 100) {
+    const batch = projectIds.slice(offset, offset + 100);
+    projects.push(...await requestRows(supabaseUrl, serviceRoleKey, 'projects', {
+      select: 'id,owner_id,project_kind,status,title,price,cover_image',
+      id: `in.(${batch.join(',')})`
+    }));
+  }
+  const projectsById = new Map(projects.map(project => [project.id, project]));
+  const requestOwnerIds = [...new Set(projects
+    .filter(project => project.project_kind === 'request')
+    .map(project => project.owner_id)
+    .filter(id => typeof id === 'string'))];
+  const clientProfiles = requestOwnerIds.length
+    ? await requestRows(supabaseUrl, serviceRoleKey, 'directory_people', {
+        select: 'id,display_name,username',
+        id: `in.(${requestOwnerIds.join(',')})`,
+        account_role: 'eq.client'
+      })
+    : [];
+  const clientProfilesById = new Map(clientProfiles.map(profile => [profile.id, profile]));
+  return messages.map((message, index) => {
+    const row = rows[index];
+    const projectId = row.project_id || row.project_reference_id;
+    const project = projectsById.get(projectId);
+    const ownerRole = project?.owner_id === conversation.participant_a_id
+      ? conversation.participant_a_role
+      : project?.owner_id === conversation.participant_b_id
+        ? conversation.participant_b_role
+        : null;
+    const senderRole = row.sender_id === conversation.participant_a_id
+      ? conversation.participant_a_role
+      : row.sender_id === conversation.participant_b_id
+        ? conversation.participant_b_role
+        : null;
+    const expectedOwnerRole = project?.project_kind === 'portfolio'
+      ? 'dev'
+      : project?.project_kind === 'request'
+        ? 'client'
+        : null;
+    const expectedSenderRole = project?.project_kind === 'portfolio'
+      ? 'client'
+      : project?.project_kind === 'request'
+        ? 'dev'
+        : null;
+    const isAvailable = project?.id === projectId
+      && expectedOwnerRole === ownerRole
+      && expectedSenderRole === senderRole
+      && project.project_kind === row.project_kind
+      && (project.project_kind === 'portfolio' && project.status === 'published'
+        || project.project_kind === 'request' && project.status === 'open');
+    if (!isAvailable) return message;
+
+    return {
+      ...message,
+      project_context: {
+        id: project.id,
+        project_kind: project.project_kind,
+        title: project.title,
+        price: project.price,
+        cover_image: project.cover_image || null,
+        client_name: project.project_kind === 'request'
+          ? clientProfilesById.get(project.owner_id)?.display_name
+            || clientProfilesById.get(project.owner_id)?.username
+            || null
+          : null,
+        available: true
+      }
+    };
+  });
+}
+
 async function getAccount(supabaseUrl, serviceRoleKey, userId, role = null) {
   const profiles = await requestRows(supabaseUrl, serviceRoleKey, 'profiles', {
     select: 'id,account_role,onboarding_complete',
@@ -548,6 +632,9 @@ async function handleAction(body, user, keyring, supabaseUrl, serviceRoleKey, au
           category: contextProject.category,
           price: contextProject.price,
           cover_image: contextProject.cover_image,
+          client_name: contextProject.project_kind === 'request'
+            ? identity?.display_name || identity?.username || null
+            : null,
           data: contextProject.data,
           developer_name: developerName,
           available: true
@@ -556,6 +643,9 @@ async function handleAction(body, user, keyring, supabaseUrl, serviceRoleKey, au
           id: contextProjectId,
           project_kind: contextKind,
           status: 'unavailable',
+          client_name: contextKind === 'request'
+            ? identity?.display_name || identity?.username || null
+            : null,
           developer_name: contextKind === 'portfolio'
             ? workspaces.find(workspace => workspace.user_id === partnerId && workspace.role === 'dev')?.display_name
               || identity?.display_name
@@ -723,7 +813,11 @@ async function handleAction(body, user, keyring, supabaseUrl, serviceRoleKey, au
         order: 'created_at.desc',
         limit: String(MAX_MESSAGE_ROWS)
       });
-      return Promise.all(rows.reverse().map(row => decryptRow(row, keyring)));
+      const orderedRows = rows.reverse();
+      const messages = await Promise.all(orderedRows.map(row => decryptRow(row, keyring)));
+      return attachMessageProjectContexts(
+        messages, orderedRows, conversation, supabaseUrl, serviceRoleKey
+      );
     }
 
     if (body.action === 'download-attachment') {
@@ -924,7 +1018,10 @@ async function handleAction(body, user, keyring, supabaseUrl, serviceRoleKey, au
       throw new ChatApiError('Chat service returned an invalid response.');
     }
     const message = await decryptRow(rows[0], keyring);
-    return message;
+    const [messageWithProjectContext] = await attachMessageProjectContexts(
+      [message], rows, conversation, supabaseUrl, serviceRoleKey
+    );
+    return messageWithProjectContext;
   }
 
   throw new ChatApiError('Unsupported chat action.', 400);

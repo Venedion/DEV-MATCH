@@ -8,7 +8,8 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=optional" rel="stylesheet">
   <link rel="stylesheet" href="assets/css/dashboard.css?v=20261118-hide-favorites-nav-badge">
-  <link rel="stylesheet" href="assets/css/chat.css?v=20261121-chat-rollback">
+  <link rel="stylesheet" href="assets/css/chat.css?v=20261121-project-reply-context-v2">
+  <link rel="stylesheet" href="assets/css/project-detail-popup.css?v=20261120-popup-detail">
   <link rel="stylesheet" href="assets/css/client-shell.css?v=20261030-header-size-match">
   <link rel="stylesheet" href="assets/css/mode-switch-animation.css?v=20261030-client-mode-route">
   <link rel="stylesheet" href="assets/css/mobile-navigation.css?v=20261121-chat-header-right-align-v4">
@@ -128,10 +129,6 @@
         </div>
 
         <div class="chat-header-actions">
-          <a class="chat-action-btn" id="viewProjectBtn" href="#" target="_blank">
-            <svg viewBox="0 0 24 24"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
-            <span>Project</span>
-          </a>
           <a class="chat-action-btn whatsapp-btn" id="activeWhatsAppBtn" href="#" target="_blank" rel="noopener noreferrer" aria-label="WhatsApp">
             <svg viewBox="0 0 24 24"><path transform="translate(3.6 3.6) scale(.7)" d="M17.5 14.4c-.3-.1-1.8-.9-2.1-1-.3-.1-.5-.1-.7.1s-.8 1-.9 1.2c-.2.2-.4.2-.7.1s-1.3-.5-2.5-1.5c-.9-.8-1.5-1.8-1.7-2.1-.2-.3 0-.5.1-.7.1-.1.3-.3.4-.5.1-.2.2-.3.3-.5s0-.4-.1-.5c-.1-.1-.7-1.7-1-2.3-.3-.6-.5-.5-.7-.5h-.6c-.2 0-.6.1-.9.4s-1.2 1.2-1.2 2.9 1.2 3.4 1.4 3.6c.2.2 2.4 3.7 5.8 5.1 3.4 1.4 3.4.9 4 .9.6 0 2-.8 2.3-1.6.3-.8.3-1.5.2-1.6-.1-.1-.3-.2-.6-.3z"/><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm0 18.2c-1.6 0-3.1-.4-4.4-1.2l-.3-.2-3.3.9.9-3.2-.2-.4a8.2 8.2 0 1 1 7.3 4.1z"/></svg>
             <span class="wa-text">WhatsApp</span>
@@ -141,44 +138,6 @@
           </button>
         </div>
       </header>
-
-      <!-- Sticky Project Context Banner -->
-      <aside class="chat-project-banner" id="activeProjectBanner" hidden>
-        <div class="chat-project-thumbnail" id="activeProjectThumbnail">
-          <img id="activeProjectImage" alt="" hidden>
-          <span aria-hidden="true">Project</span>
-        </div>
-        <div class="chat-project-banner-info">
-          <span class="chat-project-category" id="activeProjectCategory"></span>
-          <strong id="activeProjectTitle"></strong>
-          <span class="chat-project-price" id="activeProjectPrice"></span>
-        </div>
-        <a class="chat-project-banner-link" id="viewProjectLink" href="#" target="_blank">View details</a>
-      </aside>
-      <section class="chat-engagement-card" id="projectEngagementPanel" aria-labelledby="engagementHeading" hidden>
-        <div class="chat-engagement-header">
-          <div>
-            <h2 id="engagementHeading">Project completion</h2>
-            <p id="engagementStatus" role="status" aria-live="polite">Both participants must confirm completion before reviews are available.</p>
-          </div>
-          <button class="chat-engagement-confirm" id="confirmProjectCompletion" type="button">Confirm project completion</button>
-        </div>
-        <form class="chat-review-form" id="projectReviewForm" hidden>
-          <label for="projectReviewRating">Your rating</label>
-          <select id="projectReviewRating" required>
-            <option value="">Choose a rating</option>
-            <option value="5">5 — Excellent</option>
-            <option value="4">4 — Good</option>
-            <option value="3">3 — Okay</option>
-            <option value="2">2 — Poor</option>
-            <option value="1">1 — Very poor</option>
-          </select>
-          <label for="projectReviewText">Review (optional)</label>
-          <textarea id="projectReviewText" maxlength="2000" rows="3" placeholder="Share a few details about working together."></textarea>
-          <button class="chat-engagement-submit" type="submit">Submit review</button>
-        </form>
-        <p class="chat-review-message" id="projectReviewMessage" role="status" aria-live="polite" hidden></p>
-      </section>
 
       <!-- Messages Thread -->
       <section class="chat-thread-container" id="chatThreadContainer" aria-label="Message history">
@@ -269,7 +228,8 @@
     </aside>
   </div>
 
-  <script src="assets/js/chat.js?v=20261121-chat-client-workspace-icon-v1"></script>
+  <script src="assets/js/chat.js?v=20261121-request-reply-fixed-v2"></script>
+  <script src="assets/js/project-detail-popup.js?v=20261120-popup-detail"></script>
   <script src="assets/js/nav-behavior.js?v=20261120-mobile-bottom-nav-v4"></script>
 </body>
 </html>

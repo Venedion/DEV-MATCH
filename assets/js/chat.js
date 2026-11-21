@@ -72,6 +72,7 @@
   let presenceReady = false;
   let isSending = false;
   let selectedAttachment = null;
+  let projectDetailsPromise = null;
 
   function setStatus(message, isError = false) {
     if (!statusEl) return;
@@ -219,6 +220,8 @@
       price: project.price,
       coverImage: safeProjectCover(project.cover_image),
       developerName: project.developer_name || '',
+      clientName: project.client_name || '',
+      clientInitials: initials(project.client_name || ''),
       summary: project.data?.overview || project.data?.description || '',
       project_kind: projectKind,
       ownerId: project.owner_id,
@@ -227,8 +230,51 @@
     };
   }
 
+  function renderProjectReplyContext(project, cancellable = false, clickable = false, allowProjectDetails = false) {
+    if (!project?.available) return '';
+    const isRequest = project.project_kind === 'request';
+    const isPortfolio = project.project_kind === 'portfolio';
+    const requestTitle = project.title || 'Project request';
+    const projectTitle = project.title || 'Project';
+    const isClickable = clickable && (isRequest || (isPortfolio && allowProjectDetails));
+    const contextTag = isClickable ? 'button' : 'div';
+    const contextAttributes = isClickable
+      ? isRequest
+        ? `type="button" class="chat-project-reply-context chat-project-reply-open"
+            data-chat-request-detail="${escapeHtml(project.id)}"
+            data-chat-request-title="${escapeHtml(requestTitle)}"
+            aria-label="View request details: ${escapeHtml(requestTitle)}"`
+        : `type="button" class="chat-project-reply-context chat-project-reply-open"
+            data-chat-project-detail="${escapeHtml(project.id)}"
+            data-chat-project-title="${escapeHtml(projectTitle)}"
+            aria-label="View project details: ${escapeHtml(projectTitle)}"`
+      : 'class="chat-project-reply-context"';
+    const thumbnail = isRequest
+      ? `<span class="chat-client-reply-avatar" aria-hidden="true">${escapeHtml(project.clientInitials || 'CL')}</span>`
+      : project.coverImage
+        ? `<img src="${escapeHtml(project.coverImage)}" alt="">`
+        : '<span aria-hidden="true">Project</span>';
+    return `<${contextTag} ${contextAttributes}>
+      <div class="chat-project-reply-thumbnail">${thumbnail}</div>
+      <div class="chat-project-reply-info">
+        <strong>${escapeHtml(project.title || 'Project')}</strong>
+        <small>${escapeHtml(isRequest && project.clientName
+          ? `${project.clientName} · ${project.price || ''}`
+          : project.price || '')}</small>
+      </div>
+      ${cancellable ? '<button class="chat-project-reply-cancel" type="button" data-cancel-project-reply aria-label="Cancel project reply">×</button>' : ''}
+    </${contextTag}>`;
+  }
+
   function mapConversation(row, projects) {
-    const existing = conversations.find(item => item.id === row.id);
+    const sourceConversationIds = Array.isArray(row.source_conversations)
+      ? row.source_conversations.map(source => source.id).filter(Boolean)
+      : [row.id];
+    const existing = conversations.find(item =>
+      item.id === row.id
+      || sourceConversationIds.includes(item.id)
+      || item.sourceConversationIds.includes(row.id)
+    );
     const otherId = row.participant_a_id === currentUser.id
       ? row.participant_b_id
       : row.participant_a_id;
@@ -237,8 +283,11 @@
     const projectRow = row.project_context || projects.get(contextProjectId);
     const projectKind = projectRow?.project_kind
       || null;
-    const project = projectRow
-      ? mapProject(projectRow, projectKind)
+    const projectForMap = projectRow && projectKind === 'request'
+      ? {...projectRow, client_name: projectRow.client_name || person?.display_name || person?.username || ''}
+      : projectRow;
+    const project = projectForMap
+      ? mapProject(projectForMap, projectKind)
       : contextProjectId
         ? mapProject({id: contextProjectId, project_kind: projectKind, available: false}, projectKind)
         : null;
@@ -253,9 +302,7 @@
       myRole: row.participant_a_id === currentUser.id
         ? row.participant_a_role
         : row.participant_b_role,
-      sourceConversationIds: Array.isArray(row.source_conversations)
-        ? row.source_conversations.map(source => source.id).filter(Boolean)
-        : [row.id],
+      sourceConversationIds,
       name: person?.username || person?.display_name || 'Unavailable account',
       initials: initials(person?.username || person?.display_name),
       role: person?.account_role === 'client' ? 'Client' : person?.account_role === 'dev' ? 'Developer' : 'Account',
@@ -328,8 +375,19 @@
     const projectsById = new Map();
     conversations = rows.map(row => mapConversation(row, projectsById));
     syncPresenceChannels();
-    if (!conversations.some(conversation => conversation.id === activeConvId)) {
-      activeConvId = null;
+    if (activeConvId) {
+      const activeConversation = conversations.find(conversation =>
+        conversation.id === activeConvId
+        || conversation.sourceConversationIds.includes(activeConvId)
+      );
+      if (activeConversation) {
+        if (activeConversation.id !== activeConvId) {
+          activeConvId = activeConversation.id;
+          updateConversationQuery(activeConvId);
+        }
+      } else {
+        activeConvId = null;
+      }
     }
     updateUnreadCounts();
     renderConversationsList();
@@ -563,8 +621,19 @@
       const readReceipt = isSent && message.read_at
         ? '<span class="chat-msg-read-receipt" aria-label="Read">Read</span>'
         : '';
-      const bubble = message.text
-        ? `<div class="chat-msg-bubble">${escapeHtml(message.text).replace(/\n/g, '<br>')}</div>`
+      const projectContext = message.project_context?.available === true
+        ? renderProjectReplyContext(
+            mapProject(message.project_context),
+            false,
+            true,
+            true
+          )
+        : '';
+      const messageText = message.text
+        ? escapeHtml(message.text).replace(/\n/g, '<br>')
+        : '';
+      const bubble = projectContext || messageText
+        ? `<div class="chat-msg-bubble">${projectContext}${projectContext && messageText ? '<div class="chat-project-reply-divider" aria-hidden="true"></div>' : ''}${messageText}</div>`
         : '';
       return `${dateSeparator}
         <div class="chat-msg-row ${isSent ? 'sent' : 'received'}">
@@ -581,11 +650,39 @@
           </div>
         </div>`;
     }).join('');
+    const pendingProject = (isDraft || conversation.messageProjectId) ? project : null;
+    const projectReplyPreview = renderProjectReplyContext(pendingProject, true);
+    const projectReplyDraft = projectReplyPreview
+      ? `<div class="chat-msg-row sent chat-project-reply-draft">
+          <div class="chat-msg-content">
+            <div class="chat-msg-body-row">
+              <div class="chat-msg-body">
+                <div class="chat-msg-bubble">${projectReplyPreview}</div>
+              </div>
+            </div>
+          </div>
+        </div>`
+      : '';
     if (chatMessagesEl) {
-      chatMessagesEl.innerHTML = messagesHtml || '<p class="chat-conv-empty">No messages yet. Send the first message.</p>';
+      chatMessagesEl.innerHTML = `${messagesHtml || '<p class="chat-conv-empty">No messages yet. Send the first message.</p>'}${projectReplyDraft}`;
       scrollThreadToBottom();
     }
     updateDetailPaneVisibility();
+  }
+
+  function cancelProjectReply() {
+    const conversation = getActiveConversation();
+    if (!conversation) return;
+    conversation.messageProjectId = null;
+    if (conversation === pendingConversationDraft) {
+      conversation.projectId = null;
+      conversation.sourceProject = null;
+      conversation.project = null;
+      updateConversationQuery(null);
+    } else {
+      updateConversationQuery(conversation.id);
+    }
+    renderMessagesThread();
   }
 
   function updateDetailPaneVisibility() {
@@ -684,8 +781,17 @@
     if (!Array.isArray(messages)) throw new Error('Chat service returned an invalid message list.');
     const conversation = conversations.find(item => item.id === conversationId);
     if (!conversation) return;
-    conversation.messages = messages;
-    conversation.lastMessage = messages[messages.length - 1] || null;
+    const knownProjectContexts = new Map(
+      conversation.messages
+        .filter(message => message.project_context?.available === true)
+        .map(message => [message.id, message.project_context])
+    );
+    conversation.messages = messages.map(message => {
+      if (message.project_context?.available === true) return message;
+      const projectContext = knownProjectContexts.get(message.id);
+      return projectContext ? {...message, project_context: projectContext} : message;
+    });
+    conversation.lastMessage = conversation.messages[conversation.messages.length - 1] || null;
     if (conversation.lastMessage?.sender_id !== currentUser.id && conversationId !== activeConvId) {
       if (!wasReadAfterLastMessage(conversation)) conversation.unreadCount = 1;
     }
@@ -784,7 +890,12 @@
     renderConversationsList();
     renderMessagesThread();
     void refreshProjectEngagement(conversation).then(() => {
-      if (!focusReview || id !== activeConvId) return;
+      if (
+        !focusReview
+        || id !== activeConvId
+        || !elements.projectReviewForm
+        || !elements.engagementStatus
+      ) return;
       const reviewAvailable = !elements.projectReviewForm.hidden;
       const focusTarget = reviewAvailable ? elements.projectReviewForm : elements.engagementStatus;
       focusTarget.scrollIntoView({behavior: 'smooth', block: 'center'});
@@ -811,10 +922,47 @@
     const draftProject = conversation.sourceProject;
     const messageProjectId = conversation.messageProjectId
       || (isDraft && conversation.project ? conversation.projectId : null);
+    const projectForMessage = draftProject
+      ? mapProject(draftProject)
+      : conversation.project;
+    const optimisticId = plainText ? `temp-${crypto.randomUUID?.() || Date.now()}` : null;
+    let optimisticConversation = conversation;
+    let previousLastMessage = conversation.lastMessage;
+    let optimisticMessage = null;
+    if (optimisticId) {
+      optimisticMessage = {
+        id: optimisticId,
+        conversation_id: conversation.id,
+        sender_id: currentUser.id,
+        text: plainText,
+        attachments: [],
+        created_at: new Date().toISOString(),
+        read_at: null,
+        ...(messageProjectId ? {
+          project_context: projectForMessage?.available
+            ? {
+                id: projectForMessage.id,
+                project_kind: projectForMessage.project_kind,
+                title: projectForMessage.title,
+                price: projectForMessage.price,
+                cover_image: projectForMessage.coverImage || null,
+                client_name: projectForMessage.clientName || null,
+                available: true
+              }
+            : undefined
+        } : {})
+      };
+      conversation.messages.push(optimisticMessage);
+      conversation.lastMessage = optimisticMessage;
+      renderConversationsList();
+      renderMessagesThread();
+      scrollThreadToBottom();
+      setStatus('Sending…');
+    }
     isSending = true;
     if (sendBtnEl) sendBtnEl.disabled = true;
     if (attachButtonEl) attachButtonEl.disabled = true;
-    setStatus('Encrypting and sending…');
+    if (!optimisticId) setStatus('Encrypting and sending…');
     try {
       if (isDraft) {
         const row = conversation.projectId
@@ -829,19 +977,42 @@
           username: conversation.contactUsername,
           display_name: conversation.contactDisplayName
         };
-        conversation = conversations.find(item => item.id === row.id)
+        conversation = conversations.find(item =>
+          item.id === row.id || item.sourceConversationIds.includes(row.id)
+        )
           || mapConversation(
             {...row, project_id: conversation.projectId || row.project_id, contact, source_conversations: [{id: row.id, my_role: row.participant_a_id === currentUser.id
               ? row.participant_a_role
               : row.participant_b_role}]},
             new Map([[conversation.projectId, conversation.sourceProject]])
           );
+        if (!conversations.some(item => item.id === conversation.id)) {
+          conversations.unshift(conversation);
+        }
         if (messageProjectId) {
           conversation.messageProjectId = messageProjectId;
           conversation.project = draftProject
               ? mapProject(draftProject)
               : conversation.project;
         }
+        if (optimisticMessage && optimisticConversation !== conversation) {
+          optimisticConversation.messages = optimisticConversation.messages.filter(
+            item => item.id !== optimisticId
+          );
+          optimisticConversation.lastMessage = null;
+          if (!conversation.messages.some(item => item.id === optimisticId)) {
+            previousLastMessage = conversation.lastMessage;
+            optimisticMessage.conversation_id = conversation.id;
+            conversation.messages.push(optimisticMessage);
+            conversation.lastMessage = optimisticMessage;
+          }
+          optimisticConversation = conversation;
+        }
+        pendingConversationDraft = null;
+        activeConvId = conversation.id;
+        updateConversationQuery(conversation.id);
+        renderConversationsList();
+        renderMessagesThread();
       }
       const attachment = selectedAttachment
         ? {
@@ -859,7 +1030,28 @@
       if (!message || typeof message.text !== 'string' || !Array.isArray(message.attachments)) {
         throw new Error('Chat service returned an invalid message.');
       }
-      if (!conversation.messages.some(item => item.id === message.id)) {
+      if (
+        messageProjectId
+        && projectForMessage?.available
+        && projectForMessage.id === messageProjectId
+        && (message.project_context?.available !== true
+          || message.project_context.id !== messageProjectId)
+      ) {
+        message.project_context = {
+          id: projectForMessage.id,
+          project_kind: projectForMessage.project_kind,
+          title: projectForMessage.title,
+          price: projectForMessage.price,
+          cover_image: projectForMessage.coverImage || null,
+          client_name: projectForMessage.clientName || null,
+          available: true
+        };
+      }
+      if (optimisticId) {
+        const optimisticIndex = conversation.messages.findIndex(item => item.id === optimisticId);
+        if (optimisticIndex >= 0) conversation.messages.splice(optimisticIndex, 1, message);
+        else if (!conversation.messages.some(item => item.id === message.id)) conversation.messages.push(message);
+      } else if (!conversation.messages.some(item => item.id === message.id)) {
         conversation.messages.push(message);
       }
       conversation.lastMessage = message;
@@ -876,6 +1068,12 @@
       return true;
     } catch (error) {
       console.error('Unable to send chat message.', error);
+      if (optimisticId) {
+        optimisticConversation.messages = optimisticConversation.messages.filter(item => item.id !== optimisticId);
+        optimisticConversation.lastMessage = previousLastMessage;
+        renderConversationsList();
+        renderMessagesThread();
+      }
       setStatus(`${error.message || 'Unable to send this message.'} You can try again.`, true);
       return false;
     } finally {
@@ -1018,8 +1216,11 @@
 
   function replaceDraftProject(draft, project) {
     draft.projectId = project.id;
-    draft.sourceProject = project;
-    draft.project = mapProject(project);
+    const projectWithContact = project.project_kind === 'request'
+      ? {...project, client_name: draft.contactDisplayName || draft.name}
+      : project;
+    draft.sourceProject = projectWithContact;
+    draft.project = mapProject(projectWithContact);
     draft.messageProjectId = null;
   }
 
@@ -1048,7 +1249,9 @@
     }
     if (messages.length) {
       await loadConversationList();
-      let existing = conversations.find(item => item.id === row.id);
+      let existing = conversations.find(item =>
+        item.id === row.id || item.sourceConversationIds.includes(row.id)
+      );
       if (!existing) {
         existing = mapConversation(
           {...row, contact: recipient, project_id: project?.id || row.project_id},
@@ -1058,7 +1261,12 @@
       }
       if (project) {
         existing.messageProjectId = project.id;
-        existing.project = mapProject(project);
+        existing.project = mapProject({
+          ...project,
+          client_name: project.project_kind === 'request'
+            ? recipient.display_name || recipient.username || existing.contactDisplayName || existing.name
+            : ''
+        });
       }
       await selectConversation(existing.id);
       return;
@@ -1098,7 +1306,12 @@
       );
       if (existing) {
         existing.messageProjectId = project.id;
-        existing.project = mapProject(project);
+        existing.project = mapProject({
+          ...project,
+          client_name: project.project_kind === 'request'
+            ? existing.contactDisplayName || existing.name
+            : ''
+        });
         await selectConversation(existing.id);
         return;
       }
@@ -1107,17 +1320,24 @@
       if (!recipient || recipient.account_role !== recipientRole) {
         throw new Error('This project owner is not available for chat.');
       }
-      const draft = makeConversationDraft(recipient, project);
-      let existingRow;
-      try {
-        existingRow = await invokeChat('find-project', {projectId: project.id});
-      } catch (error) {
-        console.error('Unable to check for an existing project conversation.', error);
-        activateConversationDraft(draft, `${error.message || 'Unable to check existing chat.'} You can still send a message.`);
-        return;
+      if (project.project_kind === 'request') {
+        project.client_name = recipient.display_name || recipient.username || '';
       }
-      if (existingRow) await openExistingOrDraft(existingRow, recipient, project);
-      else activateConversationDraft(draft);
+      const draft = makeConversationDraft(recipient, project);
+      activateConversationDraft(draft);
+      void (async () => {
+        try {
+          const existingRow = await invokeChat('find-project', {projectId: project.id});
+          if (existingRow && getActiveConversation() === draft) {
+            await openExistingOrDraft(existingRow, recipient, project);
+          }
+        } catch (error) {
+          console.error('Unable to check for an existing project conversation.', error);
+          if (getActiveConversation() === draft) {
+            setStatus(`${error.message || 'Unable to check existing chat.'} You can still send a message.`, true);
+          }
+        }
+      })();
       return;
     }
     const contact = params.get('contact');
@@ -1145,6 +1365,32 @@
     if (requestedThread) {
       await selectConversation(requestedThread.id, {focusReview: params.get('review') === '1'});
     }
+  }
+
+  function ensureProjectDetailsLoaded() {
+    if (projectDetailsPromise) return projectDetailsPromise;
+    projectDetailsPromise = new Promise((resolve, reject) => {
+      if (typeof window.openProjectDetails === 'function') {
+        resolve();
+        return;
+      }
+      if (!document.querySelector('link[data-project-detail-styles]')) {
+        const styles = document.createElement('link');
+        styles.rel = 'stylesheet';
+        styles.href = 'assets/css/project-detail.css?v=20261120-comment-controls-font';
+        styles.dataset.projectDetailStyles = 'true';
+        document.head.append(styles);
+      }
+      const script = document.createElement('script');
+      script.src = 'assets/js/project-detail.js?v=20261120-view-replies-final';
+      script.addEventListener('load', () => {
+        if (typeof window.openProjectDetails === 'function') resolve();
+        else reject(new Error('Project detail helper did not load.'));
+      });
+      script.addEventListener('error', () => reject(new Error('Project detail assets could not be loaded.')));
+      document.body.append(script);
+    });
+    return projectDetailsPromise;
   }
 
   function updateShell(profile) {
@@ -1249,6 +1495,38 @@
       setStatus('Attachment ready. Files are encrypted before storage.');
     });
     chatMessagesEl?.addEventListener('click', event => {
+      const cancelButton = event.target.closest('[data-cancel-project-reply]');
+      if (cancelButton && chatMessagesEl.contains(cancelButton)) {
+        event.preventDefault();
+        cancelProjectReply();
+        return;
+      }
+      const requestButton = event.target.closest('[data-chat-request-detail]');
+      if (requestButton && chatMessagesEl.contains(requestButton)) {
+        event.preventDefault();
+        if (typeof window.openProjectRequestDetails !== 'function') {
+          setStatus('Request details are unavailable. Please try again.', true);
+          return;
+        }
+        window.openProjectRequestDetails(
+          requestButton.dataset.chatRequestDetail,
+          requestButton.dataset.chatRequestTitle
+        );
+        return;
+      }
+      const projectButton = event.target.closest('[data-chat-project-detail]');
+      if (projectButton && chatMessagesEl.contains(projectButton)) {
+        event.preventDefault();
+        void ensureProjectDetailsLoaded().then(() => {
+          window.openProjectDetails(
+            projectButton.dataset.chatProjectDetail
+          );
+        }).catch(error => {
+          console.error('Unable to open project details.', error);
+          setStatus(error.message || 'Project details are unavailable. Please try again.', true);
+        });
+        return;
+      }
       const button = event.target.closest('[data-chat-download]');
       if (button && chatMessagesEl.contains(button)) void downloadAttachment(button);
     });

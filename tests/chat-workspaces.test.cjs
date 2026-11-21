@@ -12,12 +12,12 @@ const projectPairKey=(userRole,projectId=null)=>{
   const projectKey=projectId==null?'0:':`${Array.from(projectId).length}:${projectId}`;
   return `${A}:${userRole}:${B}:${peerRole}:${projectKey}`;
 };
-function setup({existingProjectConversation=null,includeChildThread=false,includeDuplicateProjectRoot=false,includeDeveloperMessage=false,includeDeletedPortfolioMessage=false,includePortfolioMessage=false,requestStatus='open',currentUserId=A,portfolioOwnerId=B}={}){
+function setup({existingProjectConversation=null,includeChildThread=false,includeDuplicateProjectRoot=false,includeDeveloperMessage=false,includeDeletedPortfolioMessage=false,includePortfolioMessage=false,requestStatus='open',currentUserId=A,portfolioOwnerId=B,requestOwnerId=B,childMessageSenderId=B}={}){
   const calls=[];
   const conversation={id:C,participant_a_id:A,participant_b_id:B,participant_a_role:'client',participant_b_role:'dev',project_id:null,pair_key:`${A}:${B}`,workspace_pair_key:projectPairKey('client'),merged_into:null,created_at:'2026-01-02T03:00:00.000Z',is_primary:false,messages:[]};
   const developerConversation={id:D,participant_a_id:A,participant_b_id:B,participant_a_role:'dev',participant_b_role:'client',project_id:null,pair_key:`${A}:${B}`,workspace_pair_key:projectPairKey('dev'),merged_into:null,created_at:'2026-01-02T03:00:00.000Z',is_primary:false,messages:[]};
   const childId=CHILD;
-  const childMessage={id:'dddddddd-dddd-4ddd-8ddd-dddddddddddd',conversation_id:childId,sender_id:B,ciphertext:'old child message',nonce:'1234567890123456',key_version:1,created_at:'2026-01-02T03:04:05.000Z',read_at:null,project_id:'request-project',project_reference_id:'request-project',project_kind:'request'};
+  const childMessage={id:'dddddddd-dddd-4ddd-8ddd-dddddddddddd',conversation_id:childId,sender_id:childMessageSenderId,ciphertext:'old child message',nonce:'1234567890123456',key_version:1,created_at:'2026-01-02T03:04:05.000Z',read_at:null,project_id:'request-project',project_reference_id:'request-project',project_kind:'request'};
   const developerMessage={id:'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee',conversation_id:D,sender_id:B,ciphertext:'developer workspace message',nonce:'1234567890123456',key_version:1,created_at:'2026-01-02T03:05:05.000Z',read_at:null};
   if(includeDeveloperMessage)developerConversation.messages=[developerMessage];
   const deletedPortfolioMessage={id:'ffffffff-ffff-4fff-8fff-ffffffffffff',conversation_id:C,sender_id:A,ciphertext:'old portfolio reference',nonce:'1234567890123456',key_version:1,created_at:'2026-01-02T03:06:05.000Z',read_at:null,project_id:null,project_reference_id:'deleted-portfolio',project_kind:'portfolio'};
@@ -42,7 +42,7 @@ function setup({existingProjectConversation=null,includeChildThread=false,includ
       rows=[{id:'portfolio-project-2',owner_id:B,project_kind:'portfolio',status:'published',title:'Second portfolio',category:'Mobile app',price:'Rp 2.000.000'}];
     }
     if(u.pathname.endsWith('/projects')&&(u.searchParams.get('id')==='eq.request-project'||u.searchParams.get('id')?.includes('request-project'))){
-      rows=[{id:'request-project',owner_id:B,project_kind:'request',status:requestStatus,title:'Private request title',price:'Private request budget'}];
+      rows=[{id:'request-project',owner_id:requestOwnerId,project_kind:'request',status:requestStatus,title:'Private request title',price:'Private request budget'}];
     }
     if(u.pathname.endsWith('/projects')&&u.searchParams.get('id')==='eq.closed-request'){
       rows=[{id:'closed-request',owner_id:B,project_kind:'request',status:'closed'}];
@@ -167,10 +167,55 @@ test('A legacy notification link to a merged child resolves to the parent thread
   assert.equal(messages[0].conversation_id,'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb');
   assert.equal(x.decryptContexts.at(-1).conversationId,'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb');
 });
-test('List messages do not expose per-message project card context',async()=>{
-  const x=setup({includeDeletedPortfolioMessage:true});
+test('List messages expose only minimal context for an available participant-owned portfolio',async()=>{
+  const x=setup({includePortfolioMessage:true});
   const messages=await x.run({action:'list-messages',workspaceRole:'client',conversationId:C});
   assert.equal(Object.hasOwn(messages[0],'project_id'),false);
+  assert.deepEqual(JSON.parse(JSON.stringify(messages[0].project_context)),{
+    id:'portfolio-project',
+    project_kind:'portfolio',
+    title:'Developer portfolio',
+    price:'Rp 1.500.000',
+    cover_image:'https://yxwktllqbmhustmhdaqi.supabase.co/storage/v1/object/public/project-media/example.png',
+    client_name:null,
+    available:true
+  });
+  assert.equal(Object.hasOwn(messages[0].project_context,'owner_id'),false);
+  assert.equal(Object.hasOwn(messages[0].project_context,'category'),false);
+});
+test('List messages omit deleted and sender-owned project references',async()=>{
+  const deleted=setup({includeDeletedPortfolioMessage:true});
+  const deletedMessages=await deleted.run({action:'list-messages',workspaceRole:'client',conversationId:C});
+  assert.equal(Object.hasOwn(deletedMessages[0],'project_context'),false);
+
+  const senderOwned=setup({includePortfolioMessage:true,portfolioOwnerId:A});
+  const senderOwnedMessages=await senderOwned.run({action:'list-messages',workspaceRole:'client',conversationId:C});
+  assert.equal(Object.hasOwn(senderOwnedMessages[0],'project_context'),false);
+});
+test('List messages omit closed request references and expose open participant-owned requests',async()=>{
+  const closed=setup({includeChildThread:true,requestStatus:'closed',requestOwnerId:A});
+  const closedMessages=await closed.run({action:'list-messages',workspaceRole:'client',conversationId:C});
+  assert.equal(Object.hasOwn(closedMessages[0],'project_context'),false);
+
+  const open=setup({includeChildThread:true,requestStatus:'open',requestOwnerId:A});
+  const openMessages=await open.run({action:'list-messages',workspaceRole:'client',conversationId:C});
+  assert.deepEqual(JSON.parse(JSON.stringify(openMessages[0].project_context)),{
+    id:'request-project',
+    project_kind:'request',
+    title:'Private request title',
+    price:'Private request budget',
+    cover_image:null,
+    client_name:null,
+    available:true
+  });
+});
+test('List messages do not attach project context to a nonparticipant sender',async()=>{
+  const x=setup({
+    includeChildThread:true,
+    requestOwnerId:A,
+    childMessageSenderId:'33333333-3333-4333-8333-333333333333'
+  });
+  const messages=await x.run({action:'list-messages',workspaceRole:'client',conversationId:C});
   assert.equal(Object.hasOwn(messages[0],'project_context'),false);
 });
 test('A request linked only at message level is not exposed as thread project context',async()=>{
@@ -254,13 +299,14 @@ test('Starting a request conversation requires a developer contacting the client
 });
 test('Messages started from a portfolio retain server-validated context on the encrypted message row',async()=>{
   const x=setup();
-  await x.run({action:'send-message',workspaceRole:'client',conversationId:C,text:'First note',projectId:'portfolio-project'});
+  const message=await x.run({action:'send-message',workspaceRole:'client',conversationId:C,text:'First note',projectId:'portfolio-project'});
   const posted=x.calls.find(c=>c.u.pathname.endsWith('/messages')&&c.options.method==='POST');
   const row=JSON.parse(posted.options.body)[0];
   assert.equal(row.conversation_id,C);
   assert.equal(row.project_id,'portfolio-project');
   assert.equal(row.project_reference_id,'portfolio-project');
   assert.equal(row.project_kind,'portfolio');
+  assert.equal(message.project_context.id,'portfolio-project');
 });
 test('Two messages in one conversation retain their own project references',async()=>{
   const x=setup();

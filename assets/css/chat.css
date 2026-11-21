@@ -884,6 +884,118 @@ body.chat-body {
   border-bottom-right-radius: 3px;
 }
 
+.chat-project-reply-context {
+  display: grid;
+  grid-template-columns: 72px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  width: min(320px, 72vw);
+}
+
+.chat-project-reply-open {
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.chat-project-reply-open:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 3px;
+}
+
+.chat-msg-row.received .chat-project-reply-context {
+  width: min(320px, calc(72vw - 40px));
+}
+
+.chat-project-reply-thumbnail {
+  width: 72px;
+  height: 64px;
+  border-radius: 8px;
+  background: #e9e9eb;
+  color: #666a74;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  font-size: 10px;
+  flex: none;
+}
+
+.chat-project-reply-thumbnail img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.chat-client-reply-avatar {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: #f1b5a7;
+  color: #5b3a31;
+  display: grid;
+  place-items: center;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: .02em;
+}
+
+.chat-project-reply-info {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.chat-project-reply-info strong,
+.chat-project-reply-info small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.chat-project-reply-info strong {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.chat-project-reply-info small {
+  font-size: 12px;
+  opacity: 0.72;
+}
+
+.chat-project-reply-cancel {
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  font-size: 18px;
+  line-height: 1;
+  padding: 2px 5px;
+}
+
+.chat-project-reply-cancel:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
+}
+
+.chat-project-reply-divider {
+  height: 1px;
+  margin: 9px 0;
+}
+
+.chat-msg-row.received .chat-project-reply-divider {
+  background: #dcdce1;
+}
+
+.chat-msg-row.sent .chat-project-reply-divider {
+  background: rgba(255, 255, 255, 0.3);
+}
+
 .chat-msg-meta {
   display: flex;
   align-items: center;
