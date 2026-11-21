@@ -848,15 +848,6 @@ body.chat-body {
   min-width: 0;
 }
 
-.chat-msg-read-receipt {
-  flex: none;
-  padding-bottom: 3px;
-  color: #777b86;
-  font-size: 12px;
-  line-height: 1;
-  white-space: nowrap;
-}
-
 .chat-msg-row.sent .chat-msg-content {
   align-items: flex-end;
 }

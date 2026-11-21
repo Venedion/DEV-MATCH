@@ -618,9 +618,6 @@
           <span class="chat-attachment-info"><b>${escapeHtml(attachment.name)}</b>
           <small>${escapeHtml(formatFileSize(attachment.size))}</small></span>
         </button>`).join('');
-      const readReceipt = isSent && message.read_at
-        ? '<span class="chat-msg-read-receipt" aria-label="Read">Read</span>'
-        : '';
       const projectContext = message.project_context?.available === true
         ? renderProjectReplyContext(
             mapProject(message.project_context),
@@ -639,14 +636,15 @@
         <div class="chat-msg-row ${isSent ? 'sent' : 'received'}">
           ${!isSent ? `<div class="chat-msg-avatar ${escapeHtml(conversation.color)}">${escapeHtml(conversation.initials)}</div>` : ''}
           <div class="chat-msg-content">
-            ${readReceipt}
             <div class="chat-msg-body-row">
               <div class="chat-msg-body">
                 ${bubble}
                 ${attachmentCards}
               </div>
             </div>
-            <div class="chat-msg-meta"><span>${escapeHtml(formatTime(message.created_at))}</span>${isSent && !message.read_at ? `<span>${Date.parse(conversation.peerReadAt || 0) >= Date.parse(message.created_at) ? "Read ✓✓" : "Sent ✓"}</span>` : ""}</div>
+            <div class="chat-msg-meta"><span>${escapeHtml(formatTime(message.created_at))}</span>${isSent
+              ? `<span class="chat-msg-checks" aria-label="${message.read_at || Date.parse(conversation.peerReadAt || 0) >= Date.parse(message.created_at) ? 'Read' : 'Sent'}">${message.read_at || Date.parse(conversation.peerReadAt || 0) >= Date.parse(message.created_at) ? 'Read ✓✓' : 'Sent ✓'}</span>`
+              : ''}</div>
           </div>
         </div>`;
     }).join('');

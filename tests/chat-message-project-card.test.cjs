@@ -103,6 +103,17 @@ test('Initial message loading uses a 75-message limit, cursor pagination, and de
   assert.match(chat,/activityTimer=setInterval\(\(\)=>void syncActivity\(\),30000\)/);
 });
 
+test('Sent message status appears below the bubble with read double checks',()=>{
+  const chat=fs.readFileSync('assets/js/chat.js','utf8');
+  const css=fs.readFileSync('assets/css/chat.css','utf8');
+  assert.doesNotMatch(chat,/chat-msg-read-receipt/);
+  assert.doesNotMatch(css,/chat-msg-read-receipt/);
+  assert.match(chat,/chat-msg-meta/);
+  assert.match(chat,/Read ✓✓/);
+  assert.match(chat,/Sent ✓/);
+  assert.match(chat,/chat-msg-checks/);
+});
+
 test('Message API only returns available project context owned by a participant with the expected role',()=>{
   const chat=fs.readFileSync('assets/js/chat.js','utf8');
   const api=fs.readFileSync('supabase/functions/chat-api/index.ts','utf8');
