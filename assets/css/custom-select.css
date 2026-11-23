@@ -13,5 +13,5 @@
 .custom-select-option{min-height:36px;position:relative;display:flex;align-items:center;padding:7px 32px 7px 10px;border-radius:7px;color:var(--ink,#171719);font-size:13px;line-height:1.4;cursor:pointer}
 .custom-select-option:hover,.custom-select-option:focus-visible{outline:0;background:#f2f2f4}
 .custom-select-option[aria-selected="true"]{background:#f2f2f4;font-weight:700}
-.custom-select-option[aria-selected="true"]:after{position:absolute;right:11px;color:var(--green,#168b4a);content:"✓";font-size:12px}
+.custom-select-option[aria-selected="true"]:after{width:14px;height:14px;position:absolute;top:50%;right:11px;background:url("../images/dropdown-check.svg") center/contain no-repeat;content:"";transform:translateY(-50%)}
 .custom-select-option[aria-disabled="true"]{opacity:.5;cursor:not-allowed}

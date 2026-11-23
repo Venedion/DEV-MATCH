@@ -341,11 +341,12 @@
 }
 
 .fav-select-menu button[aria-selected="true"]::after {
+  width: 14px;
+  height: 14px;
+  flex: none;
   margin-left: auto;
-  padding-left: 10px;
-  color: #15934f;
-  content: "✓";
-  font-size: 12px;
+  background: url("../images/dropdown-check.svg") center / contain no-repeat;
+  content: "";
 }
 
 .fav-view-controls {

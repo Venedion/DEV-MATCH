@@ -299,10 +299,12 @@
 }
 
 .search-scope-menu button[aria-selected="true"]::after {
+  width: 14px;
+  height: 14px;
+  flex: none;
   margin-left: auto;
-  color: #15934f;
-  content: "✓";
-  font-size: 12px;
+  background: url("../images/dropdown-check.svg") center / contain no-repeat;
+  content: "";
 }
 
 .search-divider {
@@ -474,10 +476,12 @@
 }
 
 .dropdown-item.selected::after {
-  content: "✓";
-  font-size: 12px;
-  color: #15934f;
+  width: 14px;
+  height: 14px;
+  flex: none;
   margin-left: 8px;
+  background: url("../images/dropdown-check.svg") center / contain no-repeat;
+  content: "";
 }
 
 /* Has Open Requests Toggle Pill (Solid dark pill) */
@@ -572,8 +576,14 @@
   padding: 20px;
   display: flex;
   flex-direction: column;
+  cursor: pointer;
   transition: transform 0.16s ease, box-shadow 0.16s ease, border-color 0.16s ease;
   position: relative;
+}
+
+.client-card:focus-visible {
+  outline: 2px solid var(--fc-ink);
+  outline-offset: 3px;
 }
 
 .client-card:hover {

@@ -28,6 +28,7 @@
 @starting-style{.sort-menu:popover-open{opacity:0;transform:translateY(-6px) scale(.98)}}
 .sort-menu button{min-height:38px;display:flex;align-items:center;width:100%;padding:0 11px;border:0;border-radius:8px;background:transparent;color:#4f5461;text-align:left;font:inherit;font-size:13px;white-space:nowrap;cursor:pointer}
 .sort-menu button:hover,.sort-menu button[aria-checked="true"]{background:#f2f3f7;color:var(--ink)}
+.sort-menu button[aria-checked="true"]::after{width:14px;height:14px;flex:none;margin-left:auto;background:url("../images/dropdown-check.svg") center/contain no-repeat;content:""}
 @media(max-width:600px){.sort-select{height:38px;gap:6px;padding:0 8px;font-size:12px}.sort-select span{max-width:93px}}
 .project-table-wrap{overflow-x:auto}
 .project-table{width:100%;border-collapse:collapse;text-align:left}

@@ -70,11 +70,13 @@
 @starting-style{.market-menu:popover-open{opacity:0;transform:translateY(-5px) scale(.985)}}
 .market-menu button{min-height:35px;display:flex;align-items:center;width:100%;padding:0 10px;border:0;border-radius:7px;background:transparent;color:#4c515d;font:500 12.5px "Plus Jakarta Sans",system-ui,sans-serif;text-align:left;white-space:nowrap;cursor:pointer}
 .market-menu button:hover,.market-menu button[aria-checked="true"]{background:#f1f2f5;color:var(--market-ink)}
+.market-menu button[aria-checked="true"]>svg{display:block;width:14px;height:14px;flex:none;margin-left:auto;fill:none;stroke:currentColor;stroke-linecap:round;stroke-linejoin:round;stroke-width:2}
 .budget-menu{width:auto;overflow:visible;transform-origin:left center;transition:width .24s ease,opacity .18s ease,transform .18s ease,display .18s allow-discrete,overlay .18s allow-discrete}
 .budget-menu:popover-open{display:flex;align-items:center;gap:12px;padding:9px}
 .budget-menu-options{display:grid;flex:0 0 145px;gap:2px}
 .budget-menu-options button{min-height:37px}
 .budget-menu-options button[aria-pressed="true"]{background:#f1f2f5;color:var(--market-ink);font-weight:700}
+.budget-menu-options button[aria-pressed="true"]::after{width:14px;height:14px;flex:none;margin-left:auto;background:url("../images/dropdown-check.svg") center/contain no-repeat;content:""}
 .budget-menu-values{display:flex;flex:1;min-width:0;flex-direction:column;padding:4px 2px}
 .budget-menu-values[hidden],.budget-range-values[hidden]{display:none}
 .budget-menu-values label{display:grid;gap:5px;color:#59606b;font-size:11px;font-weight:700}

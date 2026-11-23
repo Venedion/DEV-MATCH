@@ -367,7 +367,7 @@
         const clientProfileUrl = `devmatch-client-profile.html?client=${encodeURIComponent(client.id)}&from=find-clients`;
 
         return `
-          <article class="client-card" data-client-id="${escapeHtml(client.id)}">
+          <article class="client-card" data-client-id="${escapeHtml(client.id)}" data-profile-url="${escapeHtml(clientProfileUrl)}" tabindex="0" aria-label="View ${escapeHtml(client.name)} profile">
             <div class="client-card-top">
               <div class="client-profile-group">
                 <a class="client-avatar-badge" href="${clientProfileUrl}" aria-label="View ${escapeHtml(client.name)} profile">${escapeHtml(client.initials)}</a>
@@ -762,6 +762,18 @@
           openClientRequestsModal(id);
           return;
         }
+
+        const card = e.target.closest('.client-card');
+        if (card && !e.target.closest('a, button, input, select, textarea')) {
+          window.location.assign(card.dataset.profileUrl);
+        }
+      });
+
+      clientsGrid.addEventListener('keydown', e => {
+        const card = e.target.closest('.client-card');
+        if (!card || e.target !== card || e.key !== 'Enter') return;
+        e.preventDefault();
+        window.location.assign(card.dataset.profileUrl);
       });
     }
 
