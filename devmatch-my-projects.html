@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="assets/css/dashboard.css?v=20261118-hide-favorites-nav-badge">
-  <link rel="stylesheet" href="assets/css/my-projects.css?v=20261123-no-ring-select-v1">
+  <link rel="stylesheet" href="assets/css/my-projects.css?v=20261124-preview-dialog-unified-v1">
   <link rel="stylesheet" href="assets/css/mode-switch-animation.css?v=20261030-active-indicator">
   <link rel="stylesheet" href="assets/css/mobile-navigation.css?v=20261123-notification-badge-v1">
   <link rel="stylesheet" href="assets/css/arrow-motion.css?v=20261118-arrow-motion-global-v2">
@@ -208,27 +208,11 @@
     </section>
   </main>
 
-  <dialog class="project-preview-dialog" id="projectPreviewDialog" aria-labelledby="previewDialogTitle">
-    <header class="preview-dialog-header"><div><span class="eyebrow">Project overview</span><p>Preview how this project will appear to clients.</p></div><button class="icon-button" type="button" aria-label="Close preview" data-close-preview>×</button></header>
-    <article class="full-project-preview">
-      <div class="full-preview-media" id="previewThumb"><span class="preview-type" id="previewDialogType">Project type</span><div class="full-preview-art" aria-hidden="true"><span></span><i></i><b></b></div></div>
-      <div class="full-preview-content">
-        <div class="full-preview-category" id="previewCategory">Project category</div>
-        <h2 id="previewDialogTitle">Untitled project</h2>
-        <p class="full-preview-description" id="previewDialogDescription">Your project description will appear here.</p>
-        <a class="full-preview-link" id="previewLink" hidden target="_blank" rel="noopener noreferrer"></a>
-        <div class="full-preview-price"><span id="previewDialogPriceType">Choose pricing</span><strong id="previewDialogPrice">Price not set</strong></div>
-        <section class="full-preview-services" id="previewServicesSection" hidden><h3>Included services</h3><div id="previewServices"></div></section>
-        <div class="full-preview-owner"><span class="preview-avatar" id="previewDialogAvatar">DM</span><span><b id="previewDialogOwner">Developer</b><small>Developer profile</small></span><span class="preview-demo-label">Preview</span></div>
-      </div>
-    </article>
-    <footer class="preview-dialog-footer"><p>This is a preview only. Your project won’t be published until you choose <b>Publish project</b>.</p><button class="add-project primary-add" type="button" data-edit-preview>Back to editing</button></footer>
-  </dialog>
   <a class="floating-chat" href="devmatch-chat.html" aria-label="Messages &amp; Chat" title="Open Messages &amp; Chat">
     <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5c-5 0-9 3.65-9 8.15 0 2.24 1.04 4.27 2.73 5.74L4.7 21l5.24-1.28c.67.12 1.36.18 2.06.18 5 0 9-3.65 9-8.15S17 3.5 12 3.5Z"/><circle cx="8.5" cy="11.7" r="1" fill="currentColor" stroke="none"/><circle cx="12" cy="11.7" r="1" fill="currentColor" stroke="none"/><circle cx="15.5" cy="11.7" r="1" fill="currentColor" stroke="none"/></svg>
   </a>
   <script src="assets/js/money-input.js?v=20261121-rupiah-live-format-v1"></script>
-  <script src="assets/js/my-projects.js?v=20261123-fluent-shimmer-v2"></script>
+  <script src="assets/js/my-projects.js?v=20261124-preview-dialog-unified-v2"></script>
   <script src="assets/js/nav-behavior.js?v=20261123-chat-read-v1"></script>
 <script src="assets/js/presence.js?v=20261119-global"></script>
 </body>

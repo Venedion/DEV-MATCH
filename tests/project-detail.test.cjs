@@ -71,6 +71,23 @@ test('Project detail comments show timestamp beside Reply',()=>{
   assert.match(source,/<button type="button" class="reply-link comment-system-reply"/);
 });
 
+test('Discover project detail popup separates the comments card from project details',()=>{
+  const source=fs.readFileSync('assets/js/project-detail.js','utf8');
+  const styles=fs.readFileSync('assets/css/project-detail.css','utf8');
+  const discover=fs.readFileSync('devmatch-discover-projects.html','utf8');
+  assert.match(source,/class="detail-main-stack">\s*<article class="detail-main-column">[\s\S]*?<\/article>\s*<section class="detail-section comments-section comment-system"/);
+  assert.match(source,/<h2>Comments <span id="commentCount" class="comment-system-count">0<\/span><\/h2>/);
+  assert.match(source,/id="commentsEmpty" role="status" aria-live="polite" hidden/);
+  assert.match(source,/getElementById\('commentsEmpty'\)\.hidden=comments\.length>0/);
+  assert.doesNotMatch(source,/id="commentCount"[^>]*>0<\/b>/);
+  assert.match(styles,/\.project-detail-dialog \.detail-main-stack\{display:grid;align-content:start;gap:18px;min-width:0\}/);
+  assert.match(styles,/\.project-detail-dialog \.comments-section\{margin:0;padding:24px;border:1px solid #e5e5e8;border-radius:16px;background:#fff;box-shadow:0 2px 6px #17171908\}/);
+  assert.match(styles,/\.comments-section \.comment-system-heading h2>span\.comment-system-count\{color:#171719;font-size:15px\}/);
+  assert.match(styles,/\.comments-section \.comment-reply-form\.comment-system-reply-form textarea\{min-height:108px/);
+  assert.match(discover,/assets\/css\/project-detail\.css\?v=20261123-comment-section-match-find-v2/);
+  assert.match(discover,/assets\/js\/project-detail\.js\?v=20261123-comment-section-match-find-v2/);
+});
+
 test('Every comment page loads the shared comment presentation',()=>{
   const pages=[
     'devmatch-client-dashboard.html',
@@ -334,6 +351,7 @@ test('Find and Discover project comments show live counts and use the same inlin
   const find=fs.readFileSync('assets/js/find-project-detail.js','utf8');
   const discover=fs.readFileSync('assets/js/discover-project-detail.js','utf8');
   const commonStyles=fs.readFileSync('assets/css/comment-system.css','utf8');
+  const findStyles=fs.readFileSync('assets/css/find-project-detail.css','utf8');
   const discoverStyles=fs.readFileSync('assets/css/discover-project-detail.css','utf8');
   assert.doesNotMatch(findHtml,/id="requestCommentCount"/);
   assert.match(findHtml,/id="commentsCount" class="comment-system-count"/);
@@ -341,12 +359,51 @@ test('Find and Discover project comments show live counts and use the same inlin
   assert.doesNotMatch(find,/requestCommentCount/);
   assert.match(discoverHtml,/id="commentsHeadingCount" class="comment-system-count"/);
   assert.match(commonStyles,/\.comment-system \.comment-system-heading h2>span\.comment-system-count\{display:inline/);
-  assert.match(discoverStyles,/\.comment-system\.discover-comments\{[^}]*background:#fff/);
+  assert.match(findStyles,/\.find-detail-card\.find-comments\.comment-system \.comment-system-actions\{display:grid;grid-template-columns:max-content minmax\(0,1fr\);align-items:baseline/);
+  assert.match(findStyles,/\.find-detail-card\.find-comments\.comment-system \.comment-system-action-controls\{display:contents\}/);
+  assert.match(findStyles,/\.find-detail-card\.find-comments\.comment-system \.comment-system-reply\{grid-column:2;justify-self:start;width:max-content;margin-top:0;text-align:left\}/);
+  assert.match(findStyles,/\.find-detail-card\.find-comments\.comment-system \.comment-system-view-replies\{grid-column:2;justify-self:start;width:max-content;margin-top:0;text-align:left\}/);
+  assert.match(findStyles,/\.find-detail-card\.find-comments\.comment-system \.comment-system-heading h2>span\.comment-system-count\{color:#171719;font-size:15px\}/);
+  assert.match(discoverStyles,/\.discover-detail-section\.comment-system\.discover-comments\{[^}]*padding:24px;border:1px solid #e5e5e8;border-radius:16px;background:#fff/);
+  assert.match(discoverStyles,/@media\(max-width:600px\)\{\.discover-detail-section\.comment-system\.discover-comments\{padding:18px\}\}/);
+  assert.match(discoverStyles,/\.discover-comments \.comment-system-actions\{[^}]*align-items:baseline/);
+  assert.match(discoverStyles,/\.discover-comments \.comment-system-reply\{margin-top:0\}/);
   for(const source of [find,discover]){
     assert.match(source,/function refreshProjectComments\(\)/);
     assert.match(source,/\.on\('postgres_changes',\{event:'INSERT',schema:'public',table:'comments'/);
   }
   assert.match(discover,/discover-comment-reply-form comment-system-reply-form/);
+});
+
+test('requested comment sections follow the reference card and typography styles',()=>{
+  const discoverStyles=fs.readFileSync('assets/css/discover-project-detail.css','utf8');
+  const clientStyles=fs.readFileSync('assets/css/client-dashboard.css','utf8');
+  const dashboardStyles=fs.readFileSync('assets/css/dashboard.css','utf8');
+  const findStyles=fs.readFileSync('assets/css/find-project-detail.css','utf8');
+  const profileStyles=fs.readFileSync('assets/css/developer-public-profile.css','utf8');
+  const clientHtml=fs.readFileSync('devmatch-client-dashboard.html','utf8');
+  const findHtml=fs.readFileSync('devmatch-find-project-detail.html','utf8');
+  const dashboardHtml=fs.readFileSync('devmatch-dashboard.html','utf8');
+  const profileHtml=fs.readFileSync('devmatch-developer-profile.html','utf8');
+  const profileSource=fs.readFileSync('assets/js/developer-profile.js','utf8');
+  const clientProfileSource=fs.readFileSync('assets/js/client-profile.js','utf8');
+  const requestPopupSource=fs.readFileSync('assets/js/project-detail-popup.js','utf8');
+
+  assert.match(discoverStyles,/\.discover-detail-section\.comment-system\.discover-comments \.comment-system-heading h2\{font-size:19px/);
+  assert.match(discoverStyles,/@media\(max-width:600px\)\{\.discover-detail-section\.comment-system\.discover-comments\{padding:18px\}\}/);
+  assert.match(clientHtml,/id="requestDetailCommentCount" class="comment-system-count"/);
+  assert.match(clientStyles,/#requestDetailComments\.comment-system\{padding:24px;border:1px solid #e5e5e8;border-radius:16px/);
+  assert.match(clientStyles,/\.request-detail-comments\.comment-system \.comment-system-actions\{display:grid;grid-template-columns:max-content minmax\(0,1fr\);align-items:baseline/);
+  assert.match(findHtml,/find-project-detail\.css\?v=20261124-comment-action-layout-v3/);
+  assert.match(findStyles,/\.find-project-detail-page\.is-modal-detail \.find-detail-card\.find-comments\.comment-system\{padding:24px;border:1px solid #e5e5e8;border-radius:16px/);
+  assert.match(findStyles,/@media\(max-width:600px\)\s*\{\s*\.find-project-detail-page\.is-modal-detail \.find-detail-card\.find-comments\.comment-system\{padding:18px\}/);
+  assert.match(clientProfileSource,/devmatch-find-project-detail\.html\?request=/);
+  assert.match(requestPopupSource,/devmatch-find-project-detail\.html\?request=.*&modal=1/);
+  assert.match(dashboardHtml,/<article class="panel comments-panel comment-system" id="interactions">/);
+  assert.match(dashboardStyles,/#interactions\.panel\.comment-system\{padding:24px;border-radius:16px/);
+  assert.match(profileHtml,/class="comments-panel review-list comment-system" id="commentsPanel"/);
+  assert.match(profileSource,/<h2>Comments <span class="comment-system-count">\$\{comments\.length\}<\/span><\/h2>/);
+  assert.match(profileStyles,/#commentsPanel\.comment-system \.comment-system-actions\{display:grid;grid-template-columns:max-content minmax\(0,1fr\);align-items:baseline/);
 });
 
 test('Client-owned request detail is a popup while request composition stays separate',()=>{
@@ -455,5 +512,6 @@ test('Full project editor preview opens as a dialog and leaves editing available
   assert.match(previewFunction,/previewDialog\.showModal\(\)/);
   assert.doesNotMatch(previewFunction,/editor\.hidden=true|projectsPage\.hidden=true/);
   assert.match(source,/function closeProjectPreview\(\)\{[\s\S]*previewDialog\.close\(\)/);
+  assert.match(source,/getElementById\('projectPreviewMode'\)\.addEventListener\('click',event=>\{\s*if\(event\.target===event\.currentTarget\)closeProjectPreview\(\);\s*\}\)/);
   assert.match(styles,/\.project-preview-mode\[open\]\{/);
 });

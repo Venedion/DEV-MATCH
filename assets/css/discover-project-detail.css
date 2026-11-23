@@ -183,7 +183,11 @@
 .discover-stack-copy{margin-top:10px}
 .discover-project-facts>div{min-height:36px;font-size:10px}
 .discover-comments{padding-top:16px;border-top:1px solid #e8e8ea}
-.comment-system.discover-comments{padding:0;border:0;border-radius:0;background:#fff;box-shadow:none}
+.discover-detail-section.comment-system.discover-comments{margin-top:18px;padding:24px;border:1px solid #e5e5e8;border-radius:16px;background:#fff;box-shadow:0 2px 6px #17171908}
+.discover-comments .comment-system-actions{display:grid;grid-template-columns:max-content minmax(0,1fr);align-items:baseline;column-gap:8px}
+.discover-comments .comment-system-action-controls{display:contents}
+.discover-comments .comment-system-reply{margin-top:0}
+.discover-comments .comment-system-view-replies{grid-column:2;margin-top:0}
 .discover-comments-heading{margin-bottom:11px}
 .discover-comments-heading h2{font-size:14px}
 .discover-comment-form{margin-bottom:6px}
@@ -202,3 +206,29 @@
 @media(max-width:980px){.discover-detail-layout{grid-template-columns:minmax(0,1.45fr) minmax(235px,.8fr);gap:14px}}
 @media(max-width:760px){.discover-detail-layout{grid-template-columns:1fr}.discover-detail-aside{grid-row:auto}.discover-detail-aside .discover-purchase-card{grid-row:1}.discover-detail-aside .discover-developer-card{grid-row:2}.discover-detail-disclaimer{grid-row:3}.discover-project-tabs{top:0}.discover-project-preview{height:clamp(220px,55vw,320px)}}
 @media(max-width:600px){.discover-detail-main{padding:71px 13px 30px 67px}.discover-detail-layout{gap:15px}.discover-project-preview{height:210px}.preview-browser{width:86%;height:78%}.preview-content{padding:15px}.preview-content strong{font-size:22px}.discover-project-title{font-size:22px}.discover-preview-thumbnail{width:92px;height:56px}.discover-project-meta{gap:6px}.discover-project-tabs{gap:15px}.discover-project-tabs button{font-size:10px}.discover-detail-aside .discover-purchase-card{grid-row:1}.discover-detail-aside .discover-developer-card{grid-row:2}.discover-detail-aside{grid-row:auto}.discover-project-content{grid-row:1}.discover-detail-aside{grid-row:2}.discover-project-facts>div{min-height:38px}.discover-comments-heading{align-items:center}.discover-comment-form textarea{padding:9px 10px 39px}.discover-comment-form button{right:7px}}
+@media(max-width:600px){.discover-detail-section.comment-system.discover-comments{padding:18px}}
+.discover-detail-section.comment-system.discover-comments .comment-system-heading{gap:12px;margin-bottom:14px}
+.discover-detail-section.comment-system.discover-comments .comment-system-heading h2{font-size:19px;font-weight:700;letter-spacing:-.03em}
+.discover-detail-section.comment-system.discover-comments .comment-system-heading h2>span.comment-system-count{display:inline;min-width:0;height:auto;margin-left:4px;padding:0;border:0;border-radius:0;background:transparent;color:#171719;font-size:15px;font-weight:600;letter-spacing:normal}
+.discover-detail-section.comment-system.discover-comments .comment-system-heading label,.discover-detail-section.comment-system.discover-comments .comment-system-heading select{font-size:11px}
+.discover-detail-section.comment-system.discover-comments .comment-system-heading select{max-width:125px;padding:0;border:0;background:transparent;color:#555862}
+.discover-detail-section.comment-system.discover-comments .comment-system-form{grid-template-columns:27px minmax(0,1fr);gap:10px;margin-bottom:10px}
+.discover-detail-section.comment-system.discover-comments .comment-system-form>.comment-system-avatar{width:27px;height:27px;font-size:10px}
+.discover-detail-section.comment-system.discover-comments .comment-system-form textarea{min-height:66px;padding:11px 43px 40px 12px;border-radius:10px;font-size:12px}
+.discover-detail-section.comment-system.discover-comments .comment-system-form button{right:8px;bottom:8px;min-height:0;padding:0;border-radius:50%;background:transparent;color:#626671}
+.discover-detail-section.comment-system.discover-comments .comment-system-item{grid-template-columns:27px minmax(0,1fr);gap:10px;padding:13px 0;border-top:0;border-bottom:1px solid #ededf0}
+.discover-detail-section.comment-system.discover-comments .comment-system-item>.discover-detail-avatar,.discover-detail-section.comment-system.discover-comments .comment-system-item .comment-system-avatar{width:27px;height:27px;font-size:10px}
+.discover-detail-section.comment-system.discover-comments .comment-system-author{font-size:12.5px}
+.discover-detail-section.comment-system.discover-comments .comment-system-role{font-size:9px}
+.discover-detail-section.comment-system.discover-comments .comment-system-text{font-size:15px;line-height:1.55}
+.discover-detail-section.comment-system.discover-comments .comment-system-actions{display:grid;grid-template-columns:max-content minmax(0,1fr);align-items:baseline;column-gap:8px;margin-top:7px}
+.discover-detail-section.comment-system.discover-comments .comment-system-action-controls{display:contents}
+.discover-detail-section.comment-system.discover-comments .comment-system-time{font-size:11.5px}
+.discover-detail-section.comment-system.discover-comments .comment-system-reply{grid-column:2;margin-top:0}
+.discover-detail-section.comment-system.discover-comments .comment-system-view-replies{grid-column:2;margin-top:0}
+.discover-detail-section.comment-system.discover-comments .comment-system-replies{margin-left:30px;padding-left:13px}
+.discover-detail-section.comment-system.discover-comments .comment-system-reply-form textarea{min-height:108px;padding:10px 43px 39px 10px;border-radius:9px;font-size:12px}
+.discover-detail-section.comment-system.discover-comments #commentsEmpty{padding:8px 0;font-size:13px;line-height:1.55}
+@media(max-width:600px){
+  .discover-detail-section.comment-system.discover-comments .comment-system-heading h2{font-size:18px}
+}

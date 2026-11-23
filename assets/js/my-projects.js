@@ -74,7 +74,6 @@ let currentStatus=new URLSearchParams(location.search).get('status')==='favorite
 let currentPage=1;
 let query='';
 let editingId=null;
-let previewingProject=null;
 let visibleProjects=[];
 
 function updateProjectTabIndicator(){
@@ -521,42 +520,8 @@ function closeProjectPreview(){
   if(previewDialog.open)previewDialog.close();
 }
 function openPreview(project){
-  previewingProject=project;
-  const previewMedia=document.getElementById('previewThumb');
-  const coverSource=project.coverImage||(selectedMedia.some(file=>file.type.startsWith('image/'))?previewUrls[0]:'');
-  let cover=previewMedia.querySelector('.full-preview-cover');
-  if(coverSource){
-    if(!cover){cover=document.createElement('img');cover.className='full-preview-cover';cover.alt='Project cover';previewMedia.prepend(cover)}
-    cover.src=coverSource;
-  }else if(cover)cover.remove();
-  previewMedia.classList.toggle('has-cover',Boolean(coverSource));
-  document.getElementById('previewDialogType').textContent=project.type||'Project type';
-  document.getElementById('previewCategory').textContent=project.category||'Project category';
-  document.getElementById('previewDialogTitle').textContent=project.title||'Untitled project';
-  document.getElementById('previewDialogDescription').textContent=project.description||'Add a description to help clients understand this project.';
-  document.getElementById('previewDialogPriceType').textContent=project.priceType||'Pricing not selected';
-  document.getElementById('previewDialogPrice').textContent=project.price&&project.price!=='Contact for price'?project.price:'Price not set';
-  const link=document.getElementById('previewLink');
-  let safeLink='';
-  try{
-    const parsedLink=new URL(project.link);
-    if(parsedLink.protocol==='http:'||parsedLink.protocol==='https:')safeLink=parsedLink.href;
-  }catch{}
-  link.hidden=!safeLink;
-  link.href=safeLink||'#';
-  link.textContent=safeLink?new URL(safeLink).hostname:'';
-  const services=[...new Set(project.services||[])];
-  const serviceSection=document.getElementById('previewServicesSection');
-  const serviceList=document.getElementById('previewServices');
-  serviceSection.hidden=!services.length;
-  serviceList.replaceChildren(...services.map(service=>{
-    const item=document.createElement('span');
-    item.textContent=service;
-    return item;
-  }));
-  document.getElementById('previewDialogOwner').textContent=displayName;
-  document.getElementById('previewDialogAvatar').textContent=nameParts.slice(0,2).map(part=>part[0]).join('').toUpperCase()||'DM';
-  document.getElementById('projectPreviewDialog').showModal();
+  showEditor(project);
+  showProjectPreview(previewProjectData());
 }
 
 function digitsOnly(value){
@@ -918,6 +883,9 @@ document.querySelector('[data-exit-preview]').addEventListener('click',()=>{
   editor.scrollIntoView({block:'start'});
 });
 document.querySelector('[data-close-project-preview]').addEventListener('click',closeProjectPreview);
+document.getElementById('projectPreviewMode').addEventListener('click',event=>{
+  if(event.target===event.currentTarget)closeProjectPreview();
+});
 document.querySelector('[data-publish-preview]').addEventListener('click',()=>{
   closeProjectPreview();
   saveProject('published');
@@ -948,13 +916,6 @@ mediaDropzone.addEventListener('drop',event=>{
   mediaDropzone.classList.remove('dragging');
   addMedia([...event.dataTransfer.files]);
 });
-document.querySelectorAll('[data-close-preview]').forEach(button=>button.addEventListener('click',()=>document.getElementById('projectPreviewDialog').close()));
-document.querySelector('[data-edit-preview]').addEventListener('click',()=>{
-  if(!previewingProject)return;
-  document.getElementById('projectPreviewDialog').close();
-  showEditor(previewingProject);
-});
-document.getElementById('projectPreviewDialog').addEventListener('click',event=>{if(event.target===event.currentTarget)event.currentTarget.close()});
 document.querySelector('[data-status="all"]').parentElement.addEventListener('click',event=>{
   const button=event.target.closest('[data-status]');
   if(!button)return;

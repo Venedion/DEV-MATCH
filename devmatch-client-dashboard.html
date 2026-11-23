@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="assets/css/client-dashboard.css?v=20261123-header-cleanup-v1">
+  <link rel="stylesheet" href="assets/css/client-dashboard.css?v=20261123-comment-reference-style-v1">
   <link rel="stylesheet" href="assets/css/project-detail.css?v=20261122-comment-system-v1">
   <link rel="stylesheet" href="assets/css/favorite-feedback.css?v=20261120-confirmation-undo">
   <link rel="stylesheet" href="assets/css/mode-switch-animation.css?v=20261030-active-indicator">
@@ -283,7 +283,7 @@
             <footer class="request-detail-stats"><span id="requestDetailViews"></span><span id="requestDetailSaves"></span><span id="requestDetailComments"></span></footer>
           </article>
           <section class="request-detail-comments comment-system" id="requestDetailComments">
-            <header class="comment-system-heading"><h2>Comments <span id="requestDetailCommentCount">0</span></h2><label><span class="visually-hidden">Sort comments</span><select class="request-detail-comment-sort" id="requestDetailCommentSort" aria-label="Sort comments"><option value="newest">Newest</option><option value="oldest">Oldest</option></select></label></header>
+            <header class="comment-system-heading"><h2>Comments <span id="requestDetailCommentCount" class="comment-system-count">0</span></h2><label><span class="visually-hidden">Sort comments</span><select class="request-detail-comment-sort" id="requestDetailCommentSort" aria-label="Sort comments"><option value="newest">Newest</option><option value="oldest">Oldest</option></select></label></header>
             <div id="requestDetailCommentsList" class="comment-system-list"></div>
             <p class="request-detail-comments-status" id="requestDetailCommentsStatus" role="status" aria-live="polite" hidden></p>
             <p id="requestDetailCommentsEmpty" class="comment-system-empty">No comments yet. Developer comments will appear here.</p>

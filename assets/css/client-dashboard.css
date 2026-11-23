@@ -658,6 +658,34 @@ body{font-size:16px}
 .request-detail-commenter{display:flex;align-items:center;gap:9px}
 .request-detail-commenter .request-detail-avatar{width:30px;height:30px;font-size:10px}
 .request-detail-commenter strong{font-size:12px}
+#requestDetailComments.comment-system{padding:24px;border:1px solid #e5e5e8;border-radius:16px;background:#fff;box-shadow:0 2px 6px #17171908}
+.request-detail-comments.comment-system .comment-system-heading{gap:12px;margin-bottom:14px}
+.request-detail-comments.comment-system .comment-system-heading h2{font-size:19px;font-weight:700;letter-spacing:-.03em}
+.request-detail-comments.comment-system .comment-system-heading h2>span.comment-system-count{display:inline;min-width:0;height:auto;margin-left:4px;padding:0;border:0;border-radius:0;background:transparent;color:#171719;font-size:15px;font-weight:600}
+.request-detail-comments.comment-system .comment-system-heading label,.request-detail-comments.comment-system .comment-system-heading select{font-size:11px}
+.request-detail-comments.comment-system .comment-system-heading select{padding:0;border:0;border-radius:0;background:transparent;color:#555862}
+.request-detail-comments.comment-system .comment-system-list{margin-top:0}
+.request-detail-comments.comment-system .comment-system-item{grid-template-columns:27px minmax(0,1fr);gap:10px;padding:13px 0;border-top:0;border-bottom:1px solid #ededf0}
+.request-detail-comments.comment-system .comment-system-item>.comment-profile-avatar-link .comment-system-avatar,.request-detail-comments.comment-system .comment-system-item>.comment-system-avatar{width:27px;height:27px;font-size:10px}
+.request-detail-comments.comment-system .comment-system-author{font-size:12.5px;line-height:1.35}
+.request-detail-comments.comment-system .comment-system-role{font-size:9px}
+.request-detail-comments.comment-system .comment-system-text{font-size:15px;line-height:1.55}
+.request-detail-comments.comment-system .comment-system-actions{display:grid;grid-template-columns:max-content minmax(0,1fr);align-items:baseline;column-gap:8px;margin-top:7px}
+.request-detail-comments.comment-system .comment-system-time{font-size:11.5px}
+.request-detail-comments.comment-system .comment-system-reply{grid-column:2;margin-top:0}
+.request-detail-comments.comment-system .request-detail-comment-replies-toggle{margin:0 0 0 37px;font-size:12.5px;font-weight:400}
+.request-detail-comments.comment-system .request-detail-comment-replies-toggle:not(.hide-replies-toggle)::after{left:-31px;top:-8px}
+.request-detail-comments.comment-system .comment-system-replies{margin-left:30px;padding-left:13px}
+.request-detail-comments.comment-system .comment-system-empty,.request-detail-comments.comment-system .request-detail-comment-note{font-size:13px}
+.request-detail-comments.comment-system .request-detail-comment-reply-form label{font-size:12px}
+.request-detail-comments.comment-system .request-detail-comment-reply-form textarea{min-height:108px;border-radius:9px;font-size:12px}
+.request-detail-comments.comment-system .request-detail-comment-reply-form button{width:30px;height:30px}
+@media(max-width:600px){
+  #requestDetailComments.comment-system{padding:18px}
+  .request-detail-comments.comment-system .comment-system-heading h2{font-size:18px}
+  .request-detail-comments.comment-system .request-detail-comment-replies-toggle{margin-left:37px}
+  .request-detail-comments.comment-system .comment-system-replies{margin-left:24px;padding-left:10px}
+}
 @media(max-width:1000px){.request-detail-layout{grid-template-columns:minmax(0,1fr)}.request-detail-aside{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:780px){.request-detail-page[open]{width:calc(100vw - 28px);height:calc(100dvh - 28px);padding:0 18px 20px;border-radius:15px}.request-detail-dialog-bar{height:54px;margin-right:-18px;margin-left:-18px;padding:0 18px}.request-detail-page[open] .request-detail-layout{grid-template-columns:minmax(0,1fr);gap:14px}}
 @media(max-width:480px){.request-detail-page[open]{width:calc(100vw - 16px);height:calc(100dvh - 16px);padding:0 12px 16px;border-radius:13px}.request-detail-dialog-bar{height:50px;margin-right:-12px;margin-left:-12px;padding:0 12px}}

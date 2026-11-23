@@ -236,43 +236,6 @@
 .publish-checklist li>span{width:16px;height:16px;display:grid;place-items:center;border-radius:50%;background:#f0f1f3;color:#9297a2;font-size:10px;font-weight:800}
 .publish-checklist li.complete>span{background:#e5f6ec;color:#25a35c}
 .publish-checklist li.recommended{color:#999da7}
-.project-preview-dialog{width:min(720px,calc(100vw - 32px));max-height:calc(100dvh - 32px);margin:auto;overflow:auto;padding:24px;border:1px solid var(--line);border-radius:16px;background:#fff;color:var(--ink);box-shadow:0 20px 70px #0003}
-.project-preview-dialog::backdrop{background:#10131dcc;backdrop-filter:blur(3px)}
-.preview-dialog-header{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:17px}
-.project-preview-dialog .eyebrow{color:var(--muted);font-size:11px;font-weight:700;letter-spacing:.07em;text-transform:uppercase}
-.preview-dialog-header p{margin-top:4px;color:#777d8c;font-size:13px}
-.full-project-preview{overflow:hidden;border:1px solid var(--line);border-radius:13px;background:#fff}
-.full-preview-media{height:260px;position:relative;overflow:hidden;padding:14px;background:linear-gradient(135deg,#f3e5d3,#fbf5eb)}
-.full-preview-media .preview-type{position:relative;z-index:2}
-.full-preview-cover{width:100%;height:100%;position:absolute;inset:0;z-index:1;object-fit:cover}
-.full-preview-art{width:100%;height:100%;position:absolute;inset:0;display:flex;flex-direction:column;justify-content:center;gap:12px;padding:48px 36px 18px;color:#514438}
-.full-preview-art>span{width:40%;height:12px;border-radius:10px;background:#df6c37}
-.full-preview-art>i{width:26%;height:15px;border:1px solid #d8cbb9;border-radius:10px;background:#fff}
-.full-preview-art>b{width:140px;height:140px;position:absolute;top:52px;right:9%;border:10px solid #e7d2b0;border-radius:50%;background:radial-gradient(circle at 60% 38%,#f4bf43 0 18%,#85a35d 19% 39%,#cf6640 40% 58%,#f5e8d7 59%)}
-.full-preview-content{padding:21px 24px}
-.full-preview-category{margin-bottom:7px;color:#777d8c;font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase}
-.project-preview-dialog h2{color:#252a38;font-size:23px;line-height:1.3}
-.full-preview-description{margin-top:9px;color:#626876;font-size:14px;line-height:1.65;white-space:pre-wrap;overflow-wrap:anywhere}
-.full-preview-link{display:inline-flex;max-width:100%;overflow:hidden;margin-top:10px;color:#555b68;font-size:12px;text-decoration:underline;text-overflow:ellipsis;white-space:nowrap}
-.full-preview-link[hidden]{display:none}
-.full-preview-price{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:17px;padding:13px 15px;border-radius:10px;background:#f5f5f6}
-.full-preview-price span{color:#777d8c;font-size:12px;font-weight:600}
-.full-preview-price strong{color:#252a38;font-size:17px;text-align:right}
-.full-preview-services{margin-top:19px}
-.full-preview-services[hidden]{display:none}
-.full-preview-services h3{margin-bottom:9px;color:#343741;font-size:13px}
-.full-preview-services>div{display:flex;flex-wrap:wrap;gap:7px}
-.full-preview-services>div>span{padding:6px 10px;border:1px solid #e4e5e9;border-radius:99px;background:#fff;color:#515662;font-size:11px;font-weight:600}
-.full-preview-owner{display:flex;align-items:center;gap:10px;margin-top:20px;padding-top:15px;border-top:1px solid #eceef2}
-.full-preview-owner>span:nth-child(2){display:grid;gap:2px}
-.full-preview-owner b{color:#343741;font-size:12px}
-.full-preview-owner small{color:#858a97;font-size:10px}
-.full-preview-owner .preview-avatar{width:32px;height:32px;font-size:10px}
-.preview-demo-label{margin-left:auto;padding:5px 9px;border-radius:99px;background:#f0f1f3;color:#626774;font-size:10px;font-weight:700}
-.preview-dialog-footer{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-top:15px}
-.preview-dialog-footer p{max-width:420px;color:#777d8c;font-size:11px;line-height:1.5}
-.preview-dialog-footer p b{color:#4b4f5a}
-.preview-dialog-footer .primary-add{height:40px;flex:none;padding:0 15px;font-size:13px}
 .project-preview-mode{color:var(--ink);scroll-margin-top:92px}
 .project-preview-mode:not([open]){display:none}
 .project-preview-mode[open]{width:min(1420px,calc(100vw - 80px));max-width:none;height:min(920px,calc(100dvh - 32px));max-height:none;display:block;position:fixed;inset:0;margin:auto;padding:0 24px 24px;overflow:auto;border:1px solid #dcdce0;border-radius:18px;background:#f7f7f8;box-shadow:0 28px 100px #0004}

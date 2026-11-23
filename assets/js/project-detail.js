@@ -27,43 +27,46 @@
         <div class="detail-error" id="detailError" role="alert" hidden></div>
         <div id="projectContent" hidden>
           <section class="project-detail-grid">
-            <article class="detail-main-column">
-              <div class="project-cover" id="projectCover" aria-hidden="true"></div>
-              <div class="preview-project-body">
-                <div class="preview-project-category"><span id="projectCategory"></span><span>· Published project</span></div>
-                <h1 id="projectTitle"></h1>
-                <p class="project-subtitle" id="projectSummary"></p>
-                <div class="preview-project-metrics"><span>◉ <b id="projectViews">0</b> views</span><span>♡ <b id="projectFavorites">0</b> favorites</span><span>▢ <b id="commentCount">0</b> comments</span></div>
-                <nav class="preview-project-tabs" aria-label="Project overview sections"><a href="#projectAbout">Overview</a><a href="#projectIncluded">What's included</a><span>Comments</span></nav>
-              </div>
-              <section class="detail-section" id="projectAbout">
-                <h2>About this project</h2>
-                <p id="projectOverview"></p>
-                <p id="projectStack"></p>
-              </section>
-              <section class="detail-section included-section" id="projectIncluded">
-                <h2>What's included</h2>
-                <div class="included-grid" id="projectIncludedGrid"></div>
-              </section>
-              <section class="detail-section">
-                <h2>Project details</h2>
-                <dl class="project-facts">
-                  <div><dt>Project type</dt><dd id="projectType"></dd></div>
-                  <div><dt>Category</dt><dd id="projectFactCategory"></dd></div>
-                  <div><dt>Pricing type</dt><dd id="projectPriceType">Starting from</dd></div>
-                  <div><dt>Project preview</dt><dd><a id="projectLink" target="_blank" rel="noopener noreferrer" hidden></a><span id="projectLinkUnavailable">Not provided</span></dd></div>
-                  <div><dt>Created</dt><dd id="projectCreated"></dd></div>
-                </dl>
-              </section>
+            <div class="detail-main-stack">
+              <article class="detail-main-column">
+                <div class="project-cover" id="projectCover" aria-hidden="true"></div>
+                <div class="preview-project-body">
+                  <div class="preview-project-category"><span id="projectCategory"></span><span>· Published project</span></div>
+                  <h1 id="projectTitle"></h1>
+                  <p class="project-subtitle" id="projectSummary"></p>
+                  <div class="preview-project-metrics"><span>◉ <b id="projectViews">0</b> views</span><span>♡ <b id="projectFavorites">0</b> favorites</span></div>
+                  <nav class="preview-project-tabs" aria-label="Project overview sections"><a href="#projectAbout">Overview</a><a href="#projectIncluded">What's included</a><span>Comments</span></nav>
+                </div>
+                <section class="detail-section" id="projectAbout">
+                  <h2>About this project</h2>
+                  <p id="projectOverview"></p>
+                  <p id="projectStack"></p>
+                </section>
+                <section class="detail-section included-section" id="projectIncluded">
+                  <h2>What's included</h2>
+                  <div class="included-grid" id="projectIncludedGrid"></div>
+                </section>
+                <section class="detail-section">
+                  <h2>Project details</h2>
+                  <dl class="project-facts">
+                    <div><dt>Project type</dt><dd id="projectType"></dd></div>
+                    <div><dt>Category</dt><dd id="projectFactCategory"></dd></div>
+                    <div><dt>Pricing type</dt><dd id="projectPriceType">Starting from</dd></div>
+                    <div><dt>Project preview</dt><dd><a id="projectLink" target="_blank" rel="noopener noreferrer" hidden></a><span id="projectLinkUnavailable">Not provided</span></dd></div>
+                    <div><dt>Created</dt><dd id="projectCreated"></dd></div>
+                  </dl>
+                </section>
+              </article>
               <section class="detail-section comments-section comment-system">
-                <div class="comments-heading comment-system-heading"><h2>Comments</h2><label class="sort-comments"><select aria-label="Sort comments"><option>Newest</option><option>Oldest</option></select></label></div>
+                <div class="comments-heading comment-system-heading"><h2>Comments <span id="commentCount" class="comment-system-count">0</span></h2><label class="sort-comments"><select aria-label="Sort comments"><option>Newest</option><option>Oldest</option></select></label></div>
                 <form class="comment-form comment-system-form" id="commentForm">
                   <span class="comment-avatar comment-system-avatar" id="clientInitials">CL</span>
                   <div class="comment-compose"><label class="visually-hidden" for="commentInput">Write a comment</label><textarea id="commentInput" maxlength="1000" placeholder="Ask the developer a question about this project..." required></textarea><button type="submit" aria-label="Post comment"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M22 2 11 13M22 2 15 22 11 13 2 9 22 2"/></svg></button></div>
                 </form>
                 <div class="comment-list comment-system-list" id="commentList" aria-live="polite"></div>
+                <p class="comment-system-empty" id="commentsEmpty" role="status" aria-live="polite" hidden>No comments yet. Start the conversation with the developer.</p>
               </section>
-            </article>
+            </div>
             <aside class="developer-card">
               <section class="preview-price-card">
                 <span class="preview-side-eyebrow" id="projectPriceLabel">PROJECT PRICE</span>
@@ -195,6 +198,7 @@
   }
   function renderComments(){
     document.getElementById('commentCount').textContent=String(comments.length);
+    document.getElementById('commentsEmpty').hidden=comments.length>0;
     const ordered=commentOrder==='Newest'?comments:[...comments].reverse();
     const commentIds=new Set(ordered.map(comment=>comment.id));
     const repliesByParent=new Map();
