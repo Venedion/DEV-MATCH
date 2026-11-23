@@ -1,10 +1,13 @@
 const params=new URLSearchParams(window.location.search);
 const role=params.get('role')==='client'?'client':'dev';
 const isDeveloper=role==='dev';
+const requestedStep=Number(params.get('step'));
 const draftKey='devmatch-profile-draft';
 const storedDraft=JSON.parse(sessionStorage.getItem(draftKey)||'{}');
 const cachedWorkspace=JSON.parse(localStorage.getItem('devmatch-profile-'+role)||'{}');
 const draft={...cachedWorkspace,...(storedDraft.role===role?storedDraft:{})};
+const canResumeLaterStep=['displayName','country','city','gender','birthday']
+  .every(key=>typeof draft[key]==='string'&&draft[key].trim());
 const profile={
   username:'',
   displayName:'',
@@ -25,7 +28,7 @@ const profile={
   website:'',
   instagram:''
 };
-let step=0;
+let step=canResumeLaterStep&&Number.isInteger(requestedStep)&&requestedStep>=1&&requestedStep<=4?requestedStep-1:0;
 let basicInfoValidationAttempted=false;
 let nextExperienceId=0;
 let locationRegionsByCountry={Indonesia:[],Malaysia:[],Singapore:[]};
@@ -34,6 +37,20 @@ let activeLocationGroup=null;
 let suppressLocationFocusOpen=false;
 const experienceFiles=new Map();
 const locationPickerCountries=new Set(['Indonesia','Malaysia','Singapore']);
+const industryOptions=[
+  'Food & Beverage',
+  'Retail & E-Commerce',
+  'Healthcare',
+  'Construction & Building',
+  'Hospitality & Tourism',
+  'Distribution',
+  'Finance & Business',
+  'Education',
+  'Technology & IT',
+  'Media & Entertainment',
+  'Professional Services',
+  'Personal Use'
+];
 const fields=document.getElementById('stepFields');
 const form=document.getElementById('profileForm');
 const error=document.getElementById('formError');
@@ -82,7 +99,7 @@ const content=[
         </div>
       </div>
       <div class="field"><label class="field-label" for="experience">Experience</label><select class="control" id="experience"><option value="">Choose experience</option>${['1 year','2 years','3 years','4 years','5 years','6 years','7+ years'].map(value=>`<option${profile.experience===value?' selected':''}>${value}</option>`).join('')}</select></div>`:`
-      <div class="field"><label class="field-label" for="industry">Business or industry</label><input class="control" id="industry" maxlength="80" placeholder="e.g. Food &amp; beverage" value="${escapeHtml(profile.industry)}"></div>
+      <div class="field"><label class="field-label" for="industry">Business or Industry</label><select class="control" id="industry" name="industry"><option value=""${profile.industry?'':' selected'}>Choose an industry</option>${profile.industry&&!industryOptions.includes(profile.industry)?`<option value="${escapeHtml(profile.industry)}" selected>${escapeHtml(profile.industry)}</option>`:''}${industryOptions.map(value=>`<option value="${escapeHtml(value)}"${profile.industry===value?' selected':''}>${escapeHtml(value)}</option>`).join('')}</select></div>
       <div class="field"><label class="field-label" for="project">What are you looking to build?</label><textarea class="control" id="project" maxlength="500" placeholder="A short description of your idea">${escapeHtml(profile.project)}</textarea></div>`
   },
   {
@@ -487,6 +504,10 @@ function updatePreview(){
 
 function render(){
   basicInfoValidationAttempted=false;
+  const pageUrl=new URL(location.href);
+  if(step===0)pageUrl.searchParams.delete('step');
+  else pageUrl.searchParams.set('step',String(step+1));
+  if(pageUrl.href!==location.href)history.replaceState(history.state,'',pageUrl.href);
   const current=content[step];
   document.getElementById('formTitle').textContent=current.title;
   document.getElementById('formIntro').textContent=current.intro;
@@ -617,9 +638,11 @@ document.getElementById('stepFields').addEventListener('input',event=>{
   if(entryElement&&target.dataset.experienceField){
     const entry=profile.experiences.find(item=>item.id===entryElement.dataset.experienceId);
     if(entry)entry[target.dataset.experienceField]=target.value;
+    saveProfileDraft();
     return;
   }
   if(target.id&&Object.prototype.hasOwnProperty.call(profile,target.id))profile[target.id]=target.value;
+  saveProfileDraft();
   if(target.id==='specialtyOther'&&target.dataset.validationAttempted)validateOtherSpecialty(true);
   if(target.id==='displayName'||target.id==='city'||target.id==='country'||target.id==='specialtyOther')updatePreview();
   if(step===0&&basicInfoValidationAttempted)validateBasicInfo({focus:false});
@@ -671,6 +694,7 @@ document.getElementById('stepFields').addEventListener('change',event=>{
     return;
   }
   if(target.id&&Object.prototype.hasOwnProperty.call(profile,target.id))profile[target.id]=target.value;
+  saveProfileDraft();
   updatePreview();
 });
 fields.addEventListener('scroll',event=>{
@@ -731,6 +755,7 @@ document.getElementById('stepFields').addEventListener('click',event=>{
   }
   if(addExperience){
     profile.experiences.push({id:String(++nextExperienceId),title:'',company:'',period:'',link:'',files:[]});
+    saveProfileDraft();
     render();
     return;
   }
@@ -745,6 +770,7 @@ document.getElementById('stepFields').addEventListener('click',event=>{
   if(gender){
     profile.gender=gender.dataset.gender;
     document.querySelectorAll('[data-gender]').forEach(button=>button.setAttribute('aria-pressed',String(button===gender)));
+    saveProfileDraft();
     if(step===0&&basicInfoValidationAttempted)validateBasicInfo({focus:false});
   }
   if(specialty){
@@ -766,12 +792,13 @@ document.getElementById('stepFields').addEventListener('click',event=>{
       }
       if(!otherField.hidden)document.getElementById('specialtyOther').focus();
     }
-    sessionStorage.setItem(draftKey,JSON.stringify({...draft,...profile,role}));
+    saveProfileDraft();
     updatePreview();
   }
   if(availability){
     profile.availability=availability.dataset.availability;
     document.querySelectorAll('[data-availability]').forEach(button=>button.setAttribute('aria-pressed',String(button===availability)));
+    saveProfileDraft();
     updatePreview();
   }
 });

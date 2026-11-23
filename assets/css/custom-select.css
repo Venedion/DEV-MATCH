@@ -3,7 +3,7 @@
 .custom-select-native{width:1px!important;height:1px!important;position:absolute!important;overflow:hidden!important;clip:rect(0,0,0,0)!important;white-space:nowrap!important;clip-path:inset(50%)!important;opacity:0!important;pointer-events:none!important}
 .custom-select-trigger{width:100%;min-width:0;height:40px;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:0 13px;border:1px solid var(--line,#e4e5e8);border-radius:9px;background:#fafafc;color:var(--ink,#171719);font:inherit;font-size:13px;text-align:left;cursor:pointer;transition:border-color .15s,background .15s,box-shadow .15s}
 .custom-select-trigger:hover{border-color:#c6c8ce;background:#fff}
-.custom-select-trigger:focus-visible,.custom-select.open .custom-select-trigger{border-color:var(--ink,#171719);outline:0;background:#fff;box-shadow:0 0 0 1px var(--ink,#171719)}
+.custom-select-trigger:focus-visible,.custom-select.open .custom-select-trigger{border-color:var(--ink,#171719);outline:0;background:#fff;box-shadow:none}
 .custom-select-trigger:disabled{opacity:.55;cursor:not-allowed}
 .custom-select-value{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .custom-select-chevron{width:8px;height:8px;flex:none;border-right:1.5px solid #777982;border-bottom:1.5px solid #777982;transform:translateY(-2px) rotate(45deg);transition:transform .15s,border-color .15s}

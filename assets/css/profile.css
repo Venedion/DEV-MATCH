@@ -55,9 +55,9 @@ svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2;stroke-l
 .control[aria-invalid=true]{border-color:var(--danger)}
 .custom-select-trigger[aria-invalid=true]{border-color:var(--danger)}
 .gender-options[aria-invalid=true] .choice{border-color:var(--danger)}
-.control:focus{outline:2px solid var(--focus);outline-offset:1px}
+.control:focus{border-color:var(--ink);outline:none;outline-offset:0;box-shadow:none}
 .form-card .custom-select-trigger{height:50px;padding:0 15px;border-radius:10px;background:var(--surface);font-size:16px}
-.form-card .custom-select-trigger:focus-visible,.form-card .custom-select.open .custom-select-trigger{outline:2px solid var(--focus);outline-offset:1px;box-shadow:none}
+.form-card .custom-select-trigger:focus-visible,.form-card .custom-select.open .custom-select-trigger{border-color:var(--ink);outline:none;outline-offset:0;box-shadow:none}
 .form-card #country-trigger:focus-visible,.form-card #country-trigger[aria-expanded=true]{border-color:var(--ink);outline:none;outline-offset:0;box-shadow:none}
 .form-card .custom-select-options{border-radius:10px}
 .form-card .custom-select-option{min-height:42px;padding:8px 11px;font-size:15px}
@@ -67,10 +67,11 @@ svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2;stroke-l
 .location-toggle:focus-visible{outline:2px solid var(--focus);outline-offset:-3px}
 .location-chevron{width:20px;height:20px;transition:transform .15s}
 .location-picker.open .location-chevron{transform:rotate(180deg)}
-.location-options{max-height:min(300px,45vh);position:absolute;z-index:40;top:calc(100% + 6px);right:0;left:0;overflow:auto;padding:5px;border:1px solid var(--line);border-radius:10px;background:var(--surface);box-shadow:0 12px 30px rgba(23,23,25,.12);scrollbar-width:thin;scrollbar-color:rgba(95,99,108,.3) transparent}
-.location-options::-webkit-scrollbar{width:5px}
+.location-options{max-height:min(300px,45vh);position:absolute;z-index:40;top:calc(100% + 6px);right:0;left:0;overflow:auto;padding:5px;border:1px solid var(--line);border-radius:10px;background:var(--surface);box-shadow:0 12px 30px rgba(23,23,25,.12);scrollbar-width:thin;scrollbar-color:rgba(23,25,29,.12) transparent}
+.location-options::-webkit-scrollbar{width:4px}
 .location-options::-webkit-scrollbar-track{background:transparent}
-.location-options::-webkit-scrollbar-thumb{border-radius:5px;background:rgba(95,99,108,.3)}
+.location-options::-webkit-scrollbar-thumb{border-radius:5px;background:rgba(23,25,29,.12)}
+.location-options::-webkit-scrollbar-thumb:hover{background:rgba(23,25,29,.18)}
 .location-options[hidden]{display:none}
 .location-options-heading{padding:8px 11px;color:var(--muted);font-size:12px;font-weight:700}
 .location-option,.location-back{width:100%;min-height:42px;display:flex;align-items:center;padding:8px 11px;border:0;border-radius:7px;background:transparent;color:var(--ink);font-size:15px;text-align:left;cursor:pointer}
@@ -136,10 +137,10 @@ textarea.control{height:120px;padding:12px 15px;resize:vertical}
 .form-error{min-height:20px;margin-top:9px;color:var(--danger);font-size:14px}
 .form-actions{display:flex;justify-content:space-between;align-items:center;gap:16px;padding-top:16px;border-top:1px solid var(--line)}
 .back-button,.action-right{display:flex;align-items:center;gap:10px}
-.back-button{min-height:40px;padding:0 13px;border:1px solid var(--line);border-radius:9px;background:var(--surface);font-size:14px;font-weight:600;cursor:pointer}
+.back-button{min-height:40px;padding:0 13px;border:0;border-radius:0;background:transparent;color:var(--ink);font-size:14px;font-weight:600;cursor:pointer}
 .back-button[hidden]{display:none}
-.back-button:hover{background:var(--soft)}
-.back-button svg{width:16px;height:16px}
+.back-button:hover{text-decoration:underline;text-underline-offset:3px}
+.back-button .arrow-icon{stroke-width:1.8}
 .action-right{margin-left:auto}
 .skip{padding:10px 13px;border:0;background:transparent;font-size:14px;font-weight:600;text-decoration:underline;text-underline-offset:3px;cursor:pointer}
 .skip:hover{text-decoration:underline;text-underline-offset:3px}

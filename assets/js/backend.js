@@ -174,7 +174,9 @@
     }
     const changed = cache(row, user);
     if (page === 'devmatch-profile.html' && new URLSearchParams(location.search).get('role') !== row.account_role) {
-      location.replace('devmatch-profile.html?role=' + row.account_role);
+      const url = new URL(location.href);
+      url.searchParams.set('role', row.account_role);
+      location.replace(url.href);
       return null;
     }
     if (changed) { location.reload(); return null; }

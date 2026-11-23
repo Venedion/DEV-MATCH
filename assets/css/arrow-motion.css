@@ -20,6 +20,18 @@ button.arrow-action:focus-visible>.arrow-icon{
   transform:translate(3px,2px);
 }
 
+a.arrow-action.arrow-action-left>.arrow-icon,
+button.arrow-action.arrow-action-left>.arrow-icon{
+  transform:none;
+}
+
+a.arrow-action.arrow-action-left:hover>.arrow-icon,
+a.arrow-action.arrow-action-left:focus-visible>.arrow-icon,
+button.arrow-action.arrow-action-left:not(:disabled):hover>.arrow-icon,
+button.arrow-action.arrow-action-left:focus-visible>.arrow-icon{
+  transform:translateX(-3px);
+}
+
 @media(prefers-reduced-motion:reduce){
   a.arrow-action>svg.arrow-icon,
   button.arrow-action>svg.arrow-icon{transition:none}

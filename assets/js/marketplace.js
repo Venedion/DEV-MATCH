@@ -34,6 +34,9 @@
   const projectRequestsTabCount = document.getElementById('projectRequestsTabCount');
   const clientsTabCount = document.getElementById('clientsTabCount');
   const moneyInput=window.devMatchMoneyInput;
+  const requestDetailParam = isRequestsPage
+    ? new URLSearchParams(location.search).get('requestDetail')
+    : null;
   function safeProjectCover(value) {
     if (typeof value !== 'string' || !value.trim()) return '';
     try {
@@ -66,6 +69,21 @@
   let query = '';
   let view = 'grid';
   let visibleCount = 3;
+  const scrollStateKey = `devmatch-marketplace-scroll:${location.pathname}`;
+  const navigationEntry = performance.getEntriesByType('navigation')[0];
+  let savedScrollState = null;
+  if (navigationEntry?.type === 'reload') {
+    try {
+      const saved = JSON.parse(sessionStorage.getItem(scrollStateKey) || 'null');
+      if (saved && Number.isFinite(saved.scrollTop) && Number.isFinite(saved.visibleCount)) {
+        savedScrollState = saved;
+      }
+    } catch (error) {
+      console.warn('Unable to restore marketplace scroll position.', error);
+    }
+  }
+  let scrollRestorePending = savedScrollState !== null;
+  let scrollSaveTimer = null;
   const budgetValues = { mode: 'all', lower: '', from: '', to: '' };
   let mobileBudgetDraft = null;
   let committedBudgetValues = { ...budgetValues };
@@ -1077,6 +1095,50 @@
     return source.find(item => item.id === id);
   }
 
+  function updateRequestDetailUrl(id) {
+    const url = new URL(location.href);
+    url.searchParams.set('requestDetail', id);
+    history.replaceState(history.state, '', url);
+  }
+
+  function clearRequestDetailUrl() {
+    const url = new URL(location.href);
+    if (!url.searchParams.has('requestDetail')) return;
+    url.searchParams.delete('requestDetail');
+    history.replaceState(history.state, '', url);
+  }
+
+  function persistMarketplaceScroll() {
+    try {
+      sessionStorage.setItem(scrollStateKey, JSON.stringify({
+        scrollTop: main.scrollTop,
+        visibleCount
+      }));
+    } catch (error) {
+      console.warn('Unable to save marketplace scroll position.', error);
+    }
+  }
+
+  function restoreMarketplaceScroll() {
+    if (!scrollRestorePending) return;
+    const source = isRequestsPage ? requests : projects;
+    visibleCount = Math.max(3, Math.min(savedScrollState.visibleCount, Math.max(3, source.length)));
+    render();
+    requestAnimationFrame(() => {
+      main.scrollTop = savedScrollState.scrollTop;
+      scrollRestorePending = false;
+    });
+  }
+
+  function restoreRequestDetail() {
+    if (!requestDetailParam || catalogError) return;
+    if (!selectedItem(requestDetailParam)) {
+      console.error(`DEV-MATCH project request details not found for "${requestDetailParam}".`);
+      return;
+    }
+    showDetails(requestDetailParam);
+  }
+
   function showDetails(id) {
     const item = selectedItem(id);
     if (!item) {
@@ -1085,6 +1147,7 @@
     }
     if (isRequestsPage) {
       if (requestDetailDialog && requestDetailFrame) {
+        updateRequestDetailUrl(item.id);
         requestDetailFrame.title = `Project request: ${item.title}`;
         requestDetailFrame.src = `devmatch-find-project-detail.html?request=${encodeURIComponent(item.id)}&modal=1`;
         if (!requestDetailDialog.open) requestDetailDialog.showModal();
@@ -1100,6 +1163,15 @@
 
   initializeDropdowns();
   initializeMobileFilters();
+  main.addEventListener('scroll', () => {
+    if (scrollRestorePending) return;
+    window.clearTimeout(scrollSaveTimer);
+    scrollSaveTimer = window.setTimeout(persistMarketplaceScroll, 120);
+  }, {passive: true});
+  window.addEventListener('pagehide', () => {
+    window.clearTimeout(scrollSaveTimer);
+    if (!scrollRestorePending) persistMarketplaceScroll();
+  });
   if (searchForm && searchInput) {
     searchForm.addEventListener('submit', event => {
       event.preventDefault();
@@ -1258,6 +1330,7 @@
       if (event.target === requestDetailDialog) requestDetailDialog.close();
     });
     requestDetailDialog.addEventListener('close', () => {
+      clearRequestDetailUrl();
       requestDetailFrame.src = 'about:blank';
     });
   }
@@ -1353,6 +1426,8 @@
       catalogError = null;
       catalogLoaded = true;
       render();
+      restoreMarketplaceScroll();
+      restoreRequestDetail();
       catalogStatus.hidden = true;
     } catch (error) {
       console.error('Unable to load public projects from Supabase.', error);
@@ -1363,6 +1438,7 @@
       requests = [];
       if (isRequestsPage) updateRequiredSpecializationOptions([]);
       render();
+      restoreMarketplaceScroll();
     } finally {
       grid.removeAttribute('aria-busy');
     }

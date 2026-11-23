@@ -272,14 +272,35 @@ test('Project detail favorite changes update client dashboard cards',()=>{
 
 test('Project request details open in a popup from marketplace and linked views',()=>{
   const listing=fs.readFileSync('devmatch-find-projects.html','utf8');
+  const marketplace=fs.readFileSync('assets/js/marketplace.js','utf8');
   const popup=fs.readFileSync('assets/js/project-detail-popup.js','utf8');
   const route=fs.readFileSync('assets/js/project-detail-route-popup.js','utf8');
   assert.match(listing,/<dialog class="project-request-detail-dialog" id="requestDetailDialog"/);
   assert.match(listing,/<iframe class="project-detail-popup-frame" id="requestDetailFrame"/);
+  assert.match(marketplace,/searchParams\.set\('requestDetail', id\)/);
+  assert.match(marketplace,/new URLSearchParams\(location\.search\)\.get\('requestDetail'\)/);
+  assert.match(marketplace,/restoreRequestDetail\(\)/);
   assert.match(popup,/window\.openProjectRequestDetails=function/);
   assert.match(popup,/devmatch-find-project-detail\.html\?request=.*&modal=1/);
   assert.match(route,/params\.get\('modal'\)==='1'/);
   assert.match(route,/dialog\.showModal\(\)/);
+});
+
+test('Marketplace restores its internal scroll position after a reload',()=>{
+  const marketplace=fs.readFileSync('assets/js/marketplace.js','utf8');
+  assert.match(marketplace,/navigationEntry\?\.type === 'reload'/);
+  assert.match(marketplace,/sessionStorage\.setItem\(scrollStateKey/);
+  assert.match(marketplace,/main\.scrollTop = savedScrollState\.scrollTop/);
+  assert.match(marketplace,/savedScrollState\.visibleCount/);
+});
+
+test('All app pages allow the shared font to load after a hard refresh',()=>{
+  const pages=fs.readdirSync('.')
+    .filter(file=>file.endsWith('.html'))
+    .map(file=>({file,source:fs.readFileSync(file,'utf8')}))
+    .filter(page=>page.source.includes('fonts.googleapis.com/css2?family=Plus+Jakarta+Sans'));
+  assert.ok(pages.length>0);
+  pages.forEach(page=>assert.match(page.source,/fonts\.googleapis\.com\/css2\?family=Plus\+Jakarta\+Sans:[^"]*&display=swap/));
 });
 
 test('Developer request detail fields match the page and saved request data',()=>{
