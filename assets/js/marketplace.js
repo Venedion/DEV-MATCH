@@ -663,6 +663,7 @@
     const toggle = document.getElementById('mobileFiltersToggle');
     const panel = document.getElementById('mobileFiltersPanel');
     const actions = document.querySelector('.mobile-market-actions');
+    const stickyActions = document.querySelector('.mobile-market-sticky-actions');
     const categories = document.querySelector('.market-categories');
     const sortControl = document.querySelector('.sort-control');
     const typeSelect = document.getElementById('typeFilter');
@@ -675,7 +676,7 @@
     const stackLabel = stackSelect?.closest('label');
     const budgetLabel = budgetSelect?.closest('label');
     const selectContainer = panel?.querySelector('.mobile-filter-selects');
-    if (!toggle || !panel || !actions || !categories || !sortControl || !typeSelect || !stackSelect || !budgetSelect || !resetButton || !applyButton || !budgetSaveButton || !typeLabel || !stackLabel || !budgetLabel || !selectContainer) return;
+    if (!toggle || !panel || !actions || !stickyActions || !categories || !sortControl || !typeSelect || !stackSelect || !budgetSelect || !resetButton || !applyButton || !budgetSaveButton || !typeLabel || !stackLabel || !budgetLabel || !selectContainer) return;
 
     const categoriesPlaceholder = document.createComment('project categories placement');
     const typePlaceholder = document.createComment('project type filter placement');
@@ -722,7 +723,7 @@
     function setPanelOpen(isOpen) {
       panel.hidden = !isOpen;
       toggle.setAttribute('aria-expanded', String(isOpen));
-      actions.classList.toggle('mobile-filter-open', isOpen);
+      stickyActions.classList.toggle('mobile-filter-open', isOpen);
     }
 
     function discardMobileFilterDraft() {
@@ -759,7 +760,8 @@
 
     function syncMobileFilterLayout() {
       if (mobileFilterBreakpoint.matches) {
-        actions.append(categories, sortControl, toggle, panel);
+        actions.append(categories);
+        stickyActions.append(sortControl, toggle, panel);
         selectContainer.append(typeLabel, stackLabel, budgetLabel);
         const budgetMenu=document.getElementById('budgetFilterMenu');
         budgetMenu.setAttribute('role', 'group');

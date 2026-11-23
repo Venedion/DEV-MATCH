@@ -8,17 +8,17 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="assets/css/dashboard.css?v=20261118-hide-favorites-nav-badge">
-  <link rel="stylesheet" href="assets/css/marketplace.css?v=20261123-no-ring-select-v1">
+  <link rel="stylesheet" href="assets/css/marketplace.css?v=20261123-sticky-filter-dock-v2">
   <link rel="stylesheet" href="assets/css/project-detail-popup.css?v=20261120-popup-detail">
   <link rel="stylesheet" href="assets/css/mode-switch-animation.css?v=20261120-opportunity-switch-indicator">
-  <link rel="stylesheet" href="assets/css/mobile-navigation.css?v=20261123-notification-badge-v1">
+  <link rel="stylesheet" href="assets/css/mobile-navigation.css?v=20261124-explore-favorites-header-v1">
   <link rel="stylesheet" href="assets/css/arrow-motion.css?v=20261118-arrow-motion-global-v2">
   <script src="assets/js/i18n.js?v=20261121-expertise-labels-v1"></script>
 <script src="assets/vendor/supabase-2.119.0.js"></script>
 <script src="assets/js/backend.js?v=20261123-chat-read-v1"></script>
 <link rel="stylesheet" href="assets/css/form-controls.css?v=20261123-global-dropdown-ease-v1">
 </head>
-<body class="page-scroll-shell find-projects-page">
+<body class="page-scroll-shell find-projects-page developer-explore-page">
   <header class="topbar">
     <a class="brand" href="devmatch-dashboard.html"><img class="brand-mark" src="assets/images/devmatch-logo.png" width="34" height="34" alt="" aria-hidden="true"><span>DEV-MATCH</span></a>
     <label class="search top-search">
@@ -32,6 +32,7 @@
       </div>
       <a class="icon-button notification-button" href="devmatch-developer-notifications.html" aria-label="Notifications"><svg viewBox="0 0 24 24"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9m-8 13h4"/></svg><i></i></a>
       <a class="user-menu" href="devmatch-my-profile.html?role=dev"><span class="user-avatar">DV</span><span class="user-copy"><b>Developer account</b><small>Developer</small></span><svg viewBox="0 0 24 24"><path d="m7 10 5 5 5-5"/></svg></a>
+      <a class="mobile-explore-favorites" href="devmatch-favorites.html" aria-label="Favorites" title="Favorites"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78Z"/></svg></a>
     </div>
   </header>
 
@@ -60,9 +61,8 @@
         <p class="market-intro">Explore project requests from small businesses looking for your expertise.</p>
       </div>
     </header>
-    <div class="mobile-market-actions">
-      <span class="mobile-actions-background-bleed" aria-hidden="true"></span>
-    </div>
+    <div class="mobile-market-actions"></div>
+    <div class="mobile-market-sticky-actions"></div>
     <section class="market-hero market-request-hero">
       <form class="market-search market-discovery-search" id="marketSearchForm" role="search">
         <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
@@ -129,8 +129,8 @@
     <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5c-5 0-9 3.65-9 8.15 0 2.24 1.04 4.27 2.73 5.74L4.7 21l5.24-1.28c.67.12 1.36.18 2.06.18 5 0 9-3.65 9-8.15S17 3.5 12 3.5Z"/><circle cx="8.5" cy="11.7" r="1" fill="currentColor" stroke="none"/><circle cx="12" cy="11.7" r="1" fill="currentColor" stroke="none"/><circle cx="15.5" cy="11.7" r="1" fill="currentColor" stroke="none"/></svg>
   </a>
   <script src="assets/js/money-input.js?v=20261121-rupiah-live-format-v1"></script>
-  <script src="assets/js/marketplace.js?v=20261123-fluent-shimmer-v1"></script>
-  <script src="assets/js/nav-behavior.js?v=20261123-chat-read-v1"></script>
+  <script src="assets/js/marketplace.js?v=20261124-sticky-filter-dock-sync-v1"></script>
+  <script src="assets/js/nav-behavior.js?v=20261124-rebase-sync-v1"></script>
 <script src="assets/js/presence.js?v=20261119-global"></script>
 </body>
 </html>

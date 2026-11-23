@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="assets/css/dashboard.css?v=20261122-comment-system-v1">
-  <link rel="stylesheet" href="assets/css/favorites.css?v=20261123-no-ring-select-v1">
+  <link rel="stylesheet" href="assets/css/favorites.css?v=20261124-mobile-sticky-filters-v7">
   <link rel="stylesheet" href="assets/css/find-clients.css?v=20261123-client-card-click-v1">
   <link rel="stylesheet" href="assets/css/client-shell.css?v=20261030-header-size-match">
   <link rel="stylesheet" href="assets/css/mode-switch-animation.css?v=20261030-client-mode-route">
@@ -23,10 +23,17 @@
 <link rel="stylesheet" href="assets/css/form-controls.css?v=20261123-global-dropdown-ease-v1">
 <script src="assets/js/backend.js?v=20261123-chat-read-v1"></script>
 </head>
-<body class="client-nav-home-layout page-scroll-shell">
+<body class="client-nav-home-layout page-scroll-shell favorites-page-layout">
   <!-- Topbar -->
   <header class="topbar">
+    <a class="mobile-favorites-back" id="mobileFavoritesBack" href="devmatch-find-projects.html" aria-label="Back to Explore" title="Back to Explore">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg>
+    </a>
     <a class="brand" href="devmatch-dashboard.html"><img class="brand-mark" src="assets/images/devmatch-logo.png" width="34" height="34" alt="" aria-hidden="true"><span>DEV-MATCH</span></a>
+    <div class="mobile-favorites-heading">
+      <h1 class="mobile-favorites-title">FAVORITES</h1>
+      <span class="fav-count-pill mobile-favorites-count" id="mobileFavCount">0 saved</span>
+    </div>
     <label class="search">
       <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
       <input id="searchInput" type="search" placeholder="Search">
@@ -44,6 +51,10 @@
         <span class="user-copy"><b id="topUserName">Developer</b><small>Developer</small></span>
         <svg viewBox="0 0 24 24"><path d="m7 10 5 5 5-5"/></svg>
       </a>
+      <button class="fav-btn mobile-favorites-clear-all" type="button" data-favorites-clear-all title="Clear all saved items">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+        <span>Clear All</span>
+      </button>
     </div>
   </header>
   <!-- Sidebar -->
@@ -58,7 +69,7 @@
     </nav>
     <div class="sidebar-foot"><span class="online-dot"></span>Demo workspace</div>
   </aside>
-  <script src="assets/js/sidebar-navigation.js?v=20261123-mobile-nav-stable-v1"></script>
+  <script src="assets/js/sidebar-navigation.js?v=20261124-favorites-explore-active-v1"></script>
 
   <!-- Main Content -->
   <main class="dashboard favorites-page">
@@ -69,7 +80,7 @@
         <p>Your saved projects and clients, ready for quick access and direct outreach.</p>
       </div>
       <div class="fav-header-actions">
-        <button class="fav-btn" id="favClearAllBtn" type="button" title="Clear all saved items">
+        <button class="fav-btn" id="favClearAllBtn" data-favorites-clear-all type="button" title="Clear all saved items">
           <svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
           Clear All
         </button>
@@ -113,6 +124,60 @@
             <span>All Categories</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
           </button>
           <div class="fav-select-menu" id="favCategoryMenu" role="listbox" aria-label="Filter by category" aria-hidden="true" inert></div>
+        </div>
+      </div>
+
+      <div class="mobile-favorites-sticky-actions" id="mobileFavoritesStickyActions" aria-label="Saved item controls">
+        <button class="mobile-favorites-sort-toggle" id="mobileFavoritesSortToggle" type="button" aria-label="Sort saved items" aria-controls="mobileFavoritesSortPanel" aria-expanded="false" title="Sort">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 21V3m-3 4 3-4 3 4m5-4v18m-3-4 3 4 3-4"/></svg>
+        </button>
+        <button class="mobile-favorites-filter-toggle" id="mobileFavoritesFilterToggle" type="button" aria-label="Filter saved items" aria-controls="mobileFavoritesFilterPanel" aria-expanded="false" title="Filter">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z"/></svg>
+        </button>
+        <div class="mobile-favorites-sort-panel" id="mobileFavoritesSortPanel" aria-label="Sort saved items" hidden>
+          <p>Sort by</p>
+          <div class="mobile-favorites-sort-options" id="mobileFavoritesSortOptions" role="group" aria-label="Sort saved items"></div>
+        </div>
+        <div class="mobile-favorites-filter-panel" id="mobileFavoritesFilterPanel" aria-label="Filter saved items" hidden>
+          <p>Filter by</p>
+          <div class="mobile-favorites-filter-fields" id="mobileFavoritesFilterFields">
+            <section class="mobile-favorites-filter-group" id="mobileFavoritesTypeGroup" hidden>
+              <p>Type</p>
+              <select id="favTypeSelect" aria-label="Filter by project type" hidden>
+                <option value="all">All types</option>
+                <option>Website</option>
+                <option>Web App</option>
+                <option>Android / iOS</option>
+              </select>
+              <div class="mobile-favorites-filter-options" id="mobileFavoritesTypeOptions" role="group" aria-label="Project type"></div>
+            </section>
+            <section class="mobile-favorites-filter-group" id="mobileFavoritesOpenRequestsGroup" hidden>
+              <p>Request status</p>
+              <button class="toggle-requests-pill inactive mobile-favorites-open-requests" id="mobileFavoritesOpenRequests" type="button" aria-pressed="false">
+                Has open requests
+              </button>
+            </section>
+            <section class="mobile-favorites-filter-group">
+              <p id="mobileFavoritesCategoryHeading">Categories</p>
+              <div class="mobile-favorites-filter-options" id="mobileFavoritesCategoryOptions" role="group" aria-label="Categories"></div>
+            </section>
+            <section class="mobile-favorites-filter-group mobile-favorites-location-group" id="mobileFavoritesLocationGroup" hidden>
+              <p>Location</p>
+              <span class="location-filter-heading">COUNTRY</span>
+              <div class="location-country-options" id="mobileFavoritesCountryOptions" role="group" aria-label="Countries"></div>
+              <div class="location-region-section" id="mobileFavoritesRegionSection" hidden>
+                <span class="location-filter-heading" id="mobileFavoritesRegionHeading">PROVINCE</span>
+                <input class="location-region-search" id="mobileFavoritesRegionSearch" type="search" autocomplete="off" placeholder="Search province, state, or region" aria-label="Search province, state, or region">
+                <div class="location-region-options" id="mobileFavoritesRegionOptions" role="group" aria-label="Provinces, states, and regions"></div>
+                <p class="location-region-empty" id="mobileFavoritesRegionEmpty" role="status" hidden>No matching province, state, or region.</p>
+                <p class="location-filter-status" id="mobileFavoritesLocationStatus" role="status" hidden></p>
+              </div>
+            </section>
+          </div>
+          <div class="mobile-favorites-filter-actions">
+            <button class="mobile-favorites-filter-reset" id="mobileFavoritesFilterReset" type="button">Reset</button>
+            <button class="mobile-favorites-filter-apply" id="mobileFavoritesFilterApply" type="button">Apply</button>
+          </div>
         </div>
       </div>
 
@@ -167,8 +232,9 @@
 
   <script src="assets/js/project-detail.js?v=20261123-fluent-shimmer-v1"></script>
   <script src="assets/js/project-detail-popup.js?v=20261120-popup-detail"></script>
-  <script src="assets/js/favorites.js?v=20261123-fluent-shimmer-v1"></script>
-  <script src="assets/js/nav-behavior.js?v=20261123-chat-read-v1"></script>
+  <script src="assets/js/client-profile-options.js?v=20261123-client-profile-options-v1"></script>
+  <script src="assets/js/favorites.js?v=20261124-client-favorites-location-v3"></script>
+  <script src="assets/js/nav-behavior.js?v=20261124-rebase-sync-v1"></script>
 <script src="assets/js/presence.js?v=20261119-global"></script>
 </body>
 </html>

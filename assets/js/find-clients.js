@@ -7,14 +7,19 @@
   'use strict';
 
   const FAVORITES_KEY = 'devmatch-favorite-clients';
+  const clientProfileOptions = window.DEVMATCH_CLIENT_PROFILE_OPTIONS;
 
   let CLIENTS_DATA = [];
+  let clientLocationRegions = {};
+  let locationOptionsError = '';
+  let locationRegionSearchQuery = '';
 
   // State
   let searchQuery = '';
   let searchScope = 'name';
   let selectedBusinessType = 'all';
-  let selectedLocation = 'all';
+  let selectedLocation = {country: 'all', regions: []};
+  let locationFilterDraft = {country: 'all', regions: []};
   let hasOpenRequestsOnly = false;
   let sortOrder = 'az';
   let favoriteIds = getSavedFavorites();
@@ -46,6 +51,14 @@
   const mobileClientsFilterFields = document.getElementById('mobileClientsFilterFields');
   const mobileClientsFilterReset = document.getElementById('mobileClientsFilterReset');
   const mobileClientsFilterApply = document.getElementById('mobileClientsFilterApply');
+  const locationCountryOptions = document.getElementById('locationCountryOptions');
+  const locationRegionSection = document.getElementById('locationRegionSection');
+  const locationRegionHeading = document.getElementById('locationRegionHeading');
+  const locationRegionSearch = document.getElementById('locationRegionSearch');
+  const locationRegionOptions = document.getElementById('locationRegionOptions');
+  const locationRegionEmpty = document.getElementById('locationRegionEmpty');
+  const locationFilterApply = document.getElementById('locationFilterApply');
+  const locationFilterStatus = document.getElementById('locationFilterStatus');
   const clientDialog = document.getElementById('clientDialog');
   const dialogContent = document.getElementById('dialogContent');
   const dialogCloseBtn = document.getElementById('dialogCloseBtn');
@@ -114,6 +127,9 @@
     const items = [...dropdown.querySelectorAll('.dropdown-item')];
     const selectedItem = items.find(item => item.dataset.value === value);
     items.forEach(item => item.classList.toggle('selected', item === selectedItem));
+    dropdown.querySelectorAll('.mobile-client-filter-option').forEach(item => {
+      item.setAttribute('aria-pressed', String(item.dataset.value === value));
+    });
     if (label) {
       label.textContent = value === 'all'
         ? defaultLabel
@@ -126,10 +142,206 @@
 
   function syncClientFilterControls(state) {
     syncClientFilterDropdown(businessTypeDropdown, state.businessType, 'Business type');
-    syncClientFilterDropdown(locationDropdown, state.location, 'Location');
+    syncLocationFilterLabel(state.location);
     if (btnToggleOpenRequests) {
       btnToggleOpenRequests.classList.toggle('inactive', !state.hasOpenRequestsOnly);
       btnToggleOpenRequests.setAttribute('aria-pressed', String(state.hasOpenRequestsOnly));
+    }
+  }
+
+  function copyLocationFilter(location) {
+    return {
+      country: location?.country || 'all',
+      regions: Array.isArray(location?.regions) ? [...new Set(location.regions)] : []
+    };
+  }
+
+  function syncLocationFilterLabel(location) {
+    if (!locationDropdown) return;
+    const label = locationDropdown.querySelector('.filter-label-text');
+    const trigger = locationDropdown.querySelector('.filter-pill-btn');
+    const value = copyLocationFilter(location);
+    const country = clientProfileOptions.countries.find(item => item === value.country);
+    if (label) {
+      label.textContent = !country
+        ? 'Location'
+        : value.regions.length
+          ? `${country} · ${value.regions.length} ${locationRegionType(country).toLocaleLowerCase()}`
+          : country;
+    }
+    trigger?.classList.toggle('has-value', Boolean(country));
+    trigger?.setAttribute('aria-expanded', String(locationDropdown.classList.contains('open')));
+  }
+
+  function locationRegionType(country) {
+    if (country === 'Malaysia') return 'states';
+    if (country === 'Singapore') return 'regions';
+    return 'provinces';
+  }
+
+  function populateBusinessTypeOptions() {
+    const menu = businessTypeDropdown?.querySelector('.dropdown-menu');
+    if (!menu) return;
+    const options = ['all', ...clientProfileOptions.businessTypes];
+    menu.replaceChildren(...options.map(value => {
+      const option = document.createElement('button');
+      option.className = 'dropdown-item';
+      option.type = 'button';
+      option.dataset.value = value;
+      option.textContent = value === 'all' ? 'All Business Types' : value;
+      if (value === 'all') option.classList.add('selected');
+      return option;
+    }));
+  }
+
+  function selectLocationCountry(country) {
+    if (locationFilterDraft.country === country) return;
+    locationFilterDraft = {country, regions: []};
+    locationRegionSearchQuery = '';
+    if (locationRegionSearch) locationRegionSearch.value = '';
+    renderLocationFilterOptions();
+    if (country !== 'all') {
+      requestAnimationFrame(() => locationRegionSection?.scrollIntoView({block: 'nearest'}));
+    }
+  }
+
+  function toggleLocationRegion(region) {
+    const selected = new Set(locationFilterDraft.regions);
+    if (selected.has(region)) selected.delete(region);
+    else selected.add(region);
+    locationFilterDraft.regions = [...selected];
+    renderLocationFilterOptions();
+  }
+
+  function selectAllLocationRegions() {
+    locationFilterDraft.regions = [];
+    renderLocationFilterOptions();
+  }
+
+  function createLocationOptionCheckmark() {
+    const checkmark = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    checkmark.setAttribute('viewBox', '0 0 24 24');
+    checkmark.setAttribute('aria-hidden', 'true');
+    const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    path.setAttribute('d', 'm5 12 4 4L19 6');
+    checkmark.append(path);
+    return checkmark;
+  }
+
+  function renderLocationFilterOptions() {
+    if (!locationCountryOptions || !locationRegionOptions || !locationRegionSection) return;
+    const regionListScrollTop = locationRegionOptions.scrollTop;
+    locationCountryOptions.replaceChildren(...[
+      {value: 'all', label: 'All countries'},
+      ...clientProfileOptions.countries.map(country => ({value: country, label: country}))
+    ].map(({value, label}) => {
+      const button = document.createElement('button');
+      button.className = 'location-country-option';
+      button.type = 'button';
+      button.dataset.country = value;
+      button.setAttribute('aria-pressed', String(locationFilterDraft.country === value));
+      button.setAttribute('aria-expanded', String(locationFilterDraft.country === value && value !== 'all'));
+      button.setAttribute('aria-controls', 'locationRegionSection');
+      const labelElement = document.createElement('span');
+      labelElement.textContent = label;
+      button.append(labelElement, createLocationOptionCheckmark());
+      button.addEventListener('click', event => {
+        event.stopPropagation();
+        selectLocationCountry(value);
+      });
+      return button;
+    }));
+
+    const country = clientProfileOptions.countries.find(item => item === locationFilterDraft.country);
+    locationRegionSection.hidden = !country;
+    locationRegionOptions.replaceChildren();
+    if (country) {
+      if (locationRegionHeading) {
+        const type = country === 'Malaysia' ? 'STATE' : country === 'Singapore' ? 'REGION' : 'PROVINCE';
+        locationRegionHeading.textContent = type;
+      }
+      const regions = clientLocationRegions[country] || [];
+      const query = locationRegionSearchQuery.trim().toLocaleLowerCase();
+      const matchingRegions = regions.filter(region => region.name.toLocaleLowerCase().includes(query));
+      const allOption = regions.length ? document.createElement('button') : null;
+      if (allOption) {
+        const label = country === 'Malaysia' ? 'All states' : country === 'Singapore' ? 'All regions' : 'All provinces';
+        allOption.className = 'location-region-option location-region-all-option';
+        allOption.type = 'button';
+        allOption.setAttribute('aria-pressed', String(locationFilterDraft.regions.length === 0));
+        const labelElement = document.createElement('span');
+        labelElement.textContent = label;
+        allOption.append(labelElement, createLocationOptionCheckmark());
+        allOption.addEventListener('click', event => {
+          event.stopPropagation();
+          selectAllLocationRegions();
+        });
+      }
+      locationRegionOptions.replaceChildren(...[
+        ...(allOption ? [allOption] : []),
+        ...matchingRegions.map(region => {
+          const button = document.createElement('button');
+          button.className = 'location-region-option';
+          button.type = 'button';
+          button.dataset.region = region.name;
+          button.setAttribute('aria-pressed', String(locationFilterDraft.regions.includes(region.name)));
+          button.addEventListener('click', event => {
+            event.stopPropagation();
+            toggleLocationRegion(region.name);
+          });
+          const label = document.createElement('span');
+          label.textContent = region.name;
+          button.append(label, createLocationOptionCheckmark());
+          return button;
+        })
+      ]);
+      locationRegionOptions.scrollTop = regionListScrollTop;
+      if (locationRegionEmpty) {
+        locationRegionEmpty.hidden = Boolean(locationOptionsError) || !regions.length || matchingRegions.length > 0;
+      }
+      if (locationFilterStatus) {
+        locationFilterStatus.hidden = !locationOptionsError && regions.length > 0;
+        locationFilterStatus.textContent = locationOptionsError
+          || (regions.length ? '' : 'Loading location options…');
+      }
+    } else if (locationFilterStatus) {
+      locationFilterStatus.hidden = true;
+      locationFilterStatus.textContent = '';
+      if (locationRegionEmpty) locationRegionEmpty.hidden = true;
+    }
+  }
+
+  async function loadClientLocationOptions() {
+    try {
+      const loadJson = async path => {
+        const response = await fetch(path);
+        if (!response.ok) throw new Error(`Location data request failed with status ${response.status}.`);
+        return response.json();
+      };
+      const [indonesia, malaysiaSingapore] = await Promise.all([
+        loadJson('assets/data/indonesia-regions.json?v=20261121-location-alpha-v1'),
+        loadJson('assets/data/malaysia-singapore-regions.json?v=20261122-malaysia-singapore-v1')
+      ]);
+      const groups = {
+        Indonesia: indonesia.provinces,
+        Malaysia: malaysiaSingapore.countries?.Malaysia,
+        Singapore: malaysiaSingapore.countries?.Singapore
+      };
+      for (const country of clientProfileOptions.countries) {
+        const regions = groups[country];
+        if (!Array.isArray(regions) || !regions.length
+          || regions.some(region => typeof region.name !== 'string' || !Array.isArray(region.cities))) {
+          throw new Error(`The ${country} location list is incomplete.`);
+        }
+      }
+      clientLocationRegions = groups;
+      locationOptionsError = '';
+      renderLocationFilterOptions();
+      renderClients();
+    } catch (error) {
+      console.error('Unable to load client location filter options.', error);
+      locationOptionsError = 'Location options could not be loaded. Refresh the page to try again.';
+      renderLocationFilterOptions();
     }
   }
 
@@ -142,45 +354,67 @@
 
   function discardMobileClientFilterDraft() {
     mobileFilterDraft = null;
+    locationFilterDraft = copyLocationFilter(selectedLocation);
     syncClientFilterControls({
       businessType: selectedBusinessType,
       location: selectedLocation,
       hasOpenRequestsOnly
     });
+    renderLocationFilterOptions();
     setMobileClientFilterPanelOpen(false);
   }
 
   function applyMobileClientFilterDraft() {
     if (!mobileFilterDraft) return;
     selectedBusinessType = mobileFilterDraft.businessType;
-    selectedLocation = mobileFilterDraft.location;
+    selectedLocation = copyLocationFilter(locationFilterDraft);
     hasOpenRequestsOnly = mobileFilterDraft.hasOpenRequestsOnly;
     mobileFilterDraft = null;
+    locationFilterDraft = copyLocationFilter(selectedLocation);
+    syncLocationFilterLabel(selectedLocation);
     setMobileClientFilterPanelOpen(false);
     renderClients();
   }
 
   function resetMobileClientFilters() {
     selectedBusinessType = 'all';
-    selectedLocation = 'all';
+    selectedLocation = {country: 'all', regions: []};
     hasOpenRequestsOnly = false;
     mobileFilterDraft = null;
+    locationFilterDraft = copyLocationFilter(selectedLocation);
     syncClientFilterControls({
       businessType: selectedBusinessType,
       location: selectedLocation,
       hasOpenRequestsOnly
     });
+    renderLocationFilterOptions();
     setMobileClientFilterPanelOpen(false);
     renderClients();
   }
 
   function syncClientSortControls() {
-    const isAscending = sortOrder === 'az';
-    sortNewestBtn?.classList.toggle('active', isAscending);
-    sortOldestBtn?.classList.toggle('active', !isAscending);
+    sortNewestBtn?.classList.toggle('active', sortOrder === 'az');
+    sortOldestBtn?.classList.toggle('active', sortOrder === 'za');
     mobileClientsSortMenu?.querySelectorAll('[data-sort-value]').forEach(option => {
       option.setAttribute('aria-checked', String(option.dataset.sortValue === sortOrder));
     });
+  }
+
+  function getClientRegion(client) {
+    const groups = clientLocationRegions[client.country] || [];
+    const rawLocation = String(client.profileCity || '').trim();
+    if (!rawLocation) return '';
+    const [firstPart, ...remainingParts] = rawLocation.split(',');
+    const prefix = firstPart.trim().toLocaleLowerCase();
+    const matchingRegion = groups.find(region => region.name.toLocaleLowerCase() === prefix);
+    if (matchingRegion) return matchingRegion.name;
+    if (remainingParts.length) return firstPart.trim();
+
+    const city = rawLocation.toLocaleLowerCase();
+    const matches = groups.filter(region => region.cities.some(item =>
+      item.name.toLocaleLowerCase() === city
+    ));
+    return matches.length === 1 ? matches[0].name : '';
   }
 
   function setClientSortOrder(order) {
@@ -194,6 +428,44 @@
     const filterPills = filterRow?.querySelector('.filter-left-pills');
     if (!filterRow || !filterPills || !mobileClientsActions
       || !mobileClientsFilterToggle || !mobileClientsFilterFields) return;
+
+    [
+      [businessTypeDropdown, 'BUSINESS TYPE']
+    ].forEach(([dropdown, heading]) => {
+      const options = document.createElement('div');
+      options.className = 'mobile-client-filter-options';
+      options.setAttribute('role', 'group');
+      options.setAttribute('aria-label', `${heading} options`);
+
+      const section = document.createElement('div');
+      section.className = 'mobile-client-filter-section';
+      const title = document.createElement('span');
+      title.className = 'mobile-client-filter-heading';
+      title.textContent = heading;
+      section.append(title, options);
+
+      dropdown?.querySelectorAll('.dropdown-item').forEach(option => {
+        const button = document.createElement('button');
+        button.className = 'mobile-client-filter-option';
+        button.type = 'button';
+        button.dataset.value = option.dataset.value;
+        button.setAttribute('aria-pressed', String(option.classList.contains('selected')));
+
+        const label = document.createElement('span');
+        label.textContent = option.textContent.trim();
+        const checkmark = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        checkmark.setAttribute('viewBox', '0 0 24 24');
+        checkmark.setAttribute('aria-hidden', 'true');
+        const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        path.setAttribute('d', 'm5 12 4 4L19 6');
+        checkmark.append(path);
+
+        button.append(label, checkmark);
+        options.append(button);
+      });
+
+      dropdown?.append(section);
+    });
 
     const filterPlaceholder = document.createComment('client filter controls placement');
     filterPills.before(filterPlaceholder);
@@ -215,22 +487,37 @@
       }
       mobileFilterDraft = {
         businessType: selectedBusinessType,
-        location: selectedLocation,
+        location: copyLocationFilter(selectedLocation),
         hasOpenRequestsOnly
       };
+      locationFilterDraft = copyLocationFilter(mobileFilterDraft.location);
       syncClientFilterControls(mobileFilterDraft);
+      renderLocationFilterOptions();
       setMobileClientFilterPanelOpen(true);
     });
 
     mobileClientsFilterReset?.addEventListener('click', resetMobileClientFilters);
     mobileClientsFilterApply?.addEventListener('click', applyMobileClientFilterDraft);
+    locationFilterApply?.addEventListener('click', () => {
+      const location = copyLocationFilter(locationFilterDraft);
+      if (mobileFilterDraft) {
+        mobileFilterDraft.location = location;
+        syncLocationFilterLabel(location);
+        return;
+      }
+      selectedLocation = location;
+      locationDropdown?.classList.remove('open');
+      syncLocationFilterLabel(selectedLocation);
+      renderClients();
+    });
+    locationRegionSearch?.addEventListener('input', () => {
+      locationRegionSearchQuery = locationRegionSearch.value;
+      renderLocationFilterOptions();
+    });
 
     function closeSortMenu({focusToggle = false} = {}) {
       if (mobileClientsSortMenu?.matches(':popover-open')) mobileClientsSortMenu.hidePopover();
       mobileClientsSortToggle?.setAttribute('aria-expanded', 'false');
-      ['left', 'top', 'width', 'min-width'].forEach(property => {
-        mobileClientsSortMenu?.style.removeProperty(property);
-      });
       if (focusToggle) mobileClientsSortToggle?.focus();
     }
 
@@ -323,8 +610,12 @@
       }
 
       // Location filter
-      if (selectedLocation !== 'all' && client.location.toLowerCase() !== selectedLocation.toLowerCase()) {
-        return false;
+      if (selectedLocation.country !== 'all') {
+        if (client.country.toLocaleLowerCase() !== selectedLocation.country.toLocaleLowerCase()) return false;
+        if (selectedLocation.regions.length
+          && !selectedLocation.regions.some(region =>
+            region.toLocaleLowerCase() === getClientRegion(client).toLocaleLowerCase()
+          )) return false;
       }
 
       // Search query
@@ -345,6 +636,9 @@
 
       return true;
     }).sort((a, b) => {
+      if (sortOrder === 'requests') {
+        return b.openRequestsCount - a.openRequestsCount || a.name.localeCompare(b.name);
+      }
       const byName=a.name.localeCompare(b.name);
       return sortOrder==='za'?-byName:byName;
     });
@@ -419,7 +713,9 @@
 
     // Update count heading
     if (clientsCountEl) {
-      if (!searchQuery && selectedBusinessType === 'all' && selectedLocation === 'all' && hasOpenRequestsOnly) {
+      if (!searchQuery && selectedBusinessType === 'all'
+        && selectedLocation.country === 'all' && selectedLocation.regions.length === 0
+        && hasOpenRequestsOnly) {
         clientsCountEl.textContent = `${clients.length} clients`;
       } else {
         clientsCountEl.textContent = `${clients.length} clients`;
@@ -610,7 +906,7 @@
       const trigger = businessTypeDropdown.querySelector('.filter-pill-btn');
 
       businessTypeDropdown.addEventListener('click', e => {
-        const item = e.target.closest('.dropdown-item');
+        const item = e.target.closest('.dropdown-item, .mobile-client-filter-option');
         if (item) {
           const val = item.dataset.value;
           const isDraft = Boolean(mobileFilterDraft);
@@ -638,21 +934,16 @@
       const trigger = locationDropdown.querySelector('.filter-pill-btn');
 
       locationDropdown.addEventListener('click', e => {
-        const item = e.target.closest('.dropdown-item');
-        if (item) {
-          const val = item.dataset.value;
-          const isDraft = Boolean(mobileFilterDraft);
-          if (isDraft) mobileFilterDraft.location = val;
-          else selectedLocation = val;
-          syncClientFilterDropdown(locationDropdown, val, 'Location');
-          if (!isDraft) renderClients();
-          return;
-        }
-
         if (e.target.closest('.filter-pill-btn')) {
           const isOpen = !locationDropdown.classList.contains('open');
           locationDropdown.classList.toggle('open', isOpen);
           trigger?.setAttribute('aria-expanded', String(isOpen));
+          if (isOpen) {
+            locationFilterDraft = copyLocationFilter(selectedLocation);
+            renderLocationFilterOptions();
+          } else {
+            locationFilterDraft = copyLocationFilter(selectedLocation);
+          }
           if (businessTypeDropdown) {
             businessTypeDropdown.classList.remove('open');
             businessTypeDropdown.querySelector('.filter-pill-btn')?.setAttribute('aria-expanded', 'false');
@@ -670,6 +961,10 @@
         if (searchScopeMenu) searchScopeMenu.inert = true;
       }
       if (!e.target.closest('.filter-dropdown-container')) {
+        if (!mobileFilterDraft) {
+          locationFilterDraft = copyLocationFilter(selectedLocation);
+          renderLocationFilterOptions();
+        }
         if (businessTypeDropdown) {
           businessTypeDropdown.classList.remove('open');
           businessTypeDropdown.querySelector('.filter-pill-btn')?.setAttribute('aria-expanded', 'false');
@@ -801,9 +1096,10 @@
       btnReset.addEventListener('click', () => {
         searchQuery = '';
         selectedBusinessType = 'all';
-        selectedLocation = 'all';
+        selectedLocation = {country: 'all', regions: []};
         hasOpenRequestsOnly = false;
         mobileFilterDraft = null;
+        locationFilterDraft = copyLocationFilter(selectedLocation);
         setMobileClientFilterPanelOpen(false);
         if (searchInput) searchInput.value = '';
         if (topSearchInput) topSearchInput.value = '';
@@ -812,6 +1108,7 @@
           location: selectedLocation,
           hasOpenRequestsOnly
         });
+        renderLocationFilterOptions();
         renderClients();
       });
     }
@@ -861,6 +1158,7 @@
         const category = String(profile.industry || '');
         return {id:person.id,contactId:person.id,name,initials:(name.match(/\b\p{L}/gu)||[]).slice(0,2).join('').toUpperCase()||'DM',
           business:String(profile.companyName || name),category,businessType:category||'Business type not provided',type:'Client',
+          country:String(profile.country || ''),profileCity:String(profile.city || ''),
           openRequestsCount:requests.length,location:String(profile.city || 'Location not provided'),activeText:'Profile listed',
           orderIndex:index,requests};
       });
@@ -881,7 +1179,10 @@
     }
   }
 
+  populateBusinessTypeOptions();
+  renderLocationFilterOptions();
   initEvents();
   emptyState.hidden = true;
   loadClients();
+  loadClientLocationOptions();
 })();

@@ -175,7 +175,7 @@
 
     items.forEach(item => {
       const active = item.key === 'explore'
-        ? ['findProjects', 'findClients', 'discover', 'developers'].includes(activeKey)
+        ? ['findProjects', 'findClients', 'discover', 'developers', 'favorites'].includes(activeKey)
         : item.key === 'profile'
           ? activeKey === 'profile' || activeKey === 'settings'
           : item.key === activeKey;

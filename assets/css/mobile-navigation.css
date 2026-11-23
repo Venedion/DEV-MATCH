@@ -2102,6 +2102,36 @@ body > .client-sidebar .post-request .sidebar-action-label {
   }
 }
 
+.mobile-explore-favorites {
+  display: none;
+}
+
+@media (max-width: 600px) {
+  body.developer-explore-page > header.topbar > .top-actions > .notification-button,
+  body.developer-explore-page > header.topbar > .top-actions > .user-menu {
+    display: none;
+  }
+
+  body.developer-explore-page > header.topbar > .top-actions > .mobile-explore-favorites {
+    width: 32px;
+    height: 32px;
+    display: grid;
+    flex: 0 0 32px;
+    place-items: center;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    color: var(--ink);
+  }
+
+  body.developer-explore-page > header.topbar > .top-actions > .mobile-explore-favorites svg {
+    width: 20px;
+    height: 20px;
+    stroke-width: 2.8;
+  }
+}
+
 /* Account workspace choice, shared by desktop and mobile navigation. */
 .workspace-choice { box-sizing:border-box; background:var(--surface, #fff); }
 .workspace-choice::backdrop { background:rgba(0,0,0,.5); backdrop-filter:blur(3px); }

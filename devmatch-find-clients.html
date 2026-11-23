@@ -8,16 +8,16 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="assets/css/dashboard.css?v=20261118-hide-favorites-nav-badge">
-  <link rel="stylesheet" href="assets/css/find-clients.css?v=20261123-client-card-click-v1">
+  <link rel="stylesheet" href="assets/css/find-clients.css?v=20261124-count-aligned-filter-v1">
   <link rel="stylesheet" href="assets/css/mode-switch-animation.css?v=20261120-opportunity-switch-indicator">
-  <link rel="stylesheet" href="assets/css/mobile-navigation.css?v=20261123-notification-badge-v1">
+  <link rel="stylesheet" href="assets/css/mobile-navigation.css?v=20261124-explore-favorites-header-v1">
   <link rel="stylesheet" href="assets/css/favorite-feedback.css?v=20261120-confirmation-undo">
   <script src="assets/js/i18n.js?v=20261102-profile-details"></script>
 <script src="assets/vendor/supabase-2.119.0.js"></script>
 <script src="assets/js/backend.js?v=20261123-chat-read-v1"></script>
 <link rel="stylesheet" href="assets/css/form-controls.css?v=20261123-global-dropdown-ease-v1">
 </head>
-<body class="page-scroll-shell">
+<body class="page-scroll-shell developer-explore-page">
   <!-- Topbar Header -->
   <header class="topbar">
     <a class="brand" href="devmatch-dashboard.html"><img class="brand-mark" src="assets/images/devmatch-logo.png" width="34" height="34" alt="" aria-hidden="true"><span>DEV-MATCH</span></a>
@@ -38,6 +38,9 @@
         <span class="user-avatar">DV</span>
         <span class="user-copy"><b>Developer account</b><small>Developer</small></span>
         <svg viewBox="0 0 24 24"><path d="m7 10 5 5 5-5"/></svg>
+      </a>
+      <a class="mobile-explore-favorites" href="devmatch-favorites.html" aria-label="Favorites" title="Favorites">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78Z"/></svg>
       </a>
     </div>
   </header>
@@ -81,7 +84,6 @@
     </header>
 
     <div class="mobile-clients-actions">
-      <span class="mobile-actions-background-bleed" aria-hidden="true"></span>
       <div class="mobile-clients-sort-control">
         <button class="mobile-clients-sort-toggle" id="mobileClientsSortToggle" type="button" aria-label="Sort clients" aria-haspopup="menu" aria-expanded="false" aria-controls="mobileClientsSortMenu" title="Sort clients">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 21V3m-3 4 3-4 3 4m5-4v18m-3-4 3 4 3-4"/></svg>
@@ -90,6 +92,7 @@
           <span class="mobile-clients-sort-heading" role="presentation">SORT BY</span>
           <button type="button" role="menuitemradio" data-sort-value="az" aria-checked="true">A–Z<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 4 4L19 6"/></svg></button>
           <button type="button" role="menuitemradio" data-sort-value="za" aria-checked="false">Z–A<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 4 4L19 6"/></svg></button>
+          <button type="button" role="menuitemradio" data-sort-value="requests" aria-checked="false">Most Open Requests<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 4 4L19 6"/></svg></button>
         </div>
       </div>
       <button class="mobile-clients-filter-toggle" id="mobileClientsFilterToggle" type="button" aria-label="Filter clients" aria-controls="mobileClientsFilterPanel" aria-expanded="false" title="Filter clients">
@@ -135,7 +138,7 @@
       <div class="clients-filter-row">
         <div class="filter-left-pills">
           <!-- Business Type Dropdown -->
-          <div class="filter-dropdown-container" id="businessTypeDropdown">
+          <div class="filter-dropdown-container business-type-dropdown" id="businessTypeDropdown">
             <button class="filter-pill-btn" type="button" aria-haspopup="true" aria-expanded="false">
               <svg class="icon-filter" viewBox="0 0 24 24"><path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z"/></svg>
               <span class="filter-label-text">Business type</span>
@@ -143,32 +146,27 @@
             </button>
             <div class="dropdown-menu">
               <button class="dropdown-item selected" type="button" data-value="all">All Business Types</button>
-              <button class="dropdown-item" type="button" data-value="Café">Café / F&amp;B</button>
-              <button class="dropdown-item" type="button" data-value="Retail">Retail / Fashion</button>
-              <button class="dropdown-item" type="button" data-value="Healthcare">Healthcare Clinic</button>
-              <button class="dropdown-item" type="button" data-value="Building materials">Building Materials</button>
-              <button class="dropdown-item" type="button" data-value="Hospitality">Homestay / Hospitality</button>
-              <button class="dropdown-item" type="button" data-value="Distribution">Distribution &amp; Logistics</button>
-              <button class="dropdown-item" type="button" data-value="Services">Services &amp; Legal</button>
             </div>
           </div>
 
           <!-- Location Dropdown -->
           <div class="filter-dropdown-container" id="locationDropdown">
-            <button class="filter-pill-btn" type="button" aria-haspopup="true" aria-expanded="false">
+            <button class="filter-pill-btn" type="button" aria-haspopup="dialog" aria-expanded="false" aria-controls="locationFilterMenu">
               <span class="filter-label-text">Location</span>
               <svg class="icon-chevron" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg>
             </button>
-            <div class="dropdown-menu">
-              <button class="dropdown-item selected" type="button" data-value="all">All Locations</button>
-              <button class="dropdown-item" type="button" data-value="Medan">Medan</button>
-              <button class="dropdown-item" type="button" data-value="Pematangsiantar">Pematangsiantar</button>
-              <button class="dropdown-item" type="button" data-value="Toba">Toba</button>
-              <button class="dropdown-item" type="button" data-value="Binjai">Binjai</button>
-              <button class="dropdown-item" type="button" data-value="Bandung">Bandung</button>
-              <button class="dropdown-item" type="button" data-value="Jakarta">Jakarta</button>
-              <button class="dropdown-item" type="button" data-value="Surabaya">Surabaya</button>
-              <button class="dropdown-item" type="button" data-value="Yogyakarta">Yogyakarta</button>
+            <div class="dropdown-menu location-filter-menu" id="locationFilterMenu">
+              <span class="location-filter-main-heading">LOCATION</span>
+              <span class="location-filter-heading">COUNTRY</span>
+              <div class="location-country-options" id="locationCountryOptions" role="group" aria-label="Countries"></div>
+              <div class="location-region-section" id="locationRegionSection" hidden>
+                <span class="location-filter-heading" id="locationRegionHeading">PROVINCE / STATE / REGION</span>
+                  <input class="location-region-search" id="locationRegionSearch" type="search" autocomplete="off" placeholder="Search province, state, or region" aria-label="Search province, state, or region">
+                <div class="location-region-options" id="locationRegionOptions" role="group" aria-label="Provinces, states, and regions"></div>
+                  <p class="location-region-empty" id="locationRegionEmpty" role="status" hidden>No matching province, state, or region.</p>
+              </div>
+              <p class="location-filter-status" id="locationFilterStatus" role="status" hidden></p>
+              <button class="location-filter-apply" id="locationFilterApply" type="button">Apply</button>
             </div>
           </div>
 
@@ -225,9 +223,10 @@
   <a class="floating-chat" href="devmatch-chat.html" aria-label="Messages &amp; Chat" title="Open Messages &amp; Chat">
     <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5c-5 0-9 3.65-9 8.15 0 2.24 1.04 4.27 2.73 5.74L4.7 21l5.24-1.28c.67.12 1.36.18 2.06.18 5 0 9-3.65 9-8.15S17 3.5 12 3.5Z"/><circle cx="8.5" cy="11.7" r="1" fill="currentColor" stroke="none"/><circle cx="12" cy="11.7" r="1" fill="currentColor" stroke="none"/><circle cx="15.5" cy="11.7" r="1" fill="currentColor" stroke="none"/></svg>
   </a>
-  <script src="assets/js/nav-behavior.js?v=20261123-chat-read-v1"></script>
+  <script src="assets/js/nav-behavior.js?v=20261124-rebase-sync-v1"></script>
   <script src="assets/js/favorite-feedback.js?v=20261120-confirmation-undo"></script>
-  <script src="assets/js/find-clients.js?v=20261123-fluent-shimmer-v1"></script>
+  <script src="assets/js/client-profile-options.js?v=20261123-client-profile-options-v1"></script>
+  <script src="assets/js/find-clients.js?v=20261124-sort-open-requests-v1"></script>
 <script src="assets/js/presence.js?v=20261119-global"></script>
 </body>
 </html>

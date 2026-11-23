@@ -484,6 +484,158 @@
   content: "";
 }
 
+.location-filter-menu {
+  width: min(360px, calc(100vw - 32px));
+  max-height: min(70vh, 560px);
+  overflow: auto;
+  padding: 10px;
+}
+
+.location-filter-heading {
+  display: block;
+  padding: 2px 8px 6px;
+  color: var(--fc-muted);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+}
+
+.location-filter-main-heading {
+  display: block;
+  padding: 2px 8px 6px;
+  color: var(--fc-ink);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.location-country-options,
+.location-region-options {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 2px;
+}
+
+.location-region-section {
+  display: grid;
+  gap: 4px;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--fc-line);
+}
+
+.location-region-section[hidden] {
+  display: none;
+}
+
+.location-region-search {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 36px;
+  padding: 0 10px;
+  border: 1px solid var(--fc-line);
+  border-radius: 8px;
+  outline: none;
+  background: #fff;
+  color: var(--fc-ink);
+  font: 500 12px "Plus Jakarta Sans", system-ui, sans-serif;
+}
+
+.location-region-search:focus {
+  border-color: var(--fc-ink);
+  box-shadow: 0 0 0 2px rgb(23 23 25 / 10%);
+}
+
+.location-region-empty {
+  margin: 4px 8px;
+  color: var(--fc-muted);
+  font-size: 12px;
+}
+
+.location-country-option,
+.location-region-option {
+  min-width: 0;
+  min-height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: #555b65;
+  font: 500 12px "Plus Jakarta Sans", system-ui, sans-serif;
+  text-align: left;
+  cursor: pointer;
+}
+
+.location-country-option[aria-pressed="true"],
+.location-region-option[aria-pressed="true"],
+.location-country-option:hover,
+.location-region-option:hover {
+  background: #f1f2f5;
+  color: var(--fc-ink);
+}
+
+.location-country-option[aria-pressed="true"],
+.location-region-option[aria-pressed="true"] {
+  font-weight: 700;
+}
+
+.location-country-option svg,
+.location-region-option svg {
+  display: none;
+  width: 14px;
+  height: 14px;
+  flex: none;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 2;
+}
+
+.location-country-option[aria-pressed="true"] svg,
+.location-region-option[aria-pressed="true"] svg {
+  display: block;
+}
+
+.location-region-all-option {
+  grid-column: 1 / -1;
+  position: relative;
+  justify-content: center;
+}
+
+.location-region-all-option svg {
+  position: absolute;
+  right: 8px;
+}
+
+.location-country-option:focus-visible,
+.location-region-option:focus-visible,
+.location-filter-apply:focus-visible {
+  outline: 2px solid #000;
+  outline-offset: 2px;
+}
+
+.location-filter-status {
+  margin: 8px;
+  color: var(--fc-muted);
+  font-size: 12px;
+}
+
+.location-filter-apply {
+  width: 100%;
+  min-height: 36px;
+  margin-top: 8px;
+  border: 1px solid var(--fc-ink);
+  border-radius: 8px;
+  background: var(--fc-ink);
+  color: #fff;
+  font: 600 12px "Plus Jakarta Sans", system-ui, sans-serif;
+  cursor: pointer;
+}
+
 /* Has Open Requests Toggle Pill (Solid dark pill) */
 .toggle-requests-pill {
   height: 36px;
@@ -1349,6 +1501,10 @@
   display: none;
 }
 
+.mobile-client-filter-section {
+  display: none;
+}
+
 @media (max-width: 860px) {
   .find-clients-main .clients-header {
     margin-bottom: 0;
@@ -1368,65 +1524,44 @@
   }
 
   .find-clients-main .mobile-clients-actions {
-    --clients-action-edge-gap: 14px;
+    box-sizing: border-box;
+    width: 42px;
+    height: 82px;
     position: sticky;
     top: 42px;
     z-index: 30;
     display: grid;
-    grid-template-columns: minmax(0, 1fr) 42px;
+    grid-template-columns: 42px;
     grid-template-rows: 38px 38px;
-    gap: 6px;
-    margin: 4px 0 0;
-    padding: 0 0 10px;
+    gap: 2px;
+    margin: 4px -14px 10px auto;
+    padding: 0 0 4px;
     isolation: isolate;
-    background: var(--fc-bg);
-    border-bottom: 1px solid var(--fc-line);
+    border-radius: 10px 0 0 10px;
+    background: linear-gradient(145deg, rgb(255 255 255 / 78%), rgb(255 255 255 / 56%));
+    box-shadow: 0 8px 22px rgb(23 23 25 / 13%), inset 0 0 0 1px var(--fc-line), inset 0 1px 0 rgb(255 255 255 / 90%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    backdrop-filter: blur(20px) saturate(180%);
     transition: top 240ms cubic-bezier(.22, .61, .36, 1);
-  }
-
-  .find-clients-main .mobile-actions-background-bleed {
-    position: absolute;
-    z-index: -1;
-    top: 0;
-    bottom: 0;
-    left: calc(50% - 50vw + 1px);
-    width: 100vw;
-    background: var(--fc-bg);
-    pointer-events: none;
   }
 
   .find-clients-main .mobile-clients-actions.mobile-filter-open {
     z-index: 1001;
   }
 
-  .find-clients-main .mobile-clients-actions::before {
-    position: absolute;
-    z-index: 1;
-    top: 0;
-    right: calc(100% + 12px - 100vw);
-    width: 42px;
-    height: 82px;
-    border: 1px solid var(--fc-line);
-    border-radius: 9px 0 0 9px;
-    background: #fff;
-    content: "";
-    pointer-events: none;
-  }
-
   .find-clients-main .mobile-clients-actions.switch-hidden {
     top: 0;
-    margin-top: 0;
   }
 
   .find-clients-main .mobile-clients-sort-control {
     position: relative;
     z-index: 2;
-    grid-column: 2;
+    grid-column: 1;
     grid-row: 1;
-    justify-self: end;
+    justify-self: stretch;
     width: 42px;
     height: 38px;
-    margin-right: calc(0px - var(--clients-action-edge-gap));
+    margin-right: 0;
   }
 
   .find-clients-main .mobile-clients-sort-toggle,
@@ -1456,12 +1591,12 @@
   }
 
   .find-clients-main .mobile-clients-filter-toggle {
-    grid-column: 2;
+    grid-column: 1;
     grid-row: 2;
-    justify-self: end;
+    justify-self: stretch;
     position: relative;
     z-index: 2;
-    margin-right: calc(0px - var(--clients-action-edge-gap));
+    margin-right: 0;
   }
 
   .find-clients-main .mobile-clients-filter-toggle[aria-expanded="true"] {
@@ -1543,15 +1678,22 @@
     display: grid;
   }
 
+  .find-clients-main .mobile-clients-filter-panel[hidden] {
+    display: none;
+  }
+
   .find-clients-main .mobile-clients-filter-panel {
     position: absolute;
     z-index: 20;
     top: calc(100% + 6px);
     right: 0;
-    width: min(340px, 100%);
+    width: min(340px, calc(100vw - 28px));
+    max-height: min(620px, calc(100dvh - 270px - env(safe-area-inset-bottom, 0px)));
     gap: 8px;
     margin: 0;
     padding: 10px;
+    overflow-y: auto;
+    overscroll-behavior: contain;
     border: 1px solid var(--fc-line);
     border-radius: 20px;
     background: #fff;
@@ -1574,19 +1716,124 @@
   }
 
   .find-clients-main .mobile-clients-filter-fields .filter-pill-btn {
-    height: 38px;
-    justify-content: space-between;
-    border-radius: 9px;
+    display: none;
   }
 
-  .find-clients-main .mobile-clients-filter-fields .dropdown-menu {
-    min-width: 100%;
-    max-height: min(340px, calc(100dvh - 220px));
-    overflow-y: auto;
-    overscroll-behavior: contain;
+  .find-clients-main .mobile-client-filter-section {
+    display: grid;
+    gap: 4px;
+  }
+
+  .find-clients-main .filter-dropdown-container + .filter-dropdown-container .mobile-client-filter-section {
+    padding-top: 6px;
+    border-top: 1px solid var(--fc-line);
+  }
+
+  .find-clients-main .mobile-client-filter-heading {
+    padding-left: 8px;
+    color: var(--fc-muted);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+  }
+
+  .find-clients-main .mobile-client-filter-options {
+    display: grid;
+    gap: 2px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .find-clients-main .mobile-client-filter-option {
+    min-width: 0;
+    min-height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 0 8px;
+    border: 0;
+    border-radius: 9px;
+    background: transparent;
+    color: #555b65;
+    font: 500 12px "Plus Jakarta Sans", system-ui, sans-serif;
+    text-align: left;
+    cursor: pointer;
+  }
+
+  .find-clients-main .mobile-client-filter-option[aria-pressed="true"],
+  .find-clients-main .mobile-client-filter-option:hover {
+    background: #f1f2f5;
+    color: var(--fc-ink);
+  }
+
+  .find-clients-main .mobile-client-filter-option[aria-pressed="true"] {
+    font-weight: 700;
+  }
+
+  .find-clients-main .mobile-client-filter-option svg {
+    display: none;
+    width: 14px;
+    height: 14px;
+    flex: none;
+    fill: none;
+    stroke: currentColor;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    stroke-width: 2;
+  }
+
+  .find-clients-main .mobile-client-filter-option[aria-pressed="true"] svg {
+    display: block;
+  }
+
+  .find-clients-main .mobile-client-filter-option:focus-visible {
+    outline: 2px solid #000;
+    outline-offset: 2px;
+  }
+
+  .find-clients-main .mobile-clients-filter-fields .business-type-dropdown .dropdown-menu {
+    display: none !important;
+  }
+
+  .find-clients-main .mobile-clients-filter-fields .location-filter-menu {
+    position: static;
+    inset: auto;
+    width: 100%;
+    max-height: none;
+    display: grid !important;
+    gap: 4px;
+    margin: 0;
+    padding: 0;
+    overflow: visible;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+
+  .find-clients-main .mobile-clients-filter-fields .location-filter-heading {
+    padding-left: 8px;
+  }
+
+  .find-clients-main .mobile-clients-filter-fields .location-region-search {
+    min-width: 0;
+  }
+
+  .find-clients-main .mobile-clients-filter-fields .location-region-options {
+    max-height: none;
+    overflow: visible;
+    overscroll-behavior: auto;
+  }
+
+  .find-clients-main .mobile-clients-filter-fields .location-filter-apply {
+    display: none;
   }
 
   .find-clients-main .mobile-clients-filter-fields .toggle-requests-pill {
+    order: -1;
     width: 100%;
     height: 38px;
     justify-content: center;
@@ -1623,18 +1870,6 @@
     color: #fff;
   }
 
-  .find-clients-main .mobile-clients-actions::after {
-    position: absolute;
-    z-index: 1;
-    bottom: -1px;
-    left: calc(50% - 50vw + 1px);
-    width: 100vw;
-    height: 1px;
-    background: var(--fc-line);
-    content: "";
-    pointer-events: none;
-  }
-
   .find-clients-main .clients-filter-row {
     display: none;
   }
@@ -1663,6 +1898,10 @@
 @media (max-width: 640px) {
   .find-clients-main {
     --page-scroll-mobile-top: 60px;
+  }
+
+  .find-clients-main .clients-count-header {
+    margin-top: -54px;
   }
 }
 

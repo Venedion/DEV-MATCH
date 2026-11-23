@@ -1,6 +1,7 @@
 const params=new URLSearchParams(window.location.search);
 const role=params.get('role')==='client'?'client':'dev';
 const isDeveloper=role==='dev';
+const clientProfileOptions=window.DEVMATCH_CLIENT_PROFILE_OPTIONS;
 const requestedStep=Number(params.get('step'));
 const draftKey='devmatch-profile-draft';
 const storedDraft=JSON.parse(sessionStorage.getItem(draftKey)||'{}');
@@ -36,21 +37,8 @@ let locationOptionsError='';
 let activeLocationGroup=null;
 let suppressLocationFocusOpen=false;
 const experienceFiles=new Map();
-const locationPickerCountries=new Set(['Indonesia','Malaysia','Singapore']);
-const industryOptions=[
-  'Food & Beverage',
-  'Retail & E-Commerce',
-  'Healthcare',
-  'Construction & Building',
-  'Hospitality & Tourism',
-  'Distribution',
-  'Finance & Business',
-  'Education',
-  'Technology & IT',
-  'Media & Entertainment',
-  'Professional Services',
-  'Personal Use'
-];
+const locationPickerCountries=new Set(clientProfileOptions.countries);
+const industryOptions=clientProfileOptions.businessTypes;
 const fields=document.getElementById('stepFields');
 const form=document.getElementById('profileForm');
 const error=document.getElementById('formError');
@@ -62,7 +50,7 @@ const content=[
     fields:()=>`
       <div class="field"><label class="field-label" for="displayName">Display name <span class="required-mark" aria-hidden="true">*</span></label><input class="control" id="displayName" name="displayName" autocomplete="name" maxlength="60" aria-describedby="displayNameError" required placeholder="Your name" value="${escapeHtml(profile.displayName)}"><p class="field-error" id="displayNameError" hidden>Please enter your display name.</p></div>
       <div class="field two-fields country-location-fields">
-        <div><label class="field-label" for="country">Country <span class="required-mark" aria-hidden="true">*</span></label><select class="control" id="country" name="country" aria-describedby="countryError" required><option>Indonesia</option><option>Malaysia</option><option>Singapore</option></select><p class="field-error" id="countryError" hidden>Please select a country.</p></div>
+        <div><label class="field-label" for="country">Country <span class="required-mark" aria-hidden="true">*</span></label><select class="control" id="country" name="country" aria-describedby="countryError" required>${clientProfileOptions.countries.map(value=>`<option>${escapeHtml(value)}</option>`).join('')}</select><p class="field-error" id="countryError" hidden>Please select a country.</p></div>
         ${renderLocationField()}
       </div>
       <div class="field"><span class="field-label">Gender <span class="required-mark" aria-hidden="true">*</span></span><div class="gender-options" role="group" aria-label="Gender" aria-describedby="genderError">${['Male','Female','Prefer not to say'].map(value=>`<button class="choice" type="button" data-gender="${value}" aria-pressed="${profile.gender===value}">${value}</button>`).join('')}</div><p class="field-error" id="genderError" hidden>Please select your gender.</p></div>

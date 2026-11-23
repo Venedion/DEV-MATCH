@@ -19,10 +19,20 @@
 
   // Mode detection
   const urlParams = new URLSearchParams(window.location.search);
+  const mobileFavoritesBackLink = document.getElementById('mobileFavoritesBack');
+  if (mobileFavoritesBackLink) {
+    const previousPage = new URL(document.referrer || window.location.href);
+    const previousPageName = previousPage.pathname.split('/').pop();
+    if (previousPage.origin === window.location.origin
+      && ['devmatch-find-projects.html', 'devmatch-find-clients.html'].includes(previousPageName)) {
+      mobileFavoritesBackLink.href = `${previousPageName}${previousPage.search}${previousPage.hash}`;
+    }
+  }
   const isClient = urlParams.get('role') === 'client' || document.body.classList.contains('client-shell-page');
+  const clientProfileOptions = window.DEVMATCH_CLIENT_PROFILE_OPTIONS;
   const initialFavoriteGrid = document.getElementById('favGrid');
   window.DEVMATCH_SKELETON?.cards(initialFavoriteGrid,4,'favorite-project');
-  ['countProjects','countClients','countDevs','favCount'].forEach(id =>
+  ['countProjects','countClients','countDevs','favCount','mobileFavCount'].forEach(id =>
     window.DEVMATCH_SKELETON?.text(document.getElementById(id),'Loading saved item count','24px')
   );
 
@@ -41,7 +51,7 @@
   } catch (error) {
     console.error('Unable to load favorites from Supabase.', error);
     window.DEVMATCH_SKELETON?.status(initialFavoriteGrid,'Unable to load saved items');
-    ['countProjects','countClients','countDevs','favCount'].forEach(id => {
+    ['countProjects','countClients','countDevs','favCount','mobileFavCount'].forEach(id => {
       const count = document.getElementById(id);
       if (count) count.textContent = '—';
     });
@@ -141,6 +151,13 @@
   let favoriteDevIds = initialFavoriteRows ? validFavoriteIds(loadDevFavorites()) : [];
   let currentTab = 'projects'; // 'projects' or ('clients' in dev mode / 'developers' in client mode)
   let currentCategory = 'all';
+  let currentType = 'all';
+  let favoriteClientLocation = {country: 'all', regions: []};
+  let favoriteClientsWithOpenRequestsOnly = false;
+  let mobileClientFilterDraft = null;
+  let favoriteClientLocationRegions = {};
+  let favoriteClientLocationOptionsError = '';
+  let favoriteClientRegionSearchQuery = '';
   let searchQuery = '';
   let currentSort = 'recent';
   let lastRemovedItem = null;
@@ -149,13 +166,30 @@
   // DOM Elements
   const favGridEl = document.getElementById('favGrid');
   const favCountEl = document.getElementById('favCount');
+  const mobileFavCountEl = document.getElementById('mobileFavCount');
   const tabProjectsBtn = document.getElementById('tabProjects');
   const tabSecondaryBtn = document.getElementById('tabClients') || document.getElementById('tabDevs');
   const countProjectsEl = document.getElementById('countProjects');
   const countSecondaryEl = document.getElementById('countClients') || document.getElementById('countDevs');
   const searchInputEl = document.getElementById('favSearchInput');
   const categorySelectEl = document.getElementById('favCategorySelect');
+  const typeSelectEl = document.getElementById('favTypeSelect');
   const sortSelectEl = document.getElementById('favSortSelect');
+  const mobileFavoritesTypeGroup = document.getElementById('mobileFavoritesTypeGroup');
+  const mobileFavoritesTypeOptions = document.getElementById('mobileFavoritesTypeOptions');
+  const mobileFavoritesOpenRequestsGroup = document.getElementById('mobileFavoritesOpenRequestsGroup');
+  const mobileFavoritesOpenRequests = document.getElementById('mobileFavoritesOpenRequests');
+  const mobileFavoritesCategoryHeading = document.getElementById('mobileFavoritesCategoryHeading');
+  const mobileFavoritesCategoryOptions = document.getElementById('mobileFavoritesCategoryOptions');
+  const mobileFavoritesLocationGroup = document.getElementById('mobileFavoritesLocationGroup');
+  const mobileFavoritesCountryOptions = document.getElementById('mobileFavoritesCountryOptions');
+  const mobileFavoritesRegionSection = document.getElementById('mobileFavoritesRegionSection');
+  const mobileFavoritesRegionHeading = document.getElementById('mobileFavoritesRegionHeading');
+  const mobileFavoritesRegionSearch = document.getElementById('mobileFavoritesRegionSearch');
+  const mobileFavoritesRegionOptions = document.getElementById('mobileFavoritesRegionOptions');
+  const mobileFavoritesRegionEmpty = document.getElementById('mobileFavoritesRegionEmpty');
+  const mobileFavoritesLocationStatus = document.getElementById('mobileFavoritesLocationStatus');
+  const mobileFavoritesSortOptions = document.getElementById('mobileFavoritesSortOptions');
   const favoriteSelectUIs = [];
   const favExploreBtn = document.getElementById('favExploreBtn');
   const favClientDialog = document.getElementById('favClientDialog');
@@ -309,6 +343,8 @@
           business: String(profile.companyName || name),
           category,
           businessType: category,
+          country: String(profile.country || ''),
+          profileCity: String(profile.city || ''),
           location: [profile.city, profile.country].filter(Boolean).join(', ') || 'Location not provided',
           openRequestsCount: Number(person.open_request_count) || 0,
           requests: requestsForClient,
@@ -350,7 +386,7 @@
       trigger.setAttribute('aria-expanded', 'false');
       menu.setAttribute('aria-hidden', 'true');
       menu.inert = true;
-      if (focusTrigger) trigger.focus();
+      if (focusTrigger && trigger.getClientRects().length) trigger.focus();
     };
     const open = () => {
       favoriteSelectUIs.forEach(ui => {
@@ -435,6 +471,386 @@
     });
   });
 
+  function closeMobileFavoritesPanels() {
+    const actions = document.getElementById('mobileFavoritesStickyActions');
+    const sortPanel = document.getElementById('mobileFavoritesSortPanel');
+    const filterPanel = document.getElementById('mobileFavoritesFilterPanel');
+    const sortToggle = document.getElementById('mobileFavoritesSortToggle');
+    const filterToggle = document.getElementById('mobileFavoritesFilterToggle');
+    if (!actions || !sortPanel || !filterPanel) return;
+    sortPanel.hidden = true;
+    filterPanel.hidden = true;
+    sortToggle?.setAttribute('aria-expanded', 'false');
+    filterToggle?.setAttribute('aria-expanded', 'false');
+    actions.classList.remove('mobile-sort-open', 'mobile-filter-open');
+    favoriteSelectUIs.forEach(ui => ui.close());
+    if (mobileClientFilterDraft) {
+      mobileClientFilterDraft = null;
+      renderMobileFavoritesFilterOptions();
+    }
+  }
+
+  function renderMobileChoiceList(select, container, buttonClass, selectedValue = select?.value, onSelect) {
+    if (!select || !container) return;
+    container.replaceChildren(...Array.from(select.options, option => {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = buttonClass;
+      button.dataset.value = option.value;
+      button.setAttribute('aria-pressed', String(option.value === selectedValue));
+
+      const label = document.createElement('span');
+      label.textContent = option.textContent;
+      const icon = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+      icon.setAttribute('viewBox', '0 0 24 24');
+      icon.setAttribute('aria-hidden', 'true');
+      const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      path.setAttribute('d', 'm5 12 4 4L19 6');
+      icon.append(path);
+      button.append(label, icon);
+      button.addEventListener('click', event => {
+        event.stopPropagation();
+        if (onSelect) {
+          onSelect(option.value);
+        } else {
+          select.value = option.value;
+          select.dispatchEvent(new Event('change', {bubbles: true}));
+        }
+      });
+      return button;
+    }));
+  }
+
+  function copyFavoriteClientLocation(location) {
+    return {
+      country: location?.country || 'all',
+      regions: Array.isArray(location?.regions) ? [...new Set(location.regions)] : []
+    };
+  }
+
+  function createFavoriteLocationCheckmark() {
+    const icon = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    icon.setAttribute('viewBox', '0 0 24 24');
+    icon.setAttribute('aria-hidden', 'true');
+    const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    path.setAttribute('d', 'm5 12 4 4L19 6');
+    icon.append(path);
+    return icon;
+  }
+
+  function renderMobileFavoriteClientLocationOptions(location = mobileClientFilterDraft?.location || favoriteClientLocation) {
+    if (!clientProfileOptions || !mobileFavoritesCountryOptions || !mobileFavoritesRegionSection
+      || !mobileFavoritesRegionOptions) return;
+    const selectedLocation = copyFavoriteClientLocation(location);
+    mobileFavoritesCountryOptions.replaceChildren(...[
+      {value: 'all', label: 'All countries'},
+      ...clientProfileOptions.countries.map(country => ({value: country, label: country}))
+    ].map(({value, label}) => {
+      const button = document.createElement('button');
+      button.className = 'location-country-option';
+      button.type = 'button';
+      button.dataset.country = value;
+      button.setAttribute('aria-pressed', String(selectedLocation.country === value));
+      button.setAttribute('aria-expanded', String(selectedLocation.country === value && value !== 'all'));
+      button.setAttribute('aria-controls', 'mobileFavoritesRegionSection');
+      const text = document.createElement('span');
+      text.textContent = label;
+      button.append(text, createFavoriteLocationCheckmark());
+      button.addEventListener('click', event => {
+        event.stopPropagation();
+        if (!mobileClientFilterDraft) return;
+        mobileClientFilterDraft.location = {country: value, regions: []};
+        favoriteClientRegionSearchQuery = '';
+        if (mobileFavoritesRegionSearch) mobileFavoritesRegionSearch.value = '';
+        renderMobileFavoriteClientLocationOptions(mobileClientFilterDraft.location);
+        if (value !== 'all') {
+          requestAnimationFrame(() => mobileFavoritesRegionSection.scrollIntoView({block: 'nearest'}));
+        }
+      });
+      return button;
+    }));
+
+    const country = clientProfileOptions.countries.find(item => item === selectedLocation.country);
+    mobileFavoritesRegionSection.hidden = !country;
+    mobileFavoritesRegionOptions.replaceChildren();
+    if (!country) {
+      if (mobileFavoritesLocationStatus) mobileFavoritesLocationStatus.hidden = true;
+      if (mobileFavoritesRegionEmpty) mobileFavoritesRegionEmpty.hidden = true;
+      return;
+    }
+
+    if (mobileFavoritesRegionHeading) {
+      mobileFavoritesRegionHeading.textContent = country === 'Malaysia'
+        ? 'STATE'
+        : country === 'Singapore' ? 'REGION' : 'PROVINCE';
+    }
+    const regions = favoriteClientLocationRegions[country] || [];
+    const query = favoriteClientRegionSearchQuery.trim().toLocaleLowerCase();
+    const matchingRegions = regions.filter(region => region.name.toLocaleLowerCase().includes(query));
+    const allOption = regions.length ? document.createElement('button') : null;
+    if (allOption) {
+      allOption.className = 'location-region-option location-region-all-option';
+      allOption.type = 'button';
+      allOption.setAttribute('aria-pressed', String(selectedLocation.regions.length === 0));
+      const label = country === 'Malaysia' ? 'All states' : country === 'Singapore' ? 'All regions' : 'All provinces';
+      const text = document.createElement('span');
+      text.textContent = label;
+      allOption.append(text, createFavoriteLocationCheckmark());
+      allOption.addEventListener('click', event => {
+        event.stopPropagation();
+        if (!mobileClientFilterDraft) return;
+        mobileClientFilterDraft.location.regions = [];
+        renderMobileFavoriteClientLocationOptions(mobileClientFilterDraft.location);
+      });
+    }
+    mobileFavoritesRegionOptions.replaceChildren(
+      ...(allOption ? [allOption] : []),
+      ...matchingRegions.map(region => {
+        const button = document.createElement('button');
+        button.className = 'location-region-option';
+        button.type = 'button';
+        button.dataset.region = region.name;
+        button.setAttribute('aria-pressed', String(selectedLocation.regions.includes(region.name)));
+        const text = document.createElement('span');
+        text.textContent = region.name;
+        button.append(text, createFavoriteLocationCheckmark());
+        button.addEventListener('click', event => {
+          event.stopPropagation();
+          if (!mobileClientFilterDraft) return;
+          const selected = new Set(mobileClientFilterDraft.location.regions);
+          if (selected.has(region.name)) selected.delete(region.name);
+          else selected.add(region.name);
+          mobileClientFilterDraft.location.regions = [...selected];
+          renderMobileFavoriteClientLocationOptions(mobileClientFilterDraft.location);
+        });
+        return button;
+      })
+    );
+    if (mobileFavoritesRegionEmpty) {
+      mobileFavoritesRegionEmpty.hidden = Boolean(favoriteClientLocationOptionsError)
+        || !regions.length || matchingRegions.length > 0;
+    }
+    if (mobileFavoritesLocationStatus) {
+      mobileFavoritesLocationStatus.hidden = !favoriteClientLocationOptionsError && regions.length > 0;
+      mobileFavoritesLocationStatus.textContent = favoriteClientLocationOptionsError
+        || (regions.length ? '' : 'Loading location options…');
+    }
+  }
+
+  function getFavoriteClientRegion(client) {
+    const country = clientProfileOptions.countries.find(item =>
+      item.toLocaleLowerCase() === client.country.toLocaleLowerCase()
+    );
+    const regions = favoriteClientLocationRegions[country] || [];
+    const rawLocation = String(client.profileCity || '').trim();
+    if (!rawLocation) return '';
+    const [firstPart, ...remainingParts] = rawLocation.split(',');
+    const prefix = firstPart.trim().toLocaleLowerCase();
+    const matchingRegion = regions.find(region => region.name.toLocaleLowerCase() === prefix);
+    if (matchingRegion) return matchingRegion.name;
+    if (remainingParts.length) return firstPart.trim();
+
+    const city = rawLocation.toLocaleLowerCase();
+    const matches = regions.filter(region => region.cities.some(item =>
+      item.name.toLocaleLowerCase() === city
+    ));
+    return matches.length === 1 ? matches[0].name : '';
+  }
+
+  async function loadFavoriteClientLocationOptions() {
+    try {
+      const loadJson = async path => {
+        const response = await fetch(path);
+        if (!response.ok) throw new Error(`Location data request failed with status ${response.status}.`);
+        return response.json();
+      };
+      const [indonesia, malaysiaSingapore] = await Promise.all([
+        loadJson('assets/data/indonesia-regions.json?v=20261121-location-alpha-v1'),
+        loadJson('assets/data/malaysia-singapore-regions.json?v=20261122-malaysia-singapore-v1')
+      ]);
+      const groups = {
+        Indonesia: indonesia.provinces,
+        Malaysia: malaysiaSingapore.countries?.Malaysia,
+        Singapore: malaysiaSingapore.countries?.Singapore
+      };
+      for (const country of clientProfileOptions.countries) {
+        const regions = groups[country];
+        if (!Array.isArray(regions) || !regions.length
+          || regions.some(region => typeof region.name !== 'string' || !Array.isArray(region.cities))) {
+          throw new Error(`The ${country} location list is incomplete.`);
+        }
+      }
+      favoriteClientLocationRegions = groups;
+      favoriteClientLocationOptionsError = '';
+      renderMobileFavoriteClientLocationOptions();
+    } catch (error) {
+      console.error('Unable to load Favorites client location options.', error);
+      favoriteClientLocationOptionsError = 'Location options could not be loaded. Refresh the page to try again.';
+      renderMobileFavoriteClientLocationOptions();
+    }
+  }
+
+  function renderMobileFavoritesFilterOptions() {
+    if (mobileFavoritesTypeGroup) {
+      mobileFavoritesTypeGroup.hidden = currentTab !== 'projects';
+    }
+    const savedClientsTab = !isClient && currentTab === 'clients';
+    if (mobileFavoritesOpenRequestsGroup) mobileFavoritesOpenRequestsGroup.hidden = !savedClientsTab;
+    if (mobileFavoritesLocationGroup) mobileFavoritesLocationGroup.hidden = !savedClientsTab;
+    if (mobileFavoritesCategoryHeading) {
+      mobileFavoritesCategoryHeading.textContent = currentTab === 'projects'
+        ? 'Categories'
+        : isClient ? 'Specialization' : 'Business Type';
+    }
+    if (mobileFavoritesCategoryOptions) {
+      mobileFavoritesCategoryOptions.setAttribute('aria-label', mobileFavoritesCategoryHeading?.textContent || 'Categories');
+    }
+    renderMobileChoiceList(typeSelectEl, mobileFavoritesTypeOptions, 'mobile-favorites-filter-option');
+    const selectedBusinessType = savedClientsTab && mobileClientFilterDraft
+      ? mobileClientFilterDraft.businessType
+      : categorySelectEl?.value;
+    renderMobileChoiceList(categorySelectEl, mobileFavoritesCategoryOptions, 'mobile-favorites-filter-option',
+      selectedBusinessType, value => {
+        if (savedClientsTab && mobileClientFilterDraft) {
+          mobileClientFilterDraft.businessType = value;
+          renderMobileFavoritesFilterOptions();
+          return;
+        }
+        categorySelectEl.value = value;
+        categorySelectEl.dispatchEvent(new Event('change', {bubbles: true}));
+      });
+    if (mobileFavoritesOpenRequests) {
+      const selected = mobileClientFilterDraft?.hasOpenRequestsOnly ?? favoriteClientsWithOpenRequestsOnly;
+      mobileFavoritesOpenRequests.setAttribute('aria-pressed', String(selected));
+      mobileFavoritesOpenRequests.classList.toggle('inactive', !selected);
+    }
+    renderMobileFavoriteClientLocationOptions();
+  }
+
+  function renderMobileFavoritesSortOptions() {
+    if (!sortSelectEl || !mobileFavoritesSortOptions) return;
+    mobileFavoritesSortOptions.replaceChildren(...Array.from(sortSelectEl.options, option => {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'mobile-favorites-sort-option';
+      button.dataset.value = option.value;
+      button.setAttribute('aria-pressed', String(option.value === sortSelectEl.value));
+      const label = document.createElement('span');
+      label.textContent = option.textContent;
+      const icon = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+      icon.setAttribute('viewBox', '0 0 24 24');
+      icon.setAttribute('aria-hidden', 'true');
+      const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      path.setAttribute('d', 'm5 12 4 4L19 6');
+      icon.append(path);
+      button.append(label, icon);
+      button.addEventListener('click', () => {
+        sortSelectEl.value = option.value;
+        sortSelectEl.dispatchEvent(new Event('change', {bubbles: true}));
+        closeMobileFavoritesPanels();
+        document.getElementById('mobileFavoritesSortToggle')?.focus();
+      });
+      return button;
+    }));
+  }
+
+  function setupMobileFavoritesFilters() {
+    const actions = document.getElementById('mobileFavoritesStickyActions');
+    const sortToggle = document.getElementById('mobileFavoritesSortToggle');
+    const filterToggle = document.getElementById('mobileFavoritesFilterToggle');
+    const sortPanel = document.getElementById('mobileFavoritesSortPanel');
+    const filterPanel = document.getElementById('mobileFavoritesFilterPanel');
+    const resetButton = document.getElementById('mobileFavoritesFilterReset');
+    const applyButton = document.getElementById('mobileFavoritesFilterApply');
+    if (!actions || !sortToggle || !filterToggle || !sortPanel || !filterPanel
+      || !resetButton || !applyButton || !categorySelectEl || !typeSelectEl || !sortSelectEl) return;
+
+    sortToggle.addEventListener('click', () => {
+      const shouldOpen = sortPanel.hidden;
+      closeMobileFavoritesPanels();
+      if (!shouldOpen) return;
+      sortPanel.hidden = false;
+      sortToggle.setAttribute('aria-expanded', 'true');
+      actions.classList.add('mobile-sort-open');
+    });
+
+    filterToggle.addEventListener('click', () => {
+      const shouldOpen = filterPanel.hidden;
+      closeMobileFavoritesPanels();
+      if (!shouldOpen) return;
+      if (!isClient && currentTab === 'clients') {
+        mobileClientFilterDraft = {
+          businessType: currentCategory,
+          location: copyFavoriteClientLocation(favoriteClientLocation),
+          hasOpenRequestsOnly: favoriteClientsWithOpenRequestsOnly
+        };
+        favoriteClientRegionSearchQuery = '';
+        if (mobileFavoritesRegionSearch) mobileFavoritesRegionSearch.value = '';
+        renderMobileFavoritesFilterOptions();
+      }
+      filterPanel.scrollTop = 0;
+      filterPanel.hidden = false;
+      filterToggle.setAttribute('aria-expanded', 'true');
+      actions.classList.add('mobile-filter-open');
+    });
+
+    mobileFavoritesOpenRequests?.addEventListener('click', event => {
+      event.stopPropagation();
+      if (!mobileClientFilterDraft) return;
+      mobileClientFilterDraft.hasOpenRequestsOnly = !mobileClientFilterDraft.hasOpenRequestsOnly;
+      renderMobileFavoritesFilterOptions();
+    });
+    mobileFavoritesRegionSearch?.addEventListener('input', () => {
+      favoriteClientRegionSearchQuery = mobileFavoritesRegionSearch.value;
+      renderMobileFavoriteClientLocationOptions();
+    });
+
+    resetButton.addEventListener('click', () => {
+      if (!isClient && currentTab === 'clients') {
+        currentCategory = 'all';
+        categorySelectEl.value = 'all';
+        favoriteClientLocation = {country: 'all', regions: []};
+        favoriteClientsWithOpenRequestsOnly = false;
+        mobileClientFilterDraft = null;
+        favoriteClientRegionSearchQuery = '';
+        if (mobileFavoritesRegionSearch) mobileFavoritesRegionSearch.value = '';
+        updateFavoriteSelect(categorySelectEl);
+        renderMobileFavoritesFilterOptions();
+        renderCurrentTab();
+      } else {
+        [categorySelectEl, typeSelectEl].forEach(select => {
+          select.value = 'all';
+          select.dispatchEvent(new Event('change', {bubbles: true}));
+        });
+      }
+      closeMobileFavoritesPanels();
+      filterToggle.focus();
+    });
+    applyButton.addEventListener('click', () => {
+      if (mobileClientFilterDraft) {
+        currentCategory = mobileClientFilterDraft.businessType;
+        categorySelectEl.value = currentCategory;
+        favoriteClientLocation = copyFavoriteClientLocation(mobileClientFilterDraft.location);
+        favoriteClientsWithOpenRequestsOnly = mobileClientFilterDraft.hasOpenRequestsOnly;
+        mobileClientFilterDraft = null;
+        updateFavoriteSelect(categorySelectEl);
+        renderMobileFavoritesFilterOptions();
+        renderCurrentTab();
+      }
+      closeMobileFavoritesPanels();
+      filterToggle.focus();
+    });
+    document.addEventListener('click', event => {
+      if (!actions.contains(event.target)) closeMobileFavoritesPanels();
+    });
+    document.addEventListener('keydown', event => {
+      if (event.key === 'Escape') closeMobileFavoritesPanels();
+    });
+  }
+
+  setupMobileFavoritesFilters();
+  if (!isClient) loadFavoriteClientLocationOptions();
+
   // Setup tab label dynamically based on mode
   if (tabSecondaryBtn) {
     if (isClient) {
@@ -483,9 +899,9 @@
     const countBadge = document.getElementById(isClient ? 'countDevs' : 'countClients') || countSecondaryEl;
     if (countBadge) countBadge.textContent = String(secondaryCount);
 
-    if (favCountEl) {
-      favCountEl.textContent = `${projCount + secondaryCount} saved`;
-    }
+    const savedCountText = `${projCount + secondaryCount} saved`;
+    if (favCountEl) favCountEl.textContent = savedCountText;
+    if (mobileFavCountEl) mobileFavCountEl.textContent = savedCountText;
 
     // Total favorites in sidebar
     document.querySelectorAll('#favoriteCount, .favorites-count-badge').forEach(badge => {
@@ -521,18 +937,28 @@
       // Developer mode: Filter clients by business type
       categorySelectEl.innerHTML = `
         <option value="all">All Business Types</option>
-        <option value="Café">Café / F&amp;B</option>
-        <option value="Retail">Retail / Fashion</option>
-        <option value="Healthcare">Healthcare Clinic</option>
-        <option value="Building materials">Building Materials</option>
-        <option value="Hospitality">Homestay / Hospitality</option>
-        <option value="Distribution">Distribution &amp; Logistics</option>
-        <option value="Services">Services &amp; Legal</option>
+        ${clientProfileOptions.businessTypes.map(type =>
+          `<option value="${escapeHtml(type)}">${escapeHtml(type)}</option>`
+        ).join('')}
       `;
     }
     categorySelectEl.value = 'all';
     currentCategory = 'all';
     updateFavoriteSelect(categorySelectEl);
+    renderMobileFavoritesFilterOptions();
+  }
+
+  function updateTypeOptions() {
+    if (!typeSelectEl) return;
+    typeSelectEl.innerHTML = currentTab === 'projects'
+      ? `<option value="all">All types</option>
+        <option>Website</option>
+        <option>Web App</option>
+        <option>Android / iOS</option>`
+      : '<option value="all">All types</option>';
+    typeSelectEl.value = 'all';
+    currentType = 'all';
+    renderMobileFavoritesFilterOptions();
   }
 
   // Update Sort Select Options depending on current tab
@@ -563,6 +989,7 @@
     sortSelectEl.value = 'recent';
     currentSort = 'recent';
     updateFavoriteSelect(sortSelectEl);
+    renderMobileFavoritesSortOptions();
   }
 
   // Render Projects Grid
@@ -574,12 +1001,17 @@
       savedProjects = savedProjects.filter(p => p.category.toLowerCase() === currentCategory.toLowerCase());
     }
 
+    if (currentType !== 'all') {
+      savedProjects = savedProjects.filter(p => p.type.toLowerCase() === currentType.toLowerCase());
+    }
+
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
       savedProjects = savedProjects.filter(p =>
         p.title.toLowerCase().includes(q) ||
         p.developer.toLowerCase().includes(q) ||
         p.category.toLowerCase().includes(q) ||
+        p.type.toLowerCase().includes(q) ||
         p.description.toLowerCase().includes(q)
       );
     }
@@ -596,7 +1028,7 @@
       const exploreUrl = isClient ? 'devmatch-discover-projects.html' : 'devmatch-find-projects.html';
       const emptyMessage = favoriteProjectIds.length === 0
         ? 'You haven’t saved any projects yet. Browse projects and click the heart icon to save your favorites.'
-        : currentCategory !== 'all' || searchQuery
+        : currentCategory !== 'all' || currentType !== 'all' || searchQuery
           ? 'No saved projects match your filter or search query.'
           : 'Your saved projects aren’t available in this workspace or are no longer published.';
       favGridEl.innerHTML = `
@@ -717,6 +1149,19 @@
       savedClients = savedClients.filter(c =>
         c.category === currentCategory || c.businessType === currentCategory
       );
+    }
+
+    if (favoriteClientsWithOpenRequestsOnly) {
+      savedClients = savedClients.filter(client => client.openRequestsCount > 0);
+    }
+
+    if (favoriteClientLocation.country !== 'all') {
+      savedClients = savedClients.filter(client => {
+        if (client.country.toLocaleLowerCase() !== favoriteClientLocation.country.toLocaleLowerCase()) return false;
+        if (!favoriteClientLocation.regions.length) return true;
+        const clientRegion = getFavoriteClientRegion(client).toLocaleLowerCase();
+        return favoriteClientLocation.regions.some(region => region.toLocaleLowerCase() === clientRegion);
+      });
     }
 
     if (searchQuery) {
@@ -1172,6 +1617,7 @@
   // Tab switching
   if (tabProjectsBtn && tabSecondaryBtn) {
     tabProjectsBtn.addEventListener('click', () => {
+      closeMobileFavoritesPanels();
       tabProjectsBtn.classList.add('active');
       tabSecondaryBtn.classList.remove('active');
       tabProjectsBtn.setAttribute('aria-selected', 'true');
@@ -1179,12 +1625,14 @@
       currentTab = 'projects';
       updateFavoriteTabIndicator();
       updateCategoryOptions();
+      updateTypeOptions();
       updateSortOptions();
       updateCounters();
       renderCurrentTab();
     });
 
     tabSecondaryBtn.addEventListener('click', () => {
+      closeMobileFavoritesPanels();
       tabSecondaryBtn.classList.add('active');
       tabProjectsBtn.classList.remove('active');
       tabSecondaryBtn.setAttribute('aria-selected', 'true');
@@ -1192,6 +1640,7 @@
       currentTab = isClient ? 'developers' : 'clients';
       updateFavoriteTabIndicator();
       updateCategoryOptions();
+      updateTypeOptions();
       updateSortOptions();
       updateCounters();
       renderCurrentTab();
@@ -1210,6 +1659,15 @@
   if (categorySelectEl) {
     categorySelectEl.addEventListener('change', () => {
       currentCategory = categorySelectEl.value;
+      renderMobileFavoritesFilterOptions();
+      renderCurrentTab();
+    });
+  }
+
+  if (typeSelectEl) {
+    typeSelectEl.addEventListener('change', () => {
+      currentType = typeSelectEl.value;
+      renderMobileFavoritesFilterOptions();
       renderCurrentTab();
     });
   }
@@ -1218,6 +1676,7 @@
   if (sortSelectEl) {
     sortSelectEl.addEventListener('change', () => {
       currentSort = sortSelectEl.value;
+      renderMobileFavoritesSortOptions();
       renderCurrentTab();
     });
   }
@@ -1281,8 +1740,7 @@
   }
 
   // Clear all button
-  const clearAllBtn = document.getElementById('favClearAllBtn');
-  if (clearAllBtn) {
+  document.querySelectorAll('[data-favorites-clear-all]').forEach(clearAllBtn => {
     clearAllBtn.addEventListener('click', () => {
       if (currentTab === 'projects') {
         if (favoriteProjectIds.length === 0) return;
@@ -1295,7 +1753,7 @@
         confirmClearAllFavorites('client', 'clients');
       }
     });
-  }
+  });
 
   // Modal dialog close
   if (favDialogCloseBtn && favClientDialog) {
@@ -1380,6 +1838,7 @@
   }
   loadUserProfile();
   updateCategoryOptions();
+  updateTypeOptions();
   updateSortOptions();
   updateCounters();
   updateFavoriteTabIndicator();

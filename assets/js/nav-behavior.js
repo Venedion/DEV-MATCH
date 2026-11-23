@@ -5,15 +5,19 @@
   const accountReturnStorageKey = 'devmatch-account-dropdown-return';
   const modeSwitchSelector = '.mode-switch a, .client-mode-switch a';
   const mobileNavigationBreakpoint = window.matchMedia('(max-width: 820px)');
+  const favoritesTabs = document.querySelector('.favorites-page-layout .fav-tabs');
   const exploreSwitch = document.querySelector(
     '.find-projects-page .find-projects-switch, .find-clients-main .clients-tabs-toggle'
-  );
-  const explorePageHeader = exploreSwitch?.closest('header');
+  ) || favoritesTabs;
+  const isFavoritesTabSwitch = exploreSwitch === favoritesTabs;
+  const explorePageHeader = exploreSwitch?.closest('header') || exploreSwitch?.closest('.favorites-page');
   const exploreScrollContainer = exploreSwitch?.closest('main');
   const exploreFilterActions = document.querySelector(
-    '.find-projects-page .mobile-market-actions, .find-clients-main .mobile-clients-actions'
+    '.find-projects-page .mobile-market-sticky-actions, .find-clients-main .mobile-clients-actions'
   );
-  const exploreSwitchBreakpoint = window.matchMedia('(max-width: 860px)');
+  const exploreSwitchBreakpoint = window.matchMedia(
+    isFavoritesTabSwitch ? '(max-width: 600px)' : '(max-width: 860px)'
+  );
 
   if (exploreSwitch && explorePageHeader && exploreScrollContainer) {
     const exploreSwitchPlaceholder = document.createComment('explore switch placement');
@@ -63,7 +67,10 @@
         return;
       }
 
-      if (exploreSwitch.contains(document.activeElement)) {
+      if (
+        exploreSwitch.contains(document.activeElement) &&
+        (!isFavoritesTabSwitch || document.activeElement.matches(':focus-visible'))
+      ) {
         setExploreSwitchHidden(false);
         scrollDirection = 0;
         accumulatedScroll = 0;
