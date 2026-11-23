@@ -767,15 +767,10 @@
         throw new Error('Chat service returned an invalid conversation list.');
       }
 
-      const awaitedRole = await backend.getWorkspaceRole();
+      const role = await backend.getWorkspaceRole();
       unreadCount = data.data.filter(conversation => {
-        const lastMessage = conversation.last_message;
-        if (!lastMessage || lastMessage.sender_id === user.id) return false;
         try {
-          const readAt = Number(localStorage.getItem(
-            `devmatch-chat-read:${user.id}:${awaitedRole}:${conversation.id}`
-          ) || 0);
-          return !(Date.parse(lastMessage.created_at) <= readAt);
+          return backend.isChatConversationUnread(conversation, user.id, role);
         } catch (error) {
           console.warn('Unable to read local chat status.', error);
           return true;
@@ -790,7 +785,6 @@
   function refreshMessageBadges() {
     updateMessageBadges().catch(error => {
       console.error('Unable to load unread conversations for navigation.', error);
-      updateLinkBadge('nav a[href^="devmatch-chat.html"]', 'message', 0);
     });
   }
 

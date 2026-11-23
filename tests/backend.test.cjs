@@ -225,6 +225,31 @@ test('A verified user publishes private presence on any authenticated page',asyn
   assert.equal(presenceTracks.length,1);
   assert.equal(presenceTracks[0].userId,'fixture');
 });
+test('Chat read state uses workspace-scoped storage, migrates legacy state, and respects server receipts',async()=>{
+  const {backend,values}=await setup();
+  const timestamp=Date.parse('2026-11-23T10:00:00.000Z');
+  backend.setChatReadAt('fixture','client','conversation-1',timestamp);
+  assert.equal(values['devmatch-chat-read:fixture:client:conversation-1'],String(timestamp));
+  assert.equal(backend.getChatReadAt('fixture','client','conversation-1'),timestamp);
+  assert.equal(backend.getChatReadAt('fixture','dev','conversation-1'),0);
+
+  values['devmatch-chat-read:fixture:legacy-conversation']=String(timestamp);
+  assert.equal(backend.getChatReadAt('fixture','client','legacy-conversation'),timestamp);
+  assert.equal(values['devmatch-chat-read:fixture:client:legacy-conversation'],String(timestamp));
+  assert.equal(Object.hasOwn(values,'devmatch-chat-read:fixture:legacy-conversation'),false);
+  assert.equal(backend.getChatReadAt('fixture','dev','legacy-conversation'),0);
+
+  const conversation={id:'conversation-1',last_message:{
+    sender_id:'peer',created_at:'2026-11-23T09:00:00.000Z',read_at:null
+  }};
+  assert.equal(backend.isChatConversationUnread(conversation,'fixture','client'),false);
+  assert.equal(backend.isChatConversationUnread(conversation,'fixture','dev'),true);
+  conversation.last_message.read_at='2026-11-23T09:30:00.000Z';
+  assert.equal(backend.isChatConversationUnread(conversation,'fixture','dev'),false);
+  conversation.last_message.sender_id='fixture';
+  conversation.last_message.read_at=null;
+  assert.equal(backend.isChatConversationUnread(conversation,'fixture','dev'),false);
+});
 test('Signing out removes the active presence channel',async()=>{
   const {authChangeHandler,removedPresenceChannels}=await setup();
   authChangeHandler('SIGNED_OUT',null);

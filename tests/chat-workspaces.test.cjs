@@ -119,6 +119,19 @@ test('Messages cannot be read from a conversation belonging to another workspace
   );
   assert(!x.calls.some(c=>c.u.pathname.endsWith('/messages')));
 });
+test('Marking a chat read updates only unread incoming messages across the full thread',async()=>{
+  const x=setup({includeChildThread:true});
+  const result=await x.run({action:'mark-messages-read',workspaceRole:'client',conversationId:C});
+  assert.deepEqual(JSON.parse(JSON.stringify(result)),{marked:true});
+  const update=x.calls.find(call=>call.u.pathname.endsWith('/messages')&&call.options.method==='PATCH');
+  assert(update);
+  assert.equal(update.u.searchParams.get('sender_id'),`neq.${A}`);
+  assert.equal(update.u.searchParams.get('read_at'),'is.null');
+  assert(update.u.searchParams.get('conversation_id').includes(C));
+  assert(update.u.searchParams.get('conversation_id').includes(CHILD));
+  const updatedAt=JSON.parse(update.options.body).read_at;
+  assert(Number.isFinite(Date.parse(updatedAt)));
+});
 test('Virtual threads return child messages using their original conversation encryption context',async()=>{
   const x=setup({includeChildThread:true});
   const rows=await x.run({action:'list-conversations',workspaceRole:'client'});

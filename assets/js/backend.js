@@ -835,6 +835,51 @@
     return activeAccountRole;
   }
 
+  function chatReadStorageKey(userId, role, conversationId) {
+    if (typeof userId !== 'string' || !userId
+      || !['client', 'dev'].includes(role)
+      || typeof conversationId !== 'string' || !conversationId) {
+      throw new TypeError('A user, workspace, and conversation are required for chat read status.');
+    }
+    return `devmatch-chat-read:${userId}:${role}:${conversationId}`;
+  }
+
+  function getChatReadAt(userId, role, conversationId) {
+    const key = chatReadStorageKey(userId, role, conversationId);
+    const stored = localStorage.getItem(key);
+    const timestamp = stored === null ? 0 : Number(stored);
+    if (Number.isFinite(timestamp) && timestamp > 0) return timestamp;
+
+    const legacyKey = `devmatch-chat-read:${userId}:${conversationId}`;
+    const legacyStored = localStorage.getItem(legacyKey);
+    const legacyTimestamp = legacyStored === null ? 0 : Number(legacyStored);
+    if (!Number.isFinite(legacyTimestamp) || legacyTimestamp <= 0) return 0;
+
+    localStorage.setItem(key, String(legacyTimestamp));
+    localStorage.removeItem(legacyKey);
+    return legacyTimestamp;
+  }
+
+  function setChatReadAt(userId, role, conversationId, timestamp = Date.now()) {
+    const key = chatReadStorageKey(userId, role, conversationId);
+    if (!Number.isFinite(timestamp) || timestamp <= 0) {
+      throw new TypeError('A valid chat read timestamp is required.');
+    }
+    localStorage.setItem(key, String(timestamp));
+  }
+
+  function isChatConversationUnread(conversation, userId, role) {
+    const lastMessage = conversation?.last_message;
+    if (!lastMessage || lastMessage.sender_id === userId) return false;
+
+    const createdAt = Date.parse(lastMessage.created_at);
+    const readAt = Date.parse(lastMessage.read_at || '');
+    if (Number.isFinite(createdAt) && Number.isFinite(readAt) && readAt >= createdAt) {
+      return false;
+    }
+    return !(createdAt <= getChatReadAt(userId, role, conversation.id));
+  }
+
   async function loadFavorites() {
     const user = await currentAccount();
     const role = await getWorkspaceRole();
@@ -1471,6 +1516,9 @@
     cache,
     loadProfile,
     getWorkspaceRole,
+    getChatReadAt,
+    setChatReadAt,
+    isChatConversationUnread,
     hasWorkspace,
     switchWorkspace,
     updateWorkspaceProfile,

@@ -132,8 +132,8 @@
     return date.toLocaleDateString('en-US', {year: 'numeric', month: 'long', day: 'numeric'});
   }
 
-  function readAtKey(conversationId) {
-    return `devmatch-chat-read:${currentUser.id}:${conversationId}`;
+  function localReadAt(conversationId) {
+    return backend.getChatReadAt(currentUser.id, currentProfile.account_role, conversationId);
   }
 
   function wasReadAfterLastMessage(conversation) {
@@ -141,23 +141,25 @@
     if (!last || last.sender_id === currentUser.id) return true;
     if (last.read_at && Date.parse(last.read_at) >= Date.parse(last.created_at)) return true;
     try {
-      const readAt = Number(localStorage.getItem(readAtKey(conversation.id)) || 0);
-      return Date.parse(last.created_at) <= readAt;
+      return Date.parse(last.created_at) <= localReadAt(conversation.id);
     } catch (error) {
       console.warn('Unable to read local chat status.', error);
       return false;
     }
   }
 
-  function markRead(conversation) {
-    const wasUnread = conversation.unreadCount > 0;
+  function markRead(conversation, {notify = true} = {}) {
     conversation.unreadCount = 0;
     try {
-      localStorage.setItem(readAtKey(conversation.id), String(Date.now()));
+      backend.setChatReadAt(
+        currentUser.id,
+        currentProfile.account_role,
+        conversation.id
+      );
     } catch (error) {
       console.warn('Unable to save local chat read status.', error);
     }
-    if (wasUnread) window.dispatchEvent(new Event('devmatch:messages-changed'));
+    if (notify) window.dispatchEvent(new Event('devmatch:messages-changed'));
   }
 
   function updateUnreadCounts() {
@@ -1648,7 +1650,8 @@
       setDetailPaneOpen(false);
     });
     document.getElementById('markAllReadBtn')?.addEventListener('click', () => {
-      conversations.forEach(markRead);
+      conversations.forEach(conversation => markRead(conversation, {notify: false}));
+      window.dispatchEvent(new Event('devmatch:messages-changed'));
       updateUnreadCounts();
       renderConversationsList();
       setStatus('Conversations marked read on this device.');
