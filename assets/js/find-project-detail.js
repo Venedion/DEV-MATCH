@@ -57,7 +57,7 @@
     container.replaceChildren();
     statusElement.hidden=true;
     if(!attachments.length)return;
-    statusElement.textContent='Loading reference files…';
+    window.DEVMATCH_SKELETON?.status(statusElement,'Loading reference files',1);
     statusElement.hidden=false;
     let unavailable=0;
     await Promise.all(attachments.map(async attachment=>{
@@ -69,7 +69,7 @@
         unavailable++;
         return;
       }
-      item.textContent=`Loading ${name}…`;
+      window.DEVMATCH_SKELETON?.text(item,`Loading ${name}`,'64%');
       try{
         const url=await window.devMatchBackend.createPrivateFileUrl(attachment.path,name);
         if(container.dataset.requestId!==requestId)return;
@@ -211,7 +211,8 @@
     document.getElementById('similarRequests').innerHTML=rows.filter(row=>row.id!==project.id).slice(0,3).map(row=>`<a class="find-similar-request" href="devmatch-find-project-detail.html?request=${encodeURIComponent(row.id)}"><strong>${escapeHtml(row.title)}</strong><small>${escapeHtml(row.price||'Budget not specified')}</small></a>`).join('');
   }
   if(!projectId){status.hidden=true;notFound.hidden=false;return;}
-  status.hidden=false;status.textContent='Loading project request…';
+  status.hidden=false;
+  window.DEVMATCH_SKELETON?.status(status,'Loading project request');
   try{
     const {data:row,error}=await window.devMatchBackend.client.from('projects')
       .select('id,owner_id,title,project_type,category,price,data,status,created_at,updated_at')

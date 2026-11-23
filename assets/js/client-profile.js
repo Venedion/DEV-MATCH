@@ -7,6 +7,9 @@
   const unavailableMessage=document.getElementById('profileUnavailableMessage');
   const profileState=document.getElementById('clientProfileState');
   const profileRoot=document.getElementById('clientProfile');
+  window.DEVMATCH_SKELETON?.status(status,'Loading client profile');
+  window.DEVMATCH_SKELETON?.cards(document.getElementById('projectGrid'),3,'showcase');
+  window.DEVMATCH_SKELETON?.rows(document.getElementById('reviewList'),3);
   const escapeHtml=value=>String(value??'').replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
   const initials=name=>(String(name||'').match(/\b\p{L}/gu)||[]).slice(0,2).join('').toUpperCase()||'CL';
   const formatCompact=value=>new Intl.NumberFormat('en-US',{notation:'compact',maximumFractionDigits:1}).format(value).replace('K','k');

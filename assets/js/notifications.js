@@ -17,6 +17,12 @@
   let activeFilter = 'all';
   let activeQuery = '';
   let stateReady = false;
+  window.DEVMATCH_SKELETON?.rows(itemsContainer,4);
+  window.DEVMATCH_SKELETON?.status(notificationStatus,'Loading notifications');
+  window.DEVMATCH_SKELETON?.rows(actionList,2);
+  document.querySelectorAll('[data-count]').forEach(count =>
+    window.DEVMATCH_SKELETON?.text(count,'Loading notification count','24px')
+  );
 
   const kindDetails = kind => {
     const value = String(kind || '').toLowerCase();
@@ -159,6 +165,10 @@
   }
 
   function updateNotifications() {
+    if (!stateReady) {
+      notificationEmpty.hidden = true;
+      return;
+    }
     const unreadCount = notificationRows.filter(row => row.classList.contains('is-unread')).length;
     document.querySelectorAll('[data-count="all"]').forEach(count => { count.textContent = String(notificationRows.length); });
     document.querySelectorAll('[data-count="unread"]').forEach(count => { count.textContent = String(unreadCount); });
@@ -221,6 +231,8 @@
     notificationStatus.hidden = false;
     notificationEmpty.hidden = true;
     itemsContainer.replaceChildren();
+    document.querySelectorAll('[data-count]').forEach(count => { count.textContent = '—'; });
+    actionList.replaceChildren();
     notificationRows = [];
     buildActions();
     updateNotifications();

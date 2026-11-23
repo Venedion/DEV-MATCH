@@ -384,9 +384,9 @@
 
   async function renderReviews(){
     const root=document.getElementById('reviewList');
-    root.innerHTML='<p class="empty-state">Loading reviews…</p>';
-    setText('statRating','—');
-    setText('statReviews','loading reviews');
+    window.DEVMATCH_SKELETON?.rows(root,3);
+    window.DEVMATCH_SKELETON?.text(document.getElementById('statRating'),'Loading average rating','42px');
+    window.DEVMATCH_SKELETON?.text(document.getElementById('statReviews'),'Loading review count','56px');
     try{
       const user=await window.devMatchBackend.ready;
       if(!user)throw new Error('Authentication is required to load profile reviews.');

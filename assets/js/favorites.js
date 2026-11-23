@@ -20,6 +20,11 @@
   // Mode detection
   const urlParams = new URLSearchParams(window.location.search);
   const isClient = urlParams.get('role') === 'client' || document.body.classList.contains('client-shell-page');
+  const initialFavoriteGrid = document.getElementById('favGrid');
+  window.DEVMATCH_SKELETON?.cards(initialFavoriteGrid,4,'favorite-project');
+  ['countProjects','countClients','countDevs','favCount'].forEach(id =>
+    window.DEVMATCH_SKELETON?.text(document.getElementById(id),'Loading saved item count','24px')
+  );
 
   // Storage Keys
   const PROJECTS_KEY = isClient ? 'devmatch-client-project-favorites' : 'devmatch-developer-project-favorites';
@@ -35,6 +40,11 @@
     initialFavoriteRows = await window.devMatchBackend.loadFavorites();
   } catch (error) {
     console.error('Unable to load favorites from Supabase.', error);
+    window.DEVMATCH_SKELETON?.status(initialFavoriteGrid,'Unable to load saved items');
+    ['countProjects','countClients','countDevs','favCount'].forEach(id => {
+      const count = document.getElementById(id);
+      if (count) count.textContent = '—';
+    });
     window.alert('Unable to load favorites. Check your connection and try again.');
     return;
   }

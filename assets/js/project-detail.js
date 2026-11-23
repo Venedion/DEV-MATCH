@@ -281,7 +281,7 @@
     document.querySelector('#commentForm button[type="submit"]').setAttribute('aria-label','Post comment');
     const errorElement=document.getElementById('detailError');
     errorElement.hidden=true;content.hidden=true;
-    document.getElementById('projectTitle').textContent='Loading project…';
+    window.DEVMATCH_SKELETON?.text(document.getElementById('projectTitle'),'Loading project details','56%');
     if(!dialog.open){
       modalPageTitle=document.title;
       history.pushState({...history.state,projectDetailDialog:true},'',location.href);

@@ -1,5 +1,27 @@
 (function() {
   'use strict';
+  document.body.classList.add('devmatch-settings-loading');
+  const settingsContent = document.querySelector('.settings-content');
+  settingsContent?.setAttribute('inert', '');
+  settingsContent?.setAttribute('aria-busy', 'true');
+  const settingsMasks = {
+    field: [
+      '#accountForm input:not([type="hidden"]):not([type="file"])',
+      '#accountForm select', '#accountForm textarea',
+      '#profileDetailsForm input:not([type="hidden"]):not([type="file"])',
+      '#profileDetailsForm select', '#profileDetailsForm textarea',
+      '#roleSpecificForm input:not([type="hidden"]):not([type="file"])',
+      '#roleSpecificForm select', '#roleSpecificForm textarea',
+      '#notificationsForm select', '#privacyForm select', '#preferencesForm select'
+    ],
+    text: ['#settingsAvatarPreview', '#panel-integrations [data-app-detail]', '#panel-integrations [data-app-toggle]'],
+    surface: ['#settingsSpecialtyGrid', '#settingsSkillTags', '#settingsExperienceEntries', '#notificationsForm .settings-switch']
+  };
+  Object.entries(settingsMasks).forEach(([type, selectors]) => {
+    selectors.forEach(selector => document.querySelectorAll(selector).forEach(element => {
+      element.setAttribute('data-devmatch-auth-mask', type);
+    }));
+  });
 
   // Helper escape
   const escapeHtml = value => String(value).replace(/[&<>"']/g, char => ({
@@ -1806,6 +1828,9 @@
       openProfileDetailsTarget();
       showToast('Unable to load private payout and tax details. Reload the page and try again.');
     } finally {
+      document.body.classList.remove('devmatch-settings-loading');
+      settingsContent?.removeAttribute('inert');
+      settingsContent?.removeAttribute('aria-busy');
       if (hashScrollTarget && window.location.hash === `#${hashScrollTarget.id}`) {
         requestAnimationFrame(() => hashScrollTarget.scrollIntoView({block: 'start', behavior: 'instant'}));
       }

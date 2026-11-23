@@ -28,11 +28,542 @@
   };
   const privateProfileFields = ['bankName', 'accountNumber', 'accountHolder', 'npwp'];
   let activeAccountRole = null;
-  if (protectedPage) {
-    const style = document.createElement('style');
-    style.id = 'auth-pending';
-    style.textContent = 'body{visibility:hidden}';
-    document.head.append(style);
+  const skeletonStyle = document.createElement('style');
+  skeletonStyle.id = 'devmatch-skeleton-styles';
+  skeletonStyle.textContent = `
+    @keyframes devmatch-fluent-shimmer {
+      from { background-position: 100% 0; }
+      to { background-position: -100% 0; }
+    }
+    .devmatch-shimmer {
+      background-color: #ececef;
+      background-image: linear-gradient(90deg, #ececef 0%, #f7f7f8 42%, #e4e4e8 50%, #f7f7f8 58%, #ececef 100%);
+      background-size: 220% 100%;
+      background-repeat: no-repeat;
+      animation: devmatch-fluent-shimmer 1.35s cubic-bezier(.4, 0, .2, 1) infinite;
+    }
+    .devmatch-skeleton-status { display: grid; width: min(100%, 340px); gap: 9px; }
+    .devmatch-skeleton-line { display: block; width: 82%; height: 10px; border-radius: 999px; }
+    .devmatch-skeleton-line:nth-child(2) { width: 58%; }
+    .devmatch-skeleton-card { display: grid; min-height: 210px; align-content: end; gap: 10px; padding: 14px; border: 1px solid #ececef; border-radius: 12px; background: #fff; pointer-events: none; }
+    .devmatch-skeleton-media { display: block; height: 96px; margin-bottom: 12px; border-radius: 8px; }
+    .devmatch-skeleton-card .devmatch-skeleton-line { height: 9px; }
+    .devmatch-skeleton-card--client, .devmatch-skeleton-card--developer { min-height: 0; align-content: stretch; gap: 0; padding: 20px; border-radius: 14px; display: flex; flex-direction: column; }
+    .devmatch-skeleton-card--client .client-avatar-badge, .devmatch-skeleton-card--developer .dev-avatar-badge { flex: 0 0 44px; }
+    .devmatch-skeleton-card--client .client-name-business, .devmatch-skeleton-card--developer .dev-name-location { display: grid; gap: 7px; }
+    .devmatch-skeleton-card--client .client-card-meta { display: grid; gap: 12px; }
+    .devmatch-skeleton-card--client .meta-row { justify-content: space-between; gap: 12px; }
+    .devmatch-skeleton-card--favorite-project { display: flex; flex-direction: column; border-radius: var(--fav-card-radius); }
+    .devmatch-skeleton-card--favorite-project .fav-card-art { height: 166px; }
+    .devmatch-skeleton-card--favorite-project .fav-card-body { display: flex; flex-direction: column; gap: 9px; }
+    .devmatch-skeleton-card--developer .dev-badges-row, .devmatch-skeleton-card--developer .dev-skills-row { min-height: 25px; }
+    .devmatch-skeleton-card--developer .dev-bio { display: grid; gap: 8px; min-height: 48px; margin: 4px 0 12px; }
+    .devmatch-skeleton-card--developer .dev-stats-grid { min-height: 52px; }
+    .devmatch-skeleton-card--mobile-project { min-height: 0; padding: 12px; border-radius: 12px; }
+    .devmatch-skeleton-card--mobile-project .mobile-project-main { min-height: 0; }
+    .devmatch-skeleton-card--mobile-project .mobile-project-visual { display: grid; align-content: start; gap: 8px; }
+    .devmatch-skeleton-card--mobile-project .project-thumb { display: block; height: 64px; border-radius: 8px; }
+    .devmatch-skeleton-card--mobile-project .mobile-project-details { display: grid; align-content: start; gap: 8px; }
+    .devmatch-skeleton-card--mobile-project .mobile-project-footer { min-height: 34px; }
+    .devmatch-skeleton-card--request { min-height: 0 !important; border-radius: 14px; }
+    .devmatch-skeleton-card--request .request-card-body { display: grid; gap: 12px; }
+    .devmatch-skeleton-card--request .request-card-header { min-height: 44px; }
+    .devmatch-skeleton-card--request .request-card-author { min-width: 0; }
+    .devmatch-skeleton-card--request .request-card-author-copy { display: grid; gap: 7px; }
+    .devmatch-skeleton-card--request .project-description { display: grid; gap: 8px; min-height: 43px; }
+    .devmatch-skeleton-card--request .request-budget-box { min-height: 62px; }
+    .devmatch-skeleton-card--request .request-required { min-height: 42px; }
+    .devmatch-skeleton-card--request .request-card-footer { min-height: 32px; }
+    .devmatch-skeleton-card--showcase { min-height: 0; padding: 0; gap: 0; align-content: start; overflow: hidden; border-radius: 11px; }
+    .devmatch-skeleton-card--showcase .project-art { height: 155px; margin: 0; }
+    .devmatch-skeleton-card--showcase .project-copy { display: grid; gap: 9px; }
+    .devmatch-skeleton-card--showcase .project-copy > .devmatch-skeleton-line { height: 9px; }
+    .devmatch-skeleton-card--landing-project { min-height: 0; padding: 0; gap: 0; align-content: start; overflow: hidden; border-radius: 22px; }
+    .devmatch-skeleton-card--landing-project .thumb { height: 170px; margin: 0; }
+    .devmatch-skeleton-card--landing-project .pbody { display: grid; gap: 10px; }
+    .devmatch-skeleton-card--landing-developer { min-height: 0; align-content: start; border-radius: 22px; }
+    .devmatch-skeleton-card--landing-developer .dh { align-items: center; }
+    .devmatch-skeleton-card--landing-developer .av { flex: 0 0 42px; }
+    .devmatch-skeleton-card--landing-developer .tags { min-height: 25px; }
+    .devmatch-skeleton-card--landing-developer > p { display: grid; gap: 8px; min-height: 48px; }
+    .devmatch-skeleton-card--dashboard-project { min-height: 0; padding: 0; gap: 0; align-content: start; overflow: hidden; border-radius: 15px; display: flex; flex-direction: column; }
+    .devmatch-skeleton-card--dashboard-project .project-art { height: 165px; margin: 0; }
+    .devmatch-skeleton-card--dashboard-project .project-body { display: grid; gap: 10px; }
+    .devmatch-skeleton-card--marketplace-project { min-height: 0; padding: 0; gap: 0; align-content: start; overflow: hidden; border-radius: 14px; display: flex; flex-direction: column; }
+    .devmatch-skeleton-card--marketplace-project .project-art { height: 166px; margin: 0; }
+    .devmatch-skeleton-card--marketplace-project .project-body { min-height: 210px; display: flex; flex: 1; flex-direction: column; gap: 0; padding: 13px 14px 12px; }
+    .devmatch-skeleton-card--marketplace-project .project-meta { margin-bottom: 7px; }
+    .devmatch-skeleton-card--marketplace-project .project-title { height: 44px; display: flex; align-items: flex-start; }
+    .devmatch-skeleton-card--marketplace-project .project-description { height: 42px; min-height: 42px; display: grid; gap: 7px; margin-top: 5px; }
+    .devmatch-skeleton-card--marketplace-project .catalog-price { height: 34px; margin-top: 13px; padding-bottom: 10px; border-bottom: 1px solid #efeff1; }
+    .devmatch-skeleton-card--marketplace-project .catalog-project-by { height: 48px; display: grid; grid-template-columns: 38px minmax(0, 1fr) auto; align-items: center; margin-top: auto; padding-top: 10px; }
+    .devmatch-skeleton-card--favorite-project { min-height: 0; padding: 0; gap: 0; align-content: start; overflow: hidden; }
+    .devmatch-skeleton-card--favorite-project .fav-card-footer { min-height: 42px; }
+    @media (max-width: 640px) {
+      .devmatch-skeleton-card--client { padding: 16px; }
+    }
+    .devmatch-skeleton-row { display: grid; grid-template-columns: 34px minmax(0, 1fr); align-items: center; gap: 10px; min-height: 55px; padding: 9px 0; border-top: 1px solid #efeff1; }
+    .devmatch-skeleton-avatar { width: 32px; height: 32px; border-radius: 50%; }
+    .devmatch-skeleton-row-lines { display: grid; gap: 8px; }
+    .devmatch-skeleton-sr { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+    html[data-theme="dark"] .devmatch-shimmer { background-color: #303137; background-image: linear-gradient(90deg, #303137 0%, #3c3d44 42%, #28292e 50%, #3c3d44 58%, #303137 100%); }
+    html.devmatch-auth-pending-root body .user-avatar,
+    html.devmatch-auth-pending-root body .client-avatar {
+      color: transparent !important;
+      background-color: #ececef !important;
+      background-image: linear-gradient(90deg, #ececef 0%, #f7f7f8 42%, #e4e4e8 50%, #f7f7f8 58%, #ececef 100%) !important;
+      background-size: 220% 100% !important;
+      background-repeat: no-repeat !important;
+      animation: devmatch-fluent-shimmer 1.35s cubic-bezier(.4, 0, .2, 1) infinite;
+    }
+    html.devmatch-auth-pending-root body .user-avatar > *,
+    html.devmatch-auth-pending-root body .client-avatar > * { visibility: hidden !important; }
+    html.devmatch-auth-pending-root body .user-copy b,
+    html.devmatch-auth-pending-root body .user-copy small,
+    html.devmatch-auth-pending-root body .client-user-copy b,
+    html.devmatch-auth-pending-root body .client-user-copy small {
+      background-color: #ececef !important;
+      background-image: linear-gradient(90deg, #ececef 0%, #f7f7f8 42%, #e4e4e8 50%, #f7f7f8 58%, #ececef 100%) !important;
+      background-size: 220% 100% !important;
+      background-repeat: no-repeat !important;
+      animation: devmatch-fluent-shimmer 1.35s cubic-bezier(.4, 0, .2, 1) infinite;
+      border-radius: 999px;
+      color: transparent !important;
+    }
+    html[data-theme="dark"].devmatch-auth-pending-root body .user-avatar,
+    html[data-theme="dark"].devmatch-auth-pending-root body .client-avatar,
+    html[data-theme="dark"].devmatch-auth-pending-root body .user-copy b,
+    html[data-theme="dark"].devmatch-auth-pending-root body .user-copy small,
+    html[data-theme="dark"].devmatch-auth-pending-root body .client-user-copy b,
+    html[data-theme="dark"].devmatch-auth-pending-root body .client-user-copy small {
+      background-color: #303137 !important;
+      background-image: linear-gradient(90deg, #303137 0%, #3c3d44 42%, #28292e 50%, #3c3d44 58%, #303137 100%) !important;
+    }
+    @media (prefers-reduced-motion: reduce) {
+      html.devmatch-auth-pending-root body .user-avatar,
+      html.devmatch-auth-pending-root body .client-avatar,
+      html.devmatch-auth-pending-root body .user-copy b,
+      html.devmatch-auth-pending-root body .user-copy small,
+      html.devmatch-auth-pending-root body .client-user-copy b,
+      html.devmatch-auth-pending-root body .client-user-copy small { animation: none !important; background-image: none !important; }
+    }
+    html.devmatch-auth-pending-root body a,
+    html.devmatch-auth-pending-root body button,
+    html.devmatch-auth-pending-root body input,
+    html.devmatch-auth-pending-root body select,
+    html.devmatch-auth-pending-root body textarea { pointer-events: none !important; }
+    html.devmatch-auth-pending-root body > main,
+    html.devmatch-auth-pending-root body > .sidebar,
+    html.devmatch-auth-pending-root body > .client-sidebar,
+    html.devmatch-auth-pending-root body > .chat-viewport,
+    html.devmatch-auth-pending-root body > .mobile-bottom-nav,
+    html.devmatch-auth-pending-root body > .floating-chat { pointer-events: none !important; }
+    body.devmatch-auth-pending-content > main,
+    body.devmatch-auth-pending-content > .sidebar,
+    body.devmatch-auth-pending-content > .client-sidebar,
+    body.devmatch-auth-pending-content > .chat-viewport,
+    body.devmatch-auth-pending-content > .mobile-bottom-nav,
+    body.devmatch-auth-pending-content > .floating-chat { pointer-events: none !important; }
+    html.devmatch-auth-pending-root body dialog,
+    body.devmatch-auth-pending-content dialog { visibility: hidden !important; }
+    body.devmatch-auth-pending-content [data-devmatch-auth-mask="field"],
+    body.devmatch-settings-loading [data-devmatch-auth-mask="field"] {
+      background-color: #ececef !important;
+      background-image: linear-gradient(90deg, #ececef 0%, #f7f7f8 42%, #e4e4e8 50%, #f7f7f8 58%, #ececef 100%) !important;
+      background-size: 220% 100% !important;
+      background-repeat: no-repeat !important;
+      animation: devmatch-fluent-shimmer 1.35s cubic-bezier(.4, 0, .2, 1) infinite;
+      color: transparent !important;
+      caret-color: transparent !important;
+      text-shadow: none !important;
+    }
+    body.devmatch-auth-pending-content [data-devmatch-auth-mask="field"]::placeholder,
+    body.devmatch-settings-loading [data-devmatch-auth-mask="field"]::placeholder { color: transparent !important; }
+    body.devmatch-auth-pending-content [data-devmatch-auth-mask="text"],
+    body.devmatch-settings-loading [data-devmatch-auth-mask="text"] {
+      background-color: #ececef !important;
+      background-image: linear-gradient(90deg, #ececef 0%, #f7f7f8 42%, #e4e4e8 50%, #f7f7f8 58%, #ececef 100%) !important;
+      background-size: 220% 100% !important;
+      background-repeat: no-repeat !important;
+      animation: devmatch-fluent-shimmer 1.35s cubic-bezier(.4, 0, .2, 1) infinite;
+      border-radius: 4px;
+      color: transparent !important;
+      text-shadow: none !important;
+    }
+    body.devmatch-auth-pending-content [data-devmatch-auth-mask="text"] > *,
+    body.devmatch-settings-loading [data-devmatch-auth-mask="text"] > * { visibility: hidden !important; }
+    body.devmatch-auth-pending-content [data-devmatch-auth-mask="surface"],
+    body.devmatch-settings-loading [data-devmatch-auth-mask="surface"] {
+      position: relative;
+      isolation: isolate;
+    }
+    body.devmatch-auth-pending-content [data-devmatch-auth-mask="surface"]::before,
+    body.devmatch-settings-loading [data-devmatch-auth-mask="surface"]::before {
+      position: absolute;
+      z-index: 1;
+      inset: 0;
+      border-radius: inherit;
+      background-color: #ececef;
+      background-image: linear-gradient(90deg, #ececef 0%, #f7f7f8 42%, #e4e4e8 50%, #f7f7f8 58%, #ececef 100%);
+      background-size: 220% 100%;
+      background-repeat: no-repeat;
+      animation: devmatch-fluent-shimmer 1.35s cubic-bezier(.4, 0, .2, 1) infinite;
+      content: "";
+      pointer-events: none;
+    }
+    body.devmatch-auth-pending-content [data-devmatch-auth-mask="surface"] > *,
+    body.devmatch-settings-loading [data-devmatch-auth-mask="surface"] > * { visibility: hidden !important; }
+    html[data-theme="dark"] body.devmatch-auth-pending-content [data-devmatch-auth-mask="field"],
+    html[data-theme="dark"] body.devmatch-settings-loading [data-devmatch-auth-mask="field"],
+    html[data-theme="dark"] body.devmatch-auth-pending-content [data-devmatch-auth-mask="text"],
+    html[data-theme="dark"] body.devmatch-settings-loading [data-devmatch-auth-mask="text"],
+    html[data-theme="dark"] body.devmatch-auth-pending-content [data-devmatch-auth-mask="surface"]::before,
+    html[data-theme="dark"] body.devmatch-settings-loading [data-devmatch-auth-mask="surface"]::before {
+      background-color: #303137 !important;
+      background-image: linear-gradient(90deg, #303137 0%, #3c3d44 42%, #28292e 50%, #3c3d44 58%, #303137 100%) !important;
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .devmatch-shimmer,
+      body.devmatch-auth-pending-content [data-devmatch-auth-mask],
+      body.devmatch-settings-loading [data-devmatch-auth-mask],
+      body.devmatch-auth-pending-content [data-devmatch-auth-mask="surface"]::before,
+      body.devmatch-settings-loading [data-devmatch-auth-mask="surface"]::before { animation: none; background-image: none; opacity: .62; }
+    }
+  `;
+  document.head.append(skeletonStyle);
+  function skeletonBlock(className, width) {
+    const block = document.createElement('span');
+    block.className = `devmatch-shimmer ${className}`;
+    if (width) block.style.width = width;
+    block.setAttribute('aria-hidden', 'true');
+    return block;
+  }
+  const skeletons = {
+    status(element, label, lines = 2) {
+      if (!element) return;
+      const group = document.createElement('span');
+      group.className = 'devmatch-skeleton-status';
+      group.setAttribute('aria-hidden', 'true');
+      for (let index = 0; index < lines; index++) {
+        group.append(skeletonBlock('devmatch-skeleton-line', index === 0 ? '82%' : '58%'));
+      }
+      const accessibleLabel = document.createElement('span');
+      accessibleLabel.className = 'devmatch-skeleton-sr';
+      accessibleLabel.textContent = label;
+      element.replaceChildren(group, accessibleLabel);
+      if (!element.hasAttribute('role')) element.setAttribute('role', 'status');
+    },
+    text(element, label, width = '54%') {
+      if (!element) return;
+      const block = skeletonBlock('devmatch-skeleton-line', width);
+      const accessibleLabel = document.createElement('span');
+      accessibleLabel.className = 'devmatch-skeleton-sr';
+      accessibleLabel.textContent = label;
+      element.replaceChildren(block, accessibleLabel);
+    },
+    cards(element, count = 3, variant = 'project') {
+      if (!element) return;
+      element.replaceChildren(...Array.from({length: count}, () => {
+        const componentClasses = {
+          client: 'client-card',
+          developer: 'dev-card',
+          'mobile-project': 'mobile-project-card',
+          request: 'project-card request-project-card',
+          showcase: 'showcase-project',
+          'landing-project': 'card',
+          'landing-developer': 'card dcard',
+          'dashboard-project': 'client-project-card',
+          'marketplace-project': 'project-card catalog-card',
+          'favorite-project': 'fav-card'
+        };
+        const layout = componentClasses[variant] ? variant : 'project';
+        const card = document.createElement(layout === 'project' ? 'div' : 'article');
+        card.className = `devmatch-skeleton-card devmatch-skeleton-card--${layout}${componentClasses[layout] ? ` ${componentClasses[layout]}` : ''}`;
+        card.setAttribute('aria-hidden', 'true');
+        const line = (width, height) => {
+          const block = skeletonBlock('devmatch-skeleton-line', width);
+          if (height) block.style.height = height;
+          return block;
+        };
+        const group = (className, ...children) => {
+          const element = document.createElement('div');
+          element.className = className;
+          element.append(...children);
+          return element;
+        };
+        const avatar = (className, size = '44px') => {
+          const block = skeletonBlock(className);
+          block.style.width = size;
+          block.style.height = size;
+          return block;
+        };
+        const pill = width => {
+          const block = line(width, '22px');
+          block.style.borderRadius = '999px';
+          return block;
+        };
+        if (layout === 'client') {
+          const heading = group('client-profile-group', avatar('client-avatar-badge'),
+            group('client-name-business', line('136px', '13px'), line('96px', '10px')));
+          const top = group('client-card-top', heading, avatar('btn-card-favorite', '34px'));
+          const meta = group('client-card-meta',
+            group('meta-row', line('66px', '10px'), line('92px', '18px')),
+            group('meta-row', line('105px', '10px'), line('78px', '10px')));
+          const actions = group('client-card-actions', line('50%', '38px'), line('50%', '38px'));
+          card.append(top, meta, actions);
+        } else if (layout === 'developer') {
+          const heading = group('dev-profile-group', avatar('dev-avatar-badge'),
+            group('dev-name-location', line('132px', '13px'), line('92px', '10px')));
+          const top = group('dev-card-top', heading, avatar('btn-dev-favorite', '34px'));
+          const badges = group('dev-badges-row', pill('74px'), pill('118px'));
+          const bio = group('dev-bio', line('100%'), line('88%'), line('66%'));
+          const skills = group('dev-skills-row', pill('52px'), pill('68px'), pill('58px'));
+          const stats = group('dev-stats-grid',
+            group('dev-stat-col', line('28px', '14px'), line('46px', '9px')),
+            group('dev-stat-col', line('28px', '14px'), line('34px', '9px')),
+            group('dev-stat-col', line('28px', '14px'), line('52px', '9px')));
+          const actions = group('dev-actions-row', line('50%', '38px'), line('50%', '38px'));
+          card.append(top, badges, bio, skills, stats, actions);
+        } else if (layout === 'mobile-project') {
+          const visual = group('mobile-project-visual',
+            skeletonBlock('project-thumb'),
+            group('mobile-project-price', line('56px', '8px'), line('76px', '12px')));
+          const details = group('mobile-project-details', pill('64px'), line('94%', '14px'), line('78%', '10px'));
+          const main = group('mobile-project-main', visual, details);
+          const metrics = group('mobile-project-metrics', pill('32px'), pill('32px'), pill('32px'));
+          const footer = group('mobile-project-footer', metrics, group('row-actions', pill('32px'), pill('32px')));
+          card.append(main, footer);
+        } else if (layout === 'request') {
+          const author = group('request-card-author', avatar('request-card-avatar', '44px'),
+            group('request-card-author-copy', line('128px', '12px'), line('106px', '10px')));
+          const header = group('request-card-header', author, group('request-card-header-actions', pill('80px'), avatar('request-card-favorite', '40px')));
+          const body = group('project-body', header, line('82%', '20px'),
+            group('project-description', line('100%'), line('90%'), line('73%')),
+            group('request-budget-box', line('58px', '9px'), line('108px', '16px')),
+            group('request-required', line('66px', '10px'), group('request-card-tags', pill('62px'), pill('82px'))),
+            group('request-card-footer', group('request-card-metrics', pill('36px'), pill('36px'))));
+          body.className += ' request-card-body';
+          card.append(body);
+        } else if (layout === 'showcase') {
+          card.append(skeletonBlock('project-art'), group('project-copy',
+            line('68px', '8px'), line('76%', '13px'),
+            group('project-description', line('100%'), line('78%')),
+            group('project-footer', line('84px', '12px'), line('56px', '9px'))));
+        } else if (layout === 'landing-project') {
+          card.append(skeletonBlock('thumb'), group('pbody',
+            group('meta', line('64px', '9px'), line('48px', '9px')),
+            line('78%', '15px'), line('100%'), line('82%'),
+            group('price', line('72px', '9px'), line('92px', '12px'))));
+        } else if (layout === 'landing-developer') {
+          const heading = group('dh', avatar('av', '42px'), group('devmatch-skeleton-landing-copy', line('126px', '12px'), line('88px', '9px')));
+          const badges = group('tags', pill('74px'), pill('102px'));
+          const bio = group('devmatch-skeleton-landing-bio', line('100%'), line('87%'), line('67%'));
+          const skills = group('tags', pill('48px'), pill('62px'), pill('56px'));
+          const stats = group('dstats', group('', line('30px', '13px'), line('110px', '9px')));
+          const actions = group('acts', line('50%', '36px'), line('50%', '36px'));
+          card.append(heading, badges, bio, skills, stats, actions);
+        } else if (layout === 'marketplace-project') {
+          const category = line('92px', '9px');
+          category.className += ' catalog-category';
+          const title = group('project-title', line('82%', '15px'));
+          const description = group('project-description', line('100%'), line('76%'));
+          const developer = group('developer-info', line('94px', '10px'), line('66px', '9px'));
+          const rating = line('38px', '10px');
+          rating.className += ' rating';
+          const price = line('84px', '15px');
+          price.className += ' catalog-price';
+          const footer = group('project-by catalog-project-by', avatar('developer-avatar', '38px'), developer, rating);
+          card.append(
+            skeletonBlock('project-art'),
+            group('project-body',
+              group('project-meta', category, line('52px', '9px')),
+              title,
+              description,
+              price,
+              footer)
+          );
+        } else if (layout === 'dashboard-project') {
+          const body = group('project-body', group('project-meta', pill('72px'), pill('56px')),
+            line('83%', '14px'), line('100%'), line('78%'),
+            group('project-by', avatar('developer-avatar', '32px'), group('developer-info', line('90px', '10px'), line('64px', '8px'))));
+          card.append(skeletonBlock('project-art'), body);
+        } else if (layout === 'favorite-project') {
+          const art = group('fav-card-art devmatch-shimmer', line('60px', '20px'), avatar('fav-remove-btn', '28px'));
+          const meta = group('fav-card-meta',
+            group('fav-dev-pill', avatar('fav-dev-avatar', '38px'), group('fav-dev-name-wrap', line('72px', '10px'), line('48px', '8px'))),
+            line('58px', '12px'), line('34px', '10px'));
+          const body = group('fav-card-body',
+            line('72px', '9px'),
+            group('fav-card-title', line('88%', '14px')),
+            group('fav-card-desc', line('100%'), line('77%')),
+            meta);
+          const footer = group('fav-card-footer', line('100%', '34px'));
+          card.append(art, body, footer);
+        } else {
+          card.append(
+            skeletonBlock('devmatch-skeleton-media'),
+            line('76%'),
+            line('52%')
+          );
+        }
+        return card;
+      }));
+    },
+    rows(element, count = 3) {
+      if (!element) return;
+      element.replaceChildren(...Array.from({length: count}, () => {
+        const row = document.createElement('div');
+        row.className = 'devmatch-skeleton-row';
+        row.setAttribute('aria-hidden', 'true');
+        const lines = document.createElement('span');
+        lines.className = 'devmatch-skeleton-row-lines';
+        lines.append(skeletonBlock('devmatch-skeleton-line', '78%'), skeletonBlock('devmatch-skeleton-line', '54%'));
+        row.append(skeletonBlock('devmatch-skeleton-avatar'), lines);
+        return row;
+      }));
+    }
+  };
+  window.DEVMATCH_SKELETON = Object.freeze(skeletons);
+  const authPending = protectedPage || Object.hasOwn(roleSpecificPages, page);
+  let authPendingResolved = false;
+  if (authPending) document.documentElement.classList.add('devmatch-auth-pending-root');
+  const authPageMasks = {
+    'devmatch-profile.html': {
+      field: ['#profileForm input:not([type="hidden"])', '#profileForm select', '#profileForm textarea'],
+      text: ['#previewAvatar', '#previewName', '#previewHandle'],
+      surface: ['.gender-options', '.specialty-grid', '.status-grid', '.experience-list', '#previewTags', '.preview-lines']
+    },
+    'devmatch-settings.html': {
+      field: [
+        '#accountForm input:not([type="hidden"]):not([type="file"])',
+        '#accountForm select',
+        '#accountForm textarea',
+        '#profileDetailsForm input:not([type="hidden"]):not([type="file"])',
+        '#profileDetailsForm select',
+        '#profileDetailsForm textarea',
+        '#roleSpecificForm input:not([type="hidden"]):not([type="file"])',
+        '#roleSpecificForm select',
+        '#roleSpecificForm textarea',
+        '#notificationsForm select',
+        '#privacyForm select',
+        '#preferencesForm select'
+      ],
+      text: ['#settingsAvatarPreview', '#panel-integrations [data-app-detail]', '#panel-integrations [data-app-toggle]'],
+      surface: [
+        '#settingsSpecialtyGrid', '#settingsSkillTags', '#settingsExperienceEntries',
+        '#notificationsForm .settings-switch'
+      ]
+    },
+    'devmatch-verify-phone.html': {
+      field: ['#settingsPhone']
+    },
+    'devmatch-my-profile.html': {
+      text: [
+        '#profileAvatar', '#profileName', '#identityBio', '#identityHandle', '#identityLocation',
+        '#identitySpecialty', '#identityJoined', '#aboutCopy', '#statProjects', '#statSaves',
+        '#statRating', '#statReviews', '#statViews', '#availabilityBadge'
+      ],
+      surface: [
+        '#roleInfoCard .role-info-grid', '#roleInfoCard .contract-list', '#roleInfoCard > .empty-state',
+        '#specializationList', '#skillList', '#experienceList', '#connectedList', '#projectGrid',
+        '#activityList'
+      ]
+    }
+  };
+  const shimmerGradient = 'linear-gradient(90deg, #ececef 0%, #f7f7f8 42%, #e4e4e8 50%, #f7f7f8 58%, #ececef 100%)';
+  const maskRules = {
+    field: `background-color:#ececef!important;background-image:${shimmerGradient}!important;background-size:220% 100%!important;background-repeat:no-repeat!important;animation:devmatch-fluent-shimmer 1.35s cubic-bezier(.4, 0, .2, 1) infinite;color:transparent!important;caret-color:transparent!important;text-shadow:none!important;`,
+    text: `background-color:#ececef!important;background-image:${shimmerGradient}!important;background-size:220% 100%!important;background-repeat:no-repeat!important;animation:devmatch-fluent-shimmer 1.35s cubic-bezier(.4, 0, .2, 1) infinite;border-radius:4px;color:transparent!important;text-shadow:none!important;`,
+    surface: `position:relative;isolation:isolate;`
+  };
+  function authMaskStyles() {
+    const masks = authPageMasks[page];
+    if (!masks) return '';
+    const rules = [];
+    Object.entries(masks).forEach(([type, selectors]) => {
+      const scoped = selectors.map(selector => `html.devmatch-auth-pending-root ${selector}`);
+      if (type === 'surface') {
+        rules.push(`${scoped.join(',')}{${maskRules.surface}}`);
+        rules.push(`${scoped.map(selector => `${selector}::before`).join(',')}{position:absolute;z-index:1;inset:0;border-radius:inherit;background-color:#ececef;background-image:${shimmerGradient};background-size:220% 100%;background-repeat:no-repeat;animation:devmatch-fluent-shimmer 1.35s cubic-bezier(.4, 0, .2, 1) infinite;content:"";pointer-events:none;}`);
+        rules.push(`${scoped.map(selector => `${selector} > *`).join(',')}{visibility:hidden!important;}`);
+      } else {
+        rules.push(`${scoped.join(',')}{${maskRules[type]}}`);
+        if (type === 'field') rules.push(`${scoped.map(selector => `${selector}::placeholder`).join(',')}{color:transparent!important;}`);
+        if (type === 'text') rules.push(`${scoped.map(selector => `${selector} > *`).join(',')}{visibility:hidden!important;}`);
+      }
+    });
+    const maskedSelectors = Object.entries(masks).flatMap(([type, selectors]) =>
+      selectors.flatMap(selector => type === 'surface' ? [selector, `${selector}::before`] : [selector]));
+    const darkSelectors = maskedSelectors.map(selector => `html[data-theme="dark"].devmatch-auth-pending-root ${selector}`);
+    rules.push(`${darkSelectors.join(',')}{background-color:#303137!important;background-image:linear-gradient(90deg,#303137 0%,#3c3d44 42%,#28292e 50%,#3c3d44 58%,#303137 100%)!important;}`);
+    const reducedMotionSelectors = maskedSelectors.map(selector => `html.devmatch-auth-pending-root ${selector}`);
+    rules.push(`@media(prefers-reduced-motion:reduce){${reducedMotionSelectors.join(',')}{animation:none!important;background-image:none!important;}}`);
+    return rules.join('\n');
+  }
+  if (authPending) {
+    const maskStyle = document.createElement('style');
+    maskStyle.id = 'devmatch-auth-pending-mask-styles';
+    maskStyle.textContent = authMaskStyles();
+    document.head.append(maskStyle);
+  }
+  function applyAuthPageMasks() {
+    const masks = authPageMasks[page];
+    if (masks) {
+      Object.entries(masks).forEach(([type, selectors]) => {
+        selectors.forEach(selector => document.querySelectorAll(selector).forEach(element => {
+          element.setAttribute('data-devmatch-auth-mask', type);
+          if (!element.hasAttribute('aria-hidden')) {
+            element.setAttribute('aria-hidden', 'true');
+            element.setAttribute('data-devmatch-auth-aria-hidden', '');
+          }
+        }));
+      });
+    }
+    document.querySelectorAll('a[href^="https://wa.me/"]').forEach(link => {
+      link.dataset.devmatchAuthHref = link.href;
+      link.removeAttribute('href');
+    });
+  }
+  function disablePendingInteractions() {
+    document.querySelectorAll('a, button, input, select, textarea, [tabindex]').forEach(element => {
+      if (element.hasAttribute('inert')) return;
+      element.setAttribute('inert', '');
+      element.setAttribute('data-devmatch-auth-inert', '');
+    });
+  }
+  if (authPending) {
+    document.addEventListener('DOMContentLoaded', () => {
+      if (!document.body || authPendingResolved) return;
+      document.body.classList.add('devmatch-auth-pending-content');
+      applyAuthPageMasks();
+      disablePendingInteractions();
+      const status = document.createElement('span');
+      status.id = 'devmatch-auth-pending-status';
+      status.className = 'devmatch-skeleton-sr';
+      status.setAttribute('role', 'status');
+      status.setAttribute('aria-live', 'polite');
+      status.textContent = 'Verifying your account…';
+      document.body.append(status);
+    }, {once: true});
+  }
+  function hideAuthSkeleton() {
+    authPendingResolved = true;
+    document.documentElement.classList.remove('devmatch-auth-pending-root');
+    document.body?.classList.remove('devmatch-auth-pending-content');
+    document.getElementById('devmatch-auth-pending-mask-styles')?.remove();
+    document.querySelectorAll('[data-devmatch-auth-aria-hidden]').forEach(element => {
+      element.removeAttribute('aria-hidden');
+      element.removeAttribute('data-devmatch-auth-aria-hidden');
+    });
+    document.querySelectorAll('[data-devmatch-auth-inert]').forEach(element => {
+      element.removeAttribute('inert');
+      element.removeAttribute('data-devmatch-auth-inert');
+    });
+    document.getElementById('devmatch-auth-pending-status')?.remove();
+    document.querySelectorAll('[data-devmatch-auth-href]').forEach(link => {
+      link.href = link.dataset.devmatchAuthHref;
+      delete link.dataset.devmatchAuthHref;
+    });
   }
   function clearCache() {
     for (const key of Object.keys(localStorage)) {
@@ -151,12 +682,16 @@
         clearCache();
         location.replace('devmatch-auth.html?mode=login');
       }
+      hideAuthSkeleton();
       return null;
     }
     if(sessionStorage.getItem('devmatch-recovery')==='1' && page!=='devmatch-reset-password.html') {
       location.replace('devmatch-reset-password.html');return null;
     }
-    if (!protectedPage && (!user || !Object.hasOwn(roleSpecificPages, page))) return user;
+    if (!protectedPage && (!user || !Object.hasOwn(roleSpecificPages, page))) {
+      hideAuthSkeleton();
+      return user;
+    }
     const row = await loadProfile(user);
     activeAccountRole = row.account_role;
     if (protectedPage && !user.email_confirmed_at) {
@@ -167,7 +702,10 @@
       location.replace(destination(row, user));
       return null;
     }
-    if (!protectedPage) return user;
+    if (!protectedPage) {
+      hideAuthSkeleton();
+      return user;
+    }
     if(['devmatch-settings.html','devmatch-my-profile.html','devmatch-favorites.html','devmatch-chat.html'].includes(page)){
       const query=new URLSearchParams(location.search);
       if(query.get('role')!==row.account_role){query.set('role',row.account_role);location.replace(page+'?'+query+location.hash);return null;}
@@ -180,7 +718,7 @@
       return null;
     }
     if (changed) { location.reload(); return null; }
-    document.getElementById('auth-pending')?.remove();
+    hideAuthSkeleton();
     return user;
   })().catch(error => {
     if (protectedPage || Object.hasOwn(roleSpecificPages, page)) {

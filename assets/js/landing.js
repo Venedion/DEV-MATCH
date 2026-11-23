@@ -32,7 +32,9 @@
   }
   chips.addEventListener('click',event=>{const button=event.target.closest('[data-type]');if(!button)return;activeType=button.dataset.type;renderProjects();});
   async function loadProjects(){
-    projectStatus.hidden=false;projectStatus.textContent='Loading published projects…';
+    projectStatus.hidden=false;
+    window.DEVMATCH_SKELETON?.status(projectStatus,'Loading published projects');
+    window.DEVMATCH_SKELETON?.cards(projectGrid,4,'landing-project');
     try{
       const {data,error}=await window.devMatchBackend.client.from('projects')
         .select('id,title,project_type,category,price,data,created_at,updated_at')
@@ -64,10 +66,12 @@
   }
   async function loadDirectory(){
     directoryStatus.hidden=false;
+    window.DEVMATCH_SKELETON?.status(directoryStatus,'Loading developer directory');
+    window.DEVMATCH_SKELETON?.cards(developerGrid,4,'landing-developer');
     try{
       const user=await window.devMatchBackend.ready;
       if(!user){developerGrid.innerHTML='';directoryStatus.textContent='Sign in to browse developer profiles.';return;}
-      directoryStatus.textContent='Loading developer directory…';
+      window.DEVMATCH_SKELETON?.status(directoryStatus,'Loading developer directory');
       const account = await window.devMatchBackend.loadProfile(user);
       if(account.account_role!=='client'){
         developerGrid.innerHTML='';

@@ -8,14 +8,21 @@
     const element = document.querySelector(selector);
     if (element) element.textContent = value;
   };
-  const profile = JSON.parse(localStorage.getItem('devmatch-profile-dev') || '{}');
-  const displayName = typeof profile.displayName === 'string' && profile.displayName.trim()
-    ? profile.displayName.trim()
-    : 'Developer';
-  const nameParts = displayName.split(/\s+/).filter(Boolean);
-  setText('#welcomeName', nameParts[0] || 'Developer');
-  setText('#topUserName', profile.username || displayName);
-  setText('#userAvatar', nameParts.slice(0, 2).map(part => part[0]).join('').toUpperCase() || 'DM');
+  const setVerifiedProfile = profile => {
+    const displayName = typeof profile.displayName === 'string' && profile.displayName.trim()
+      ? profile.displayName.trim()
+      : 'Developer';
+    const nameParts = displayName.split(/\s+/).filter(Boolean);
+    setText('#welcomeName', nameParts[0] || 'Developer');
+    setText('#topUserName', profile.username || displayName);
+    setText('#userAvatar', nameParts.slice(0, 2).map(part => part[0]).join('').toUpperCase() || 'DM');
+  };
+  const cachedProfile = JSON.parse(localStorage.getItem('devmatch-profile-dev') || '{}');
+  if (document.documentElement.classList.contains('devmatch-auth-pending-root')) {
+    window.DEVMATCH_SKELETON?.text(document.getElementById('welcomeName'),'Loading profile','96px');
+  } else {
+    setVerifiedProfile(cachedProfile);
+  }
 
   const metricElements = {
     projects: document.getElementById('totalProjects'),
@@ -512,6 +519,10 @@
   }
 
   function showMessage(container, message, className = 'dashboard-empty') {
+    if (message === stateText.loading && window.DEVMATCH_SKELETON) {
+      window.DEVMATCH_SKELETON.rows(container,3);
+      return;
+    }
     const paragraph = document.createElement('p');
     paragraph.className = className;
     paragraph.textContent = message;
@@ -825,14 +836,16 @@
     const requestId = ++rangeRequestId;
     appliedRange = {...range};
     updateRangeControls(range);
-    Object.values(metricElements).forEach(element => { if (element) element.textContent = '—'; });
+    Object.values(metricElements).forEach(element => {
+      if (element) window.DEVMATCH_SKELETON?.text(element,'Loading dashboard metric','42px');
+    });
     const chartViews = document.getElementById('chartViews');
-    if (chartViews) chartViews.textContent = '—';
+    if (chartViews) window.DEVMATCH_SKELETON?.text(chartViews,'Loading dashboard views','42px');
     showMessage(commentsList, stateText.loading, 'range-empty');
     showMessage(interactionList, stateText.loading, 'range-empty');
     const status = document.getElementById('dashboardStatus');
     if (status) {
-      status.textContent = `Loading metrics for ${rangeLabel(range).toLowerCase()}…`;
+      window.DEVMATCH_SKELETON?.status(status,`Loading metrics for ${rangeLabel(range).toLowerCase()}`);
       status.hidden = false;
     }
 
@@ -863,9 +876,14 @@
     showMessage(projectList, stateText.loading);
     showMessage(commentsList, stateText.loading, 'range-empty');
     showMessage(interactionList, stateText.loading, 'range-empty');
+    Object.values(metricElements).forEach(element => {
+      if (element) window.DEVMATCH_SKELETON?.text(element,'Loading dashboard metric','42px');
+    });
+    const chartViews = document.getElementById('chartViews');
+    if (chartViews) window.DEVMATCH_SKELETON?.text(chartViews,'Loading dashboard views','42px');
     const status = document.getElementById('dashboardStatus');
     if (status) {
-      status.textContent = stateText.loading;
+      window.DEVMATCH_SKELETON?.status(status,stateText.loading);
       status.hidden = false;
     }
     if (!backend || !client) {
@@ -882,6 +900,7 @@
     try {
       const user = await backend.ready;
       if (!user) return;
+      setVerifiedProfile(JSON.parse(localStorage.getItem('devmatch-profile-dev') || '{}'));
       currentUser = user;
       currentProjects = await loadProjects(user).catch(error => {
         console.error('Unable to load dashboard projects.', error);

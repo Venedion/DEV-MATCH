@@ -29,6 +29,7 @@ savedProjects.forEach((project,index)=>{
 });
 if(migratedSavedProjects)localStorage.setItem(storageKey,JSON.stringify(savedProjects));
 let projects=savedProjects.map((project,index)=>({...project,id:project.id||`saved-${index}`,category:project.category||project.type,priceType:project.priceType||'Starting from',status:project.status||'published',views:null,favorites:null,comments:null,art:project.art||'dashboard',updated:project.updated||0}));
+let ownedProjectsLoaded=false;
 const ownedProjectsReady=window.devMatchBackend.ready.then(user=>user
   ?window.devMatchBackend.loadOwnedProjects('portfolio',savedProjects)
   :null
@@ -42,11 +43,14 @@ const ownedProjectsReady=window.devMatchBackend.ready.then(user=>user
   }));
   localStorage.setItem(storageKey,JSON.stringify(savedProjects));
   projects=savedProjects.map((project,index)=>({...project,id:project.id||`saved-${index}`,category:project.category||project.type,priceType:project.priceType||'Starting from',status:project.status||'published',views:Number(project.views)||0,favorites:Number(project.favorites)||0,comments:Number(project.comments)||0,art:project.art||'dashboard',updated:project.updated||0}));
+  ownedProjectsLoaded=true;
   render();
   return true;
 }).catch(error=>{
   console.error('Unable to load your portfolio projects from Supabase.',error);
   document.getElementById('projectMessage').textContent='Unable to load your projects. Check your connection and try again.';
+  ownedProjectsLoaded=true;
+  render();
   return false;
 });
 const rows=document.getElementById('managedProjectRows');
@@ -157,6 +161,20 @@ function renderPagination(pageCount){
   pagination.innerHTML=buttons.join('');
 }
 function render(){
+  if(!ownedProjectsLoaded){
+    rows.innerHTML=Array.from({length:4},()=>'<tr aria-hidden="true"><td colspan="7"><span class="devmatch-shimmer devmatch-skeleton-line" style="display:block;width:88%;height:13px;border-radius:999px;margin:12px 0"></span></td></tr>').join('');
+    window.DEVMATCH_SKELETON?.cards(mobileProjectCards,3,'mobile-project');
+    window.DEVMATCH_SKELETON?.text(tableSummary,'Loading project list','110px');
+    window.DEVMATCH_SKELETON?.text(mobileTableSummary,'Loading project list','110px');
+    ['allCount','publishedCount','draftCount'].forEach(id =>
+      window.DEVMATCH_SKELETON?.text(document.getElementById(id),'Loading project count','24px')
+    );
+    emptyState.hidden=true;
+    document.querySelector('.project-table').hidden=false;
+    document.querySelector('.table-footer').hidden=false;
+    pagination.replaceChildren();
+    return;
+  }
   const filtered=filteredProjects();
   const pageCount=projectsMobileBreakpoint.matches?1:Math.max(1,Math.ceil(filtered.length/perPage));
   currentPage=projectsMobileBreakpoint.matches?1:Math.min(currentPage,pageCount);

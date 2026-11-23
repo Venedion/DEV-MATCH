@@ -164,7 +164,7 @@ function renderLocationOptions(query=''){
     return;
   }
   if(!locationRegions.length){
-    options.innerHTML='<div class="location-options-message" role="status">Loading location options…</div>';
+    window.DEVMATCH_SKELETON?.status(options,'Loading location options',1);
     return;
   }
 

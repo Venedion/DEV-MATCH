@@ -820,7 +820,9 @@
   async function loadClients() {
     const status = document.getElementById('directoryStatus');
     status.hidden = false;
-    status.textContent = 'Loading client directory?';
+    window.DEVMATCH_SKELETON?.status(status,'Loading client directory');
+    window.DEVMATCH_SKELETON?.cards(clientsGrid,6,'client');
+    window.DEVMATCH_SKELETON?.text(clientsCountEl,'Loading client count','70px');
     try {
       const user = await window.devMatchBackend.ready;
       if (!user) throw new Error('Sign in with a developer account to browse the client directory.');
@@ -873,6 +875,7 @@
         ? error.message : 'The client directory could not be loaded. Check your connection and try again.';
       status.hidden = false;
       CLIENTS_DATA = [];
+      clientsCountEl.textContent = '— clients';
       emptyState.hidden = true;
       renderClients();
     }

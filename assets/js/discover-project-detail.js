@@ -191,7 +191,8 @@
     }catch(error){console.error('Unable to update saved projects in Supabase.',error);window.alert('Unable to save this project. Please try again.');}
   }
   if(!projectId){status.hidden=true;notFound.hidden=false;layout.hidden=true;return;}
-  status.hidden=false;status.textContent='Loading project details…';
+  status.hidden=false;
+  window.DEVMATCH_SKELETON?.status(status,'Loading project details');
   try{
     const {data:row,error}=await window.devMatchBackend.client.from('projects')
       .select('id,owner_id,title,project_type,category,price,cover_image,status,data,created_at,updated_at')

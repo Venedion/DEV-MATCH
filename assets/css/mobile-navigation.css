@@ -1815,6 +1815,27 @@ body > .client-sidebar .post-request .sidebar-action-label {
     stroke-width: 1.8;
   }
 
+  .mobile-bottom-nav .mobile-bottom-nav__item[data-mobile-nav-key="notifications"] > .nav-count,
+  .mobile-bottom-nav .mobile-bottom-nav__item[data-mobile-nav-key="notifications"] > .client-notification-count {
+    position: absolute;
+    top: 6px;
+    left: calc(50% + 3px);
+    z-index: 2;
+    min-width: 19px;
+    height: 19px;
+    margin: 0;
+    padding: 0 4px;
+    display: grid;
+    place-items: center;
+    border-radius: 999px;
+    background: #fce4ec;
+    color: #c2185b;
+    font-size: 10px;
+    font-weight: 700;
+    line-height: 1;
+    pointer-events: none;
+  }
+
   .mobile-bottom-nav__sr-only {
     position: absolute;
     width: 1px;

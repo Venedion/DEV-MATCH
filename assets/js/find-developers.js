@@ -544,7 +544,10 @@
   async function loadDevelopers() {
     const status = document.getElementById('directoryStatus');
     status.hidden = false;
-    status.textContent = 'Loading developer directory?';
+    window.DEVMATCH_SKELETON?.status(status,'Loading developer directory');
+    window.DEVMATCH_SKELETON?.cards(devsGrid,6,'developer');
+    window.DEVMATCH_SKELETON?.text(countHeading,'Loading developer count','90px');
+    window.DEVMATCH_SKELETON?.text(developerTabCount,'Loading developer count','24px');
     try {
       const user = await window.devMatchBackend.ready;
       if (!user) throw new Error('Sign in with a client account to browse the developer directory.');
@@ -594,7 +597,9 @@
         ? error.message : 'The developer directory could not be loaded. Check your connection and try again.';
       status.hidden = false;
       DEVELOPERS_DATA = [];
+      countHeading.textContent = '— developers';
       developerTabCount.textContent = '0';
+      devsGrid.replaceChildren();
       directoryLoaded=false;
       emptyState.classList.remove('show');
       emptyState.hidden=true;

@@ -3,6 +3,13 @@ const clientName=clientProfile.displayName||'Client';
 const clientNameParts=clientName.trim().split(/\s+/).filter(Boolean);
 document.getElementById('topUserName').textContent=clientProfile.username||clientName;
 document.getElementById('userAvatar').textContent=clientNameParts.slice(0,2).map(part=>part[0]).join('').toUpperCase()||'CL';
+window.devMatchBackend.ready.then(user=>{
+  if(!user)return;
+  const profile=JSON.parse(localStorage.getItem('devmatch-profile-client')||'{}');
+  const name=String(profile.displayName||'Client');
+  document.getElementById('topUserName').textContent=profile.username||name;
+  document.getElementById('userAvatar').textContent=name.trim().split(/\s+/).filter(Boolean).slice(0,2).map(part=>part[0]).join('').toUpperCase()||'CL';
+});
 document.querySelectorAll('.client-notification-count').forEach(count=>{count.textContent='';count.hidden=true;});
 const notificationDot=document.querySelector('.client-icon-button i');
 if(notificationDot)notificationDot.hidden=true;
@@ -22,6 +29,12 @@ let favoritesRevision=0;
 let favoriteStateReady;
 let requests=JSON.parse(localStorage.getItem(requestsKey)||'[]');
 let requestDashboardMetrics=null;
+const pageSkeletons=window.DEVMATCH_SKELETON;
+pageSkeletons?.rows(document.getElementById('requestList'),3);
+['requestStatOpen','requestStatClosed','requestStatDraft','requestStatViews','requestStatSaves','requestStatComments']
+  .forEach(id=>pageSkeletons?.text(document.getElementById(id),'Loading request metrics','42px'));
+['requestCountAll','requestCountOpen','requestCountClosed','requestCountDraft']
+  .forEach(id=>pageSkeletons?.text(document.getElementById(id),'Loading request count','24px'));
 function formatDashboardMetric(value){
   return value!==null&&value!==undefined&&Number.isFinite(Number(value))
     ?Number(value).toLocaleString('id-ID')
@@ -44,6 +57,7 @@ const requestsReady=window.devMatchBackend.ready.then(user=>user
 }).catch(error=>{
   console.error('Unable to load your project requests from Supabase.',error);
   document.getElementById('requestsMessage').textContent='Unable to load your requests. Check your connection and try again.';
+  renderRequests();
   return false;
 });
 let activeCategory='All';
@@ -222,15 +236,25 @@ function projectCardMarkup(project,discover=false){
 
 function renderProjects(){
   const filtered=getFilteredProjects();
-  discoverGrid.innerHTML=filtered.map(project=>projectCardMarkup(project,true)).join('');
+  const isLoading=!marketplaceLoaded&&!marketplaceFailed;
+  if(isLoading)pageSkeletons?.cards(discoverGrid,4,'dashboard-project');
+  else discoverGrid.innerHTML=filtered.map(project=>projectCardMarkup(project,true)).join('');
   const emptyMessage=marketplaceFailed
     ?'Projects could not be loaded. Check your connection and try again.'
     :marketplaceLoaded?'No projects match these filters. Try changing your search or filters.':'Loading published projects…';
   const discoverEmptyState=document.getElementById('discoverEmptyState');
   discoverEmptyState.textContent=emptyMessage;
-  discoverEmptyState.hidden=filtered.length>0;
-  document.getElementById('discoverProjectCount').textContent=String(marketplaceProjects.length);
-  document.getElementById('discoverResultsCount').textContent=`${filtered.length} project${filtered.length===1?'':'s'}`;
+  discoverEmptyState.hidden=isLoading||filtered.length>0;
+  if(isLoading){
+    pageSkeletons?.text(document.getElementById('discoverProjectCount'),'Loading project count','24px');
+    pageSkeletons?.text(document.getElementById('discoverResultsCount'),'Loading project count','82px');
+  }else if(marketplaceFailed){
+    document.getElementById('discoverProjectCount').textContent='—';
+    document.getElementById('discoverResultsCount').textContent='— projects';
+  }else{
+    document.getElementById('discoverProjectCount').textContent=String(marketplaceProjects.length);
+    document.getElementById('discoverResultsCount').textContent=`${filtered.length} project${filtered.length===1?'':'s'}`;
+  }
   document.getElementById('discoverResultsNote').textContent=activeSort==='newest'?'· showing newest first':activeSort==='oldest'?'· showing oldest first':activeSort==='price-low'?'· lowest price first':'· highest price first';
   document.getElementById('favoriteCount').textContent=String(favorites.length);
   renderHomeProjects();
@@ -295,7 +319,8 @@ function renderHomeMetrics(metrics){
   const values={
     openRequests:metrics?.openRequests,
     newInquiries:metrics?.newInquiries,
-    awaitingDeveloperReply:metrics?.awaitingDeveloperReply
+    awaitingDeveloperReply:metrics?.awaitingDeveloperReply,
+    activeProjects:metrics?.activeProjects
   };
   Object.entries(values).forEach(([key,value])=>{
     const target=document.querySelector(`[data-home-metric-value="${key}"]`);
@@ -347,10 +372,8 @@ function renderHomeAttention(items){
 
 function renderHomeChecklistLoading(){
   const section=document.getElementById('homeGettingStarted');
-  const checklist=document.getElementById('homeChecklist');
-  section.hidden=false;
+  section.hidden=true;
   section.setAttribute('aria-busy','true');
-  checklist.innerHTML=Array.from({length:3},()=>'<div class="home-skeleton-row" aria-hidden="true"><i class="home-skeleton-bar"></i><i class="home-skeleton-bar short"></i></div>').join('');
 }
 
 function renderHomeChecklist(state){
@@ -442,9 +465,9 @@ document.getElementById('homePostedRequests').addEventListener('click',async eve
   document.getElementById('requestsMessage').textContent='This request is no longer available. Review your full request list.';
 });
 
-async function loadHomeDashboard(){
+async function loadHomeDashboard({showLoading=true}={}){
   const status=document.getElementById('homeMetricsStatus');
-  renderHomeDashboardLoading();
+  if(showLoading)renderHomeDashboardLoading();
   try{
     const {data,error}=await window.devMatchBackend.client.functions.invoke('client-home',{
       body:{action:'dashboard'}
@@ -468,7 +491,7 @@ async function loadHomeDashboard(){
         ||!['awaiting-reply','replied'].includes(item.status))){
       throw new Error('Dashboard service returned invalid data.');
     }
-    renderHomeMetrics(metrics);
+    renderHomeMetrics({...metrics,activeProjects:0});
     status.hidden=true;
     renderHomeAttention(result.attention);
     renderHomeRequestLists(result.postedRequests,result.sentConversations);
@@ -552,6 +575,9 @@ async function loadPublicProjects(){
   marketplaceLoaded=false;
   marketplaceFailed=false;
   renderHomeProjects();
+  pageSkeletons?.cards(discoverGrid,4,'dashboard-project');
+  pageSkeletons?.text(document.getElementById('discoverProjectCount'),'Loading project count','24px');
+  pageSkeletons?.text(document.getElementById('discoverResultsCount'),'Loading project count','82px');
   try{
     const user=await window.devMatchBackend.ready;
     if(!user)throw new Error('Sign in to browse published projects.');
@@ -1216,7 +1242,7 @@ async function renderPrivateAttachmentLinks(request,container,statusElement,unav
   container.replaceChildren();
   statusElement.hidden=true;
   if(!attachments.length)return;
-  statusElement.textContent='Loading reference files…';
+  pageSkeletons?.status(statusElement,'Loading reference files',1);
   statusElement.hidden=false;
   const unavailable=[];
   await Promise.all(attachments.map(async attachment=>{
@@ -1227,7 +1253,7 @@ async function renderPrivateAttachmentLinks(request,container,statusElement,unav
       unavailable.push(attachment?.name||'attachment');
       return;
     }
-    item.textContent=`Loading ${attachment.name||'reference file'}…`;
+    pageSkeletons?.text(item,`Loading ${attachment.name||'reference file'}`,'64%');
     try{
       const url=await window.devMatchBackend.createPrivateFileUrl(attachment.path,attachment.name);
       if(container.dataset.requestId!==String(request.id))return;
@@ -2165,14 +2191,9 @@ document.querySelector('[data-request-view-details]').addEventListener('click',(
   if(request)showRequestDetailPage(request);
 });
 renderProjects();
-renderRequests();
+if(requests.length&&!document.documentElement.classList.contains('devmatch-auth-pending-root'))renderRequests();
 const requestActivityList=document.getElementById('requestActivityList');
-requestActivityList.replaceChildren();
-const requestActivityLoading=document.createElement('p');
-requestActivityLoading.className='request-activity-empty';
-requestActivityLoading.setAttribute('role','status');
-requestActivityLoading.textContent='Loading activity…';
-requestActivityList.append(requestActivityLoading);
+pageSkeletons?.rows(requestActivityList,3);
 
 function requestActivityTime(value){
   const date=new Date(value);
@@ -2234,7 +2255,11 @@ function createRequestActivityItem(entry){
 function renderRequestActivityDialog(){
   const list=document.getElementById('requestActivityDialogList');
   list.replaceChildren();
-  if(requestActivityState==='loading'||requestActivityState==='error'||!requestActivityEntries.length){
+  if(requestActivityState==='loading'){
+    pageSkeletons?.rows(list,3);
+    return;
+  }
+  if(requestActivityState==='error'||!requestActivityEntries.length){
     const message=document.createElement('p');
     message.className='request-activity-empty';
     message.setAttribute('role','status');
@@ -2307,7 +2332,7 @@ async function loadClientDashboardData(){
     const user=await backend.ready;
     if(!user)return;
     const identityTask=loadClientWorkspaceIdentity(backend,user);
-    const homeDashboardTask=loadHomeDashboard();
+    const homeDashboardTask=loadHomeDashboard({showLoading:false});
     const metricsTask=client.rpc('get_dashboard_metrics', {p_role: 'client'}).then(({data,error})=>{
       if(error)throw error;
       requestDashboardMetrics=typeof data==='string'?JSON.parse(data):data;
@@ -2399,6 +2424,7 @@ async function loadClientDashboardData(){
   }
 }
 
+renderHomeDashboardLoading();
 loadClientDashboardData();
 loadPublicProjects();
 syncRequestPickers();

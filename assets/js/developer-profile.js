@@ -4,6 +4,7 @@
   const status=document.getElementById('profileStatus');
   const identity=document.querySelector('.profile-identity-card');
   const columns=document.querySelector('.profile-columns');
+  window.DEVMATCH_SKELETON?.status(status,'Loading developer profile');
   const favoriteToast=document.getElementById('favoriteActionToast');
   const favoriteRemoveDialog=document.getElementById('favoriteRemoveDialog');
   const favoriteRemoveMessage=document.getElementById('favoriteRemoveMessage');
@@ -275,7 +276,8 @@
     tabs.style.setProperty('--profile-tab-indicator-width',`${tabBounds.width}px`);
   }
   if(!requestedId){showError('Developer profile not found.');return;}
-  status.hidden=false;status.textContent='Loading developer profile…';
+  status.hidden=false;
+  window.DEVMATCH_SKELETON?.status(status,'Loading developer profile');
   try{
     const user=await window.devMatchBackend.ready;
     let accountProfile=null;
@@ -428,7 +430,7 @@
       reviewsPanel.hidden=!showReviews;commentsPanel.hidden=showProjects||showReviews;
       empty.hidden=!showProjects||grid.children.length>0;
       if(button.dataset.tab==='comments'){
-        commentsPanel.innerHTML='<p class="empty-state">Loading comments…</p>';
+        window.DEVMATCH_SKELETON?.status(commentsPanel,'Loading comments');
         try{
           const groups=await Promise.all(projects.map(async item=>(await window.devMatchBackend.loadProjectComments(item.id)).comments.map(comment=>({...comment,project:item.title}))));
           const comments=groups.flat();

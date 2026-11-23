@@ -1,7 +1,20 @@
 const {test}=require('node:test');const assert=require('node:assert/strict');const fs=require('node:fs');const vm=require('node:vm');const path=require('node:path');
 const source=fs.readFileSync(path.join(__dirname,'../assets/js/backend.js'),'utf8');
-async function setup({verified=true,page='devmatch-settings.html',role='dev',userRole='dev',changeAccount=false,legacySensitiveCache=false,commentResults=[],directoryPeople=[],notifications=[],favorites=[],notificationReadIds=[],metrics=[],metricsError=null,rpcResponses={},projectEngagement=null,workspaceRole=null,workspaces=[]}={}){
-  let gets=0;const redirects=[],updates=[],passwords=[],rpcCalls=[],tableCalls=[],uploads=[];
+function createElement(){
+  const attributes=new Map();
+  const classes=new Set();
+  return {style:{setProperty(name,value){this[name]=value;}},children:[],classList:{add(...names){names.forEach(name=>classes.add(name));},remove(...names){names.forEach(name=>classes.delete(name));},contains:name=>classes.has(name)},
+    setAttribute:(name,value)=>attributes.set(name,value),hasAttribute:name=>attributes.has(name),removeAttribute:name=>attributes.delete(name),
+    append(...children){this.children.push(...children);children.forEach(child=>child.parentNode=this);},
+    prepend(...children){this.children.unshift(...children);children.forEach(child=>child.parentNode=this);},
+    insertBefore(child,reference){const index=this.children.indexOf(reference);this.children.splice(index<0?this.children.length:index,0,child);child.parentNode=this;},
+    replaceChildren(...children){this.children=children;},remove(){this.removed=true;this.isConnected=false;},
+    querySelector(selector){if(selector!=='.devmatch-auth-skeleton-layout')return null;return this.layoutElement||(this.layoutElement=createElement());},
+    querySelectorAll:()=>[],
+    getBoundingClientRect:()=>({height:58}),cloneNode:()=>createElement(),getAttribute:name=>attributes.get(name)};
+}
+async function setup({verified=true,page='devmatch-settings.html',role='dev',userRole='dev',changeAccount=false,legacySensitiveCache=false,commentResults=[],directoryPeople=[],notifications=[],favorites=[],notificationReadIds=[],metrics=[],metricsError=null,rpcResponses={},projectEngagement=null,workspaceRole=null,workspaces=[],headerPosition=null,hasMobileBottomNavigation=false,deferAuth=false,querySelectorResults={}}={}){
+  let gets=0,releaseAuth;const redirects=[],updates=[],passwords=[],rpcCalls=[],tableCalls=[],uploads=[];
   const user={id:'fixture',email:'owner@example.invalid',email_confirmed_at:verified?'2026-11-08':null};
   const row={id:user.id,account_role:userRole,account_verified:false,onboarding_complete:true,profile_data:{displayName:'Owner'},display_name:'Owner',username:'owner',phone:'+6281234567890'};
   const cachedProfile={...row.profile_data,username:row.username,displayName:row.display_name,phone:row.phone,email:user.email,role:userRole,googleConnected:false};
@@ -27,7 +40,8 @@ async function setup({verified=true,page='devmatch-settings.html',role='dev',use
   }
   const tableData={directory_people:directoryPeople,notifications,favorites,notification_reads:notificationReadIds.map(notification_id=>({notification_id})),project_engagements:projectEngagement?[projectEngagement]:[]};
   let authChangeHandler;let removedPresenceChannels=0;const presenceChannels=[],presenceTracks=[];
-  const auth={getUser:async()=>({data:{user:changeAccount&&++gets>1?{...user,id:'other'}:user},error:null}),
+  const getUserResult=()=>({data:{user:changeAccount&&++gets>1?{...user,id:'other'}:user},error:null});
+  const auth={getUser:()=>deferAuth?new Promise(resolve=>{releaseAuth=()=>resolve(getUserResult());}):Promise.resolve(getUserResult()),
     getSession:async()=>({data:{session:{user,access_token:'fixture-token'}},error:null}),
     onAuthStateChange:callback=>{authChangeHandler=callback;return {data:{subscription:{unsubscribe(){}}}};},
     signInWithPassword:async args=>args.password==='Current!Password1'?{data:{user},error:null}:{data:{user:null},error:Object.assign(new Error('Wrong password'),{code:'invalid_credentials'})},
@@ -38,13 +52,145 @@ async function setup({verified=true,page='devmatch-settings.html',role='dev',use
     channel:(topic,options)=>{const channel={topic,options,subscribe:callback=>{callback('SUBSCRIBED');return channel;},track:async state=>{presenceTracks.push(state);return 'ok';}};presenceChannels.push(channel);return channel;},
     removeChannel:async()=>{removedPresenceChannels+=1;return 'ok';},
     storage:{from:bucket=>({upload:async(path,file,options)=>{uploads.push({bucket,path,file,options});return {error:null};}})}};
+  const elements=new Map();const documentEvents={};const pageHeader=headerPosition?createElement():null;
+  if(pageHeader)pageHeader.position=headerPosition;
+  const body=createElement();
+  if(pageHeader)body.append(pageHeader);
+  const mobileNavItems=hasMobileBottomNavigation?Array.from({length:5},(_,index)=>{
+    const item=createElement();if(index===2)item.classList.add('active');return item;
+  }):[];
+  const mobileNav=hasMobileBottomNavigation?{
+    querySelectorAll:selector=>selector==='.mobile-bottom-nav__item'?mobileNavItems:[]
+  }:null;
+  const documentElement=createElement();
+  const document={createElement,head:{append(...nodes){nodes.forEach(node=>elements.set(node.id,node));}},
+    documentElement:{...documentElement,append(...nodes){nodes.forEach(node=>{node.isConnected=true;elements.set(node.id,node);});}},
+    body:headerPosition?body:null,querySelector:selector=>selector==='body > header'?pageHeader:selector==='.mobile-bottom-nav'?mobileNav:null,
+    querySelectorAll:selector=>querySelectorResults[selector]||[],
+    createTreeWalker:()=>({nextNode:()=>false}),getElementById:id=>elements.get(id)||null,
+    addEventListener:(name,handler)=>documentEvents[name]=handler};
   const context={URLSearchParams,Blob,crypto:{randomUUID:()=>`upload-${uploads.length+1}`},window:{supabase:{createClient:()=>client},addEventListener(){}},location:{pathname:'/'+page,search:'?role='+role,hash:'',replace:url=>redirects.push(url),assign:url=>redirects.push(url),reload:()=>redirects.push('reload')},
-    localStorage:storage,sessionStorage:{getItem:key=>sessionValues[key]??null,removeItem:key=>delete sessionValues[key],setItem:(key,value)=>sessionValues[key]=value},document:{createElement:()=>({}),head:{append(){}},getElementById:()=>({remove(){}}),addEventListener(){}},fetch:async()=>({ok:true,json:async()=>({})})};
-  vm.runInNewContext(source,context);const backend=context.window.devMatchBackend;await backend.ready;
-  await new Promise(resolve=>setImmediate(resolve));
-  return {backend,redirects,updates,passwords,rpcCalls,tableCalls,values,sessionValues,row,user,commentSelects,
-    authChangeHandler,removedPresenceChannels:()=>removedPresenceChannels,presenceChannels,presenceTracks,uploads};
+    localStorage:storage,sessionStorage:{getItem:key=>sessionValues[key]??null,removeItem:key=>delete sessionValues[key],setItem:(key,value)=>sessionValues[key]=value},document,
+    getComputedStyle:element=>({position:element.position||'static',width:'220px',height:'58px',flex:'0 0 auto'}),
+    fetch:async()=>({ok:true,json:async()=>({})})};
+  vm.runInNewContext(source,context);const backend=context.window.devMatchBackend;
+  if(headerPosition)documentEvents.DOMContentLoaded();
+  if(!deferAuth){
+    await backend.ready;
+    await new Promise(resolve=>setImmediate(resolve));
+  }
+  return {backend,skeletons:context.window.DEVMATCH_SKELETON,document,elements,redirects,updates,passwords,rpcCalls,tableCalls,values,sessionValues,row,user,commentSelects,
+    authChangeHandler,removedPresenceChannels:()=>removedPresenceChannels,presenceChannels,presenceTracks,uploads,releaseAuth};
 }
+test('shared skeletons are accessible without a generic auth overlay',async()=>{
+  const {skeletons,document,elements}=await setup();
+  const target=document.createElement('div');
+  skeletons.status(target,'Loading project data');
+  assert.equal(target.children.length,2);
+  assert.equal(target.children[0].getAttribute('aria-hidden'),'true');
+  assert.equal(target.children[1].textContent,'Loading project data');
+  assert.equal(elements.get('auth-pending'),undefined);
+  assert.equal(elements.get('devmatch-auth-skeleton'),undefined);
+  assert.match(elements.get('devmatch-skeleton-styles').textContent,/data-devmatch-auth-mask="field"/);
+  assert.doesNotMatch(elements.get('devmatch-skeleton-styles').textContent,/body\{visibility:hidden\}/);
+});
+test('card skeletons follow directory and mobile project card layouts',async()=>{
+  const {skeletons,document}=await setup();
+  const clients=document.createElement('div');
+  skeletons.cards(clients,1,'client');
+  assert.match(clients.children[0].className,/client-card/);
+  assert.equal(clients.children[0].children[0].className,'client-card-top');
+  assert.equal(clients.children[0].children.some(child=>child.className==='devmatch-shimmer devmatch-skeleton-media'),false);
+
+  const developers=document.createElement('div');
+  skeletons.cards(developers,1,'developer');
+  assert.match(developers.children[0].className,/dev-card/);
+  assert.equal(developers.children[0].children.some(child=>child.className==='dev-stats-grid'),true);
+
+  const projects=document.createElement('div');
+  skeletons.cards(projects,1,'mobile-project');
+  assert.match(projects.children[0].className,/mobile-project-card/);
+  assert.equal(projects.children[0].children[0].className,'mobile-project-main');
+  assert.equal(projects.children[0].children[0].children[0].children[0].className,'devmatch-shimmer project-thumb');
+});
+test('request card skeletons omit project artwork and retain request sections',async()=>{
+  const {skeletons,document}=await setup();
+  const target=document.createElement('div');
+  skeletons.cards(target,1,'request');
+  const card=target.children[0];
+  assert.match(card.className,/request-project-card/);
+  assert.equal(card.children[0].className,'project-body request-card-body');
+  assert.equal(card.children[0].children[0].className,'request-card-header');
+  assert.equal(card.children[0].children.some(child=>child.className==='devmatch-shimmer project-art'),false);
+});
+test('Explore card skeleton matches the marketplace catalog structure',async()=>{
+  const {skeletons,document}=await setup();
+  const target=document.createElement('div');
+  skeletons.cards(target,1,'marketplace-project');
+  const card=target.children[0];
+  assert.match(card.className,/project-card catalog-card/);
+  assert.equal(card.children[0].className,'devmatch-shimmer project-art');
+  assert.deepEqual(card.children[1].children.map(child=>child.className),[
+    'project-meta',
+    'project-title',
+    'project-description',
+    'devmatch-shimmer devmatch-skeleton-line catalog-price',
+    'project-by catalog-project-by'
+  ]);
+});
+test('auth-pending keeps the real page visible and masks the user header in place',async()=>{
+  const fixed=await setup({headerPosition:'fixed',deferAuth:true});
+  const fixedHeader=fixed.document.body.children[0];
+  assert.equal(fixedHeader.classList.contains('devmatch-auth-skeleton-header-copy'),false);
+  assert.equal(fixed.document.documentElement.classList.contains('devmatch-auth-pending-root'),true);
+  assert.match(fixed.elements.get('devmatch-auth-pending-mask-styles').textContent,/devmatch-auth-pending-root/);
+  assert.equal(fixed.elements.get('devmatch-auth-skeleton'),undefined);
+  assert.equal(fixed.document.body.classList.contains('devmatch-auth-pending-content'),true);
+  assert.equal(fixed.document.body.children.length,2);
+  assert.equal(fixed.document.body.children[1].id,'devmatch-auth-pending-status');
+  fixed.releaseAuth();
+  await fixed.backend.ready;
+  assert.equal(fixed.document.body.classList.contains('devmatch-auth-pending-content'),false);
+  assert.equal(fixed.document.documentElement.classList.contains('devmatch-auth-pending-root'),false);
+
+  const staticHeader=await setup({headerPosition:'static',deferAuth:true});
+  assert.equal(staticHeader.document.body.children[0].classList.contains('devmatch-auth-skeleton-header-copy'),false);
+  assert.equal(staticHeader.document.body.children.length,2);
+  staticHeader.releaseAuth();
+  await staticHeader.backend.ready;
+});
+test('settings retain their shell while cached fields are masked',async()=>{
+  const field=createElement();
+  const {document,backend,releaseAuth}=await setup({
+    page:'devmatch-settings.html',
+    headerPosition:'fixed',
+    deferAuth:true,
+    querySelectorResults:{'#accountForm input:not([type="hidden"]):not([type="file"])':[field]}
+  });
+  assert.equal(document.body.classList.contains('devmatch-auth-pending-content'),true);
+  assert.equal(field.getAttribute('data-devmatch-auth-mask'),'field');
+  assert.equal(field.getAttribute('aria-hidden'),'true');
+  releaseAuth();
+  await backend.ready;
+});
+test('mobile navigation remains the real page navigation while auth is pending',async()=>{
+  const {elements,document,backend,releaseAuth}=await setup({headerPosition:'fixed',hasMobileBottomNavigation:true,deferAuth:true});
+  assert.equal(elements.get('devmatch-auth-skeleton'),undefined);
+  assert.equal(document.body.classList.contains('devmatch-auth-pending-content'),true);
+  assert.equal(document.querySelector('.mobile-bottom-nav').querySelectorAll('.mobile-bottom-nav__item').length,5);
+  releaseAuth();
+  await backend.ready;
+});
+test('protected pages show their own loading state as soon as the document is ready',async()=>{
+  const {document,elements,backend,releaseAuth}=await setup({page:'devmatch-discover-projects.html',headerPosition:'fixed',deferAuth:true});
+  assert.equal(elements.get('devmatch-auth-skeleton'),undefined);
+  assert.equal(elements.get('auth-pending'),undefined);
+  assert.equal(document.body.classList.contains('devmatch-auth-pending-content'),true);
+  assert.equal(document.body.children.length,2);
+  assert.equal(document.documentElement.classList.contains('devmatch-auth-pending-root'),true);
+  releaseAuth();
+  await backend.ready;
+});
 test('Experience supporting files are limited to 5 MB without changing request upload limits',async()=>{
   const {backend,uploads}=await setup();
   const maximumBytes=5*1024*1024;

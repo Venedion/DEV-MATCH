@@ -1002,6 +1002,14 @@
   function updateCategoryCounts() {
     const source = isRequestsPage ? requests : projects;
     document.querySelectorAll('[data-category-count]').forEach(label => {
+      if (catalogError) {
+        label.textContent = '—';
+        return;
+      }
+      if (!catalogLoaded && !catalogError) {
+        window.DEVMATCH_SKELETON?.text(label,'Loading category count','56px');
+        return;
+      }
       const category = label.dataset.categoryCount;
       const count = category === 'all' ? source.length : source.filter(item => category === 'Android / iOS' ? item.type === category : item.category === category).length;
       const countLabel = count === 1 ? 'project' : 'projects';
@@ -1020,6 +1028,7 @@
 
   async function loadDeveloperTabCount() {
     if (!developerTabCount) return;
+    window.DEVMATCH_SKELETON?.text(developerTabCount,'Loading developer count','24px');
     try {
       const user = await window.devMatchBackend.ready;
       if (!user) return;
@@ -1038,6 +1047,7 @@
 
   async function loadClientDirectoryTabCount() {
     if (!clientsTabCount) return;
+    window.DEVMATCH_SKELETON?.text(clientsTabCount,'Loading client count','24px');
     try {
       const user = await window.devMatchBackend.ready;
       if (!user) throw new Error('Sign in with a developer account to browse the client directory.');
@@ -1060,8 +1070,9 @@
     const filtered = getItems();
     const shown = filtered.slice(0, visibleCount);
     grid.classList.toggle('is-list', view === 'list');
-    grid.innerHTML = shown.map(renderProject).join('');
-    emptyState.hidden = Boolean(catalogError) || filtered.length !== 0;
+    if (!catalogLoaded && !catalogError) window.DEVMATCH_SKELETON?.cards(grid,6,isRequestsPage?'request':'marketplace-project');
+    else grid.innerHTML = shown.map(renderProject).join('');
+    emptyState.hidden = !catalogLoaded || Boolean(catalogError) || filtered.length !== 0;
     const noPosts = catalogLoaded && !catalogError && source.length === 0;
     emptyState.querySelector('h3').textContent = noPosts
       ? 'No projects have been posted yet'
@@ -1074,19 +1085,25 @@
     emptyState.querySelector('.empty-search-icon').hidden = noPosts;
     emptyState.querySelector('[data-reset]').hidden = noPosts;
     catalogStatus.hidden = catalogLoaded && !catalogError;
-    if(!catalogLoaded&&!catalogError)catalogStatus.textContent='Loading projects…';
+    if(!catalogLoaded&&!catalogError)window.DEVMATCH_SKELETON?.status(catalogStatus,'Loading projects');
     if(catalogError)catalogStatus.textContent = catalogErrorMessage;
-    summary.textContent = isRequestsPage
-      ? `Showing ${filtered.length} ${filtered.length === 1 ? 'project' : 'projects'}`
-      : `Showing ${filtered.length} ${filtered.length === 1 ? 'project' : 'projects'}`;
+    if (catalogError) {
+      summary.textContent = '— projects';
+      if (isRequestsPage && projectRequestsTabCount) projectRequestsTabCount.textContent = '—';
+      if (!isRequestsPage && projectTabCount) projectTabCount.textContent = '—';
+    } else if (catalogLoaded) {
+      summary.textContent = `Showing ${filtered.length} ${filtered.length === 1 ? 'project' : 'projects'}`;
+    } else {
+      window.DEVMATCH_SKELETON?.text(summary,'Loading result count','96px');
+    }
     updateFavoriteCount();
     const remaining = Math.max(0, filtered.length - shown.length);
-    remainingCount.textContent = remaining
+    remainingCount.textContent = catalogLoaded && remaining
       ? isRequestsPage
         ? `Showing ${shown.length} of ${filtered.length} projects`
         : `Showing ${shown.length} of ${filtered.length} projects`
       : '';
-    loadMoreButton.hidden = remaining === 0;
+    loadMoreButton.hidden = !catalogLoaded || remaining === 0;
     updateCategoryCounts();
   }
 
@@ -1345,7 +1362,11 @@
     catalogErrorMessage = 'Projects could not be loaded. Check your connection and try again.';
     grid.setAttribute('aria-busy', 'true');
     catalogStatus.hidden = false;
-    catalogStatus.textContent = 'Loading projects…';
+    window.DEVMATCH_SKELETON?.cards(grid,6,isRequestsPage?'request':'marketplace-project');
+    window.DEVMATCH_SKELETON?.status(catalogStatus,'Loading projects');
+    window.DEVMATCH_SKELETON?.text(summary,'Loading result count','96px');
+    if (isRequestsPage) window.DEVMATCH_SKELETON?.text(projectRequestsTabCount,'Loading project count','24px');
+    else window.DEVMATCH_SKELETON?.text(projectTabCount,'Loading project count','24px');
     try {
       const user = await window.devMatchBackend.ready;
       const kind = isRequestsPage ? 'request' : 'portfolio';

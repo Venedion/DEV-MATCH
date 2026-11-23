@@ -1,8 +1,6 @@
 (function () {
   'use strict';
 
-  const mobileNavigationTransitionKey = 'devmatch-mobile-bottom-nav-transition';
-
   const icons = {
     overview: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>',
     home: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-6v-7h-4v7H4a1 1 0 0 1-1-1z"/></svg>',
@@ -159,7 +157,7 @@
       ? [
         {key: 'home', label: 'Home', href: 'devmatch-client-dashboard.html#home', icon: 'home'},
         {key: 'requests', label: 'My Requests', href: 'devmatch-client-dashboard.html#requests', icon: 'projects'},
-        {key: 'explore', label: 'Explore', href: 'devmatch-find-projects.html', icon: 'discover'},
+        {key: 'explore', label: 'Explore', href: 'devmatch-discover-projects.html', icon: 'discover'},
         {key: 'notifications', label: 'Notifications', href: 'devmatch-notifications.html', icon: 'notifications'},
         {key: 'profile', label: 'Profile', href: 'devmatch-my-profile.html?role=client', icon: 'profile'}
       ]
@@ -208,7 +206,7 @@
 
     document.body.classList.add('has-mobile-bottom-navigation');
     document.body.classList.toggle('mobile-bottom-nav-hidden', nav.classList.contains('is-hidden'));
-    updateMobileBottomNavigationIndicator(nav, role);
+    updateMobileBottomNavigationIndicator(nav);
   }
 
   function initializeMobileBottomNavigationEvents(nav) {
@@ -216,22 +214,8 @@
       if (!(event.target instanceof Element)) return;
       const clickedItem = event.target.closest('.mobile-bottom-nav__item');
       if (!clickedItem) return;
-      if (clickedItem instanceof HTMLAnchorElement) {
-        const activeItem = nav.querySelector('.mobile-bottom-nav__item.active');
-        const activeKey = activeItem?.dataset.mobileNavKey;
-        const destinationKey = clickedItem.dataset.mobileNavKey;
-        if (activeKey && destinationKey && activeKey !== destinationKey) {
-          const destinationPath = new URL(clickedItem.href, location.href).pathname;
-          sessionStorage.setItem(
-            mobileNavigationTransitionKey,
-            `${nav.dataset.workspace}|${activeKey}|${destinationPath}`
-          );
-        } else {
-          sessionStorage.removeItem(mobileNavigationTransitionKey);
-        }
-      }
       if (clickedItem instanceof HTMLButtonElement) {
-        requestAnimationFrame(() => updateMobileBottomNavigationIndicator(nav, nav.dataset.workspace));
+        requestAnimationFrame(() => updateMobileBottomNavigationIndicator(nav));
       }
     });
 
@@ -281,11 +265,11 @@
 
     window.addEventListener('resize', () => {
       setMobileBottomNavigationHidden(nav, false);
-      updateMobileBottomNavigationIndicator(nav, nav.dataset.workspace);
+      updateMobileBottomNavigationIndicator(nav);
     });
   }
 
-  function updateMobileBottomNavigationIndicator(nav, role) {
+  function updateMobileBottomNavigationIndicator(nav) {
     if (!(nav instanceof HTMLElement)) return;
     const activeItem = nav.querySelector('.mobile-bottom-nav__item.active');
     const navBounds = nav.getBoundingClientRect();
@@ -315,32 +299,13 @@
     }
 
     nav.classList.add('is-initializing-indicator');
-    const savedTransition = sessionStorage.getItem(mobileNavigationTransitionKey);
-    sessionStorage.removeItem(mobileNavigationTransitionKey);
-    const [previousRole, previousKey, destinationPath] = savedTransition?.split('|') || [];
-    const previousItem = previousRole === role && destinationPath === location.pathname
-      ? Array.from(nav.querySelectorAll('.mobile-bottom-nav__item'))
-        .find(item => item.dataset.mobileNavKey === previousKey)
-      : null;
-
-    if (previousItem && previousItem !== activeItem) {
-      setPosition(previousItem);
-      nav.classList.add('has-active-indicator');
-      nav.dataset.mobileNavIndicatorPending = 'true';
-      requestAnimationFrame(() => requestAnimationFrame(() => {
-        const currentActiveItem = nav.querySelector('.mobile-bottom-nav__item.active');
-        if (currentActiveItem) setPosition(currentActiveItem);
-        markIndicatorReady();
-      }));
-    } else {
-      setPosition(activeItem);
-      nav.classList.add('has-active-indicator');
-      requestAnimationFrame(() => requestAnimationFrame(() => {
-        const currentActiveItem = nav.querySelector('.mobile-bottom-nav__item.active');
-        if (currentActiveItem) setPosition(currentActiveItem);
-        markIndicatorReady();
-      }));
-    }
+    setPosition(activeItem);
+    nav.classList.add('has-active-indicator');
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      const currentActiveItem = nav.querySelector('.mobile-bottom-nav__item.active');
+      if (currentActiveItem) setPosition(currentActiveItem);
+      markIndicatorReady();
+    }));
     nav.dataset.mobileNavIndicatorPending = 'true';
   }
 
@@ -464,10 +429,8 @@
 
   window.DEVMATCH_SIDEBAR_NAVIGATION = {
     setWorkspace,
-    updateMobileBottomNavigationIndicator: () => updateMobileBottomNavigationIndicator(
-      document.querySelector('.mobile-bottom-nav'),
-      currentWorkspace
-    )
+    updateMobileBottomNavigationIndicator: () =>
+      updateMobileBottomNavigationIndicator(document.querySelector('.mobile-bottom-nav'))
   };
   initializeSidebarActionLabels();
   initializeSidebarPin();

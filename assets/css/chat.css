@@ -211,6 +211,48 @@ body.chat-body {
   user-select: none;
 }
 
+.chat-skeleton-item {
+  cursor: default;
+  pointer-events: none;
+}
+
+.chat-skeleton-avatar {
+  display: block;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+}
+
+.chat-skeleton-name {
+  display: block;
+  width: 84px;
+  height: 10px;
+  border-radius: 999px;
+}
+
+.chat-skeleton-time {
+  display: block;
+  width: 28px;
+  height: 8px;
+  border-radius: 999px;
+}
+
+.chat-conv-item.chat-skeleton-item .chat-skeleton-tag {
+  display: block;
+  width: 76px;
+  height: 12px;
+  margin: 0 0 4px;
+  padding: 0;
+  border-radius: 4px;
+}
+
+.chat-skeleton-preview {
+  display: block;
+  width: 88%;
+  height: 8px;
+  border-radius: 999px;
+}
+
 .chat-conv-item:hover {
   background: #f7f7f9;
 }

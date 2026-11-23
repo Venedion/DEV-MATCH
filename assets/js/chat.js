@@ -76,7 +76,11 @@
 
   function setStatus(message, isError = false) {
     if (!statusEl) return;
-    statusEl.textContent = message;
+    if (/^Loading\b/.test(message) && window.DEVMATCH_SKELETON) {
+      window.DEVMATCH_SKELETON.status(statusEl,message,1);
+    } else {
+      statusEl.textContent = message;
+    }
     statusEl.classList.toggle('is-error', isError);
   }
 
@@ -411,10 +415,12 @@
 
     if (!filtered.length) {
       const emptyText = conversations.length ? 'No conversations found' : 'No conversations yet';
+      convListEl.setAttribute('aria-busy', 'false');
       convListEl.innerHTML = `<li class="chat-conv-empty"><p>${emptyText}</p><small>Open a profile or project to start a secure chat.</small></li>`;
       return;
     }
 
+    convListEl.setAttribute('aria-busy', 'false');
     convListEl.innerHTML = filtered.map(conversation => {
       const lastMessage = conversation.lastMessage;
       const preview = lastMessage
@@ -491,6 +497,22 @@
         submitButton.disabled = false;
       }
     });
+  }
+
+  function renderConversationSkeleton(count = 5) {
+    if (!convListEl) return;
+    const shimmer = (className) => `<span class="devmatch-shimmer ${className}" aria-hidden="true"></span>`;
+    convListEl.setAttribute('aria-busy', 'true');
+    convListEl.innerHTML = Array.from({length: count}, () => `
+      <li class="chat-conv-item chat-skeleton-item" aria-hidden="true">
+        <div class="chat-avatar-wrap">${shimmer('chat-skeleton-avatar')}</div>
+        <div class="chat-item-main">
+          <div class="chat-item-top">${shimmer('chat-skeleton-name')}${shimmer('chat-skeleton-time')}</div>
+          ${shimmer('chat-item-tag chat-skeleton-tag')}
+          <p class="chat-item-preview">${shimmer('chat-skeleton-preview')}</p>
+        </div>
+        <div class="chat-item-badge-col"></div>
+      </li>`).join('');
   }
 
   function getActiveConversation() {
@@ -715,7 +737,7 @@
       elements.projectReviewMessage.hidden = true;
       return;
     }
-    elements.engagementStatus.textContent = 'Loading project completion status…';
+    window.DEVMATCH_SKELETON?.status(elements.engagementStatus,'Loading project completion status',1);
     elements.confirmProjectCompletion.hidden = true;
     elements.confirmProjectCompletion.disabled = true;
     elements.projectReviewForm.hidden = true;
@@ -1640,6 +1662,8 @@
 
   async function initialize() {
     bindControls();
+    renderConversationSkeleton();
+    setStatus('Loading conversations…');
     let legacyChatRemoved = false;
     try {
       legacyChatRemoved = localStorage.getItem(LEGACY_CHAT_STORAGE_KEY) !== null;
@@ -1653,8 +1677,13 @@
     if (!currentUser) return;
     currentProfile = await backend.loadProfile(currentUser);
     updateShell(currentProfile);
-    setStatus('Loading conversations…');
-    await loadConversationList();
+    try {
+      await loadConversationList();
+    } catch (error) {
+      convListEl?.replaceChildren();
+      convListEl?.setAttribute('aria-busy', 'false');
+      throw error;
+    }
     await startRealtime();
     activityTimer=setInterval(()=>void syncActivity(),30000);
     await openFromQuery();

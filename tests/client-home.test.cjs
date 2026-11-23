@@ -1,5 +1,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const path = require('node:path');
 const {buildClientDashboard} = require('../supabase/functions/client-home/logic.mjs');
 
 const userId = 'client-id';
@@ -389,4 +391,15 @@ test('client home checklist uses completed profile, viewed project, and posted r
     exploredProjects: true,
     postedRequest: false
   });
+});
+
+test('client home hides checklist skeleton until available and shimmers active project metric', () => {
+  const html = fs.readFileSync(path.join(__dirname, '../devmatch-client-dashboard.html'), 'utf8');
+  const source = fs.readFileSync(path.join(__dirname, '../assets/js/client-dashboard.js'), 'utf8');
+  assert.match(html, /id="homeGettingStarted"[^>]*hidden/);
+  assert.match(html, /data-home-metric-value="activeProjects"><span class="home-skeleton-bar home-metric-skeleton/);
+  assert.match(source, /function renderHomeChecklistLoading\(\)\s*\{[^}]*section\.hidden=true/);
+  assert.match(source, /renderHomeMetrics\(\{\.\.\.metrics,activeProjects:0\}\)/);
+  assert.match(source, /renderHomeDashboardLoading\(\);\s*loadClientDashboardData\(\);/);
+  assert.match(source, /loadHomeDashboard\(\{showLoading:false\}\)/);
 });
