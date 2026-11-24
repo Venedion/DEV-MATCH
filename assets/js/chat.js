@@ -18,6 +18,12 @@
   const attachmentInputEl = document.getElementById('chatAttachmentInput');
   const attachmentPreviewEl = document.getElementById('chatAttachmentPreview');
   const attachButtonEl = document.getElementById('chatAttachBtn');
+  const composerMenuEl = document.getElementById('chatComposerMenu');
+  const uploadFileButtonEl = document.getElementById('chatUploadFileAction');
+  const projectTermsButtonEl = document.getElementById('chatProjectTermsAction');
+  const proposalDialogEl = document.getElementById('proposeProjectDialog');
+  const proposalFormEl = document.getElementById('proposeProjectForm');
+  const proposalScopeListEl = document.getElementById('proposeProjectScopeList');
   const searchInputEl = document.getElementById('chatSearchInput');
   const filterBtns = document.querySelectorAll('.chat-filter-btn');
   const chatViewportEl = document.getElementById('chatViewport');
@@ -89,6 +95,10 @@
   let isSending = false;
   let selectedAttachment = null;
   let projectDetailsPromise = null;
+  let proposalContextId = null;
+  let proposalScopeItems = [];
+  let proposalDownPayment = 25;
+  let proposalRevisionCount = 2;
 
   function setStatus(message, isError = false) {
     if (!statusEl) return;
@@ -98,6 +108,153 @@
       statusEl.textContent = message;
     }
     statusEl.classList.toggle('is-error', isError);
+  }
+
+  function setComposerMenuOpen(open) {
+    if (!composerMenuEl || !attachButtonEl) return;
+    composerMenuEl.hidden = !open;
+    attachButtonEl.setAttribute('aria-expanded', String(open));
+  }
+
+  function proposalAmount(value) {
+    const digits = String(value ?? '').replace(/\D/g, '');
+    return digits ? Math.min(Number(digits), Number.MAX_SAFE_INTEGER) : 0;
+  }
+
+  function formatProposalAmount(value) {
+    return `Rp ${Math.max(0, Math.round(Number(value) || 0)).toLocaleString('id-ID')}`;
+  }
+
+  function updateProposalCalculations() {
+    const priceInput = document.getElementById('proposeProjectPrice');
+    const dpPercent = document.getElementById('proposeProjectDpPercent');
+    const dpAmount = document.getElementById('proposeProjectDpAmount');
+    const remainingAmount = document.getElementById('proposeProjectRemainingAmount');
+    const total = proposalAmount(priceInput?.value);
+    const downPayment = Math.round(total * proposalDownPayment / 100);
+    if (dpPercent) dpPercent.textContent = String(proposalDownPayment);
+    if (dpAmount) dpAmount.textContent = formatProposalAmount(downPayment);
+    if (remainingAmount) remainingAmount.textContent = formatProposalAmount(total - downPayment);
+  }
+
+  function updateProposalCounters() {
+    [
+      ['proposeProjectName', 'proposeProjectNameCount'],
+      ['proposeProjectDescription', 'proposeProjectDescriptionCount'],
+      ['proposeProjectRevisionNotes', 'proposeProjectRevisionNotesCount']
+    ].forEach(([inputId, countId]) => {
+      const input = document.getElementById(inputId);
+      const count = document.getElementById(countId);
+      if (input && count) count.textContent = String(input.value.length);
+    });
+    const scopeCount = document.getElementById('proposeProjectScopeCount');
+    if (scopeCount) scopeCount.textContent = String(proposalScopeItems.length);
+    const addScopeButton = document.getElementById('addProposalScopePoint');
+    if (addScopeButton) addScopeButton.disabled = proposalScopeItems.length >= 20;
+  }
+
+  function renderProposalScopeItems() {
+    if (!proposalScopeListEl) return;
+    proposalScopeListEl.replaceChildren();
+    proposalScopeItems.forEach((value, index) => {
+      const item = document.createElement('li');
+      const input = document.createElement('input');
+      input.type = 'text';
+      input.maxLength = 300;
+      input.value = value;
+      input.placeholder = `Describe deliverable ${index + 1}`;
+      input.setAttribute('aria-label', `Scope of work point ${index + 1}`);
+      input.addEventListener('input', () => {
+        proposalScopeItems[index] = input.value;
+      });
+
+      const removeButton = document.createElement('button');
+      removeButton.type = 'button';
+      removeButton.className = 'chat-proposal-remove-point';
+      removeButton.textContent = '×';
+      removeButton.setAttribute('aria-label', `Remove scope point ${index + 1}`);
+      removeButton.disabled = proposalScopeItems.length <= 1;
+      removeButton.addEventListener('click', () => {
+        proposalScopeItems.splice(index, 1);
+        renderProposalScopeItems();
+        updateProposalCounters();
+      });
+      item.append(input, removeButton);
+      proposalScopeListEl.append(item);
+    });
+    updateProposalCounters();
+  }
+
+  function openProposalForm() {
+    const conversation = getActiveConversation();
+    const project = conversation?.project;
+    if (!proposalDialogEl || !conversation) return;
+
+    const requestProject = project?.project_kind === 'request' ? project : null;
+    const contextId = `${conversation.id || 'draft'}:${project?.id || 'none'}:${conversation.contactId || conversation.participantId || ''}`;
+    if (proposalContextId !== contextId) {
+      const requestData = requestProject?.requestData || {};
+      const initialFeatures = Array.isArray(requestData.features)
+        ? requestData.features.filter(value => typeof value === 'string').map(value => value.trim()).filter(Boolean).slice(0, 20)
+        : [];
+      const initialScopes = initialFeatures.length ? initialFeatures : [''];
+      proposalFormEl?.reset();
+      document.getElementById('proposeProjectName').value = requestProject?.title || '';
+      document.getElementById('proposeProjectDescription').value =
+        requestData.description || requestData.overview || requestProject?.summary || '';
+      const priceInput = document.getElementById('proposeProjectPrice');
+      const initialPrice = requestData.price || requestData.budgetFrom || '';
+      priceInput.value = initialPrice ? formatProposalAmount(proposalAmount(initialPrice)) : '';
+      const budgetFrom = requestData.budgetFrom;
+      const budgetTo = requestData.budgetTo;
+      const budgetLabel = budgetFrom && budgetTo
+        ? `${formatProposalAmount(proposalAmount(budgetFrom))} — ${formatProposalAmount(proposalAmount(budgetTo))}`
+        : requestData.budget || requestProject?.price || 'Not specified';
+      const budgetHint = document.getElementById('proposeProjectBudget');
+      if (budgetHint) {
+        budgetHint.textContent = `Client budget: ${budgetLabel}${requestData.negotiable ? ' · Negotiable' : ''}`;
+      }
+      const deadlineInput = document.getElementById('proposeProjectDeadline');
+      if (/^\d{4}-\d{2}-\d{2}$/.test(requestData.deadline || '')) {
+        deadlineInput.value = requestData.deadline;
+      }
+      const recipient = document.getElementById('proposeProjectRecipient');
+      if (recipient) {
+        const requestLabel = requestProject
+          ? ` · from request "${requestProject.title || 'Project request'}"`
+          : '';
+        recipient.textContent = `To ${conversation.contactDisplayName || conversation.name}${requestLabel}`;
+      }
+      proposalDownPayment = 25;
+      proposalRevisionCount = 2;
+      proposalScopeItems = initialScopes;
+      const revisionOutput = document.getElementById('proposeProjectRevisionCount');
+      if (revisionOutput) revisionOutput.textContent = String(proposalRevisionCount);
+      renderProposalAttachments();
+      document.querySelectorAll('[data-proposal-dp]').forEach(button => {
+        const selected = Number(button.dataset.proposalDp) === proposalDownPayment;
+        button.classList.toggle('is-selected', selected);
+        button.setAttribute('aria-pressed', String(selected));
+      });
+      proposalContextId = contextId;
+      renderProposalScopeItems();
+      updateProposalCounters();
+      updateProposalCalculations();
+    }
+
+    if (!proposalDialogEl.open) proposalDialogEl.showModal();
+  }
+
+  function renderProposalAttachments() {
+    const input = document.getElementById('proposeProjectAttachments');
+    const list = document.getElementById('proposeProjectAttachmentList');
+    if (!input || !list) return;
+    list.replaceChildren();
+    Array.from(input.files || []).forEach(file => {
+      const item = document.createElement('li');
+      item.textContent = `${file.name} · ${formatFileSize(file.size)}`;
+      list.append(item);
+    });
   }
 
   async function edgeError(error, fallback) {
@@ -234,6 +391,7 @@
         coverImage: '',
         developerName: project.developer_name || '',
         summary: '',
+        requestData: null,
         project_kind: projectKind,
         ownerId: null,
         link: '#',
@@ -250,6 +408,12 @@
       clientName: project.client_name || '',
       clientInitials: initials(project.client_name || ''),
       summary: project.data?.overview || project.data?.description || '',
+      requestData: projectKind === 'request'
+        && project.data
+        && typeof project.data === 'object'
+        && !Array.isArray(project.data)
+        ? project.data
+        : null,
       project_kind: projectKind,
       ownerId: project.owner_id,
       link: projectUrl({...project, project_kind: projectKind}),
@@ -558,6 +722,7 @@
   function renderMessagesThread() {
     const conversation = getActiveConversation();
     window.DEVMATCH_ROOM_PAYMENT?.setRoom(conversation === pendingConversationDraft ? null : conversation);
+    const project = conversation?.project;
     const mainHeader = document.querySelector('.chat-main-header');
     const projectBanner = document.getElementById('activeProjectBanner');
     const composer = document.querySelector('.chat-composer-wrap');
@@ -588,7 +753,6 @@
     if (elements.activeStatusText) elements.activeStatusText.textContent = conversation.online ? 'Online' : 'Offline';
     if (elements.activeStatusDot) elements.activeStatusDot.hidden = !conversation.online;
 
-    const project = conversation.project;
     const isDraft = conversation === pendingConversationDraft;
     elements.detailProjectCard?.classList.toggle('is-unlinked', !project || !project.available);
     if (projectBanner) projectBanner.hidden = !project;
@@ -1629,7 +1793,69 @@
         }
       });
     });
-    attachButtonEl?.addEventListener('click', () => attachmentInputEl?.click());
+    attachButtonEl?.addEventListener('click', () => {
+      setComposerMenuOpen(composerMenuEl?.hidden === true);
+    });
+    uploadFileButtonEl?.addEventListener('click', () => {
+      setComposerMenuOpen(false);
+      attachmentInputEl?.click();
+    });
+    projectTermsButtonEl?.addEventListener('click', () => {
+      setComposerMenuOpen(false);
+      openProposalForm();
+    });
+    proposalFormEl?.addEventListener('submit', event => event.preventDefault());
+    proposalDialogEl?.querySelectorAll('[data-close-propose-project]').forEach(button => {
+      button.addEventListener('click', () => proposalDialogEl.close());
+    });
+    proposalDialogEl?.addEventListener('click', event => {
+      if (event.target === proposalDialogEl) proposalDialogEl.close();
+    });
+    document.querySelectorAll('[data-proposal-dp]').forEach(button => {
+      button.addEventListener('click', () => {
+        proposalDownPayment = Number(button.dataset.proposalDp);
+        document.querySelectorAll('[data-proposal-dp]').forEach(option => {
+          const selected = option === button;
+          option.classList.toggle('is-selected', selected);
+          option.setAttribute('aria-pressed', String(selected));
+        });
+        updateProposalCalculations();
+      });
+    });
+    document.getElementById('proposeProjectPrice')?.addEventListener('input', updateProposalCalculations);
+    document.getElementById('proposeProjectPrice')?.addEventListener('blur', event => {
+      const amount = proposalAmount(event.currentTarget.value);
+      event.currentTarget.value = amount ? formatProposalAmount(amount) : '';
+      updateProposalCalculations();
+    });
+    ['proposeProjectName', 'proposeProjectDescription', 'proposeProjectRevisionNotes'].forEach(id => {
+      document.getElementById(id)?.addEventListener('input', updateProposalCounters);
+    });
+    document.getElementById('addProposalScopePoint')?.addEventListener('click', () => {
+      if (proposalScopeItems.length >= 20) return;
+      proposalScopeItems.push('');
+      renderProposalScopeItems();
+      proposalScopeListEl?.lastElementChild?.querySelector('input')?.focus();
+    });
+    document.getElementById('decreaseProposalRevisions')?.addEventListener('click', () => {
+      proposalRevisionCount = Math.max(0, proposalRevisionCount - 1);
+      document.getElementById('proposeProjectRevisionCount').textContent = String(proposalRevisionCount);
+    });
+    document.getElementById('increaseProposalRevisions')?.addEventListener('click', () => {
+      proposalRevisionCount += 1;
+      document.getElementById('proposeProjectRevisionCount').textContent = String(proposalRevisionCount);
+    });
+    document.getElementById('proposeProjectAttachments')?.addEventListener('change', renderProposalAttachments);
+    document.addEventListener('click', event => {
+      if (!composerMenuEl || composerMenuEl.hidden || !(event.target instanceof Node)) return;
+      if (composerMenuEl.contains(event.target) || attachButtonEl?.contains(event.target)) return;
+      setComposerMenuOpen(false);
+    });
+    document.addEventListener('keydown', event => {
+      if (event.key !== 'Escape' || composerMenuEl?.hidden) return;
+      setComposerMenuOpen(false);
+      attachButtonEl?.focus();
+    });
     attachmentInputEl?.addEventListener('change', () => {
       const file = attachmentInputEl.files?.[0];
       if (!file) return;
@@ -1639,9 +1865,11 @@
         'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
         'image/jpeg',
         'image/png',
-        'image/webp'
+        'image/webp',
+        'application/zip',
+        'application/x-zip-compressed'
       ].includes(file.type) || file.size < 1 || file.size > 2 * 1024 * 1024) {
-        setStatus('Choose a PDF, DOC, DOCX, JPG, PNG, or WebP file up to 2 MB.', true);
+        setStatus('Choose a PDF, DOC, DOCX, JPG, PNG, WebP, or ZIP file up to 2 MB.', true);
         attachmentInputEl.value = '';
         return;
       }

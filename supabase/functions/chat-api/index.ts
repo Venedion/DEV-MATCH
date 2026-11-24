@@ -18,7 +18,9 @@ const ALLOWED_ATTACHMENT_TYPES = new Set([
   'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
   'image/jpeg',
   'image/png',
-  'image/webp'
+  'image/webp',
+  'application/zip',
+  'application/x-zip-compressed'
 ]);
 
 class ChatApiError extends Error {

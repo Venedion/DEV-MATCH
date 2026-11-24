@@ -1178,10 +1178,91 @@ button.chat-attachment-card:hover {
 
 /* Composer / Input Area */
 .chat-composer-wrap {
+  position: relative;
   padding: 12px 20px 16px;
   background: #ffffff;
   border-top: 1px solid var(--line);
   flex: none;
+}
+
+.chat-composer-menu {
+  width: 340px;
+  max-width: calc(100% - 20px);
+  position: absolute;
+  left: 20px;
+  bottom: calc(100% + 6px);
+  z-index: 10;
+  display: grid;
+  gap: 3px;
+  padding: 6px;
+  border: 1px solid #e7e8eb;
+  border-radius: 15px;
+  background: #fff;
+  box-shadow: 0 12px 34px rgba(20, 23, 31, .14);
+}
+
+.chat-composer-menu[hidden] {
+  display: none;
+}
+
+.chat-composer-menu-item {
+  width: 100%;
+  min-height: 58px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 9px 12px;
+  border: 0;
+  border-radius: 11px;
+  background: #fff;
+  color: var(--ink);
+  text-align: left;
+  cursor: pointer;
+  transition: background .15s ease;
+}
+
+.chat-composer-menu-item:hover:not(:disabled),
+.chat-composer-menu-item:focus-visible {
+  background: #f1f2f4;
+}
+
+.chat-composer-menu-item:focus-visible {
+  outline: 2px solid #8b92a1;
+  outline-offset: -2px;
+}
+
+.chat-composer-menu-item:disabled {
+  background: #f1f2f4;
+  color: var(--ink);
+  cursor: not-allowed;
+}
+
+.chat-composer-menu-item>svg {
+  width: 21px;
+  height: 21px;
+  flex: none;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.8;
+}
+
+.chat-composer-menu-item>span {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.chat-composer-menu-item strong {
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.chat-composer-menu-item small {
+  color: #777d89;
+  font-size: 12px;
+  line-height: 1.35;
 }
 
 .chat-attachment-pending {
@@ -1219,12 +1300,12 @@ button.chat-attachment-card:hover {
 
 .chat-composer-form {
   display: flex;
-  align-items: flex-end;
+  align-items: center;
   gap: 9px;
   background: #f8f8fa;
   border: 1px solid var(--line);
   border-radius: 12px;
-  padding: 6px 8px 6px 12px;
+  padding: 6px 8px;
   transition: border-color .15s, background .15s;
 }
 
@@ -1238,16 +1319,17 @@ button.chat-attachment-card:hover {
   display: flex;
   align-items: center;
   gap: 4px;
-  margin-bottom: 3px;
+  flex: none;
 }
 
 .chat-composer-btn {
-  width: 30px;
-  height: 30px;
-  border-radius: 7px;
+  width: 48px;
+  height: 48px;
+  flex: none;
+  border-radius: 12px;
   border: none;
-  background: transparent;
-  color: #6c6f7b;
+  background: #f0f1f3;
+  color: #17191d;
   display: grid;
   place-items: center;
   cursor: pointer;
@@ -1255,13 +1337,17 @@ button.chat-attachment-card:hover {
 }
 
 .chat-composer-btn:hover {
-  background: #eaecee;
+  background: #e7e8eb;
   color: var(--ink);
 }
 
 .chat-composer-btn svg {
-  width: 17px;
-  height: 17px;
+  width: 22px;
+  height: 22px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-width: 1.8;
 }
 
 .chat-composer-input {
@@ -1984,7 +2070,462 @@ button.chat-attachment-card:hover {
     padding: 8px 10px 12px;
   }
 
+  .chat-composer-menu {
+    left: 10px;
+    max-width: calc(100% - 20px);
+  }
+
   .chat-action-btn span:not(.wa-text) {
     display: none;
+  }
+}
+
+.chat-proposal-dialog {
+  width: min(560px, calc(100vw - 28px));
+  max-width: none;
+  max-height: min(92dvh, 900px);
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid #e6e7ea;
+  border-radius: 18px;
+  background: #fff;
+  color: var(--ink);
+  box-shadow: 0 24px 80px rgba(20, 23, 31, .22);
+}
+
+.chat-proposal-dialog[open] {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  margin: auto;
+}
+
+.chat-proposal-dialog::backdrop {
+  background: rgba(18, 22, 30, .48);
+  backdrop-filter: blur(2px);
+}
+
+.chat-proposal-form {
+  display: flex;
+  max-height: min(92dvh, 900px);
+  flex-direction: column;
+}
+
+.chat-proposal-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 20px 24px 16px;
+  border-bottom: 1px solid #eceef0;
+}
+
+.chat-proposal-header h2 {
+  margin: 0;
+  font-size: 19px;
+  font-weight: 750;
+  letter-spacing: -.025em;
+}
+
+.chat-proposal-header p {
+  margin: 5px 0 0;
+  color: #777d89;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.chat-proposal-close {
+  width: 32px;
+  height: 32px;
+  flex: none;
+  border: 0;
+  border-radius: 9px;
+  background: #f3f4f6;
+  color: #555b66;
+  font-size: 23px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.chat-proposal-body {
+  display: grid;
+  gap: 20px;
+  padding: 20px 24px;
+  overflow-y: auto;
+}
+
+.chat-proposal-field {
+  min-width: 0;
+  display: grid;
+  gap: 7px;
+  color: #252831;
+  font-size: 13px;
+}
+
+.chat-proposal-field strong,
+.chat-proposal-section-heading > strong,
+.chat-proposal-revisions > div > strong {
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.chat-proposal-field input,
+.chat-proposal-field textarea,
+.chat-proposal-scope-list input {
+  width: 100%;
+  min-width: 0;
+  border: 1px solid #dfe1e5;
+  border-radius: 9px;
+  outline: none;
+  background: #fff;
+  color: var(--ink);
+  font: inherit;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.chat-proposal-field input,
+.chat-proposal-scope-list input {
+  min-height: 42px;
+  padding: 9px 11px;
+}
+
+.chat-proposal-field textarea {
+  min-height: 76px;
+  padding: 10px 11px;
+  resize: vertical;
+}
+
+.chat-proposal-field input:focus,
+.chat-proposal-field textarea:focus,
+.chat-proposal-scope-list input:focus {
+  border-color: #7d8491;
+  box-shadow: 0 0 0 3px rgba(99, 108, 124, .1);
+}
+
+.chat-proposal-field input::placeholder,
+.chat-proposal-field textarea::placeholder,
+.chat-proposal-scope-list input::placeholder {
+  color: #9a9da5;
+}
+
+.chat-proposal-counter,
+.chat-proposal-hint,
+.chat-proposal-section-heading > small,
+.chat-proposal-scope-footer > small {
+  color: #858a94;
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.chat-proposal-counter {
+  justify-self: end;
+}
+
+.chat-proposal-section {
+  display: grid;
+  gap: 12px;
+  padding-top: 18px;
+  border-top: 1px solid #eceef0;
+}
+
+.chat-proposal-pricing {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  align-items: start;
+}
+
+.chat-proposal-pricing > .chat-proposal-field {
+  align-content: start;
+}
+
+.chat-proposal-pricing fieldset {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.chat-proposal-pricing legend {
+  margin-bottom: 7px;
+  color: #252831;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.chat-proposal-dp-options {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  padding: 3px;
+  border: 1px solid #e3e5e8;
+  border-radius: 9px;
+  background: #f5f6f7;
+}
+
+.chat-proposal-dp-options button {
+  min-height: 34px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: #646a75;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.chat-proposal-dp-options button.is-selected {
+  background: #242831;
+  color: #fff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, .14);
+}
+
+.chat-proposal-payment-summary {
+  display: grid;
+  gap: 5px;
+  padding-top: 9px;
+}
+
+.chat-proposal-payment-summary > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  color: #777d89;
+  font-size: 11px;
+}
+
+.chat-proposal-payment-summary strong {
+  color: #343842;
+  font-size: 11px;
+  font-weight: 650;
+  white-space: nowrap;
+}
+
+.chat-proposal-section-heading {
+  display: grid;
+  gap: 4px;
+}
+
+.chat-proposal-scope-list {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.chat-proposal-scope-list li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.chat-proposal-remove-point {
+  width: 32px;
+  height: 32px;
+  flex: none;
+  border: 0;
+  border-radius: 8px;
+  background: #f3f4f6;
+  color: #737986;
+  font-size: 20px;
+  cursor: pointer;
+}
+
+.chat-proposal-remove-point:disabled,
+.chat-proposal-add-point:disabled {
+  opacity: .45;
+  cursor: not-allowed;
+}
+
+.chat-proposal-scope-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.chat-proposal-add-point {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #373c46;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.chat-proposal-revisions {
+  grid-template-columns: minmax(0, .75fr) minmax(0, 1.25fr);
+  align-items: start;
+}
+
+.chat-proposal-revision-control {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.chat-proposal-revision-control button {
+  width: 29px;
+  height: 29px;
+  border: 1px solid #e0e2e6;
+  border-radius: 8px;
+  background: #fff;
+  color: #414651;
+  font-size: 17px;
+  cursor: pointer;
+}
+
+.chat-proposal-revision-control output {
+  min-width: 18px;
+  text-align: center;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.chat-proposal-revision-control small,
+.chat-proposal-revisions .chat-proposal-field > span {
+  color: #777d89;
+  font-size: 11px;
+}
+
+.chat-proposal-revisions .chat-proposal-field {
+  gap: 6px;
+}
+
+.chat-proposal-upload {
+  position: relative;
+  min-height: 64px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  border: 1px dashed #cfd2d8;
+  border-radius: 10px;
+  background: #fafbfc;
+  cursor: pointer;
+}
+
+.chat-proposal-upload:focus-within {
+  outline: 2px solid #8b92a1;
+  outline-offset: 2px;
+}
+
+.chat-proposal-upload input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  clip-path: inset(50%);
+}
+
+.chat-proposal-upload-icon {
+  width: 30px;
+  height: 30px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 8px;
+  background: #eceef1;
+  color: #555b66;
+  font-size: 19px;
+  line-height: 1;
+}
+
+.chat-proposal-upload > span {
+  display: grid;
+  gap: 3px;
+}
+
+.chat-proposal-upload b {
+  color: #373c46;
+  font-size: 12px;
+}
+
+.chat-proposal-upload small {
+  color: #858a94;
+  font-size: 11px;
+}
+
+.chat-proposal-attachment-list {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  color: #626873;
+  font-size: 11px;
+  list-style: none;
+  overflow-wrap: anywhere;
+}
+
+.chat-proposal-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 24px;
+  border-top: 1px solid #eceef0;
+  background: #fff;
+}
+
+.chat-proposal-footer > small {
+  color: #858a94;
+  font-size: 10px;
+  line-height: 1.4;
+}
+
+.chat-proposal-footer > div {
+  display: flex;
+  flex: none;
+  gap: 8px;
+}
+
+.chat-proposal-cancel,
+.chat-proposal-submit {
+  min-height: 36px;
+  padding: 0 13px;
+  border: 1px solid #dfe1e5;
+  border-radius: 8px;
+  background: #fff;
+  color: #4a505b;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.chat-proposal-submit {
+  border-color: #242831;
+  background: #242831;
+  color: #fff;
+}
+
+.chat-proposal-submit:disabled {
+  opacity: .55;
+  cursor: not-allowed;
+}
+
+@media (max-width: 560px) {
+  .chat-proposal-header,
+  .chat-proposal-body {
+    padding-right: 17px;
+    padding-left: 17px;
+  }
+
+  .chat-proposal-footer {
+    align-items: flex-end;
+    padding-right: 17px;
+    padding-left: 17px;
+  }
+
+  .chat-proposal-pricing,
+  .chat-proposal-revisions {
+    grid-template-columns: 1fr;
   }
 }
