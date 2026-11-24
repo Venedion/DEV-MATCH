@@ -392,6 +392,7 @@
 
   function renderMessagesThread() {
     const conversation = getActiveConversation();
+    window.DEVMATCH_ROOM_PAYMENT?.setRoom(conversation);
     const mainHeader = document.querySelector('.chat-main-header');
     const projectBanner = document.getElementById('activeProjectBanner');
     const composer = document.querySelector('.chat-composer-wrap');

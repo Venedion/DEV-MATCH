@@ -26,7 +26,7 @@ const C = '33333333-3333-4333-8333-333333333333';
     create publication supabase_realtime;
   `);
   const dir = path.join(__dirname, '../supabase/migrations');
-  let isolationMigration; let activityMigration;
+  let isolationMigration; let activityMigration; let paymentMigration;
   let commentAuthorMigration;
   for (const file of fs.readdirSync(dir).filter(f => f.endsWith('.sql')).sort()) {
     // Registration uses external proof-of-work and pgcrypto, tested separately.
@@ -38,6 +38,7 @@ const C = '33333333-3333-4333-8333-333333333333';
     if (file === '202611190002_public_developer_work_terms.sql') continue;
     if (file.includes('chat_presence_and_receipts')) {activityMigration=fs.readFileSync(path.join(dir,file),'utf8');continue;}
     if (file.includes('workspace_data_isolation')) { isolationMigration=fs.readFileSync(path.join(dir,file),'utf8'); continue; }
+    if (file.includes('midtrans_sandbox_payments')) { paymentMigration=fs.readFileSync(path.join(dir,file),'utf8'); continue; }
     if (file === '202611190001_sync_project_comment_display_names.sql') {commentAuthorMigration=fs.readFileSync(path.join(dir,file),'utf8');continue;}
     try { await db.exec(fs.readFileSync(path.join(dir, file), 'utf8')); }
     catch (error) { throw new Error(`${file}: ${error.message}`); }
@@ -60,6 +61,7 @@ const C = '33333333-3333-4333-8333-333333333333';
   `);
   await db.exec(isolationMigration);
   await db.exec(activityMigration);
+  await db.exec(paymentMigration);
   assert.equal((await db.query("select participant_a_role from public.conversations")).rows[0].participant_a_role,'client');
   assert.equal((await db.query("select workspace_role from public.favorites")).rows[0].workspace_role,'client');
   assert.equal((await db.query("select recipient_role from public.notifications")).rows[0].recipient_role,'client');

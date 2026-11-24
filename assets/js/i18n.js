@@ -1446,7 +1446,9 @@
     '#identitySpecialty',
     '#developerRole',
     '#profileName',
-    '#identityBio'
+    '#identityBio',
+    '#roomPaymentDialog',
+    '#roomPaymentReceipts'
   ].join(',');
   let language = 'en';
   try {

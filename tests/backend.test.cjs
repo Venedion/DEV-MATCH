@@ -238,11 +238,11 @@ test('Workspace selection is tab-local and cannot grant a missing role',async()=
 });
 
 const connectedWorkspace={user_id:'fixture',role:'dev',display_name:'Separate developer',profile_data:{bio:'dev only'},onboarding_complete:true};
-test('Connected modes keep canonical username email phone and separate profile data',async()=>{
+test('Connected modes keep canonical username and email, separate profile data, and exclude phone from cache',async()=>{
   const x=await setup({page:'devmatch-auth.html',userRole:'client',workspaceRole:'dev',workspaces:[{...connectedWorkspace}]});
   const p=await x.backend.loadProfile(x.user);x.backend.cache(p,x.user);
   const cached=JSON.parse(x.values['devmatch-profile-dev']);
-  assert.equal(cached.username,'owner');assert.equal(cached.email,x.user.email);assert.equal(cached.phone,x.row.phone);
+  assert.equal(cached.username,'owner');assert.equal(cached.email,x.user.email);assert.equal(cached.phone,undefined);
   assert.equal(cached.bio,'dev only');assert.equal(cached.displayName,'Separate developer');
 });
 test('Favorites reads and removal stay in the selected mode',async()=>{
