@@ -573,11 +573,20 @@
         } else {
           const accountOption = event.target.closest('a.header-account-option');
           if (accountOption?.classList.contains('header-account-logout')) {
+            event.preventDefault();
             try {
               sessionStorage.removeItem(accountReturnStorageKey);
             } catch (error) {
               console.warn('Could not clear the account back-button destination.', error);
             }
+            fetch('/api/auth/logout', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: '{}'
+            }).then(response => {
+              if (!response.ok) throw new Error('Logout request failed.');
+              window.location.href = accountOption.href;
+            }).catch(() => window.alert('Could not log out. Please try again.'));
           } else if (accountOption) {
             saveAccountReturnDestination(accountOption.href);
           }

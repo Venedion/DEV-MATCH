@@ -1,0 +1,10 @@
+{
+  "name": "dev-match",
+  "private": true,
+  "engines": { "node": ">=24" },
+  "scripts": {
+    "start": "node --env-file-if-exists=.env server/index.mjs",
+    "payment-room": "node server/manage-payment-room.mjs",
+    "test": "node --test server/payment.test.mjs"
+  }
+}

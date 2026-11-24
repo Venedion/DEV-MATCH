@@ -9,11 +9,12 @@
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=optional" rel="stylesheet">
   <link rel="stylesheet" href="assets/css/dashboard.css?v=20261030-fixed-profile-width">
   <link rel="stylesheet" href="assets/css/chat.css?v=20261101-chat-no-default-room">
+  <link rel="stylesheet" href="assets/css/chat-payment.css">
   <link rel="stylesheet" href="assets/css/client-shell.css?v=20261030-header-size-match">
   <link rel="stylesheet" href="assets/css/mode-switch-animation.css?v=20261030-client-mode-route">
   <link rel="stylesheet" href="assets/css/mobile-navigation.css?v=20261031-desktop-dropdown-aligned">
   <script src="assets/js/mode-switch-state.js?v=20261030-client-mode-indicator"></script>
-  <script src="assets/js/i18n.js?v=20261102-profile-details"></script>
+  <script src="assets/js/i18n.js?v=20261124-room-payment"></script>
 </head>
 <body class="chat-body">
   <!-- Topbar -->
@@ -35,7 +36,7 @@
       </a>
       <a class="user-menu" href="devmatch-my-profile.html?role=dev">
         <span class="user-avatar" id="userAvatar">DM</span>
-        <span class="user-copy"><b id="topUserName">Developer</b><small>Developer</small></span>
+        <span class="user-copy"><b id="topUserName">Developer</b><small id="topUserRole">Developer</small></span>
         <svg viewBox="0 0 24 24"><path d="m7 10 5 5 5-5"/></svg>
       </a>
     </div>
@@ -184,7 +185,10 @@
           <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18M8 4v5m8-5v5"/></svg>
           <span>Discussing: <strong id="activeProjectTitle">Restaurant Website Development</strong> (<span id="activeProjectPrice">Rp 3.500.000</span>)</span>
         </div>
-        <a class="chat-project-banner-link" id="viewProjectLink" href="#" target="_blank">View details</a>
+        <div class="chat-project-banner-actions">
+          <a class="chat-project-banner-link" id="viewProjectLink" href="#" target="_blank">View details</a>
+          <button class="chat-project-banner-link" id="roomPaymentButton" lang="id" type="button">Pembayaran</button>
+        </div>
       </aside>
 
       <!-- Messages Thread -->
@@ -192,6 +196,7 @@
         <div id="chatMessages">
           <!-- Rendered by chat.js -->
         </div>
+        <div id="roomPaymentReceipts" class="room-payment-receipts" lang="id" aria-live="polite" hidden></div>
       </section>
 
       <!-- Quick reply suggestions -->
@@ -273,8 +278,26 @@
     </aside>
   </div>
 
+  <dialog id="roomPaymentDialog" class="room-payment-dialog" lang="id" aria-labelledby="roomPaymentTitle">
+    <header>
+      <div>
+        <h2 id="roomPaymentTitle">Pembayaran proyek</h2>
+        <p>Midtrans Sandbox</p>
+      </div>
+      <form method="dialog">
+        <button type="submit" aria-label="Tutup pembayaran">Tutup</button>
+      </form>
+    </header>
+    <div class="room-payment-role" id="roomPaymentIdentity" hidden>
+      <span id="roomPaymentRole"></span>
+    </div>
+    <p id="roomPaymentError" role="alert" hidden></p>
+    <div id="roomPaymentContent" aria-live="polite"></div>
+  </dialog>
+
   <script src="assets/js/projects-data.js"></script>
-  <script src="assets/js/chat.js?v=20261101-chat-no-default-room"></script>
+  <script src="assets/js/chat-payment.js?v=20261124-room-access"></script>
+  <script src="assets/js/chat.js?v=20261124-account-session"></script>
   <script src="assets/js/nav-behavior.js?v=20261031-account-dropdown-ease"></script>
 </body>
 </html>

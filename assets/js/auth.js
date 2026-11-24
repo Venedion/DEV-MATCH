@@ -18,10 +18,11 @@ function render(){
   const c=copy[role],reg=mode==='reg';
   document.querySelectorAll('.reg').forEach(e=>e.classList.toggle('hide',!reg));
   document.querySelectorAll('.log').forEach(e=>e.classList.toggle('hide',reg));
-  $('sideBadge').innerHTML=c.badge;$('sideTitle').innerHTML=reg?c.side:'Welcome back.';
+  $('sideBadge').innerHTML=reg?c.badge:'DEV-MATCH';$('sideTitle').innerHTML=reg?c.side:'Welcome back.';
   $('qText').textContent=c.q;$('qAv').textContent=c.av;$('qName').textContent=c.name;$('qRole').textContent=c.role;
   $('roleTag').innerHTML=c.tag;$('roleline').classList.toggle('hide',!reg);
   $('switchWrap').innerHTML=c.other+' <button type="button" class="link" id="sw">'+c.sw+'</button>';
+  $('switchWrap').hidden=!reg;
   $('sw').onclick=()=>{role=role==='dev'?'cli':'dev';clearErr();render()};
   $('title').textContent=reg?c.title:'Log in to DEV-MATCH';
   $('sub').textContent=reg?c.sub:'Welcome back. Enter your details to continue.';
@@ -49,7 +50,7 @@ $('pass').addEventListener('input',()=>{
 $('user').addEventListener('input',userHint);
 $('phone').addEventListener('input',e=>{e.target.value=e.target.value.replace(/\D/g,'').replace(/^0+/,'')});
 $('eye').onclick=()=>{const s=$('pass').type==='password';$('pass').type=s?'text':'password';$('eye').setAttribute('aria-label',s?'Hide password':'Show password')};
-$('form').addEventListener('submit',e=>{
+$('form').addEventListener('submit',async e=>{
   e.preventDefault();clearErr();let bad=false;const reg=mode==='reg';
   const u=$('user').value.trim(),em=$('email').value.trim(),ph=$('phone').value,pw=$('pass').value;
   if(reg){
@@ -65,34 +66,41 @@ $('form').addEventListener('submit',e=>{
     if(!pw){setErr('pass','Enter your password.');bad=true}
   }
   if(bad){const f=document.querySelector('.in.err input');if(f)f.focus();return}
-  // TODO: ganti dengan request ke backend (register / login)
-  if(reg){
-    sessionStorage.setItem('devmatch-profile-draft',JSON.stringify({
-      role:role==='dev'?'dev':'client',
-      username:u
-    }));
-    window.location.href='devmatch-profile.html?role='+(role==='dev'?'dev':'client');
-    return;
-  }
   $('submit').disabled=true;$('submit').textContent=reg?'Creating account…':'Logging in…';
-  setTimeout(()=>{
-    $('submit').disabled=false;
-    $('submit').textContent='Log in';
-    const activeRole=role==='dev'?'dev':'client';
-    try{
-      localStorage.setItem('devmatch-active-role',activeRole);
-      const savedProfile=localStorage.getItem('devmatch-profile-'+activeRole);
-      if(savedProfile){
-        window.location.href=activeRole==='dev'?'devmatch-dashboard.html':'devmatch-client-dashboard.html';
-        return;
+  try{
+    if(location.protocol==='file:')throw new Error('Open DEV-MATCH through its local server to sign in.');
+    const response=await fetch(reg?'/api/auth/register':'/api/auth/login',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify(reg?{
+        username:u,email:em,phone:ph,password:pw,role:role==='dev'?'developer':'client',terms:$('terms').checked
+      }:{identifier:em,password:pw})
+    });
+    const data=await response.json();
+    if(!response.ok)throw new Error(data.error||'Unable to sign in.');
+    const accountRole=data.account.role;
+    const activeRole=accountRole==='developer'?'dev':accountRole;
+    localStorage.setItem('devmatch-active-role',activeRole);
+    if(reg){
+      sessionStorage.setItem('devmatch-profile-draft',JSON.stringify({role:activeRole,username:data.account.username}));
+      window.location.href='devmatch-profile.html?role='+activeRole;
+    }else{
+      const destination=new URL(params.get('returnTo')||'/',location.origin);
+      if(destination.origin===location.origin&&destination.pathname==='/devmatch-chat.html'){
+        if(accountRole==='client')destination.searchParams.set('role','client');
+        else destination.searchParams.delete('role');
+        window.location.href=destination.href;
+      }else{
+        window.location.href=accountRole==='reviewer'?'devmatch-chat.html'
+          :activeRole==='dev'?'devmatch-dashboard.html':'devmatch-client-dashboard.html';
       }
-    }catch(error){
-      console.error('Unable to restore the saved demo profile.',error);
-      setErr('pass','Unable to restore your saved profile. Please try again.');
-      return;
     }
-    alert('Demo: login berhasil. Hubungkan ke backend untuk melanjutkan ke dashboard.');
-  },700);
+  }catch(error){
+    setErr('pass',error.message);
+  }finally{
+    $('submit').disabled=false;
+    $('submit').textContent=reg?'Create account':'Log in';
+  }
 });
 render();
 })();

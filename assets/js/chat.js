@@ -345,6 +345,7 @@
   }
 
   let conversations = loadConversations();
+  let currentAccount;
   let activeConvId = null;
   let currentFilter = 'all';
   let searchQuery = '';
@@ -504,6 +505,7 @@
   // Render the message thread of the active conversation
   function renderMessagesThread() {
     const conv = getActiveConversation();
+    window.DEVMATCH_ROOM_PAYMENT?.setRoom(conv);
     if (!conv) {
       if (chatViewportEl) {
         chatViewportEl.classList.remove('has-active-conversation');
@@ -897,6 +899,11 @@
   }
 
   // Query parameter handling (e.g. ?contact=rizky or ?project=restaurant)
+  function isClientWorkspace() {
+    return currentAccount ? currentAccount.role === 'client'
+      : new URLSearchParams(window.location.search).get('role') === 'client';
+  }
+
   function getOrCreateProjectConversation(project) {
     const existing = conversations.find(c => c.roleType === 'dev' && c.project && c.project.id === project.id);
     if (existing) return existing;
@@ -991,7 +998,7 @@
     const contactParam = params.get('contact');
     const projectParam = params.get('project');
     const requestParam = params.get('request');
-    const isClientRole = params.get('role') === 'client';
+    const isClientRole = isClientWorkspace();
 
     if (contactParam) {
       const match = conversations.find(c => c.contactId === contactParam || c.id.includes(contactParam));
@@ -1024,13 +1031,14 @@
   // Load user name into header/topbar
   function loadUserProfile() {
     try {
-      const isClientRole = new URLSearchParams(window.location.search).get('role') === 'client';
+      const isClientRole = isClientWorkspace();
       document.body.classList.toggle('client-shell-page', isClientRole);
+      document.documentElement.classList.toggle('client-mode-route', isClientRole);
       const storageKey = isClientRole ? 'devmatch-profile-client' : 'devmatch-profile-dev';
       const profile = JSON.parse(localStorage.getItem(storageKey) || '{}');
-      const name = typeof profile.displayName === 'string' && profile.displayName.trim()
+      const name = currentAccount?.username || (typeof profile.displayName === 'string' && profile.displayName.trim()
         ? profile.displayName.trim()
-        : (isClientRole ? 'Client' : 'Rizky Aditya');
+        : (isClientRole ? 'Client' : 'Rizky Aditya'));
       const initials = name.trim().split(/\s+/).filter(Boolean).slice(0, 2).map(p => p[0]).join('').toUpperCase() || 'RA';
       const updateNavLabel = (link, label) => {
         const textNode = link && Array.from(link.childNodes).find(node => node.nodeType === Node.TEXT_NODE && node.textContent.trim());
@@ -1039,8 +1047,11 @@
 
       const userAvatarEl = document.getElementById('userAvatar');
       const topUserNameEl = document.getElementById('topUserName');
+      const topUserRoleEl = document.getElementById('topUserRole');
       if (userAvatarEl) userAvatarEl.textContent = initials;
       if (topUserNameEl) topUserNameEl.textContent = name;
+      if (topUserRoleEl) topUserRoleEl.textContent = currentAccount?.role === 'reviewer'
+        ? 'Reviewer dispute' : isClientRole ? 'Client' : 'Developer';
 
       if (isClientRole) {
         const devModeLink = document.getElementById('devModeLink');
@@ -1116,14 +1127,22 @@
     }
   }
 
-  // Initialize
-  handleQueryParams();
-  loadUserProfile();
-  updateUnreadCounts();
-  if (activeConvId) {
-    chatViewportEl?.classList.add('viewing-thread');
+  async function initialize() {
+    if (location.protocol !== 'file:') {
+      try {
+        const response = await fetch('/api/auth/session');
+        if (response.ok) currentAccount = (await response.json()).account;
+      } catch {
+        // The static chat remains available if the account server is offline.
+      }
+    }
+    handleQueryParams();
+    loadUserProfile();
+    updateUnreadCounts();
+    if (activeConvId) chatViewportEl?.classList.add('viewing-thread');
+    renderConversationsList();
+    renderMessagesThread();
   }
-  renderConversationsList();
-  renderMessagesThread();
+  initialize();
 
 })();

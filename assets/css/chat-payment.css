@@ -1,0 +1,75 @@
+.chat-project-banner-actions {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: .6rem;
+}
+
+#roomPaymentButton {
+  border: 1px solid currentColor;
+  border-radius: .5rem;
+  background: transparent;
+  padding: .35rem .65rem;
+  cursor: pointer;
+}
+
+.room-payment-dialog {
+  box-sizing: border-box;
+  width: min(36rem, calc(100% - 1.5rem));
+  max-height: min(85dvh, 54rem);
+  overflow: auto;
+  border: 1px solid #e2e8f0;
+  border-radius: 1rem;
+  padding: 1.25rem;
+  background: #fff;
+  color: #18233a;
+  font-family: inherit;
+  box-shadow: 0 16px 60px #141f3a40;
+}
+
+.room-payment-dialog::backdrop { background: #0f172a80; }
+.room-payment-dialog header,
+.room-payment-role {
+  display: flex;
+  justify-content: space-between;
+  gap: .75rem;
+  align-items: center;
+}
+.room-payment-dialog header h2 { margin: 0; font-size: 1.2rem; }
+.room-payment-dialog header p { margin: .3rem 0 0; color: #52617a; }
+.room-payment-role { margin: 1rem 0; padding: .75rem; background: #f4f7fc; border-radius: .6rem; }
+.room-payment-role[hidden] { display: none; }
+.room-payment-dialog form[data-action] { display: grid; gap: .7rem; }
+.room-payment-dialog label { display: grid; gap: .3rem; font-weight: 600; font-size: .85rem; }
+.room-payment-dialog input,
+.room-payment-dialog textarea,
+.room-payment-dialog select,
+.room-payment-dialog button {
+  background: #fff;
+  border: 1px solid #c7d1e2;
+  color: inherit;
+  border-radius: .5rem;
+  padding: .45rem .65rem;
+  font: inherit;
+}
+.room-payment-dialog :is(input, textarea, select) { min-width: 0; }
+.room-payment-dialog button { cursor: pointer; font-weight: 650; }
+.room-payment-dialog button:disabled { opacity: .55; cursor: default; }
+.room-payment-dialog button[data-primary] { background: #2553c7; border-color: #2553c7; color: #fff; }
+.room-payment-dialog details { margin-top: .7rem; border-top: 1px solid #e2e8f0; padding: .6rem 0; }
+.room-payment-dialog summary { cursor: pointer; font-weight: 650; }
+.room-payment-dialog details form { margin-top: .7rem; }
+.room-payment-dialog dl { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.5fr); gap: .45rem .75rem; }
+.room-payment-dialog dt { color: #52617a; }
+.room-payment-dialog dd { margin: 0; font-weight: 600; }
+.room-payment-dialog .payment-text { white-space: pre-wrap; overflow-wrap: anywhere; }
+.room-payment-dialog .payment-actions { display: flex; flex-wrap: wrap; gap: .5rem; margin: .75rem 0; }
+.room-payment-dialog .payment-list { padding-left: 1.2rem; overflow-wrap: anywhere; }
+#roomPaymentError { color: #a32727; }
+.room-payment-receipts { margin: .75rem auto; max-width: 34rem; text-align: center; color: #405579; font-size: .8rem; }
+.room-payment-receipts p { margin: .3rem 0; }
+
+@media (max-width: 620px) {
+  .chat-project-banner-actions { gap: .3rem; }
+  #roomPaymentButton { padding: .25rem .4rem; }
+}
