@@ -187,8 +187,6 @@
       document.getElementById('statRatingLabel').textContent='Developer rating';
     }
     setLink('directMessageLink',chatUrl);
-    setLink('whatsappLink',profile.whatsapp?`https://wa.me/${String(profile.whatsapp).replace(/\D/g,'')}`:'#');
-    document.getElementById('whatsappLink').classList.toggle('disabled',!String(profile.whatsapp||'').replace(/\D/g,''));
     if(isPreview){
       document.getElementById('profileNavLink').hidden=true;
       document.querySelector('.side-add').hidden=true;
@@ -354,7 +352,6 @@
   function renderConnectedApps(){
     const isConnected=(field,defaultValue)=>typeof profile[field]==='boolean'?profile[field]:defaultValue;
     const apps=[
-      {name:'WhatsApp Business',icon:'WA',connected:isConnected('whatsappConnected',Boolean(String(profile.whatsapp||'').replace(/\D/g,''))),verified:Boolean(profile.whatsappVerified)},
       {name:'GitHub',icon:'GH',connected:isConnected('githubConnected',Boolean(profile.github||profile.githubUrl)),verified:Boolean(profile.githubVerified)},
       {name:'Google',icon:'G',connected:isConnected('googleConnected',false),verified:Boolean(profile.googleVerified)},
       {name:'LinkedIn',icon:'in',connected:isConnected('linkedinConnected',Boolean(profile.linkedin||profile.linkedinUrl)),verified:Boolean(profile.linkedinVerified)}

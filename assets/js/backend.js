@@ -27,6 +27,7 @@
     'devmatch-find-clients.html': 'dev'
   };
   const privateProfileFields = ['bankName', 'accountNumber', 'accountHolder', 'npwp'];
+  const retiredContactFields = ['phone', 'whatsapp', 'whatsappConnected', 'whatsappVerified'];
   let activeAccountRole = null;
   if (protectedPage) {
     const style = document.createElement('style');
@@ -44,7 +45,7 @@
   }
   function profileDataForCache(profileData) {
     const cachedData = {...profileData};
-    privateProfileFields.forEach(field => delete cachedData[field]);
+    for (const field of [...privateProfileFields, ...retiredContactFields]) delete cachedData[field];
     return cachedData;
   }
   function sanitizeStoredProfile(storage, key) {
@@ -56,7 +57,7 @@
         storage.removeItem(key);
         return;
       }
-      if (privateProfileFields.some(field => Object.hasOwn(profile, field))) {
+      if ([...privateProfileFields, ...retiredContactFields].some(field => Object.hasOwn(profile, field))) {
         storage.setItem(key, JSON.stringify(profileDataForCache(profile)));
       }
     } catch {
@@ -68,7 +69,7 @@
   sanitizeStoredProfile(sessionStorage, 'devmatch-profile-draft');
   function cache(row, user) {
     const profile = {...profileDataForCache(row.profile_data), username: row.username || '', displayName: row.display_name,
-      phone: row.phone || '', email: user.email, role: row.account_role, googleConnected: false};
+      email: user.email, role: row.account_role, googleConnected: false};
     const key = 'devmatch-profile-' + row.account_role;
     const value = JSON.stringify(profile);
     const changed = localStorage.getItem(key) !== value;
@@ -133,10 +134,6 @@
   }
   function destination(row,user) {
     if(!user?.email_confirmed_at)return 'devmatch-verify-email.html';
-    if (!row.onboarding_complete && /^\+[1-9]\d{7,14}$/.test(row.phone || '')
-      && !(row.phone_verified_at && row.verified_phone === row.phone)) {
-      return 'devmatch-verify-phone.html';
-    }
     return row.onboarding_complete
       ? (row.account_role === 'client' ? 'devmatch-client-dashboard.html' : 'devmatch-dashboard.html')
       : 'devmatch-profile.html?role=' + row.account_role;

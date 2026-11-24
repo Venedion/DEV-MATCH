@@ -10,7 +10,7 @@
 <link rel="stylesheet" href="assets/css/auth.css">
   <script src="assets/js/i18n.js?v=20261102-profile-details"></script>
 <script src="assets/vendor/supabase-2.119.0.js"></script>
-<script src="120261121-backend-reliability"></script>
+<script src="assets/js/backend.js?v=20261121-restored-scripts"></script>
 </head>
 <body>
 <div class="page">
@@ -36,6 +36,7 @@
 
     <h1 id="title"></h1>
     <p class="sub" id="sub"></p>
+    <p class="hint reg" id="existingAccountHelp" style="margin-bottom:16px">Already use this email on DEV-MATCH? <a id="connectClientWorkspace" href="devmatch-auth.html?mode=login&amp;role=client&amp;connect=1">Use your existing account for Client Mode</a>.</p>
 
     <form id="form" novalidate>
       <div class="f reg">
@@ -47,11 +48,6 @@
         <label for="email" id="emailLabel">Email</label>
         <div class="in" id="g-email"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg><input id="email" type="email" autocomplete="email" placeholder="you@example.com"></div>
         <p class="msg" id="e-email" role="alert"></p>
-      </div>
-      <div class="f reg">
-        <label for="phone">Phone number</label>
-        <div class="in" id="g-phone"><span class="pre"><span class="flag"></span></span><input id="phone" type="tel" autocomplete="tel" placeholder="08… or +62…"></div>
-        <p class="hint">Used for WhatsApp contact</p><p class="msg" id="e-phone" role="alert"></p>
       </div>
       <div class="f">
         <label for="pass">Password<a class="forgot log hide" href="devmatch-forgot-password.html">Forgot password?</a></label>
@@ -68,12 +64,11 @@
       <button class="submit" id="submit" type="submit"></button>
     </form>
 
-    <p class="alt log hide"><a href="devmatch-email-otp.html">Login dengan kode email</a></p>
     <p class="alt" id="alt"></p>
   </div></main>
 </div>
 
-<script src="assets/js/auth.js?v=20261120-otp"></script>
-<script src="120261121-backend-reliability"></script>
+<script src="assets/js/auth.js?v=20261121-client-workspace"></script>
+<script src="assets/js/presence.js?v=20261121-restored-scripts"></script>
 </body>
 </html>

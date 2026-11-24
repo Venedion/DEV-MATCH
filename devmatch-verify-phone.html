@@ -2,29 +2,19 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Verify phone — DEV-MATCH</title>
-  <link rel="stylesheet" href="assets/css/auth.css">
-  <link rel="stylesheet" href="assets/css/verification.css">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Continue to DEV-MATCH</title>
   <script src="assets/vendor/supabase-2.119.0.js"></script>
-  <script src="120261121-backend-reliability"></script>
+  <script src="assets/js/backend.js?v=20261121-email-only"></script>
 </head>
 <body>
-  <main class="verification">
-    <a class="logo" href="devmatch-landing.html"><i>&lt;/&gt;</i>DEV-MATCH</a>
-    <h1>Verify your phone number</h1>
-    <p class="intro">Confirm the number you entered when you created your account.</p>
-    <label for="settingsPhone">Account phone number</label>
-    <div class="in"><input id="settingsPhone" type="tel" autocomplete="tel" placeholder="08… or +62…"></div>
-    <button class="submit" id="startWhatsAppVerification" type="button" disabled>Kirim kode via WhatsApp</button>
-    <div id="whatsappOtpPanel" hidden>
-      <label for="whatsappOtpCode" id="whatsappOtpDestination">WhatsApp code</label>
-      <div class="in"><input id="whatsappOtpCode" inputmode="numeric" autocomplete="one-time-code" maxlength="6"></div>
-      <button class="submit" id="checkWhatsAppVerification" type="button">Verify code</button>
-    </div>
-    <p id="phoneVerificationStatus" role="status">Checking phone verification…</p>
-    <a id="continuePhoneSetup" class="login-link" hidden>Continue and verify later in Settings</a>
-  </main>
-  <script src="assets/js/phone-verification.js?v=20261120-otp"></script>
+  <main><p>Continue to DEV-MATCH.</p><a href="devmatch-auth.html?mode=login">Back to login</a></main>
+  <script>
+    window.devMatchBackend.ready.then(async user => {
+      if (!user) return;
+      const profile = await window.devMatchBackend.loadProfile(user);
+      location.replace(window.devMatchBackend.destination(profile, user));
+    }).catch(() => location.replace('devmatch-auth.html?mode=login&error=connection'));
+  </script>
 </body>
 </html>

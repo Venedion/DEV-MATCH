@@ -21,7 +21,6 @@ const profile={
   bio:'',
   industry:'',
   project:'',
-  whatsapp:'',
   website:'',
   instagram:''
 };
@@ -95,10 +94,9 @@ const content=[
       <div class="field"><label class="field-label" for="skills">Preferred skills or technology (optional)</label><input class="control" id="skills" maxlength="160" placeholder="e.g. Website, React, online payments" value="${escapeHtml(profile.skills)}"></div>`
   },
   {
-    title:'Add contact & links',
-    intro:'Add optional ways for people to contact you or view your work.',
+    title:'Add links',
+    intro:'Add optional links to your work and social profiles.',
     fields:()=>`
-      <div class="field"><label class="field-label" for="whatsapp">WhatsApp number <span class="optional-hint">Optional</span></label><input class="control" id="whatsapp" type="tel" inputmode="numeric" autocomplete="tel" pattern="[0-9]*" maxlength="20" placeholder="6281234567890" value="${escapeHtml(profile.whatsapp)}"><p class="field-hint">Enter digits only. Leave blank if you prefer not to share your number.</p></div>
       <div class="field"><label class="field-label" for="website">Website or portfolio (optional)</label><input class="control" id="website" type="url" placeholder="https://example.com" value="${escapeHtml(profile.website)}"></div>
       <div class="field"><label class="field-label" for="instagram">Instagram (optional)</label><input class="control" id="instagram" type="url" placeholder="https://instagram.com/username" value="${escapeHtml(profile.instagram)}"></div>`
   }
@@ -269,7 +267,6 @@ function saveCurrentFields(){
     profile.bio=read('bio');
     profile.project=read('project')||profile.project;
   }else{
-    profile.whatsapp=read('whatsapp').replace(/\D/g,'');
     profile.website=read('website');
     profile.instagram=read('instagram');
   }
@@ -294,7 +291,7 @@ async function finish(){
   try{
   await Promise.all(experienceFiles.values());
   const age=profile.birthday?Math.max(0,Math.floor((Date.now()-new Date(profile.birthday).getTime())/(365.2425*24*60*60*1000))):null;
-  const saved={...profile,role,whatsappConnected:Boolean(profile.whatsapp),googleConnected:false,ageRange:age===null?'':age<18?'Under 18':age<25?'18–24':age<35?'25–34':age<45?'35–44':'45+'};
+  const saved={...profile,role,googleConnected:false,ageRange:age===null?'':age<18?'Under 18':age<25?'18–24':age<35?'25–34':age<45?'35–44':'45+'};
   delete saved.birthday;
   const backend=window.devMatchBackend;
   const user=await backend.ready;
@@ -310,15 +307,6 @@ async function finish(){
 
 document.getElementById('stepFields').addEventListener('input',event=>{
   const target=event.target;
-  if(target.id==='whatsapp'){
-    const digits=target.value.replace(/\D/g,'');
-    if(target.value!==digits){
-      const position=target.selectionStart;
-      const removedBeforeCursor=target.value.slice(0,position).replace(/\d/g,'').length;
-      target.value=digits;
-      target.setSelectionRange(Math.max(0,position-removedBeforeCursor),Math.max(0,position-removedBeforeCursor));
-    }
-  }
   const entryElement=target.closest('[data-experience-id]');
   if(entryElement&&target.dataset.experienceField){
     const entry=profile.experiences.find(item=>item.id===entryElement.dataset.experienceId);
@@ -528,7 +516,6 @@ else{
     else if(typeof draft[key]==='string')profile[key]=draft[key];
   });
   if(typeof draft.instagram!=='string'&&typeof draft.social==='string')profile.instagram=draft.social;
-  profile.whatsapp=profile.whatsapp.replace(/\D/g,'');
   profile.experiences=profile.experiences
     .filter(entry=>entry&&typeof entry==='object'&&!Array.isArray(entry))
     .map((entry,index)=>({...entry,id:String(index+1),files:Array.isArray(entry.files)?entry.files.map(String):[]}));

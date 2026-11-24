@@ -45,7 +45,6 @@
     projectReviewRating: document.getElementById('projectReviewRating'),
     projectReviewText: document.getElementById('projectReviewText'),
     projectReviewMessage: document.getElementById('projectReviewMessage'),
-    activeWhatsAppBtn: document.getElementById('activeWhatsAppBtn'),
     detailAvatar: document.getElementById('detailAvatar'),
     detailName: document.getElementById('detailName'),
     detailRole: document.getElementById('detailRole'),
@@ -55,7 +54,6 @@
     detailProjectDesc: document.getElementById('detailProjectDesc'),
     detailProjectPrice: document.getElementById('detailProjectPrice'),
     detailFilesList: document.getElementById('detailFilesList'),
-    detailWhatsAppAction: document.getElementById('detailWhatsAppAction')
   };
 
   let currentUser = null;
@@ -434,8 +432,6 @@
       if (elements.viewProjectLink) elements.viewProjectLink.href = project.link;
       if (elements.viewProjectBtn) elements.viewProjectBtn.href = project.link;
     }
-    if (elements.activeWhatsAppBtn) elements.activeWhatsAppBtn.hidden = true;
-    if (elements.detailWhatsAppAction) elements.detailWhatsAppAction.hidden = true;
     if (elements.detailAvatar) {
       elements.detailAvatar.textContent = conversation.initials;
       elements.detailAvatar.className = `chat-detail-avatar ${conversation.color}`;

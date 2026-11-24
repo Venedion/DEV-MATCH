@@ -4,6 +4,14 @@
   const status=document.getElementById('confirmationStatus');
   let busy=false,nextSend=0;
   input.value=sessionStorage.getItem('devmatch-verification-email')||'';
+  const clientLink=document.getElementById('connectClientFromVerification');
+  if(clientLink&&new URLSearchParams(location.search).get('role')==='client'){
+    document.getElementById('clientWorkspaceVerificationHelp').hidden=false;
+    clientLink.addEventListener('click',()=>{
+      const email=input.value.trim();
+      if(email&&input.validity.valid)sessionStorage.setItem('devmatch-workspace-login-email',email);
+    });
+  }
   function tick(){const seconds=Math.max(0,Math.ceil((nextSend-Date.now())/1000));button.disabled=busy||seconds>0;button.textContent=busy?'Sending…':seconds?`Try again in ${seconds}s`:'Resend verification email';}
   document.getElementById('emailConfirmation').addEventListener('submit',async event=>{
     event.preventDefault();if(busy||Date.now()<nextSend)return;

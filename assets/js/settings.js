@@ -36,7 +36,6 @@
 
   let profileData = getProfile();
   const connectionDefaults = {
-    whatsappConnected: Boolean(String(profileData.whatsapp || '').replace(/\D/g, '')),
     githubConnected: Boolean(profileData.githubUsername || profileData.github || profileData.githubUrl),
     googleConnected: false,
     linkedinConnected: Boolean(profileData.linkedinUrl || profileData.linkedin)
@@ -318,7 +317,6 @@
     setVal('settingsEmail', profileData.email || '');
     setVal('settingsCity', profileData.city || '');
     setVal('settingsBio', profileData.bio || '');
-    setVal('settingsWhatsapp', profileData.whatsapp || '');
     profileSkills = normalizeSkills(profileData.skills, []);
     renderSkillTags();
     profileSpecialties = normalizeSpecialties(profileData.specialty);
@@ -454,13 +452,11 @@
       profileData.email = document.getElementById('settingsEmail').value.trim();
       profileData.city = document.getElementById('settingsCity').value.trim();
       profileData.bio = document.getElementById('settingsBio').value.trim();
-      profileData.whatsapp = document.getElementById('settingsWhatsapp').value.trim().replace(/\D/g, '');
 
       try {
         await persistProfile(profileData);
         showToast('Profile and account details saved successfully!');
         updateAvatarPreview();
-        renderAppConnection('WhatsApp', profileData.whatsappConnected ?? Boolean(profileData.whatsapp));
         renderAppConnection('Google', profileData.googleConnected ?? true);
       } catch (err) {
         showToast('Error saving profile changes');
@@ -1162,27 +1158,16 @@
   }
 
   const appConnectionFields = {
-    WhatsApp: 'whatsappConnected',
     GitHub: 'githubConnected',
     Google: 'googleConnected',
     LinkedIn: 'linkedinConnected'
   };
 
   const appDetailText = {
-    WhatsApp: profile => formatWhatsapp(profile.whatsapp || ''),
     GitHub: profile => profile.githubUsername || 'GitHub account connected',
     Google: profile => profile.googleEmail || profile.email || 'Google account connected',
     LinkedIn: profile => profile.linkedinUrl || 'LinkedIn profile connected'
   };
-
-  function formatWhatsapp(value) {
-    const digits = String(value).replace(/\D/g, '');
-    if (!digits) return '';
-    if (!digits.startsWith('62')) return value;
-    const localNumber = digits.slice(2);
-    const formatted = localNumber.replace(/^(\d{3})(\d{4})(\d+)$/, '$1-$2-$3');
-    return `+62 ${formatted}`;
-  }
 
   function renderAppConnection(app, connected) {
     const detail = document.querySelector(`[data-app-detail="${app}"]`);
@@ -1361,8 +1346,12 @@
   });
 
   // Notification Preferences Form
+  function preferenceKey(form, field, index) {
+    // Keep the stored keys after removing WhatsApp's former toggle at index 1.
+    return field.id || String(form.id === 'notificationsForm' && index > 0 ? index + 1 : index);
+  }
   async function savePreferences(form){
-    const values=Object.fromEntries([...form.querySelectorAll('input,select,textarea')].map((field,index)=>[field.id||String(index),field.type==='checkbox'?field.checked:field.value]));
+    const values=Object.fromEntries([...form.querySelectorAll('input,select,textarea')].map((field,index)=>[preferenceKey(form,field,index),field.type==='checkbox'?field.checked:field.value]));
     const updated={...profileData,preferences:{...profileData.preferences,[form.id]:values}};
     await persistProfile(updated);profileData=updated;
   }
@@ -1412,7 +1401,7 @@
   [notifForm,preferencesForm].filter(Boolean).forEach(form=>{
     const saved=profileData.preferences?.[form.id]||{};
     form.querySelectorAll('input,select,textarea').forEach((field,index)=>{
-      const key=field.id||String(index);
+      const key=preferenceKey(form,field,index);
       if(Object.hasOwn(saved,key)){
         if(field.type==='checkbox')field.checked=Boolean(saved[key]);
         else{field.value=saved[key];field.dispatchEvent(new Event('change',{bubbles:true}));}
@@ -1506,21 +1495,6 @@
   appEditValue.addEventListener('input', () => appEditValue.setCustomValidity(''));
   let editingApp = '';
   const appEditConfig = {
-    WhatsApp: {
-      title: 'Edit WhatsApp number',
-      description: 'Update the phone number connected to WhatsApp Business.',
-      label: 'WhatsApp number',
-      type: 'tel',
-      placeholder: '+62 812-3456-7890',
-      getValue: profile => profile.whatsapp || '',
-      save: value => ({ whatsapp: value.replace(/\D/g, ''), whatsappConnected: true }),
-      validate: value => {
-        const digits = value.replace(/\D/g, '');
-        return digits.length >= 8 && digits.length <= 15
-          ? ''
-          : 'Enter a valid phone number with 8 to 15 digits.';
-      }
-    },
     Google: {
       title: 'Edit Google account',
       description: 'Update the email address connected to your Google account.',
@@ -1602,10 +1576,6 @@
 
       profileData = updatedProfile;
       renderAppConnection(editingApp, true);
-      if (editingApp === 'WhatsApp') {
-        const whatsappField = document.getElementById('settingsWhatsapp');
-        if (whatsappField) whatsappField.value = profileData.whatsapp;
-      }
       appEditDialog.close();
       showToast(`${editingApp} account details updated.`);
     });
