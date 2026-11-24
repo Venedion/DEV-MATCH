@@ -755,7 +755,8 @@ async function handleProjectGridClick(event){
         renderProjects();
         window.DEVMATCH_NAV_BADGES?.updateFavorites();
         return true;
-      }:null
+      }:null,
+      saved ? null : {tab: 'projects'}
     );
     return;
   }

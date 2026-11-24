@@ -111,6 +111,36 @@
   background: #ffe4e6;
 }
 
+@media (max-width: 600px) {
+  .fav-toast {
+    box-sizing: border-box;
+    width: max-content;
+    max-width: calc(100vw - 24px);
+    gap: 8px;
+    padding: 10px 12px;
+    flex-wrap: nowrap;
+    white-space: nowrap;
+  }
+
+  .fav-toast-message {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .fav-toast-undo {
+    flex: none;
+    white-space: nowrap;
+  }
+
+  .fav-toast-favorites-link {
+    color: inherit;
+    font-weight: 800;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .fav-toast {
     transition: none;

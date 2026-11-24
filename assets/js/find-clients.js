@@ -111,8 +111,8 @@
     }[c]));
   }
 
-  function showToast(msg, undoCallback) {
-    window.DEVMATCH_FAVORITE_FEEDBACK.showToast(favoriteToastEl, msg, undoCallback);
+  function showToast(msg, undoCallback, favoriteLink) {
+    window.DEVMATCH_FAVORITE_FEEDBACK.showToast(favoriteToastEl, msg, undoCallback, favoriteLink);
   }
 
   function updateFavoriteBadge() {
@@ -1045,7 +1045,8 @@
               saveFavorites(favoriteIds);
               renderClients();
               return true;
-            } : null
+            } : null,
+            saved ? null : {tab: 'clients'}
           );
           return;
         }

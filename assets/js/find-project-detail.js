@@ -339,7 +339,8 @@
             updateSaveButton(true);
             window.DEVMATCH_NAV_BADGES?.updateFavorites();
             return true;
-          }:null
+          }:null,
+          saved ? null : {tab: 'projects'}
         );
       }catch(error){console.error('Unable to update saved project requests in Supabase.',error);window.alert('Unable to save this request. Please try again.');}
     });

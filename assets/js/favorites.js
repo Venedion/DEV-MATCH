@@ -1645,6 +1645,13 @@
       updateCounters();
       renderCurrentTab();
     });
+
+    const requestedTab = urlParams.get('tab');
+    if (requestedTab === 'clients' || requestedTab === 'saved-clients') {
+      if (!isClient) tabSecondaryBtn.click();
+    } else if (requestedTab === 'developers' || requestedTab === 'saved-developers') {
+      if (isClient) tabSecondaryBtn.click();
+    }
   }
 
   // Search filter

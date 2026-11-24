@@ -64,6 +64,77 @@ test('developer Explore mobile headers replace notification and profile links wi
   assert.match(mobileNavigationCss,/\.mobile-explore-favorites svg \{\s*width: 20px;\s*height: 20px;\s*stroke-width: 2\.8;/);
 });
 
+test('mobile Messages uses back and MESSAGES header instead of logo and search',()=>{
+  const chatHtml=fs.readFileSync(path.join(__dirname,'../devmatch-chat.html'),'utf8');
+  const chatCss=fs.readFileSync(path.join(__dirname,'../assets/css/chat.css'),'utf8');
+  const navCss=fs.readFileSync(path.join(__dirname,'../assets/css/mobile-navigation.css'),'utf8');
+  const navJs=fs.readFileSync(path.join(__dirname,'../assets/js/nav-behavior.js'),'utf8');
+  const chatJs=fs.readFileSync(path.join(__dirname,'../assets/js/chat.js'),'utf8');
+  const favoritesCss=fs.readFileSync(path.join(__dirname,'../assets/css/favorites.css'),'utf8');
+  const sidebarNavJs=fs.readFileSync(path.join(__dirname,'../assets/js/sidebar-navigation.js'),'utf8');
+
+  assert.match(chatHtml,/class="mobile-chat-back" id="mobileChatBack"/);
+  assert.match(chatHtml,/class="mobile-chat-heading" style="font-size:15px">MESSAGES<\/h1>/);
+  assert.match(favoritesCss,/body\.favorites-page-layout \.mobile-favorites-title \{\s*display: block;[\s\S]*?font-size: 15px;/);
+  assert.match(chatHtml,/id="mobileChatTotalBadge"/);
+  assert.match(chatHtml,/id="mobileMarkAllReadBtn"/);
+  assert.match(chatJs,/const mobileTotalBadgeEl = document\.getElementById\('mobileChatTotalBadge'\)/);
+  assert.match(chatJs,/document\.getElementById\('mobileMarkAllReadBtn'\)\?\.addEventListener/);
+  assert.match(chatJs,/syncMobileChatRoomNavbar\(true\)/);
+  assert.match(chatJs,/syncMobileChatRoomNavbar\(false\)/);
+  assert.match(navCss,/\.mobile-bottom-nav\.chat-room-open \{\s*opacity: 0;[\s\S]*?transform: translateY\(calc\(100% \+ 18px\)\);/);
+  assert.match(chatCss,/\.chat-conv-header \{\s*display: none;/);
+  assert.match(navCss,/body\.chat-body > header\.topbar > \.brand,[\s\S]*?body\.chat-body > header\.topbar > \.search,[\s\S]*?body\.chat-body > header\.topbar > \.mobile-search-toggle,[\s\S]*?body\.chat-body > header\.topbar > \.top-actions \{\s*display: none !important;/);
+  assert.match(navCss,/body\.chat-body > header\.topbar > \.mobile-chat-heading-wrap \{\s*grid-column: 2;/);
+  assert.match(navCss,/body\.chat-body > header\.topbar > \.mobile-chat-heading \{[\s\S]*?font-size: 15px !important;/);
+  assert.match(chatCss,/@media \(max-width: 600px\) \{[\s\S]*?\.chat-viewport \{\s*top: 56px;\s*left: 0;/);
+  assert.match(navJs,/document\.body\.classList\.contains\('chat-body'\)/);
+  assert.match(navJs,/role === 'client'\s*\?\s*'devmatch-discover-projects\.html'\s*:\s*'devmatch-find-projects\.html'/);
+  assert.match(navJs,/const mobileChatReturnUrlStorageKey = 'devmatch-mobile-chat-return-url'/);
+  assert.match(navJs,/sessionStorage\.setItem\(mobileChatReturnUrlStorageKey, window\.location\.href\)/);
+  assert.match(navJs,/if \(storedReturnUrl\) \{\s*mobileChatHasStoredOrigin = true;\s*chatBackLink\.href = storedReturnUrl;/);
+  assert.match(navJs,/const storedUrl = sessionStorage\.getItem\(mobileChatReturnUrlStorageKey\);[\s\S]*?if \(storedUrl\)/);
+  assert.match(navJs,/previous\.origin === location\.origin && !previous\.pathname\.endsWith\('\/devmatch-chat\.html'\)/);
+  assert.match(navJs,/if \(document\.body\.classList\.contains\('chat-body'\)\) \{[\s\S]*?\n  \} else \{\s*try \{\s*sessionStorage\.removeItem\(mobileChatReturnUrlStorageKey\)/);
+  assert.match(navJs,/mobileChatBackLink && mobileNavigationBreakpoint\.matches && mobileChatHasStoredOrigin/);
+  assert.match(navJs,/sessionStorage\.removeItem\(mobileChatReturnUrlStorageKey\)[\s\S]*?window\.history\.back\(\)/);
+  assert.match(sidebarNavJs,/devmatch-mobile-chat-return-tab/);
+  assert.match(sidebarNavJs,/if \(page === 'devmatch-chat\.html'\)/);
+  assert.match(navJs,/chatLink && mobileNavigationBreakpoint\.matches/);
+});
+
+test('mobile room chat uses mobile composer and latest-message button',()=>{
+  const chatHtml=fs.readFileSync(path.join(__dirname,'../devmatch-chat.html'),'utf8');
+  const chatCss=fs.readFileSync(path.join(__dirname,'../assets/css/chat.css'),'utf8');
+  const chatJs=fs.readFileSync(path.join(__dirname,'../assets/js/chat.js'),'utf8');
+
+  assert.match(chatHtml,/placeholder="Type a message\.\."/);
+  assert.match(chatHtml,/id="chatScrollBottomBtn"/);
+  assert.match(chatJs,/const mobileRoom = window\.matchMedia\('\(max-width: 600px\)'\)\.matches[\s\S]*?event\.key === 'Enter' && !mobileRoom/);
+  assert.equal((chatJs.match(/if \(mobileChatBreakpoint\.matches\) messageInputEl\?\.blur\(\);\s*else messageInputEl\?\.focus\(\);/g)||[]).length,2);
+  assert.match(chatJs,/chatScrollBottomBtn/);
+  assert.match(chatJs,/addEventListener\('click'/);
+  assert.match(chatJs,/distanceFromBottom < 120/);
+  assert.match(chatJs,/behavior: 'smooth'/);
+  assert.match(chatCss,/body\.mobile-chat-room-open \.chat-main-header::before \{[\s\S]*?background: linear-gradient\(/);
+  assert.match(chatCss,/backdrop-filter: blur\(18px\) saturate\(150%\)/);
+  assert.match(chatCss,/body\.mobile-chat-room-open \.chat-composer-hint \{\s*display: none;/);
+  assert.match(chatCss,/\.chat-scroll-bottom \{\s*position: absolute;/);
+  assert.match(chatCss,/body\.mobile-chat-room-open \.chat-back-btn \{[\s\S]*?border-radius: 50%;[\s\S]*?backdrop-filter: blur\(14px\) saturate\(160%\)/);
+  assert.match(chatCss,/body\.mobile-chat-room-open \.chat-main-header::before \{[\s\S]*?inset: 0 0 -84px;[\s\S]*?rgb\(255 255 255 \/ 94%\) 0%[\s\S]*?rgb\(255 255 255 \/ 74%\) 56%[\s\S]*?rgb\(255 255 255 \/ 26%\) 90%[\s\S]*?rgb\(255 255 255 \/ 0%\) 100%[\s\S]*?-webkit-backdrop-filter: blur\(18px\) saturate\(150%\);[\s\S]*?backdrop-filter: blur\(18px\) saturate\(150%\);[\s\S]*?-webkit-mask-image: linear-gradient\([\s\S]*?rgba\(0, 0, 0, \.24\) 88%[\s\S]*?rgba\(0, 0, 0, 0\) 100%[\s\S]*?\);[\s\S]*?mask-image: linear-gradient\(/);
+  assert.doesNotMatch(chatCss,/body\.mobile-chat-room-open \.chat-main-header::after/);
+  assert.match(chatCss,/\.chat-scroll-bottom \{[\s\S]*?bottom: calc\(100% \+ 8px\);[\s\S]*?cubic-bezier\(\.22, \.61, \.36, 1\)/);
+  assert.match(chatCss,/body\.mobile-chat-room-open \.chat-main-header \{[\s\S]*?position: absolute;[\s\S]*?top: 0;/);
+  assert.match(chatCss,/body\.mobile-chat-room-open \.chat-thread-container \{[\s\S]*?height: 100%;[\s\S]*?padding-top: 70px;/);
+  assert.match(chatCss,/body\.mobile-chat-room-open \.chat-main-header \{[\s\S]*?border-bottom: 0;[\s\S]*?isolation: isolate;[\s\S]*?background: transparent;/);
+  assert.match(chatCss,/body\.mobile-chat-room-open \.chat-header-actions \.chat-action-btn\.icon-only \{[\s\S]*?border: 0;[\s\S]*?background: transparent;/);
+  assert.match(chatCss,/@media \(max-width: 820px\) \{[\s\S]*?\.chat-detail-pane \{\s*position: fixed;[\s\S]*?inset: 0 0 0 auto;[\s\S]*?width: min\(var\(--chat-detail-width\), 88vw\);/);
+  assert.match(chatHtml,/id="chatDetailBackdrop"[^>]*hidden/);
+  assert.match(chatJs,/if \(detailBackdropEl\) detailBackdropEl\.hidden = !isMobileModal/);
+  assert.match(chatJs,/detailBackdropEl\?\.addEventListener\('click', \(\) => setDetailPaneOpen\(false\)\)/);
+  assert.match(chatJs,/event\.key === 'Escape'[\s\S]*?mobileChatBreakpoint\.matches/);
+});
+
 test('mobile Favorites uses an Explore header, active Explore navigation, and sticky pill tabs',()=>{
   const favoritesHtml=fs.readFileSync(path.join(__dirname,'../devmatch-favorites.html'),'utf8');
   const favoritesCss=fs.readFileSync(path.join(__dirname,'../assets/css/favorites.css'),'utf8');
@@ -98,7 +169,7 @@ test('mobile Favorites uses an Explore header, active Explore navigation, and st
   assert.match(favoritesJs,/function renderMobileFavoriteClientLocationOptions/);
   assert.match(favoritesJs,/function loadFavoriteClientLocationOptions/);
   assert.match(favoritesJs,/filterPanel\.scrollTop = 0;/);
-  assert.match(sidebarNavigationJs,/\['findProjects', 'findClients', 'discover', 'developers', 'favorites'\]\.includes\(activeKey\)/);
+  assert.match(sidebarNavigationJs,/\['explore', 'findProjects', 'findClients', 'discover', 'developers', 'favorites'\]\.includes\(effectiveActiveKey\)/);
   assert.match(favoritesCss,/mobile-favorites-clear-all span \{\s*text-decoration: underline;/);
   assert.match(favoritesCss,/body\.favorites-page-layout \.mobile-favorites-title \{\s*display: block;/);
   assert.match(favoritesCss,/body\.favorites-page-layout \.fav-toolbar \{\s*position: sticky;\s*top: 42px;/);

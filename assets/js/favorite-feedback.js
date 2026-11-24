@@ -1,7 +1,7 @@
 (function () {
   'use strict';
 
-  function showToast(toast, message, undoCallback) {
+  function showToast(toast, message, undoCallback, favoriteLink) {
     if (!toast) return;
 
     let messageElement = toast.querySelector('.fav-toast-message');
@@ -21,7 +21,29 @@
     }
 
     toast.replaceChildren(messageElement, undoButton);
-    messageElement.textContent = message;
+    messageElement.replaceChildren();
+
+    const isMobile = window.matchMedia('(max-width: 600px)').matches;
+    if (isMobile && favoriteLink?.tab && /\badded\b/i.test(message) && /\bfavorites?\b/i.test(message)) {
+      const role = document.body.classList.contains('client-shell-page') || new URLSearchParams(location.search).get('role') === 'client'
+        ? 'client'
+        : 'dev';
+      const match = message.match(/\bfavorites?\b/i);
+      if (match) {
+        const start = match.index;
+        const end = start + match[0].length;
+        messageElement.append(document.createTextNode(message.slice(0, start)));
+        const link = document.createElement('a');
+        link.className = 'fav-toast-favorites-link';
+        link.href = `devmatch-favorites.html?role=${role}&tab=${encodeURIComponent(favoriteLink.tab)}`;
+        link.textContent = match[0];
+        messageElement.append(link, document.createTextNode(message.slice(end)));
+      } else {
+        messageElement.textContent = message;
+      }
+    } else {
+      messageElement.textContent = message;
+    }
     undoButton.hidden = !undoCallback;
     undoButton.disabled = false;
     undoButton.onclick = undoCallback ? async () => {

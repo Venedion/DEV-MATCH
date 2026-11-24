@@ -186,7 +186,8 @@
           document.getElementById('favoriteCount').textContent=String(favorites.length);
           window.DEVMATCH_NAV_BADGES?.updateFavorites();
           return true;
-        }:null
+        }:null,
+        saved ? null : {tab: 'projects'}
       );
     }catch(error){console.error('Unable to update saved projects in Supabase.',error);window.alert('Unable to save this project. Please try again.');}
   }

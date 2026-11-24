@@ -87,8 +87,8 @@
     }[c]));
   }
 
-  function showToast(msg, undoCallback) {
-    window.DEVMATCH_FAVORITE_FEEDBACK.showToast(toastEl, msg, undoCallback);
+  function showToast(msg, undoCallback, favoriteLink) {
+    window.DEVMATCH_FAVORITE_FEEDBACK.showToast(toastEl, msg, undoCallback, favoriteLink);
   }
 
   function updateSidebarFavoriteBadge() {
@@ -471,7 +471,7 @@
             });
           } else {
             favoriteIds = [...favoriteIds, id];
-            showToast('Developer added to your favorites');
+            showToast('Developer added to your favorites', null, {tab: 'developers'});
           }
           saveFavorites(favoriteIds);
           renderDevelopers();

@@ -464,7 +464,8 @@
             favoriteDeveloper=true;renderFavoriteButton();
             window.DEVMATCH_NAV_BADGES?.updateFavorites();
             return true;
-          }:null
+          }:null,
+          saved ? null : {tab: 'developers'}
         );
       }catch(error){console.error('Unable to update developer favorite in Supabase.',error);window.alert('Unable to save this favorite. Please try again.');}
     });

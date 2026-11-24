@@ -18,6 +18,39 @@ test('Discover project artworks use uploaded project cover images',()=>{
   assert.match(source,/coverImage = safeProjectCover\(row\.cover_image \|\| data\.coverImage \|\| firstMedia\)/);
 });
 
+test('Find Projects loads the favorite feedback controls used by request-card love buttons',()=>{
+  const html=fs.readFileSync('devmatch-find-projects.html','utf8');
+  const source=fs.readFileSync('assets/js/marketplace.js','utf8');
+  assert.match(html,/assets\/css\/favorite-feedback\.css/);
+  assert.match(html,/id="favoriteActionToast"/);
+  assert.match(html,/id="favoriteRemoveDialog"[\s\S]*?id="favoriteRemoveMessage"/);
+  assert.match(html,/favorite-feedback\.js[\s\S]*?marketplace\.js/);
+  assert.match(source,/class="request-card-favorite"[^`]*data-favorite=/);
+  assert.match(source,/window\.DEVMATCH_FAVORITE_FEEDBACK\.showToast/);
+  assert.match(source,/window\.DEVMATCH_FAVORITE_FEEDBACK\.confirmRemoval/);
+});
+
+test('mobile favorite feedback keeps its message on one line',()=>{
+  const css=fs.readFileSync('assets/css/favorite-feedback.css','utf8');
+  assert.match(css,/@media \(max-width: 600px\) \{\s*\.fav-toast \{[^}]*max-width: calc\(100vw - 24px\);[^}]*flex-wrap: nowrap;[^}]*white-space: nowrap;/);
+  assert.match(css,/\.fav-toast-message \{\s*min-width: 0;\s*overflow: hidden;\s*text-overflow: ellipsis;/);
+  assert.match(css,/\.fav-toast-undo \{\s*flex: none;\s*white-space: nowrap;/);
+});
+
+test('favorite toast links to the matching Favorites tab on mobile',()=>{
+  const source=fs.readFileSync('assets/js/favorite-feedback.js','utf8');
+  const favoritesJs=fs.readFileSync('assets/js/favorites.js','utf8');
+  const marketplaceJs=fs.readFileSync('assets/js/marketplace.js','utf8');
+  const findClientsJs=fs.readFileSync('assets/js/find-clients.js','utf8');
+  assert.match(source,/matchMedia\('\(max-width: 600px\)'\)/);
+  assert.match(source,/fav-toast-favorites-link/);
+  assert.match(source,/devmatch-favorites\.html\?role=\$\{role\}&tab=\$\{encodeURIComponent\(favoriteLink\.tab\)\}/);
+  assert.match(favoritesJs,/requestedTab === 'clients' \|\| requestedTab === 'saved-clients'/);
+  assert.match(favoritesJs,/requestedTab === 'developers' \|\| requestedTab === 'saved-developers'/);
+  assert.match(marketplaceJs,/saved \? null : \{tab: 'projects'\}/);
+  assert.match(findClientsJs,/saved \? null : \{tab: 'clients'\}/);
+});
+
 test('Discover catalog card developer footer has fixed positioning',()=>{
   const css=fs.readFileSync('assets/css/marketplace.css','utf8');
   assert.match(css,/\.catalog-card\{display:flex;flex-direction:column\}/);

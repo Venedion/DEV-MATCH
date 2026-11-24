@@ -23,6 +23,7 @@
   const chatViewportEl = document.getElementById('chatViewport');
   const chatEmptyStateEl = document.getElementById('chatEmptyState');
   const detailPaneEl = document.getElementById('chatDetailPane');
+  const detailBackdropEl = document.getElementById('chatDetailBackdrop');
   const totalBadgeEl = document.getElementById('chatTotalBadge');
   const statusEl = document.getElementById('chatStatus');
   const sendBtnEl = chatFormEl?.querySelector('[type="submit"]');
@@ -68,6 +69,21 @@
   let currentFilter = 'all';
   let searchQuery = '';
   let realtimeChannel = null;
+
+  function syncMobileChatRoomNavbar(isRoomOpen) {
+    if (!window.matchMedia('(max-width: 820px)').matches) return;
+    const nav = document.querySelector('.mobile-bottom-nav');
+    if (!nav) return;
+    nav.classList.toggle('chat-room-open', isRoomOpen);
+    document.body.classList.toggle('mobile-chat-room-open', isRoomOpen);
+    if (isRoomOpen) {
+      nav.classList.add('is-hidden');
+      document.body.classList.add('mobile-bottom-nav-hidden');
+    } else {
+      nav.classList.remove('is-hidden');
+      document.body.classList.remove('mobile-bottom-nav-hidden');
+    }
+  }
   const presenceChannels = new Map();
   let presenceReady = false;
   let isSending = false;
@@ -167,6 +183,11 @@
     if (totalBadgeEl) {
       totalBadgeEl.textContent = String(total);
       totalBadgeEl.hidden = total === 0;
+    }
+    const mobileTotalBadgeEl = document.getElementById('mobileChatTotalBadge');
+    if (mobileTotalBadgeEl) {
+      mobileTotalBadgeEl.textContent = String(total);
+      mobileTotalBadgeEl.hidden = total === 0;
     }
     document.querySelectorAll('.chat-unread-total-badge').forEach(element => {
       element.textContent = String(total);
@@ -713,9 +734,20 @@
 
   function setDetailPaneOpen(isOpen) {
     if (!detailPaneEl) return;
-    detailPaneEl.classList.toggle('closed', !isOpen);
-    detailPaneEl.setAttribute('aria-hidden', String(!isOpen));
-    document.getElementById('toggleDetailBtn')?.setAttribute('aria-expanded', String(isOpen));
+    const shouldOpen = Boolean(isOpen);
+    const isMobileModal = shouldOpen && mobileChatBreakpoint.matches;
+    detailPaneEl.classList.toggle('closed', !shouldOpen);
+    detailPaneEl.setAttribute('aria-hidden', String(!shouldOpen));
+    if (isMobileModal) detailPaneEl.setAttribute('aria-modal', 'true');
+    else detailPaneEl.removeAttribute('aria-modal');
+    if (detailBackdropEl) detailBackdropEl.hidden = !isMobileModal;
+    document.getElementById('toggleDetailBtn')?.setAttribute('aria-expanded', String(shouldOpen));
+
+    if (isMobileModal) {
+      document.getElementById('closeDetailBtn')?.focus();
+    } else if (document.activeElement?.closest('#chatDetailPane')) {
+      document.getElementById('toggleDetailBtn')?.focus();
+    }
   }
 
   async function refreshProjectEngagement(conversation = getActiveConversation()) {
@@ -954,6 +986,8 @@
   async function selectConversation(id, {focusReview = false, initialMessages = null} = {}) {
     const conversation = conversations.find(item => item.id === id);
     if (!conversation) return;
+    const openingFromUrl = new URLSearchParams(location.search).get('conversation');
+    const shouldAnimateRoom = !openingFromUrl || openingFromUrl !== id;
     if (Array.isArray(initialMessages)) {
       conversation.messages = initialMessages;
       conversation.lastMessage = initialMessages[initialMessages.length - 1] || conversation.lastMessage;
@@ -963,6 +997,13 @@
     updateConversationQuery(id, focusReview);
     markRead(conversation);
     if (chatViewportEl) chatViewportEl.classList.add('viewing-thread');
+    if (shouldAnimateRoom) {
+      syncMobileChatRoomNavbar(true);
+    } else {
+      syncMobileChatRoomNavbar(true);
+      document.body.classList.add('mobile-chat-room-open');
+      document.querySelector('.chat-main-pane')?.style.setProperty('animation', 'none');
+    }
     setDetailPaneOpen(false);
     updateUnreadCounts();
     renderConversationsList();
@@ -980,7 +1021,8 @@
       if (reviewAvailable) elements.projectReviewRating.focus({preventScroll: true});
     });
     setStatus('Loading encrypted messages…');
-    if (messageInputEl) messageInputEl.focus();
+    if (mobileChatBreakpoint.matches) messageInputEl?.blur();
+    else messageInputEl?.focus();
     try {
       if (Array.isArray(initialMessages)) {
         renderMessagesThread();
@@ -1312,11 +1354,13 @@
     pendingConversationDraft = draft;
     activeConvId = null;
     chatViewportEl?.classList.add('viewing-thread');
+    syncMobileChatRoomNavbar(true);
     setDetailPaneOpen(false);
     renderConversationsList();
     renderMessagesThread();
     setStatus(status, status !== 'Write a message to start this conversation.');
-    messageInputEl?.focus();
+    if (mobileChatBreakpoint.matches) messageInputEl?.blur();
+    else messageInputEl?.focus();
   }
 
   async function openExistingOrDraft(row, recipient, project = null) {
@@ -1453,6 +1497,7 @@
     );
     if (requestedThread) {
       await selectConversation(requestedThread.id, {focusReview: params.get('review') === '1'});
+      syncMobileChatRoomNavbar(true);
     }
   }
 
@@ -1550,11 +1595,24 @@
       renderConversationsList();
     });
     threadContainerEl?.addEventListener('scroll', () => {
+      const scrollBottomBtn = document.getElementById('chatScrollBottomBtn');
+      if (scrollBottomBtn) {
+        const distanceFromBottom = threadContainerEl.scrollHeight
+          - threadContainerEl.clientHeight
+          - threadContainerEl.scrollTop;
+        scrollBottomBtn.hidden = distanceFromBottom < 120;
+      }
       if (threadContainerEl.scrollTop > 80) return;
       const conversation = getActiveConversation();
       if (conversation && conversation !== pendingConversationDraft) {
         void loadOlderMessages(conversation);
       }
+    });
+    document.getElementById('chatScrollBottomBtn')?.addEventListener('click', () => {
+      threadContainerEl?.scrollTo({
+        top: threadContainerEl.scrollHeight,
+        behavior: 'smooth'
+      });
     });
     chatFormEl?.addEventListener('submit', event => {
       event.preventDefault();
@@ -1627,7 +1685,9 @@
       if (button && chatMessagesEl.contains(button)) void downloadAttachment(button);
     });
     messageInputEl?.addEventListener('keydown', event => {
-      if (event.key === 'Enter' && !event.shiftKey && !event.isComposing) {
+      const mobileRoom = window.matchMedia('(max-width: 600px)').matches
+        && document.body.classList.contains('mobile-chat-room-open');
+      if (event.key === 'Enter' && !mobileRoom && !event.shiftKey && !event.isComposing) {
         event.preventDefault();
         chatFormEl?.requestSubmit();
       }
@@ -1639,7 +1699,13 @@
     document.getElementById('chatBackBtn')?.addEventListener('click', () => {
       pendingConversationDraft = null;
       activeConvId = null;
-      chatViewportEl?.classList.remove('viewing-thread');
+      document.body.classList.add('mobile-chat-room-leaving');
+      syncMobileChatRoomNavbar(false);
+      window.setTimeout(() => {
+        document.body.classList.remove('mobile-chat-room-leaving');
+        document.body.classList.remove('mobile-chat-room-open');
+        chatViewportEl?.classList.remove('viewing-thread');
+      }, 280);
       updateConversationQuery(null);
       renderMessagesThread();
     });
@@ -1649,12 +1715,21 @@
     document.getElementById('closeDetailBtn')?.addEventListener('click', () => {
       setDetailPaneOpen(false);
     });
+    detailBackdropEl?.addEventListener('click', () => setDetailPaneOpen(false));
+    document.addEventListener('keydown', event => {
+      if (event.key === 'Escape' && !detailPaneEl?.classList.contains('closed') && mobileChatBreakpoint.matches) {
+        setDetailPaneOpen(false);
+      }
+    });
     document.getElementById('markAllReadBtn')?.addEventListener('click', () => {
       conversations.forEach(conversation => markRead(conversation, {notify: false}));
       window.dispatchEvent(new Event('devmatch:messages-changed'));
       updateUnreadCounts();
       renderConversationsList();
       setStatus('Conversations marked read on this device.');
+    });
+    document.getElementById('mobileMarkAllReadBtn')?.addEventListener('click', () => {
+      document.getElementById('markAllReadBtn')?.click();
     });
     const attachButton = document.getElementById('chatAttachBtn');
     if (attachButton) attachButton.hidden = false;
@@ -1667,6 +1742,10 @@
     bindControls();
     renderConversationSkeleton();
     setStatus('Loading conversations…');
+    if (window.matchMedia('(max-width: 820px)').matches
+      && new URLSearchParams(location.search).get('conversation')) {
+      document.body.classList.add('mobile-chat-room-open');
+    }
     let legacyChatRemoved = false;
     try {
       legacyChatRemoved = localStorage.getItem(LEGACY_CHAT_STORAGE_KEY) !== null;

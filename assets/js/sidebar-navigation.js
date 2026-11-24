@@ -50,6 +50,37 @@
   function getCurrentPage(role) {
     const page = location.pathname.split('/').pop();
     const hash = location.hash;
+    if (page === 'devmatch-chat.html') {
+      try {
+        const storedActive = sessionStorage.getItem('devmatch-mobile-chat-return-tab');
+        if (storedActive) return storedActive;
+        if (document.referrer) {
+          const previous = new URL(document.referrer, location.href);
+          const previousPage = previous.pathname.split('/').pop();
+          if (role === 'client') {
+            if (previousPage === 'devmatch-client-dashboard.html') {
+              return previous.hash === '#requests' || previous.hash.startsWith('#request-') ? 'requests' : 'home';
+            }
+            if (['devmatch-discover-projects.html', 'devmatch-discover-project-detail.html',
+              'devmatch-find-developers.html', 'devmatch-developer-profile.html',
+              'devmatch-favorites.html'].includes(previousPage)) return 'explore';
+            if (previousPage === 'devmatch-notifications.html') return 'notifications';
+            if (['devmatch-my-profile.html', 'devmatch-settings.html'].includes(previousPage)) return 'profile';
+          } else {
+            if (previousPage === 'devmatch-dashboard.html') return 'overview';
+            if (previousPage === 'devmatch-my-projects.html') return 'projects';
+            if (['devmatch-find-projects.html', 'devmatch-find-project-detail.html',
+              'devmatch-find-clients.html', 'devmatch-client-profile.html',
+              'devmatch-favorites.html'].includes(previousPage)) return 'explore';
+            if (previousPage === 'devmatch-developer-notifications.html') return 'notifications';
+            if (['devmatch-my-profile.html', 'devmatch-settings.html'].includes(previousPage)) return 'profile';
+          }
+        }
+      } catch (error) {
+        console.warn('Unable to read the previous mobile navigation tab.', error);
+      }
+      return 'messages';
+    }
     if (role === 'client') {
       if (page === 'devmatch-client-dashboard.html') {
         if (hash === '#requests' || hash.startsWith('#request-')) return 'requests';
@@ -153,6 +184,15 @@
 
     const isClient = role === 'client';
     const page = location.pathname.split('/').pop();
+    let effectiveActiveKey = activeKey;
+    if (page === 'devmatch-chat.html') {
+      try {
+        const storedActive = sessionStorage.getItem('devmatch-mobile-chat-return-tab');
+        if (storedActive) effectiveActiveKey = storedActive;
+      } catch (error) {
+        console.warn('Unable to read the active mobile chat tab.', error);
+      }
+    }
     const items = isClient
       ? [
         {key: 'home', label: 'Home', href: 'devmatch-client-dashboard.html#home', icon: 'home'},
@@ -175,10 +215,10 @@
 
     items.forEach(item => {
       const active = item.key === 'explore'
-        ? ['findProjects', 'findClients', 'discover', 'developers', 'favorites'].includes(activeKey)
+        ? ['explore', 'findProjects', 'findClients', 'discover', 'developers', 'favorites'].includes(effectiveActiveKey)
         : item.key === 'profile'
-          ? activeKey === 'profile' || activeKey === 'settings'
-          : item.key === activeKey;
+          ? effectiveActiveKey === 'profile' || effectiveActiveKey === 'settings'
+          : item.key === effectiveActiveKey;
 
       const isClientDashboardShortcut = isClient
         && page === 'devmatch-client-dashboard.html'
@@ -214,6 +254,17 @@
       if (!(event.target instanceof Element)) return;
       const clickedItem = event.target.closest('.mobile-bottom-nav__item');
       if (!clickedItem) return;
+      if (clickedItem.href && clickedItem.href.includes('devmatch-chat.html')) {
+        const activeItem = nav.querySelector('.mobile-bottom-nav__item.active');
+        const activeKey = activeItem?.dataset.mobileNavKey;
+        if (activeKey) {
+          try {
+            sessionStorage.setItem('devmatch-mobile-chat-return-tab', activeKey);
+          } catch (error) {
+            console.warn('Unable to save the previous mobile navigation tab.', error);
+          }
+        }
+      }
       if (clickedItem instanceof HTMLButtonElement) {
         requestAnimationFrame(() => updateMobileBottomNavigationIndicator(nav));
       }
@@ -414,9 +465,17 @@
       throw new TypeError('Sidebar workspace must be client or developer.');
     }
     const workspace = role === 'dev' ? 'developer' : role;
-    if (workspace === currentWorkspace) return;
-    currentWorkspace = workspace;
     const activeKey = getCurrentPage(workspace);
+    if (location.pathname.split('/').pop() !== 'devmatch-chat.html'
+      && activeKey
+      && activeKey !== 'messages') {
+      try {
+        sessionStorage.setItem('devmatch-mobile-chat-return-tab', activeKey);
+      } catch (error) {
+        console.warn('Unable to persist the previous mobile navigation tab.', error);
+      }
+    }
+    currentWorkspace = workspace;
     const groups = navigation[workspace];
     document.querySelectorAll('[data-shared-navigation]').forEach(nav => {
       const group = nav.dataset.sharedNavigation;

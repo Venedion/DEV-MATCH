@@ -5,18 +5,54 @@
   const markAllReadButton = document.getElementById('markAllRead');
   const notificationsHeading = document.querySelector('.notifications-heading');
   const notificationFilterActions = document.querySelector('.notification-filter-actions');
+  const mobileFilterToggle = document.getElementById('notificationFilterToggle');
+  const mobileFilterMenu = document.getElementById('notificationFilterMenu');
+  const mobileFilterLabel = document.getElementById('notificationMobileFilterLabel');
+  const mobileFilterOptions = [...(mobileFilterMenu?.querySelectorAll('[data-notification-filter-option]') || [])];
   const desktopMarkAllLayout = window.matchMedia('(min-width: 601px)');
+  const mobileListLayout = window.matchMedia('(max-width: 600px)');
+  const listToggle = document.createElement('button');
+  listToggle.className = 'notification-list-toggle';
+  listToggle.type = 'button';
+  listToggle.setAttribute('aria-controls', 'notificationItems');
+  listToggle.hidden = true;
   const itemsContainer = document.getElementById('notificationItems');
   const notificationStatus = document.getElementById('notificationStatus');
   const notificationEmpty = document.getElementById('notificationEmpty');
   const actionList = document.getElementById('notificationActions');
   const preferenceInputs = [...document.querySelectorAll('[data-preference]')];
+  const MOBILE_NOTIFICATION_LIMIT = 10;
   const readNotifications = new Set();
+  let newlyReceivedNotificationIds = new Set();
   let notificationRows = [];
+  let notificationRecords = [];
+  let actorDirectory = new Map();
+  let projectDirectory = new Map();
+  const processingRealtimeNotificationIds = new Set();
+  const pendingRealtimeNotifications = [];
   let savedPreferences = {};
   let activeFilter = 'all';
   let activeQuery = '';
+  let mobileListExpanded = false;
+  let listHeightAnimation = null;
   let stateReady = false;
+
+  function syncMobileFilterSelection(filter) {
+    const selectedOption = mobileFilterOptions.find(option => option.dataset.notificationFilterOption === filter);
+    if (!selectedOption) return;
+    if (mobileFilterLabel) mobileFilterLabel.textContent = selectedOption.textContent.trim();
+    mobileFilterOptions.forEach(option => {
+      option.setAttribute('aria-pressed', String(option === selectedOption));
+    });
+  }
+
+  function setMobileFilterMenuOpen(open, restoreFocus = false) {
+    if (!mobileFilterToggle || !mobileFilterMenu) return;
+    mobileFilterToggle.setAttribute('aria-expanded', String(open));
+    mobileFilterMenu.hidden = !open;
+    if (restoreFocus) mobileFilterToggle.focus();
+  }
+
   window.DEVMATCH_SKELETON?.rows(itemsContainer,4);
   window.DEVMATCH_SKELETON?.status(notificationStatus,'Loading notifications');
   window.DEVMATCH_SKELETON?.rows(actionList,2);
@@ -110,6 +146,8 @@
 
     const copy = document.createElement('p');
     copy.className = 'notification-copy';
+    const content = document.createElement('div');
+    content.className = 'notification-content';
     const sentence = document.createElement('span');
     const name = document.createElement('b');
     name.textContent = actorName;
@@ -125,12 +163,13 @@
     const time = document.createElement('time');
     time.dateTime = notification.created_at || '';
     time.textContent = timeLabel(notification.created_at);
+    content.append(copy, time);
     const action = document.createElement('a');
     action.className = 'notification-action';
     action.href = actionHref(notification,projects);
     action.dataset.markRead = '';
     action.textContent = detail.filter === 'comments' ? 'Reply' : detail.filter === 'messages' ? 'Open chat' : 'View';
-    article.append(dot, avatar, copy, time, action);
+    article.append(dot, avatar, content, action);
     row.append(article);
   }
 
@@ -164,11 +203,102 @@
     });
   }
 
-  function updateNotifications() {
+  function orderNotificationsNewestFirst(notifications) {
+    if (!mobileListLayout.matches) return notifications;
+    return [...notifications].sort((first, second) => {
+      const firstDate = new Date(first.created_at).getTime();
+      const secondDate = new Date(second.created_at).getTime();
+      if (Number.isNaN(firstDate)) return Number.isNaN(secondDate) ? 0 : 1;
+      if (Number.isNaN(secondDate)) return -1;
+      return secondDate - firstDate;
+    });
+  }
+
+  async function addRealtimeNotification(notification) {
+    if (notificationRecords.some(item => item.id === notification.id)
+      || processingRealtimeNotificationIds.has(notification.id)) return;
+    processingRealtimeNotificationIds.add(notification.id);
+    try {
+      const [actorResult, projectResult] = await Promise.all([
+        notification.actor_id
+          ? client.from('directory_people').select('id,username,display_name,account_role').eq('id', notification.actor_id).maybeSingle()
+          : Promise.resolve({data: null, error: null}),
+        notification.project_id
+          ? client.from('projects').select('id,title,project_kind').eq('id', notification.project_id).maybeSingle()
+          : Promise.resolve({data: null, error: null})
+      ]);
+      if (actorResult.error) throw actorResult.error;
+      if (projectResult.error) throw projectResult.error;
+      const actor = actorResult.data;
+      const project = projectResult.data;
+      if (actor) actorDirectory.set(actor.id + ':' + actor.account_role, actor.username || actor.display_name);
+      if (project) {
+        projectDirectory.set(project.id, {title: project.title, kind: project.project_kind});
+      }
+      notificationRecords.push(notification);
+      newlyReceivedNotificationIds.add(notification.id);
+      cancelListHeightAnimation();
+      itemsContainer.replaceChildren();
+      renderNotifications(orderNotificationsNewestFirst(notificationRecords), actorDirectory, projectDirectory);
+    } catch (error) {
+      console.error('Unable to add a new notification to the list.', error);
+      notificationStatus.textContent = 'Unable to refresh notifications. Please reload the page.';
+      notificationStatus.hidden = false;
+    } finally {
+      processingRealtimeNotificationIds.delete(notification.id);
+    }
+  }
+
+  function receiveRealtimeNotification(notification) {
+    if (!stateReady) {
+      if (!pendingRealtimeNotifications.some(item => item.id === notification.id)) {
+        pendingRealtimeNotifications.push(notification);
+      }
+      return;
+    }
+    void addRealtimeNotification(notification);
+  }
+
+  function isPriorityNotification(row) {
+    return row.classList.contains('is-unread')
+      || newlyReceivedNotificationIds.has(row.dataset.notification)
+      || row.closest('.notification-group')?.dataset.groupKey === 'today';
+  }
+
+  function animateListHeight(previousHeight) {
+    cancelListHeightAnimation();
+    const nextHeight = itemsContainer.scrollHeight;
+    if (Math.abs(previousHeight - nextHeight) < 1
+      || window.matchMedia('(prefers-reduced-motion: reduce)').matches
+      || typeof itemsContainer.animate !== 'function') {
+      return;
+    }
+
+    itemsContainer.style.overflow = 'hidden';
+    const animation = itemsContainer.animate(
+      [{height: `${previousHeight}px`}, {height: `${nextHeight}px`}],
+      {duration: 220, easing: 'ease-in-out'}
+    );
+    listHeightAnimation = animation;
+    animation.onfinish = () => {
+      if (listHeightAnimation !== animation) return;
+      itemsContainer.style.removeProperty('overflow');
+      listHeightAnimation = null;
+    };
+  }
+
+  function cancelListHeightAnimation() {
+    if (listHeightAnimation) listHeightAnimation.cancel();
+    listHeightAnimation = null;
+    itemsContainer.style.removeProperty('overflow');
+  }
+
+  function updateNotifications({animate = false} = {}) {
     if (!stateReady) {
       notificationEmpty.hidden = true;
       return;
     }
+    const previousHeight = animate ? itemsContainer.getBoundingClientRect().height : 0;
     const unreadCount = notificationRows.filter(row => row.classList.contains('is-unread')).length;
     document.querySelectorAll('[data-count="all"]').forEach(count => { count.textContent = String(notificationRows.length); });
     document.querySelectorAll('[data-count="unread"]').forEach(count => { count.textContent = String(unreadCount); });
@@ -178,21 +308,75 @@
     });
     const notificationIcon = document.querySelector('.notification-icon');
     notificationIcon?.classList.toggle('is-clear', unreadCount === 0);
-    let visibleCount = 0;
+    const matchingRows = [];
     notificationRows.forEach(row => {
       const filterMatches = activeFilter === 'all'
         || activeFilter === 'unread' && row.classList.contains('is-unread')
         || row.dataset.kind === activeFilter;
       const queryMatches = !activeQuery || row.textContent.toLowerCase().includes(activeQuery);
       row.hidden = !(filterMatches && queryMatches);
-      if (!row.hidden) visibleCount++;
+      if (!row.hidden) matchingRows.push(row);
     });
+
+    const isMobile = mobileListLayout.matches;
+    const defaultVisibleRows = new Set(matchingRows.slice(0, MOBILE_NOTIFICATION_LIMIT));
+    let visibleCount = 0;
+    matchingRows.forEach(row => {
+      const collapse = isMobile
+        && !mobileListExpanded
+        && !defaultVisibleRows.has(row)
+        && !isPriorityNotification(row);
+      row.classList.toggle('is-mobile-collapsed', collapse);
+      row.inert = collapse;
+      if (collapse) row.setAttribute('aria-hidden', 'true');
+      else row.removeAttribute('aria-hidden');
+      if (!collapse) visibleCount++;
+    });
+
     document.querySelectorAll('[data-group]').forEach(group => {
-      group.hidden = !group.querySelector('.notification-row:not([hidden])');
+      group.hidden = !group.querySelector('.notification-row:not([hidden]):not(.is-mobile-collapsed)');
     });
+    const hasMore = matchingRows.some(row =>
+      !defaultVisibleRows.has(row) && !isPriorityNotification(row)
+    );
+    if (isMobile && hasMore) {
+      const newCount = matchingRows.filter(row =>
+        row.classList.contains('is-unread') || newlyReceivedNotificationIds.has(row.dataset.notification)
+      ).length;
+      const todayCount = matchingRows.filter(row =>
+        row.closest('.notification-group')?.dataset.groupKey === 'today'
+      ).length;
+      listToggle.textContent = mobileListExpanded
+        ? 'View Less'
+        : newCount > MOBILE_NOTIFICATION_LIMIT
+          ? 'View All'
+          : todayCount > MOBILE_NOTIFICATION_LIMIT
+            ? 'View More'
+            : 'View All';
+      listToggle.setAttribute('aria-expanded', String(mobileListExpanded));
+      listToggle.hidden = false;
+      if (mobileListExpanded) {
+        itemsContainer.append(listToggle);
+      } else {
+        const newRows = matchingRows.filter(row =>
+          row.classList.contains('is-unread') || newlyReceivedNotificationIds.has(row.dataset.notification)
+        );
+        const anchorRow = newCount > MOBILE_NOTIFICATION_LIMIT
+          ? newRows[newRows.length - 1]
+          : todayCount > MOBILE_NOTIFICATION_LIMIT
+            ? matchingRows.find(row => row.closest('.notification-group')?.dataset.groupKey === 'today')
+            : matchingRows[Math.min(matchingRows.length, MOBILE_NOTIFICATION_LIMIT) - 1];
+        const anchorGroup = anchorRow?.closest('.notification-group');
+        itemsContainer.insertBefore(listToggle, anchorGroup?.nextElementSibling || null);
+      }
+    } else {
+      listToggle.hidden = true;
+      listToggle.remove();
+    }
     notificationEmpty.hidden = !stateReady || visibleCount > 0;
     if (stateReady) notificationStatus.hidden = true;
     buildActions();
+    if (animate) animateListHeight(previousHeight);
   }
 
   function renderNotifications(notifications, actors, projects) {
@@ -203,6 +387,7 @@
         const group = document.createElement('div');
         group.className = 'notification-group';
         group.dataset.group = '';
+        group.dataset.groupKey = key;
         const heading = document.createElement('h2');
         heading.className = 'notification-day';
         heading.textContent = label;
@@ -252,10 +437,12 @@
     ]);
     if (notificationResult.error) throw notificationResult.error;
     const notifications = notificationResult.data || [];
+    notificationRecords = [...notifications];
     const readIdsSet = new Set(readIds);
     const unreadIds = notifications
       .map(notification => notification.id)
       .filter(id => !readIdsSet.has(id));
+    newlyReceivedNotificationIds = new Set(unreadIds);
     if (unreadIds.length) {
       await backend.markNotificationsRead(unreadIds);
       unreadIds.forEach(id => readIdsSet.add(id));
@@ -277,8 +464,8 @@
     ]);
     if (actorsResult.error) throw actorsResult.error;
     if (projectsResult.error) throw projectsResult.error;
-    const actors = new Map((actorsResult.data || []).map(actor => [actor.id + ':' + actor.account_role, actor.username || actor.display_name]));
-    const projects = new Map((projectsResult.data || []).map(project => [project.id, {
+    actorDirectory = new Map((actorsResult.data || []).map(actor => [actor.id + ':' + actor.account_role, actor.username || actor.display_name]));
+    projectDirectory = new Map((projectsResult.data || []).map(project => [project.id, {
       title:project.title,
       kind:project.project_kind
     }]));
@@ -287,7 +474,8 @@
     notificationStatus.hidden = true;
     notificationEmpty.textContent = 'No notifications match this filter.';
     notificationEmpty.hidden = false;
-    renderNotifications(notifications, actors, projects);
+    renderNotifications(orderNotificationsNewestFirst(notificationRecords), actorDirectory, projectDirectory);
+    pendingRealtimeNotifications.splice(0).forEach(receiveRealtimeNotification);
     return true;
   })().catch(error => {
     showLoadError(error);
@@ -295,7 +483,50 @@
   });
 
   positionMarkAllReadButton();
-  desktopMarkAllLayout.addEventListener('change', positionMarkAllReadButton);
+  syncMobileFilterSelection(activeFilter);
+  listToggle.addEventListener('click', () => {
+    if (!mobileListLayout.matches) return;
+    mobileListExpanded = !mobileListExpanded;
+    updateNotifications({animate: true});
+  });
+  mobileListLayout.addEventListener('change', () => {
+    cancelListHeightAnimation();
+    mobileListExpanded = false;
+    updateNotifications();
+  });
+  window.addEventListener('devmatch:notification-received', event => {
+    if (!mobileListLayout.matches || !(event instanceof CustomEvent)) return;
+    const notification = event.detail;
+    if (notification?.recipient_role !== workspace) return;
+    receiveRealtimeNotification(notification);
+  });
+  desktopMarkAllLayout.addEventListener('change', () => {
+    positionMarkAllReadButton();
+    if (desktopMarkAllLayout.matches) setMobileFilterMenuOpen(false);
+  });
+  mobileFilterToggle?.addEventListener('click', () => {
+    setMobileFilterMenuOpen(mobileFilterToggle.getAttribute('aria-expanded') !== 'true');
+  });
+  mobileFilterMenu?.addEventListener('click', event => {
+    const option = event.target instanceof Element
+      ? event.target.closest('[data-notification-filter-option]')
+      : null;
+    if (!option) return;
+    document.querySelector(`.notification-filter[data-filter="${option.dataset.notificationFilterOption}"]`)?.click();
+    setMobileFilterMenuOpen(false);
+  });
+  document.addEventListener('click', event => {
+    if (event.target instanceof Node
+      && !mobileFilterMenu?.contains(event.target)
+      && !mobileFilterToggle?.contains(event.target)) {
+      setMobileFilterMenuOpen(false);
+    }
+  });
+  document.addEventListener('keydown', event => {
+    if (event.key === 'Escape' && mobileFilterToggle?.getAttribute('aria-expanded') === 'true') {
+      setMobileFilterMenuOpen(false, true);
+    }
+  });
   document.querySelectorAll('.notification-filter').forEach(button => {
     button.addEventListener('click', () => {
       activeFilter = button.dataset.filter;
@@ -304,6 +535,7 @@
         filterButton.classList.toggle('active', selected);
         filterButton.setAttribute('aria-pressed', String(selected));
       });
+      syncMobileFilterSelection(activeFilter);
       updateNotifications();
     });
   });
@@ -315,6 +547,7 @@
     await backend.markNotificationsRead([notificationId]);
     row.classList.remove('is-unread');
     readNotifications.add(notificationId);
+    newlyReceivedNotificationIds.delete(notificationId);
     updateNotifications();
     window.dispatchEvent(new Event('devmatch:notifications-changed'));
   }
@@ -326,7 +559,10 @@
     markAllReadButton.disabled = true;
     try {
       await backend.markNotificationsRead(ids);
-      ids.forEach(id => readNotifications.add(id));
+      ids.forEach(id => {
+        readNotifications.add(id);
+        newlyReceivedNotificationIds.delete(id);
+      });
       notificationRows.forEach(row => row.classList.remove('is-unread'));
       updateNotifications();
       window.dispatchEvent(new Event('devmatch:notifications-changed'));

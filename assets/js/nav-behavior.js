@@ -3,6 +3,8 @@
 
   const modeSwitchStorageKey = 'devmatch-mode-switch-navigation';
   const accountReturnStorageKey = 'devmatch-account-dropdown-return';
+  const mobileChatReturnUrlStorageKey = 'devmatch-mobile-chat-return-url';
+  let mobileChatHasStoredOrigin = false;
   const modeSwitchSelector = '.mode-switch a, .client-mode-switch a';
   const mobileNavigationBreakpoint = window.matchMedia('(max-width: 820px)');
   const favoritesTabs = document.querySelector('.favorites-page-layout .fav-tabs');
@@ -153,6 +155,49 @@
   }
 
   const header = document.querySelector('header.topbar, header.client-topbar, header.profile-topbar');
+  if (document.body.classList.contains('chat-body')) {
+    const chatBackLink = document.getElementById('mobileChatBack');
+    if (chatBackLink) {
+      const role = new URLSearchParams(location.search).get('role') || 'dev';
+      const referrer = document.referrer ? new URL(document.referrer, location.href) : null;
+      const previousIsChat = referrer?.pathname.endsWith('/devmatch-chat.html');
+      let storedReturnUrl = null;
+      try {
+        const storedUrl = sessionStorage.getItem(mobileChatReturnUrlStorageKey);
+        if (storedUrl) {
+          const previous = new URL(storedUrl, location.href);
+          if (previous.origin === location.origin && !previous.pathname.endsWith('/devmatch-chat.html')) {
+            storedReturnUrl = `${previous.pathname}${previous.search}${previous.hash}`;
+          }
+        }
+      } catch (error) {
+        console.warn('Unable to read the previous mobile page for chat navigation.', error);
+      }
+
+      if (storedReturnUrl) {
+        mobileChatHasStoredOrigin = true;
+        chatBackLink.href = storedReturnUrl;
+      } else if (referrer && referrer.origin === location.origin && !previousIsChat) {
+        chatBackLink.href = `${referrer.pathname}${referrer.search}${referrer.hash}`;
+      } else {
+        chatBackLink.href = role === 'client'
+          ? 'devmatch-discover-projects.html'
+          : 'devmatch-find-projects.html';
+      }
+    } else {
+      try {
+        sessionStorage.removeItem(mobileChatReturnUrlStorageKey);
+      } catch (error) {
+        console.warn('Unable to clear a stale mobile chat return destination.', error);
+      }
+    }
+  } else {
+    try {
+      sessionStorage.removeItem(mobileChatReturnUrlStorageKey);
+    } catch (error) {
+      console.warn('Unable to clear a stale mobile chat return destination.', error);
+    }
+  }
   const sidebar = document.querySelector('body > .sidebar, body > .client-sidebar');
   const modeSwitch = document.querySelector('.mode-switch, .client-mode-switch');
   const mobileSearchBreakpoint = window.matchMedia('(max-width: 600px)');
@@ -694,8 +739,11 @@
           schema: 'public',
           table: 'notifications',
           filter: `recipient_id=eq.${user.id}`
-        }, () => {
+        }, payload => {
           refreshNotificationBadges();
+          if (window.matchMedia('(max-width: 600px)').matches) {
+            window.dispatchEvent(new CustomEvent('devmatch:notification-received', {detail: payload.new}));
+          }
         })
         .on('postgres_changes', {
           event: 'INSERT',
@@ -816,6 +864,36 @@
   document.addEventListener('click', event => {
     if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
     if (!(event.target instanceof Element)) return;
+
+    const mobileChatBackLink = event.target.closest('#mobileChatBack');
+    if (mobileChatBackLink && mobileNavigationBreakpoint.matches && mobileChatHasStoredOrigin) {
+      event.preventDefault();
+      try {
+        sessionStorage.removeItem(mobileChatReturnUrlStorageKey);
+      } catch (error) {
+        console.warn('Unable to clear the mobile chat return destination.', error);
+      }
+      window.history.back();
+      return;
+    }
+
+    const chatLink = event.target.closest('a[href^="devmatch-chat.html"], .floating-chat');
+    if (chatLink && mobileNavigationBreakpoint.matches && !document.body.classList.contains('chat-body')) {
+      const activeItem = document.querySelector('.mobile-bottom-nav__item.active');
+      const activeKey = activeItem?.dataset.mobileNavKey;
+      if (activeKey) {
+        try {
+          sessionStorage.setItem('devmatch-mobile-chat-return-tab', activeKey);
+        } catch (error) {
+          console.warn('Unable to save the previous mobile navigation tab.', error);
+        }
+      }
+      try {
+        sessionStorage.setItem(mobileChatReturnUrlStorageKey, window.location.href);
+      } catch (error) {
+        console.warn('Unable to save the previous mobile page for chat navigation.', error);
+      }
+    }
 
     if (header?.classList.contains('mobile-header-search-open')
       && !event.target.closest('.mobile-header-search, .mobile-search-toggle')) {
