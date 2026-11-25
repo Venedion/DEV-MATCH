@@ -169,8 +169,10 @@
 .project-detail-dialog .preview-project-metrics b{color:#444a57}
 .project-detail-dialog .preview-project-tabs{display:flex;align-items:center;gap:24px;margin:20px -26px 0;padding:0 26px;border-bottom:1px solid #e9eaed}
 .project-detail-dialog .preview-project-tabs>*{min-height:44px;display:flex;align-items:center;color:#6e7380;font-size:12px;font-weight:600;text-decoration:none;white-space:nowrap}
-.project-detail-dialog .preview-project-tabs a:first-child{position:relative;color:#242833}
-.project-detail-dialog .preview-project-tabs a:first-child:after{height:2px;position:absolute;right:0;bottom:-1px;left:0;background:#222328;content:""}
+.project-detail-dialog .preview-project-tabs a{position:relative}
+.project-detail-dialog .preview-project-tabs a[aria-current="location"]{color:#242833}
+.project-detail-dialog .preview-project-tabs a[aria-current="location"]:after{height:2px;position:absolute;right:0;bottom:-1px;left:0;background:#222328;content:""}
+.project-detail-dialog .detail-section[tabindex]{scroll-margin-block-start:16px}
 .project-detail-dialog .detail-main-column>.detail-section{margin:0;padding:23px 26px 0;border:0}
 .project-detail-dialog .comments-section{margin:0;padding:24px;border:1px solid #e5e5e8;border-radius:16px;background:#fff;box-shadow:0 2px 6px #17171908}
 .project-detail-dialog .comments-section .comment-system-heading h2>span.comment-system-count{color:#171719;font-size:15px}

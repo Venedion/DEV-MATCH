@@ -35,14 +35,14 @@
                   <h1 id="projectTitle"></h1>
                   <p class="project-subtitle" id="projectSummary"></p>
                   <div class="preview-project-metrics"><span>◉ <b id="projectViews">0</b> views</span><span>♡ <b id="projectFavorites">0</b> favorites</span></div>
-                  <nav class="preview-project-tabs" aria-label="Project overview sections"><a href="#projectAbout">Overview</a><a href="#projectIncluded">What's included</a><span>Comments</span></nav>
+                  <nav class="preview-project-tabs" aria-label="Project overview sections"><a href="#projectAbout" aria-current="location">Overview</a><a href="#projectIncluded">What's included</a><a href="#projectDetailComments">Comments</a></nav>
                 </div>
-                <section class="detail-section" id="projectAbout">
+                <section class="detail-section" id="projectAbout" tabindex="-1">
                   <h2>About this project</h2>
                   <p id="projectOverview"></p>
                   <p id="projectStack"></p>
                 </section>
-                <section class="detail-section included-section" id="projectIncluded">
+                <section class="detail-section included-section" id="projectIncluded" tabindex="-1">
                   <h2>What's included</h2>
                   <div class="included-grid" id="projectIncludedGrid"></div>
                 </section>
@@ -57,7 +57,7 @@
                   </dl>
                 </section>
               </article>
-              <section class="detail-section comments-section comment-system">
+              <section class="detail-section comments-section comment-system" id="projectDetailComments" tabindex="-1">
                 <div class="comments-heading comment-system-heading"><h2>Comments <span id="commentCount" class="comment-system-count">0</span></h2><label class="sort-comments"><select aria-label="Sort comments"><option>Newest</option><option>Oldest</option></select></label></div>
                 <form class="comment-form comment-system-form" id="commentForm">
                   <span class="comment-avatar comment-system-avatar" id="clientInitials">CL</span>
@@ -286,6 +286,9 @@
     const errorElement=document.getElementById('detailError');
     errorElement.hidden=true;content.hidden=true;
     window.DEVMATCH_SKELETON?.text(document.getElementById('projectTitle'),'Loading project details','56%');
+    dialog.querySelector('.preview-project-tabs [aria-current]')?.removeAttribute('aria-current');
+    dialog.querySelector('.preview-project-tabs a').setAttribute('aria-current','location');
+    dialog.querySelector('.detail-page').scrollTop=0;
     if(!dialog.open){
       modalPageTitle=document.title;
       history.pushState({...history.state,projectDetailDialog:true},'',location.href);
@@ -443,6 +446,17 @@
   document.getElementById('closeProjectDetail').addEventListener('click',()=>dialog.close());
   document.getElementById('projectFavoriteAction').addEventListener('click',toggleProjectFavorite);
   dialog.addEventListener('click',event=>{if(event.target===dialog)dialog.close();});
+  dialog.querySelector('.preview-project-tabs').addEventListener('click',event=>{
+    const link=event.target.closest('.preview-project-tabs a');
+    if(!link)return;
+    event.preventDefault();
+    const section=dialog.querySelector(link.hash);
+    if(!section)return;
+    dialog.querySelector('.preview-project-tabs [aria-current]')?.removeAttribute('aria-current');
+    link.setAttribute('aria-current','location');
+    section.focus({preventScroll:true});
+    section.scrollIntoView({block:'start',inline:'nearest'});
+  });
   dialog.addEventListener('close',()=>{
     document.title=modalPageTitle||pageTitle;
     if(document.body.dataset.projectDetailRoute==='true'&&!document.referrer){

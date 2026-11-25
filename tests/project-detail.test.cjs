@@ -84,8 +84,8 @@ test('Discover project detail popup separates the comments card from project det
   assert.match(styles,/\.project-detail-dialog \.comments-section\{margin:0;padding:24px;border:1px solid #e5e5e8;border-radius:16px;background:#fff;box-shadow:0 2px 6px #17171908\}/);
   assert.match(styles,/\.comments-section \.comment-system-heading h2>span\.comment-system-count\{color:#171719;font-size:15px\}/);
   assert.match(styles,/\.comments-section \.comment-reply-form\.comment-system-reply-form textarea\{min-height:108px/);
-  assert.match(discover,/assets\/css\/project-detail\.css\?v=20261123-comment-section-match-find-v2/);
-  assert.match(discover,/assets\/js\/project-detail\.js\?v=20261123-comment-section-match-find-v2/);
+  assert.match(discover,/assets\/css\/project-detail\.css\?v=20261125-preview-section-navigation/);
+  assert.match(discover,/assets\/js\/project-detail\.js\?v=20261125-preview-section-navigation/);
 });
 
 test('Every comment page loads the shared comment presentation',()=>{

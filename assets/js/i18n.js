@@ -560,6 +560,8 @@
     'Pricing type': 'Jenis harga',
     'Not added': 'Belum ditambahkan',
     'Comments will appear here once your project is published.': 'Komentar akan muncul di sini setelah proyek dipublikasikan.',
+    'Open published comments': 'Buka komentar proyek',
+    'This project is published. Changes made here are shown in the preview.': 'Proyek ini sudah dipublikasikan. Perubahan di sini ditampilkan dalam pratinjau.',
     'PRICING NOT SELECTED': 'HARGA BELUM DIPILIH',
     'Price not set': 'Harga belum ditetapkan',
     'Final price depends on project scope and add-ons.': 'Harga akhir bergantung pada cakupan proyek dan layanan tambahan.',

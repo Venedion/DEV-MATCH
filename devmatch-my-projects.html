@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="assets/css/dashboard.css?v=20261118-hide-favorites-nav-badge">
-  <link rel="stylesheet" href="assets/css/my-projects.css?v=20261125-bottom-nav-responsive-breakpoint-v1">
+  <link rel="stylesheet" href="assets/css/my-projects.css?v=20261125-preview-section-navigation">
   <link rel="stylesheet" href="assets/css/mode-switch-animation.css?v=20261030-active-indicator">
   <link rel="stylesheet" href="assets/css/mobile-navigation.css?v=20261125-bottom-nav-responsive-breakpoint-v1">
   <link rel="stylesheet" href="assets/css/arrow-motion.css?v=20261118-arrow-motion-global-v2">
@@ -141,7 +141,7 @@
       <header class="preview-popup-header"><strong>Project overview preview</strong><button class="preview-popup-close" type="button" data-close-project-preview aria-label="Close project preview">×</button></header>
       <div class="preview-mode-banner">
         <span class="preview-mode-icon" aria-hidden="true">◉</span>
-        <div><strong>Preview mode — this is exactly what clients will see</strong><p>Your project isn’t public yet. Views, favorites and comments start after publishing.</p></div>
+        <div><strong>Preview mode — this is exactly what clients will see</strong><p id="previewVisibilityText">Your project isn’t public yet. Views, favorites and comments start after publishing.</p></div>
         <div class="preview-mode-actions"><button class="editor-button" type="button" data-exit-preview>Back to edit</button><button class="add-project primary-add publish-button arrow-action" type="button" data-publish-preview>Publish project <svg class="arrow-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12h20M17 8l5 4-5 4"/></svg></button></div>
       </div>
       <div class="project-preview-layout">
@@ -151,14 +151,14 @@
             <div class="preview-gallery-thumbnails" id="previewGalleryThumbnails"></div>
           </section>
           <div class="preview-project-body">
-            <div class="preview-project-category"><span id="previewModeCategory">Project category</span><span>· Draft — not published</span></div>
+            <div class="preview-project-category"><span id="previewModeCategory">Project category</span><span id="previewVisibilityLabel">· Draft — not published</span></div>
             <h1 id="previewModeTitle">Untitled project</h1>
-            <div class="preview-project-metrics"><span>◉ <b>0</b> views</span><span>♡ <b>0</b> favorites</span><span>▢ <b>0</b> comments</span></div>
-            <nav class="preview-project-tabs" aria-label="Project overview sections"><a href="#previewAbout">Overview</a><a href="#previewIncluded">What’s included</a><span>Comments (0)</span></nav>
-            <section class="preview-description-section" id="previewAbout"><h2>About this project</h2><p id="previewModeDescription">Add a description so clients can understand what this project offers.</p><p id="previewModeLinkWrap" hidden><a id="previewModeLink" target="_blank" rel="noopener noreferrer"></a></p></section>
-            <section class="preview-included-section" id="previewIncluded"><h2>What’s included</h2><div id="previewModeServices" class="preview-service-grid"><p class="preview-no-services">No included services selected.</p></div></section>
+            <div class="preview-project-metrics"><span>◉ <b>0</b> views</span><span>♡ <b>0</b> favorites</span><span>▢ <b id="previewCommentsMetric">0</b> comments</span></div>
+            <nav class="preview-project-tabs" aria-label="Project overview sections"><a href="#previewAbout" aria-current="location">Overview</a><a href="#previewIncluded">What’s included</a><a href="#previewComments">Comments (<span id="previewCommentsCount">0</span>)</a></nav>
+            <section class="preview-description-section" id="previewAbout" tabindex="-1"><h2>About this project</h2><p id="previewModeDescription">Add a description so clients can understand what this project offers.</p><p id="previewModeLinkWrap" hidden><a id="previewModeLink" target="_blank" rel="noopener noreferrer"></a></p></section>
+            <section class="preview-included-section" id="previewIncluded" tabindex="-1"><h2>What’s included</h2><div id="previewModeServices" class="preview-service-grid"><p class="preview-no-services">No included services selected.</p></div></section>
             <section class="preview-details-section"><h2>Project details</h2><dl><div><dt>Project type</dt><dd id="previewDetailsType">Not selected</dd></div><div><dt>Category</dt><dd id="previewDetailsCategory">Not selected</dd></div><div><dt>Pricing type</dt><dd id="previewDetailsPricing">Not selected</dd></div><div><dt>Project link</dt><dd id="previewDetailsLink">Not added</dd></div></dl></section>
-            <section class="preview-comments-section"><h2>Comments <span>0</span></h2><p>Comments will appear here once your project is published.</p></section>
+            <section class="preview-comments-section" id="previewComments" tabindex="-1"><h2>Comments</h2><p id="previewCommentsDraft">Comments will appear here once your project is published.</p><a id="previewPublishedComments" hidden>Open published comments</a></section>
           </div>
         </article>
         <aside class="preview-project-sidebar">
@@ -212,7 +212,7 @@
     <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5c-5 0-9 3.65-9 8.15 0 2.24 1.04 4.27 2.73 5.74L4.7 21l5.24-1.28c.67.12 1.36.18 2.06.18 5 0 9-3.65 9-8.15S17 3.5 12 3.5Z"/><circle cx="8.5" cy="11.7" r="1" fill="currentColor" stroke="none"/><circle cx="12" cy="11.7" r="1" fill="currentColor" stroke="none"/><circle cx="15.5" cy="11.7" r="1" fill="currentColor" stroke="none"/></svg>
   </a>
   <script src="assets/js/money-input.js?v=20261121-rupiah-live-format-v1"></script>
-  <script src="assets/js/my-projects.js?v=20261125-bottom-nav-responsive-breakpoint-v1"></script>
+  <script src="assets/js/my-projects.js?v=20261125-preview-section-navigation"></script>
   <script src="assets/js/nav-behavior.js?v=20261125-bottom-nav-responsive-breakpoint-v1"></script>
 <script src="assets/js/presence.js?v=20261119-global"></script>
 </body>

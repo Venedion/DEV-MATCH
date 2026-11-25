@@ -406,6 +406,19 @@ function displayProjectChoice(value,detail,fallback){
   return value==='Other'&&detail?`Other: ${detail}`:value;
 }
 function populatePreviewMode(project){
+  const publishedProject=projects.find(item=>item.id===editingId&&item.status==='published');
+  const commentCount=String(publishedProject?.comments??0);
+  document.getElementById('previewCommentsCount').textContent=commentCount;
+  document.getElementById('previewCommentsMetric').textContent=commentCount;
+  document.getElementById('previewVisibilityLabel').textContent=publishedProject?'· Published project':'· Draft — not published';
+  document.getElementById('previewVisibilityText').textContent=publishedProject
+    ?'This project is published. Changes made here are shown in the preview.'
+    :'Your project isn’t public yet. Views, favorites and comments start after publishing.';
+  const commentsLink=document.getElementById('previewPublishedComments');
+  commentsLink.hidden=!publishedProject;
+  document.getElementById('previewCommentsDraft').hidden=Boolean(publishedProject);
+  if(publishedProject)commentsLink.href='devmatch-discover-project-detail.html?project='+encodeURIComponent(publishedProject.id)+'#commentsSection';
+  else commentsLink.removeAttribute('href');
   document.getElementById('previewModeType').textContent=displayProjectChoice(project.type,project.typeOther,'Project type');
   document.getElementById('previewModeCategory').textContent=displayProjectChoice(project.category,project.categoryOther,'Project category');
   document.getElementById('previewModeTitle').textContent=project.title||'Untitled project';
@@ -513,7 +526,10 @@ function populatePreviewMode(project){
 function showProjectPreview(project){
   populatePreviewMode(project);
   const previewDialog=document.getElementById('projectPreviewMode');
+  previewDialog.querySelector('.preview-project-tabs [aria-current]')?.removeAttribute('aria-current');
+  previewDialog.querySelector('.preview-project-tabs a').setAttribute('aria-current','location');
   if(!previewDialog.open)previewDialog.showModal();
+  previewDialog.scrollTop=0;
 }
 function closeProjectPreview(){
   const previewDialog=document.getElementById('projectPreviewMode');
@@ -885,6 +901,18 @@ document.querySelector('[data-exit-preview]').addEventListener('click',()=>{
 document.querySelector('[data-close-project-preview]').addEventListener('click',closeProjectPreview);
 document.getElementById('projectPreviewMode').addEventListener('click',event=>{
   if(event.target===event.currentTarget)closeProjectPreview();
+});
+document.querySelector('#projectPreviewMode .preview-project-tabs').addEventListener('click',event=>{
+  const previewDialog=event.currentTarget.closest('dialog');
+  const link=event.target.closest('.preview-project-tabs a');
+  if(!link)return;
+  event.preventDefault();
+  const section=previewDialog.querySelector(link.hash);
+  if(!section)return;
+  previewDialog.querySelector('.preview-project-tabs [aria-current]')?.removeAttribute('aria-current');
+  link.setAttribute('aria-current','location');
+  section.focus({preventScroll:true});
+  section.scrollIntoView({block:'start',inline:'nearest'});
 });
 document.querySelector('[data-publish-preview]').addEventListener('click',()=>{
   closeProjectPreview();

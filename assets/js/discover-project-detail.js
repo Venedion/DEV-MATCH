@@ -140,14 +140,28 @@
     document.getElementById('previewHeading').textContent=project.title;
     document.getElementById('previewDescription').textContent=project.description;
     document.getElementById('thumbnailTitle').textContent=project.title;
-    document.querySelectorAll('[data-project-tab]').forEach(button=>button.addEventListener('click',()=>{
-      const selected=button.dataset.projectTab;
-      const targets={overview:'detailOverviewSection',details:'detailFactsSection',comments:'commentsSection'};
-      document.querySelectorAll('[data-project-tab]').forEach(tab=>{
-        const active=tab===button;tab.classList.toggle('is-active',active);tab.setAttribute('aria-selected',String(active));
+    const targets={overview:'detailOverviewSection',included:'detailIncludedSection',details:'detailFactsSection',comments:'commentsSection'};
+    const tabs=document.querySelectorAll('[data-project-tab]');
+    tabs.forEach(button=>button.addEventListener('click',()=>{
+      tabs.forEach(tab=>{
+        const active=tab===button;
+        tab.classList.toggle('is-active',active);
+        if(active)tab.setAttribute('aria-current','location');
+        else tab.removeAttribute('aria-current');
       });
-      document.getElementById(targets[selected]).scrollIntoView({behavior:'smooth',block:'start'});
+      const section=document.getElementById(targets[button.dataset.projectTab]);
+      section.focus({preventScroll:true});
+      section.scrollIntoView({block:'start',inline:'nearest'});
     }));
+    const services=[...new Set(Array.isArray(project.services)?project.services:[])];
+    const included=document.getElementById('detailIncludedServices');
+    included.replaceChildren(...services.map(service=>{
+      const item=document.createElement('li');
+      item.textContent=service;
+      return item;
+    }));
+    included.hidden=!services.length;
+    document.getElementById('detailIncludedEmpty').hidden=Boolean(services.length);
     document.getElementById('detailTypeFull').textContent=project.type;
     document.getElementById('detailCategory').textContent=project.category;
     document.getElementById('detailCreatedFull').textContent=project.created;
@@ -344,10 +358,10 @@
       catch(error){console.error('Unable to save the project comment to Supabase.',error);window.alert('Unable to post your comment. Please log in and try again.');}
     });
     document.getElementById('commentInput').addEventListener('input',event=>event.target.setCustomValidity(''));
-    if(location.hash==='#commentsSection')document.querySelector('[data-project-tab="comments"]').click();
     if(commentsFailed)status.textContent='Project details loaded, but comments could not be loaded.';
     else if(viewRecordFailed)status.textContent='Project details loaded, but the view could not be recorded.';
     status.hidden=!commentsFailed&&!viewRecordFailed;
+    if(location.hash==='#commentsSection')document.querySelector('[data-project-tab="comments"]').click();
   }catch(error){
     console.error('Unable to load the public project from Supabase.',error);
     status.textContent='Project details could not be loaded. Check your connection and try again.';

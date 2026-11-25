@@ -12,7 +12,7 @@
   <link rel="stylesheet" href="assets/css/client-shell.css?v=20261030-header-size-match">
   <link rel="stylesheet" href="assets/css/mode-switch-animation.css?v=20261030-active-indicator">
   <link rel="stylesheet" href="assets/css/mobile-navigation.css?v=20261125-bottom-nav-responsive-breakpoint-v1">
-  <link rel="stylesheet" href="assets/css/discover-project-detail.css?v=20261123-comments-reference-style-v1">
+  <link rel="stylesheet" href="assets/css/discover-project-detail.css?v=20261125-preview-section-navigation">
   <link rel="stylesheet" href="assets/css/project-detail-popup.css?v=20261120-popup-detail">
   <link rel="stylesheet" href="assets/css/arrow-motion.css?v=20261118-arrow-motion-global-v2">
   <link rel="stylesheet" href="assets/css/favorite-feedback.css?v=20261125-bottom-nav-responsive-breakpoint-v1">
@@ -80,16 +80,22 @@
           <h1 class="discover-project-title" id="detailTitle"></h1>
           <div class="discover-project-stats"><span id="projectCommentsStat">0 comments</span></div>
           <nav class="discover-project-tabs" aria-label="Project details">
-            <button type="button" class="is-active" data-project-tab="overview" aria-selected="true">Overview</button>
-            <button type="button" data-project-tab="details" aria-selected="false">Project details</button>
-            <button type="button" data-project-tab="comments" aria-selected="false">Comments <span id="detailCommentCount">0</span></button>
+            <button type="button" class="is-active" data-project-tab="overview" aria-current="location">Overview</button>
+            <button type="button" data-project-tab="included">What’s included</button>
+            <button type="button" data-project-tab="details">Project details</button>
+            <button type="button" data-project-tab="comments">Comments <span id="detailCommentCount">0</span></button>
           </nav>
-          <section class="discover-detail-section" id="detailOverviewSection">
+          <section class="discover-detail-section" id="detailOverviewSection" tabindex="-1">
             <h2>About this project</h2>
             <p id="detailOverview"></p>
             <p class="discover-stack-copy">Technology: <span id="detailStack"></span></p>
           </section>
-          <section class="discover-detail-section" id="detailFactsSection">
+          <section class="discover-detail-section" id="detailIncludedSection" tabindex="-1">
+            <h2>What’s included</h2>
+            <ul class="discover-included-services" id="detailIncludedServices" hidden></ul>
+            <p id="detailIncludedEmpty">No included services selected.</p>
+          </section>
+          <section class="discover-detail-section" id="detailFactsSection" tabindex="-1">
             <h2>Project details</h2>
             <dl class="discover-project-facts">
               <div><dt>Project type</dt><dd id="detailTypeFull"></dd></div>
@@ -99,7 +105,7 @@
               <div><dt>Created</dt><dd id="detailCreatedFull"></dd></div>
             </dl>
           </section>
-          <section class="discover-detail-section discover-comments comment-system" id="commentsSection" aria-labelledby="commentsHeading">
+          <section class="discover-detail-section discover-comments comment-system" id="commentsSection" tabindex="-1" aria-labelledby="commentsHeading">
             <header class="discover-comments-heading comment-system-heading">
               <h2 id="commentsHeading">Comments <span id="commentsHeadingCount" class="comment-system-count">0</span></h2>
               <label>
@@ -150,7 +156,7 @@
     <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5c-5 0-9 3.65-9 8.15 0 2.24 1.04 4.27 2.73 5.74L4.7 21l5.24-1.28c.67.12 1.36.18 2.06.18 5 0 9-3.65 9-8.15S17 3.5 12 3.5Z"/><circle cx="8.5" cy="11.7" r="1" fill="currentColor" stroke="none"/><circle cx="12" cy="11.7" r="1" fill="currentColor" stroke="none"/><circle cx="15.5" cy="11.7" r="1" fill="currentColor" stroke="none"/></svg>
   </a>
   <script src="assets/js/favorite-feedback.js?v=20261125-bottom-nav-responsive-breakpoint-v1"></script>
-  <script src="assets/js/discover-project-detail.js?v=20261123-fluent-shimmer-v1"></script>
+  <script src="assets/js/discover-project-detail.js?v=20261125-preview-section-navigation"></script>
   <script src="assets/js/project-detail-route-popup.js?v=20261120-popup-detail"></script>
   <script src="assets/js/nav-behavior.js?v=20261125-bottom-nav-responsive-breakpoint-v1"></script>
 <script src="assets/js/presence.js?v=20261119-global"></script>
