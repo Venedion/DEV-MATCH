@@ -599,7 +599,6 @@ async function finish(){
   await Promise.all(experienceFiles.values());
   const age=profile.birthday?Math.max(0,Math.floor((Date.now()-new Date(profile.birthday).getTime())/(365.2425*24*60*60*1000))):null;
   const saved={...profile,role,whatsappConnected:Boolean(profile.whatsapp),googleConnected:false,ageRange:age===null?'':age<18?'Under 18':age<25?'18–24':age<35?'25–34':age<45?'35–44':'45+'};
-  delete saved.birthday;
   const backend=window.devMatchBackend;
   const user=await backend.ready;
   if(!user)throw new Error('Please log in to save your profile.');

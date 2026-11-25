@@ -24,7 +24,7 @@ test('developer mode markers use the supplied icon throughout the UI',()=>{
   assert.match(authJs,/class="developer-mode-icon"/);
   assert.doesNotMatch(authJs,/&lt;&gt;/);
   assert.match(authHtml,/developer-mode-icon\.css\?v=20261125-developer-mode-icon-v2/);
-  assert.match(authHtml,/auth\.js\?v=20261126-rebase-merge-v1/);
+  assert.match(authHtml,/auth\.js\?v=20261126-username-validation-v1/);
   assert.match(profileJs,/workspaceIcon\.innerHTML='<span class="developer-mode-icon"/);
   assert.doesNotMatch(profileJs,/workspaceIcon\.textContent='<\/>'/);
   assert.match(profileHtml,/my-profile\.js\?v=20261127-mobile-profile-redesign-v1/);

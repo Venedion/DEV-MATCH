@@ -21,8 +21,8 @@
   <script src="assets/js/mode-switch-state.js?v=20261030-client-mode-indicator"></script>
   <script src="assets/js/i18n.js?v=20261119-experience-delete-undo"></script>
 <script src="assets/vendor/supabase-2.119.0.js"></script>
-<script src="assets/js/backend.js?v=20261125-responsive-orientation-v1"></script>
-<link rel="stylesheet" href="assets/css/form-controls.css?v=20261126-scrollbar-hidden-v1">
+<script src="assets/js/backend.js?v=20261126-username-validation-v1"></script>
+<link rel="stylesheet" href="assets/css/form-controls.css?v=20261126-placeholder-unified-v1">
 <link rel="stylesheet" href="assets/css/developer-mode-icon.css?v=20261125-developer-mode-icon-v2">
 </head>
 <body class="page-scroll-shell">
@@ -157,7 +157,11 @@
 
               <div class="settings-field">
                 <label class="settings-label" for="settingsUsername">Username</label>
-                <input class="settings-input" id="settingsUsername" type="text" readonly placeholder="e.g. rizkyaditya">
+                <input class="settings-input" id="settingsUsername" type="text" autocomplete="username" placeholder="e.g. rizkyaditya" aria-describedby="settingsUsernamePolicy settingsUsernameError settingsUsernameStatus">
+                <span class="settings-hint" id="settingsUsernamePolicy">You can change your username once every 7 days. Use 3–20 characters, including letters, numbers, periods (.) and underscores (_).</span>
+                <span class="settings-field-error" id="settingsUsernameError" role="alert" hidden></span>
+                <span class="settings-hint" id="settingsUsernameStatus" role="status" aria-live="polite"></span>
+                <button class="settings-btn" id="saveUsername" type="button" disabled>Update username</button>
               </div>
 
               <div class="settings-field">
@@ -173,6 +177,32 @@
                 <label class="settings-label" for="settingsWhatsapp">WhatsApp Number</label>
                 <input class="settings-input" id="settingsWhatsapp" type="tel" placeholder="6281234567890">
                 <span class="settings-hint">Clients can contact you directly via one-tap WhatsApp.</span>
+              </div>
+
+              <div class="settings-field">
+                <label class="settings-label" for="settingsGender">Gender</label>
+                <select class="settings-select" id="settingsGender">
+                  <option value="">Select gender</option>
+                  <option value="Male">Male</option>
+                  <option value="Female">Female</option>
+                  <option value="Prefer not to say">Prefer not to say</option>
+                </select>
+              </div>
+
+              <div class="settings-field">
+                <label class="settings-label" for="settingsBirthday">Birthday</label>
+                <input class="settings-input" id="settingsBirthday" type="date">
+                <span class="settings-hint" id="settingsBirthdayHint">Private. Only your age range is shown publicly.</span>
+              </div>
+
+              <div class="settings-field">
+                <label class="settings-label" for="settingsWebsite">Website or portfolio</label>
+                <input class="settings-input" id="settingsWebsite" type="url" maxlength="300" placeholder="https://example.com">
+              </div>
+
+              <div class="settings-field">
+                <label class="settings-label" for="settingsInstagram">Instagram</label>
+                <input class="settings-input" id="settingsInstagram" type="url" maxlength="300" placeholder="https://instagram.com/username">
               </div>
 
               <div class="settings-field span-2">
@@ -246,7 +276,7 @@
                   <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L8 18l-4 1 1-4Z"/></svg>
                   <span>Edit</span>
                 </button>
-                <p>Update the skills shown on your public profile.</p>
+                <p id="settingsSkillsDescription">Update the skills shown on your public profile.</p>
               </header>
               <section class="settings-field settings-skill-section">
                 <div class="settings-skill-editor" id="settingsSkillEditor">
@@ -424,7 +454,7 @@
                   <input class="settings-input" id="settingsMinProject" type="text" inputmode="numeric" autocomplete="off" placeholder="Rp 3.500.000">
                 </div>
 
-                <div class="settings-field span-2">
+                <div class="settings-field">
                   <label class="settings-label" for="settingsAvailability">Hiring Availability Status</label>
                   <select class="settings-select" id="settingsAvailability">
                     <option value="" disabled selected>Select availability</option>
@@ -432,6 +462,20 @@
                     <option value="Freelance">Freelance (Select projects only)</option>
                     <option value="Busy">Busy (Limited capacity)</option>
                     <option value="Not available">Not available</option>
+                  </select>
+                </div>
+
+                <div class="settings-field">
+                  <label class="settings-label" for="settingsExperienceLevel">Years of Experience</label>
+                  <select class="settings-select" id="settingsExperienceLevel">
+                    <option value="">Choose experience</option>
+                    <option>1 year</option>
+                    <option>2 years</option>
+                    <option>3 years</option>
+                    <option>4 years</option>
+                    <option>5 years</option>
+                    <option>6 years</option>
+                    <option>7+ years</option>
                   </select>
                 </div>
               </div>
@@ -477,7 +521,14 @@
 
                 <div class="settings-field">
                   <label class="settings-label" for="settingsIndustry">Industry Sector</label>
-                  <input class="settings-input" id="settingsIndustry" type="text" placeholder="Enter your industry">
+                  <select class="settings-select" id="settingsIndustry">
+                    <option value="">Choose an industry</option>
+                  </select>
+                </div>
+
+                <div class="settings-field span-2">
+                  <label class="settings-label" for="settingsProject">Project Brief</label>
+                  <textarea class="settings-textarea" id="settingsProject" maxlength="700" placeholder="Describe the features, audience, and goals for your project"></textarea>
                 </div>
 
                 <div class="settings-field span-2">
@@ -842,7 +893,8 @@
   </a>
 
   <script src="assets/js/client-profile-options.js?v=20261123-client-profile-options-v1"></script>
-  <script src="assets/js/settings.js?v=20261125-responsive-orientation-v1"></script>
+  <script src="assets/js/username-validation.js?v=20261126-username-validation-v1"></script>
+  <script src="assets/js/settings.js?v=20261126-username-validation-v1"></script>
   <script src="assets/js/custom-select.js?v=20261028-custom-dropdowns-v3"></script>
   <script src="assets/js/nav-behavior.js?v=20261125-responsive-orientation-v1"></script>
 <script src="assets/js/presence.js?v=20261119-global"></script>

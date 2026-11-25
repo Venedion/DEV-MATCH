@@ -15,6 +15,10 @@ test('mobile profile uses the unboxed portrait layout and keeps desktop identity
   assert.match(profileHtml,/<div class="mobile-profile-stats" role="group" aria-label="Profile statistics">/);
 });
 
+test('mobile profile information cards use a single content-sized column',()=>{
+  assert.match(profileCss,/@media\s*\(orientation:\s*portrait\)\s*\{\s*\.profile-details\{\s*grid-template-columns:minmax\(0,1fr\);\s*align-items:start;\s*align-content:start;\s*gap:clamp\(12px,2\.4vw,16px\);\s*\}\s*\.profile-details>\.profile-card\{\s*height:auto;\s*min-height:0;\s*\}\s*\.profile-details>\.contact-card\{grid-column:auto\}/);
+});
+
 test('mobile profile stats retain zero and unavailable-rating defaults from existing data',()=>{
   assert.match(profileHtml,/id="mobileStatViews">0<\/strong>/);
   assert.match(profileHtml,/id="mobileStatFavorites">0<\/strong>/);

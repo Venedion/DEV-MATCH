@@ -39,6 +39,25 @@
   const storageKey = isDeveloper ? 'devmatch-profile-dev' : 'devmatch-profile-client';
   let privateProfileFieldsLoaded = false;
 
+  function configureRoleSpecificSettings() {
+    document.getElementById('developerSpecificFields').hidden = !isDeveloper;
+    document.getElementById('clientSpecificFields').hidden = isDeveloper;
+    document.getElementById('roleTabLabel').textContent = isDeveloper ? 'Rates & Payouts' : 'Company & Project';
+    document.getElementById('roleHeaderTitle').textContent = isDeveloper ? 'Developer Rates & Payout Settings' : 'Client Company & Project Settings';
+    document.getElementById('roleHeaderDesc').textContent = isDeveloper
+      ? 'Configure your baseline pricing, accepted engagements, and bank payout details.'
+      : 'Manage the business information and project requirements shown to developers.';
+    document.getElementById('settingsSkillsHeading').textContent = isDeveloper ? 'Skills & Tech Stacks' : 'Preferred Skills & Technology';
+    document.getElementById('settingsSkillsDescription').textContent = isDeveloper
+      ? 'Update the skills shown on your public profile.'
+      : 'Update the skills or technologies you prefer for your project.';
+    document.getElementById('editProfileSkills').setAttribute('aria-label', isDeveloper ? 'Edit Skills & Tech Stacks' : 'Edit Preferred Skills & Technology');
+    document.getElementById('settingsSpecialtyCard').hidden = !isDeveloper;
+    document.getElementById('settingsExperienceCard').hidden = !isDeveloper;
+  }
+
+  configureRoleSpecificSettings();
+
   // Load profile from localStorage
   function getProfile() {
     try {
@@ -57,17 +76,18 @@
   }
 
   let profileData = getProfile();
-  const connectionDefaults = {
-    whatsappConnected: Boolean(String(profileData.whatsapp || '').replace(/\D/g, '')),
-    githubConnected: Boolean(profileData.githubUsername || profileData.github || profileData.githubUrl),
-    googleConnected: false,
-    linkedinConnected: Boolean(profileData.linkedinUrl || profileData.linkedin)
-  };
-  Object.entries(connectionDefaults).forEach(([field, defaultValue]) => {
-    if (typeof profileData[field] !== 'boolean') {
-      profileData[field] = defaultValue;
-    }
-  });
+  function applyConnectionDefaults(profile) {
+    const connectionDefaults = {
+      whatsappConnected: Boolean(String(profile.whatsapp || '').replace(/\D/g, '')),
+      githubConnected: Boolean(profile.githubUsername || profile.github || profile.githubUrl),
+      googleConnected: false,
+      linkedinConnected: Boolean(profile.linkedinUrl || profile.linkedin)
+    };
+    Object.entries(connectionDefaults).forEach(([field, defaultValue]) => {
+      if (typeof profile[field] !== 'boolean') profile[field] = defaultValue;
+    });
+  }
+  applyConnectionDefaults(profileData);
 
   let profileSkills = [];
   let isEditingSkills = false;
@@ -110,6 +130,22 @@
       return skills.length ? [...new Map(skills.map(skill => [skill.toLowerCase(), skill])).values()] : fallback;
     }
     return fallback;
+  }
+
+  function getAgeRangeFromBirthday(value) {
+    if (!value) return '';
+    const birthday = new Date(value);
+    if (Number.isNaN(birthday.getTime())) return '';
+    const age = Math.max(0, Math.floor((Date.now() - birthday.getTime()) / (365.2425 * 24 * 60 * 60 * 1000)));
+    if (age < 18) return 'Under 18';
+    if (age < 25) return '18–24';
+    if (age < 35) return '25–34';
+    if (age < 45) return '35–44';
+    return '45+';
+  }
+
+  function localDateValue(date = new Date()) {
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
   }
 
   function normalizeSpecialties(value) {
@@ -801,7 +837,17 @@
     };
     setVal('settingsDisplayName', profileData.displayName);
     setVal('settingsUsername', profileData.username || '');
+    savedUsername = window.DEVMATCH_USERNAME.normalize(profileData.username || '');
+    validateSettingsUsername();
     setVal('settingsEmail', profileData.email || '');
+    setVal('settingsGender', profileData.gender || '');
+    setVal('settingsBirthday', profileData.birthday || '');
+    document.getElementById('settingsBirthday').max = localDateValue();
+    document.getElementById('settingsBirthdayHint').textContent = !profileData.birthday && profileData.ageRange
+      ? 'Your existing age range is preserved. Birthday was not retained from earlier setup; enter it to update your age range.'
+      : 'Private. Only your age range is shown publicly.';
+    setVal('settingsWebsite', profileData.website || '');
+    setVal('settingsInstagram', profileData.instagram || '');
     profileData.country = settingsLocationCountries.includes(profileData.country)
       ? profileData.country
       : 'Indonesia';
@@ -814,6 +860,11 @@
     renderSettingsLocationControls();
     setVal('settingsBio', profileData.bio || '');
     setVal('settingsWhatsapp', profileData.whatsapp || '');
+    const industrySelect = document.getElementById('settingsIndustry');
+    const industries = window.DEVMATCH_CLIENT_PROFILE_OPTIONS.businessTypes;
+    const industry = String(profileData.industry || '');
+    industrySelect.innerHTML = `<option value="">Choose an industry</option>${industries.map(item => `<option value="${escapeHtml(item)}">${escapeHtml(item)}</option>`).join('')}${industry && !industries.includes(industry) ? `<option value="${escapeHtml(industry)}">${escapeHtml(industry)}</option>` : ''}`;
+    industrySelect.value = industry;
     profileSkills = normalizeSkills(profileData.skills, []);
     renderSkillTags();
     profileSpecialties = normalizeSpecialties(profileData.specialty);
@@ -850,12 +901,14 @@
       setVal('settingsHourlyRate', formatRupiah(profileData.hourlyRate || ''));
       setVal('settingsMinProject', formatRupiah(profileData.minProjectPrice || ''));
       setVal('settingsAvailability', profileData.availability || '');
+      setVal('settingsExperienceLevel', profileData.experience || '');
       setVal('settingsBankName', profileData.bankName || '');
       setVal('settingsBankAccount', profileData.accountNumber || '');
       setVal('settingsAccountHolder', profileData.accountHolder || '');
     } else {
       setVal('settingsCompanyName', profileData.companyName || '');
       setVal('settingsIndustry', profileData.industry || '');
+      setVal('settingsProject', profileData.project || '');
       setVal('settingsNpwp', profileData.npwp || '');
     }
 
@@ -933,28 +986,150 @@
   async function persistProfile(value, options){
     await window.devMatchBackend.saveProfile(value, options);
   }
-  // Identity changes require a separate verified flow, not a profile save.
-  ['settingsEmail','settingsUsername'].forEach(id=>{
-    const input=document.getElementById(id);
-    if(input){input.readOnly=true;input.title='This account identifier cannot be changed here.';}
+  const settingsUsernameInput = document.getElementById('settingsUsername');
+  const settingsUsernameError = document.getElementById('settingsUsernameError');
+  const settingsUsernameStatus = document.getElementById('settingsUsernameStatus');
+  const saveUsernameButton = document.getElementById('saveUsername');
+  let savedUsername = window.DEVMATCH_USERNAME.normalize(profileData.username || '');
+  let usernameValidationTimer;
+  let usernameValidationRequest = 0;
+
+  function setUsernameError(message) {
+    settingsUsernameError.textContent = message || '';
+    settingsUsernameError.hidden = !message;
+    if (message) settingsUsernameInput.setAttribute('aria-invalid', 'true');
+    else settingsUsernameInput.removeAttribute('aria-invalid');
+  }
+
+  function usernameChangeIsRestricted() {
+    const changedAt = Date.parse(profileData.usernameChangedAt || '');
+    return Number.isFinite(changedAt)
+      && Date.now() < changedAt + window.DEVMATCH_USERNAME.cooldownMs;
+  }
+
+  function validateSettingsUsername() {
+    const raw = settingsUsernameInput.value;
+    const username = window.DEVMATCH_USERNAME.normalize(raw);
+    if (raw !== username) settingsUsernameInput.value = username;
+    clearTimeout(usernameValidationTimer);
+    const requestId = ++usernameValidationRequest;
+    settingsUsernameStatus.textContent = '';
+
+    if (username === savedUsername) {
+      setUsernameError('');
+      saveUsernameButton.disabled = true;
+      return;
+    }
+
+    const validation = window.DEVMATCH_USERNAME.validate(username);
+    if (!validation.valid) {
+      setUsernameError(validation.message);
+      saveUsernameButton.disabled = true;
+      return;
+    }
+
+    if (usernameChangeIsRestricted()) {
+      setUsernameError(window.DEVMATCH_USERNAME.messages.cooldown);
+      saveUsernameButton.disabled = true;
+      return;
+    }
+
+    const uppercaseNotice = raw !== username
+      && window.DEVMATCH_USERNAME.validate(raw).message === window.DEVMATCH_USERNAME.messages.lowercase;
+    setUsernameError(uppercaseNotice ? window.DEVMATCH_USERNAME.messages.lowercase : '');
+    settingsUsernameStatus.textContent = 'Checking username availability…';
+    saveUsernameButton.disabled = true;
+
+    usernameValidationTimer = setTimeout(async () => {
+      try {
+        const available = await window.DEVMATCH_USERNAME.isAvailable(username);
+        if (requestId !== usernameValidationRequest || settingsUsernameInput.value !== username) return;
+        if (!available) {
+          setUsernameError(window.DEVMATCH_USERNAME.messages.taken);
+          settingsUsernameStatus.textContent = '';
+          saveUsernameButton.disabled = true;
+          return;
+        }
+        setUsernameError('');
+        settingsUsernameStatus.textContent = 'Username is available.';
+        saveUsernameButton.disabled = false;
+      } catch (error) {
+        if (requestId !== usernameValidationRequest) return;
+        console.error('Unable to check username availability.', error);
+        setUsernameError('Unable to check username right now. Please try again.');
+        settingsUsernameStatus.textContent = '';
+        saveUsernameButton.disabled = true;
+      }
+    }, 400);
+  }
+
+  settingsUsernameInput.addEventListener('input', validateSettingsUsername);
+  saveUsernameButton.addEventListener('click', async () => {
+    const username = window.DEVMATCH_USERNAME.normalize(settingsUsernameInput.value);
+    const validation = window.DEVMATCH_USERNAME.validate(username);
+    if (!validation.valid) {
+      setUsernameError(validation.message);
+      return;
+    }
+    if (username === savedUsername) return;
+    if (usernameChangeIsRestricted()) {
+      setUsernameError(window.DEVMATCH_USERNAME.messages.cooldown);
+      saveUsernameButton.disabled = true;
+      return;
+    }
+
+    saveUsernameButton.disabled = true;
+    setUsernameError('');
+    settingsUsernameStatus.textContent = 'Updating username…';
+    try {
+      const updated = await window.devMatchBackend.changeUsername(username);
+      savedUsername = updated.username;
+      profileData.username = updated.username;
+      profileData.usernameChangedAt = updated.usernameChangedAt;
+      settingsUsernameInput.value = updated.username;
+      const topUserName = document.getElementById('topUserName');
+      if (topUserName) topUserName.textContent = updated.username;
+      settingsUsernameStatus.textContent = 'Username updated successfully.';
+      showToast('Username updated successfully!');
+    } catch (error) {
+      console.error('Unable to update username.', error);
+      setUsernameError(Object.values(window.DEVMATCH_USERNAME.messages).includes(error.message)
+        ? error.message
+        : 'Unable to update username. Please try again.');
+      settingsUsernameStatus.textContent = '';
+      saveUsernameButton.disabled = false;
+    }
   });
+  const emailInput = document.getElementById('settingsEmail');
+  if (emailInput) {
+    emailInput.readOnly = true;
+    emailInput.title = 'This account identifier cannot be changed here.';
+  }
 
   // Account Form Submission
   const accountForm = document.getElementById('accountForm');
   if (accountForm) {
     accountForm.addEventListener('submit', async function(e) {
       e.preventDefault();
+      if (!privateProfileFieldsLoaded) {
+        showToast('Cannot save profile details until private data loads successfully. Reload the page and try again.');
+        return;
+      }
       if (!validateSettingsLocation()) return;
       profileData.displayName = document.getElementById('settingsDisplayName').value.trim();
-      profileData.username = document.getElementById('settingsUsername').value.trim();
       profileData.email = document.getElementById('settingsEmail').value.trim();
+      profileData.gender = document.getElementById('settingsGender').value;
+      profileData.birthday = document.getElementById('settingsBirthday').value;
+      if (profileData.birthday) profileData.ageRange = getAgeRangeFromBirthday(profileData.birthday);
       profileData.country = settingsCountrySelect.value;
       profileData.city = settingsCityInput.value.trim();
       profileData.bio = document.getElementById('settingsBio').value.trim();
       profileData.whatsapp = document.getElementById('settingsWhatsapp').value.trim().replace(/\D/g, '');
+      profileData.website = document.getElementById('settingsWebsite').value.trim();
+      profileData.instagram = document.getElementById('settingsInstagram').value.trim();
 
       try {
-        await persistProfile(profileData);
+        await persistProfile(profileData, {includePrivateFields: true});
         settingsLocationInitialValue = {country: profileData.country, city: profileData.city};
         showToast('Profile and account details saved successfully!');
         updateAvatarPreview();
@@ -1641,12 +1816,14 @@
         profileData.hourlyRate = formatRupiah(document.getElementById('settingsHourlyRate').value);
         profileData.minProjectPrice = formatRupiah(document.getElementById('settingsMinProject').value);
         profileData.availability = document.getElementById('settingsAvailability').value;
+        profileData.experience = document.getElementById('settingsExperienceLevel').value;
         profileData.bankName = document.getElementById('settingsBankName').value;
         profileData.accountNumber = document.getElementById('settingsBankAccount').value.trim();
         profileData.accountHolder = document.getElementById('settingsAccountHolder').value.trim();
       } else {
         profileData.companyName = document.getElementById('settingsCompanyName').value.trim();
         profileData.industry = document.getElementById('settingsIndustry').value.trim();
+        profileData.project = document.getElementById('settingsProject').value.trim();
         profileData.npwp = document.getElementById('settingsNpwp').value.trim();
       }
 
@@ -2296,19 +2473,23 @@
   }
   const hashScrollTarget = initHashTab();
   (async () => {
-    ['bankName', 'accountNumber', 'accountHolder', 'npwp'].forEach(field => delete profileData[field]);
     try {
+      const user = await window.devMatchBackend.ready;
+      if (!user) return;
+      profileData = getProfile();
+      applyConnectionDefaults(profileData);
+      ['bankName', 'accountNumber', 'accountHolder', 'npwp', 'birthday'].forEach(field => delete profileData[field]);
       Object.assign(profileData, await window.devMatchBackend.loadPrivateProfileFields());
       await settingsLocationDataPromise;
       privateProfileFieldsLoaded = true;
       populateForm();
       openProfileDetailsTarget();
     } catch (error) {
-      console.error('Unable to load private payout and tax details.', error);
+      console.error('Unable to load saved profile settings.', error);
       await settingsLocationDataPromise;
       populateForm();
       openProfileDetailsTarget();
-      showToast('Unable to load private payout and tax details. Reload the page and try again.');
+      showToast('Unable to load saved profile settings. Reload the page and try again.');
     } finally {
       document.body.classList.remove('devmatch-settings-loading');
       settingsContent?.removeAttribute('inert');

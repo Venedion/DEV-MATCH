@@ -461,6 +461,20 @@ body.my-profile-page .sidebar nav a{line-height:normal}
 }
 
 @media(orientation: portrait){
+  .profile-details{
+    grid-template-columns:minmax(0,1fr);
+    align-items:start;
+    align-content:start;
+    gap:clamp(12px,2.4vw,16px);
+  }
+  .profile-details>.profile-card{
+    height:auto;
+    min-height:0;
+  }
+  .profile-details>.contact-card{grid-column:auto}
+}
+
+@media(orientation: portrait){
   @keyframes mobile-profile-arrow-hide-right-to-left{
     from{clip-path:inset(0 0 0 0)}
     to{clip-path:inset(0 100% 0 0)}

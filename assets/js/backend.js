@@ -26,7 +26,7 @@
     'devmatch-find-project-detail.html': 'dev',
     'devmatch-find-clients.html': 'dev'
   };
-  const privateProfileFields = ['bankName', 'accountNumber', 'accountHolder', 'npwp'];
+  const privateProfileFields = ['bankName', 'accountNumber', 'accountHolder', 'npwp', 'birthday'];
   let activeAccountRole = null;
   const skeletonStyle = document.createElement('style');
   skeletonStyle.id = 'devmatch-skeleton-styles';
@@ -599,7 +599,8 @@
   sanitizeStoredProfile(sessionStorage, 'devmatch-profile-draft');
   function cache(row, user) {
     const profile = {...profileDataForCache(row.profile_data), username: row.username || '', displayName: row.display_name,
-      phone: row.phone || '', email: user.email, role: row.account_role, googleConnected: false};
+      usernameChangedAt: row.username_changed_at || '', phone: row.phone || '', email: user.email,
+      role: row.account_role, googleConnected: false};
     const key = 'devmatch-profile-' + row.account_role;
     const value = JSON.stringify(profile);
     const changed = localStorage.getItem(key) !== value;
@@ -1479,7 +1480,7 @@
 
   async function saveProfile(value, {includePrivateFields = false} = {}){
     const user=await currentAccount();
-    const {email,phone,username,role,...details}=value;
+    const {email,phone,username,usernameChangedAt,role,...details}=value;
     const suppliedPrivateFields = {};
     privateProfileFields.forEach(field => {
       if (Object.hasOwn(details, field)) {
@@ -1500,6 +1501,23 @@
     const data=await updateWorkspaceProfile({display_name:String(details.displayName||''),profile_data:details});
     cache(data,user);return data;
   }
+  async function checkUsernameAvailability(username) {
+    if (typeof username !== 'string') throw new TypeError('A username is required.');
+    return client.rpc('is_username_available', {p_username: username.toLowerCase()});
+  }
+  async function changeUsername(username) {
+    if (typeof username !== 'string') throw new TypeError('A username is required.');
+    const user = await currentAccount();
+    const normalized = username.toLowerCase();
+    const {data, error} = await client.rpc('change_username', {p_username: normalized});
+    if (error) throw error;
+    if (typeof data !== 'string' || data !== normalized) {
+      throw new Error('Supabase returned an invalid username update result.');
+    }
+    const updated = await loadProfile(user);
+    cache(updated, user);
+    return {username: updated.username, usernameChangedAt: updated.username_changed_at || ''};
+  }
   async function changePassword(currentPassword,password){
     const user=await currentAccount();
     const {data,error}=await client.auth.signInWithPassword({email:user.email,password:currentPassword});
@@ -1514,6 +1532,8 @@
     clearCache,
     profileDataForCache,
     cache,
+    checkUsernameAvailability,
+    changeUsername,
     loadProfile,
     getWorkspaceRole,
     getChatReadAt,

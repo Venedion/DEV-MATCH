@@ -16,15 +16,15 @@ function createElement(){
 async function setup({verified=true,page='devmatch-settings.html',role='dev',userRole='dev',changeAccount=false,legacySensitiveCache=false,commentResults=[],directoryPeople=[],notifications=[],favorites=[],notificationReadIds=[],metrics=[],metricsError=null,rpcResponses={},projectEngagement=null,workspaceRole=null,workspaces=[],headerPosition=null,hasMobileBottomNavigation=false,deferAuth=false,querySelectorResults={}}={}){
   let gets=0,releaseAuth;const redirects=[],updates=[],passwords=[],rpcCalls=[],tableCalls=[],uploads=[];
   const user={id:'fixture',email:'owner@example.invalid',email_confirmed_at:verified?'2026-11-08':null};
-  const row={id:user.id,account_role:userRole,account_verified:false,onboarding_complete:true,profile_data:{displayName:'Owner'},display_name:'Owner',username:'owner',phone:'+6281234567890'};
-  const cachedProfile={...row.profile_data,username:row.username,displayName:row.display_name,phone:row.phone,email:user.email,role:userRole,googleConnected:false};
-  if(legacySensitiveCache)Object.assign(cachedProfile,{accountNumber:'1234567890',npwp:'09.254.891.2-121.000'});
+  const row={id:user.id,account_role:userRole,account_verified:false,onboarding_complete:true,profile_data:{displayName:'Owner'},display_name:'Owner',username:'owner',username_changed_at:'',phone:'+6281234567890'};
+  const cachedProfile={...row.profile_data,username:row.username,usernameChangedAt:row.username_changed_at||'',displayName:row.display_name,phone:row.phone,email:user.email,role:userRole,googleConnected:false};
+  if(legacySensitiveCache)Object.assign(cachedProfile,{accountNumber:'1234567890',npwp:'09.254.891.2-121.000',birthday:'1990-01-02'});
   const values={['devmatch-profile-'+userRole]:JSON.stringify(cachedProfile)};
   const storage=new Proxy({getItem:key=>values[key]??null,setItem:(key,value)=>values[key]=value,removeItem:key=>delete values[key]},{
     ownKeys:target=>[...Reflect.ownKeys(target),...Object.keys(values)],
     getOwnPropertyDescriptor:(target,key)=>Object.hasOwn(values,key)?{enumerable:true,configurable:true,value:values[key]}:Object.getOwnPropertyDescriptor(target,key)
   });
-  const sessionValues=legacySensitiveCache?{'devmatch-profile-draft':JSON.stringify({displayName:'Owner',accountNumber:'1234567890',npwp:'09.254.891.2-121.000'})}:{};
+  const sessionValues=legacySensitiveCache?{'devmatch-profile-draft':JSON.stringify({displayName:'Owner',accountNumber:'1234567890',npwp:'09.254.891.2-121.000',birthday:'1990-01-02'})}:{};
   if(workspaceRole)sessionValues['devmatch-workspace-'+user.id]=workspaceRole;
   function workspaceQuery(){let selectedRole=null;let payload=null;const q={select:()=>q,eq:(key,value)=>{if(key==='role')selectedRole=value;return q;},update:changes=>{payload=changes;return q;},maybeSingle:async()=>{const data=workspaces.find(w=>w.user_id===user.id && w.role===selectedRole)||null;return {data,error:null};},single:async()=>{const data=workspaces.find(w=>w.user_id===user.id && w.role===selectedRole);if(!data)return {data:null,error:new Error('Missing workspace')};Object.assign(data,payload);return {data,error:null};}};return q;}
   const query={select:()=>query,eq:()=>query,single:async()=>({data:row,error:null}),update:payload=>{updates.push(payload);Object.assign(row,payload);return query;}};
@@ -327,35 +327,71 @@ test('Unread notification count uses only unread rows for the signed-in account'
   const {backend}=await setup({notifications,notificationReadIds:['read-id']});
   assert.equal(await backend.loadUnreadNotificationCount(),1);
 });
-test('Profile saves exclude account identifiers and preserve approved profile data',async()=>{
-  const {backend,updates}=await setup();await backend.saveProfile({displayName:'New name',city:'Medan',email:'fake@example.invalid',phone:'+1234567890',username:'fake',role:'client'});
-  assert.equal(updates.length,1);assert.equal(updates[0].display_name,'New name');assert.equal(updates[0].profile_data.city,'Medan');
-  for(const field of ['email','phone','username','role'])assert.equal(Object.hasOwn(updates[0].profile_data,field),false);
+test('Username availability is checked through the normalized shared RPC',async()=>{
+  const {backend,rpcCalls}=await setup({rpcResponses:{is_username_available:{data:true,error:null}}});
+  const result=await backend.checkUsernameAvailability('FeLiTa13');
+  assert.deepEqual(result,{data:true,error:null});
+  assert.equal(rpcCalls[0].name,'is_username_available');
+  assert.equal(rpcCalls[0].args.p_username,'felita13');
 });
-test('Private payout and tax values are excluded from browser profile caches',async()=>{
+test('Username changes use the server RPC and refresh the cached change timestamp',async()=>{
+  const {backend,rpcCalls,values,row,user}=await setup();
+  const originalRpc=backend.client.rpc;
+  backend.client.rpc=async(name,args)=>{
+    if(name==='change_username'){
+      rpcCalls.push({name,args});
+      row.username=args.p_username;
+      row.username_changed_at='2026-11-26T00:00:00.000Z';
+      return {data:args.p_username,error:null};
+    }
+    return originalRpc(name,args);
+  };
+  const result=await backend.changeUsername('New_Handle');
+  assert.equal(result.username,'new_handle');
+  assert.equal(result.usernameChangedAt,'2026-11-26T00:00:00.000Z');
+  assert.equal(rpcCalls[0].name,'change_username');
+  assert.equal(rpcCalls[0].args.p_username,'new_handle');
+  assert.equal(JSON.parse(values['devmatch-profile-dev']).usernameChangedAt,'2026-11-26T00:00:00.000Z');
+});
+test('Profile saves exclude account identifiers and preserve approved profile data',async()=>{
+  const {backend,updates}=await setup();await backend.saveProfile({displayName:'New name',city:'Medan',email:'fake@example.invalid',phone:'+1234567890',username:'fake',usernameChangedAt:'2026-11-26',role:'client'});
+  assert.equal(updates.length,1);assert.equal(updates[0].display_name,'New name');assert.equal(updates[0].profile_data.city,'Medan');
+  for(const field of ['email','phone','username','usernameChangedAt','role'])assert.equal(Object.hasOwn(updates[0].profile_data,field),false);
+});
+test('Private payout, tax, and birthday values are excluded from browser profile caches',async()=>{
   const {backend,values,row,user}=await setup();
-  row.profile_data={displayName:'Owner',bankName:'BCA',accountNumber:'1234567890',accountHolder:'Owner',npwp:'09.254.891.2-121.000'};
+  row.profile_data={displayName:'Owner',bankName:'BCA',accountNumber:'1234567890',accountHolder:'Owner',npwp:'09.254.891.2-121.000',birthday:'1990-01-02'};
   backend.cache(row,user);
   const cached=JSON.parse(values['devmatch-profile-dev']);
-  for(const field of ['bankName','accountNumber','accountHolder','npwp'])assert.equal(Object.hasOwn(cached,field),false);
+  for(const field of ['bankName','accountNumber','accountHolder','npwp','birthday'])assert.equal(Object.hasOwn(cached,field),false);
   assert.equal(cached.displayName,'Owner');
+});
+test('Private birth dates can be loaded for settings without entering browser caches',async()=>{
+  const {backend,row,values}=await setup();
+  row.profile_data={displayName:'Owner',birthday:'1990-01-02'};
+  const privateFields=await backend.loadPrivateProfileFields();
+  assert.equal(privateFields.birthday,'1990-01-02');
+  assert.deepEqual(Object.keys(privateFields),['birthday']);
+  assert.equal(Object.hasOwn(JSON.parse(values['devmatch-profile-dev']),'birthday'),false);
 });
 test('Previously cached payout and tax values are scrubbed from local and session storage',async()=>{
   const {values,sessionValues}=await setup({legacySensitiveCache:true});
   for(const cache of [values['devmatch-profile-dev'],sessionValues['devmatch-profile-draft']]){
     const profile=JSON.parse(cache);
-    for(const field of ['accountNumber','npwp'])assert.equal(Object.hasOwn(profile,field),false);
+    for(const field of ['accountNumber','npwp','birthday'])assert.equal(Object.hasOwn(profile,field),false);
   }
 });
-test('Ordinary profile saves preserve payout details unless explicitly updated',async()=>{
+test('Ordinary profile saves preserve private fields unless explicitly updated',async()=>{
   const {backend,updates,row}=await setup();
-  row.profile_data={displayName:'Owner',accountNumber:'1234567890',npwp:'09.254.891.2-121.000'};
-  await backend.saveProfile({displayName:'Updated',accountNumber:'changed',npwp:'changed'});
+  row.profile_data={displayName:'Owner',accountNumber:'1234567890',npwp:'09.254.891.2-121.000',birthday:'1990-01-02'};
+  await backend.saveProfile({displayName:'Updated',accountNumber:'changed',npwp:'changed',birthday:'2000-02-03'});
   assert.equal(updates[0].profile_data.accountNumber,'1234567890');
   assert.equal(updates[0].profile_data.npwp,'09.254.891.2-121.000');
-  await backend.saveProfile({displayName:'Updated',accountNumber:'0987654321',npwp:'new'}, {includePrivateFields:true});
+  assert.equal(updates[0].profile_data.birthday,'1990-01-02');
+  await backend.saveProfile({displayName:'Updated',accountNumber:'0987654321',npwp:'new',birthday:'2000-02-03'}, {includePrivateFields:true});
   assert.equal(updates[1].profile_data.accountNumber,'0987654321');
   assert.equal(updates[1].profile_data.npwp,'new');
+  assert.equal(updates[1].profile_data.birthday,'2000-02-03');
 });
 test('Incorrect current password cannot update the password',async()=>{
   const {backend,passwords}=await setup();await assert.rejects(backend.changePassword('wrong','Next!Password1'),/Wrong password/);assert.equal(passwords.length,0);

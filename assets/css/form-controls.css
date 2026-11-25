@@ -7,6 +7,13 @@
   }
 }
 
+input::placeholder,
+textarea::placeholder {
+  color: #9298a5 !important;
+  font-size: 14px !important;
+  opacity: 1 !important;
+}
+
 input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="button"]):not([type="submit"]):not([type="reset"]):not([type="image"]):not([type="hidden"]):not([type="color"]):focus,
 textarea:focus,
 select:focus {

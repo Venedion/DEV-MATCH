@@ -67,8 +67,8 @@ users. Apply `migrations/202611120003_private_profiles_and_public_directory.sql`
 after the other migrations to reset profile-table policies and grants to
 owner-only access and recreate the authenticated directory view with an
 allowlist of public fields. The view does not expose phone or private
-`profile_data` keys such as bank-account or tax identifiers. Do not query
-`profiles` for directory listings.
+`profile_data` keys such as bank-account, tax identifiers, or birthdays. Do not
+query `profiles` for directory listings.
 Conversation participants cannot directly change or delete a thread, preventing
 one participant from exposing or deleting the other participant's message
 history. Chat now uses the encrypted Edge Function and Supabase Realtime;
@@ -295,6 +295,14 @@ are not included in this implementation.
 Local callback origin is http://localhost:3000. Set Site URL and allowed redirect
 URLs for the real deployment, including /devmatch-reset-password.html. Supabase
 may fall back to Site URL, so index.html waits for Auth before routing callbacks.
+
+Apply `migrations/202611260002_username_validation.sql` after the existing
+migrations and deploy the updated frontend to enable normalized, case-insensitive
+usernames, live availability checks, and server-enforced seven-day username
+changes. Existing usernames are lowercased during migration; their initial
+change timestamp is backfilled from the profile creation time. The migration
+provides the public availability RPC and the authenticated username-change RPC;
+no Edge Function deployment is required.
 
 The built-in email sender is for development: its quota is two emails per hour
 per project and recipient restrictions apply. Reset/confirmation requests may

@@ -30,6 +30,7 @@ const C = '33333333-3333-4333-8333-333333333333';
   let isolationMigration; let activityMigration; let separationMigration;
   let commentAuthorMigration;
   const paymentMigrations = [];
+  const laterMigrations = [];
   for (const file of fs.readdirSync(dir).filter(f => f.endsWith('.sql')).sort()) {
     // Registration uses external proof-of-work and pgcrypto, tested separately.
     if (file.includes('registration_protection')) continue;
@@ -41,6 +42,10 @@ const C = '33333333-3333-4333-8333-333333333333';
     if (file.includes('chat_presence_and_receipts')) {activityMigration=fs.readFileSync(path.join(dir,file),'utf8');continue;}
     if (file.includes('workspace_data_isolation')) { isolationMigration=fs.readFileSync(path.join(dir,file),'utf8'); continue; }
     if (file.includes('separate_chat_workspace_threads')) { separationMigration=fs.readFileSync(path.join(dir,file),'utf8'); continue; }
+    if (file === '202611260001_proposal_agreement_payments.sql' || file === '202611260002_username_validation.sql') {
+      laterMigrations.push(fs.readFileSync(path.join(dir,file),'utf8'));
+      continue;
+    }
     if (file.includes('midtrans_sandbox_payments') || file.includes('payment_room_chat_context')) {
       paymentMigrations.push(fs.readFileSync(path.join(dir,file),'utf8'));
       continue;
@@ -51,9 +56,9 @@ const C = '33333333-3333-4333-8333-333333333333';
   }
   await db.exec(`
     insert into auth.users(id,email,email_confirmed_at,raw_user_meta_data) values
-    ('${A}','a@example.invalid',now(),'{"account_role":"client"}'),
-    ('${B}','b@example.invalid',now(),'{"account_role":"dev"}'),
-    ('${C}','c@example.invalid',null,'{"account_role":"client"}');
+    ('${A}','a@example.invalid',now(),'{"account_role":"client","username":"ShareD_A"}'),
+    ('${B}','b@example.invalid',now(),'{"account_role":"dev","username":"developer_b"}'),
+    ('${C}','c@example.invalid',null,'{"account_role":"client","username":"client_c"}');
     update public.profiles set display_name='Original client',onboarding_complete=true,profile_data='{"bio":"client data","accountNumber":"PRIVATE"}' where id='${A}';
     update public.profiles set display_name='Developer B',onboarding_complete=true where id='${B}';
   `);
@@ -69,6 +74,7 @@ const C = '33333333-3333-4333-8333-333333333333';
   await db.exec(activityMigration);
   await db.exec(separationMigration);
   for (const migration of paymentMigrations) await db.exec(migration);
+  for (const migration of laterMigrations) await db.exec(migration);
   assert.equal((await db.query("select participant_a_role from public.conversations")).rows[0].participant_a_role,'client');
   assert.equal((await db.query("select workspace_role from public.favorites")).rows[0].workspace_role,'client');
   assert.equal((await db.query("select recipient_role from public.notifications")).rows[0].recipient_role,'client');
@@ -76,6 +82,20 @@ const C = '33333333-3333-4333-8333-333333333333';
   const asUser = async id => db.exec(`reset role; set role authenticated; select set_config('request.jwt.claim.sub','${id}',false);`);
   const scalar = async sql => (await db.query(sql)).rows[0];
   await asUser(A);
+  assert.equal((await scalar(`select username from public.profiles where id='${A}'`)).username, 'shared_a');
+  assert.equal((await scalar("select public.is_username_available('SHARED_A') available")).available, true);
+  assert.equal((await scalar("select public.is_username_available('DEVELOPER_B') available")).available, false);
+  for (const [candidate, message] of [
+    ['ab', 'Username must be at least 3 characters.'],
+    ['a'.repeat(21), 'Username cannot exceed 20 characters.'],
+    ['ab c', 'Username cannot contain spaces.'],
+    ['ab@c', 'Username can only contain letters, numbers, periods (.), and underscores (_).'],
+    ['.abc', 'Username cannot start or end with a period.'],
+    ['abc.', 'Username cannot start or end with a period.'],
+    ['a..b', 'Username cannot contain consecutive periods.']
+  ]) {
+    await assert.rejects(db.query('select public.change_username($1)', [candidate]), new RegExp(message.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
+  }
   await assert.rejects(db.query("select public.switch_account_workspace('dev',false)"));
   await assert.rejects(db.query(`insert into public.projects(owner_id,project_kind) values ('${A}','portfolio')`));
   let row = await scalar("select account_role,profile_data,onboarding_complete from public.switch_account_workspace('dev',true)");
@@ -244,6 +264,11 @@ const C = '33333333-3333-4333-8333-333333333333';
   assert.equal(Number(developerMetrics.published_portfolio_count), 1);
   assert.equal(Number(developerMetrics.published_portfolio_views_count), 1);
   assert.equal(Number(developerMetrics.published_portfolio_favorites_count), 2);
-  console.log('PASS: full schema, legacy history retained, shared identity, workspace profile isolation, dual-role projects/directory/metrics/reviews, role-aware chat/presence, favorites/notifications/read preferences, RLS and comment features');
+  await db.exec(`reset role; update public.profiles set username_changed_at=now()-interval '8 days' where id='${C}'`);
+  await asUser(C);
+  assert.equal((await scalar("select public.change_username('Client_New') username")).username, 'client_new');
+  assert.equal((await scalar("select public.is_username_available('CLIENT_NEW') available")).available, true);
+  await assert.rejects(db.query("select public.change_username('another_name')"), /You can change your username again after 7 days\./);
+  console.log('PASS: full schema, username validation and cooldown, legacy history retained, shared identity, workspace profile isolation, dual-role projects/directory/metrics/reviews, role-aware chat/presence, favorites/notifications/read preferences, RLS and comment features');
   await db.close();
 })().catch(error => { console.error(error.message); process.exitCode = 1; });

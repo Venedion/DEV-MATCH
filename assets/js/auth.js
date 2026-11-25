@@ -14,6 +14,8 @@ const copy={
 let role=params.get('role')==='client'?'cli':'dev';
 let mode=params.get('mode')==='login'?'log':'reg';
 let registrationChallengePromise=null;
+let usernameAvailabilityTimer=null;
+let usernameRequestId=0;
 const emailRe=/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 async function registrationFunctionError(error,fallback){
   const response=error?.context;
@@ -95,7 +97,45 @@ function render(){
 }
 function userHint(){const v=$('user').value.trim().toLowerCase().replace(/[^a-z0-9_.]/g,'');$('userHint').textContent='Visible on your public profile · dev-match.id/'+(v||'yourname')}
 function setErr(k,t){$('g-'+k).classList.toggle('err',!!t);$('e-'+k).textContent=t||''}
-function clearErr(){['user','email','phone','pass','terms'].forEach(k=>{if($('g-'+k))$('g-'+k).classList.remove('err');$('e-'+k).textContent=''})}
+function validateUsernameInput(){
+  const input=$('user'),raw=input.value,username=window.DEVMATCH_USERNAME.normalize(raw);
+  if(input.value!==username)input.value=username;
+  userHint();
+  clearTimeout(usernameAvailabilityTimer);
+  const requestId=++usernameRequestId;
+  const status=$('usernameAvailability');
+  status.textContent='';
+  const validation=window.DEVMATCH_USERNAME.validate(username);
+  if(!validation.valid){setErr('user',validation.message);return;}
+  const uppercaseNotice=raw!==username
+    && window.DEVMATCH_USERNAME.validate(raw).message===window.DEVMATCH_USERNAME.messages.lowercase;
+  setErr('user',uppercaseNotice?window.DEVMATCH_USERNAME.messages.lowercase:'');
+  status.textContent='Checking username availability…';
+  usernameAvailabilityTimer=setTimeout(async()=>{
+    try{
+      const available=await window.DEVMATCH_USERNAME.isAvailable(username);
+      if(requestId!==usernameRequestId||input.value!==username)return;
+      if(!available){
+        setErr('user',window.DEVMATCH_USERNAME.messages.taken);
+        status.textContent='';
+        return;
+      }
+      setErr('user','');
+      status.textContent='Username is available.';
+    }catch(error){
+      if(requestId!==usernameRequestId)return;
+      setErr('user','Unable to check username right now. Please try again.');
+      status.textContent='';
+      console.error('Unable to check username availability.',error);
+    }
+  },400);
+}
+function clearErr(){
+  clearTimeout(usernameAvailabilityTimer);
+  usernameRequestId++;
+  $('usernameAvailability').textContent='';
+  ['user','email','phone','pass','terms'].forEach(k=>{if($('g-'+k))$('g-'+k).classList.remove('err');$('e-'+k).textContent=''});
+}
 function score(p){let s=0;if(p.length>=8)s++;if(/[a-z]/.test(p)&&/[A-Z]/.test(p))s++;if(/\d/.test(p))s++;if(/[^A-Za-z0-9]/.test(p)||p.length>=14)s++;return p?Math.max(1,s):0}
 $('pass').addEventListener('input',()=>{
   const s=score($('pass').value),m=$('meter');
@@ -104,14 +144,16 @@ $('pass').addEventListener('input',()=>{
   const t=['','Weak password','Fair password','Good password','Strong password'][s];
   $('strength').textContent=t;$('strength').style.color=s<=1?'var(--bad)':s<=2?'#d97706':'var(--ok)';
 });
-$('user').addEventListener('input',userHint);
+$('user').addEventListener('input',validateUsernameInput);
 $('phone').addEventListener('input',e=>{e.target.value=e.target.value.replace(/\D/g,'').replace(/^0+/,'')});
 $('eye').onclick=()=>{const s=$('pass').type==='password';$('pass').type=s?'text':'password';$('eye').setAttribute('aria-label',s?'Hide password':'Show password')};
 $('form').addEventListener('submit',async e=>{
   e.preventDefault();clearErr();let bad=false;const reg=mode==='reg';
-  const u=$('user').value.trim(),em=$('email').value.trim(),ph=$('phone').value,pw=$('pass').value;
+  const u=window.DEVMATCH_USERNAME.normalize($('user').value),em=$('email').value.trim(),ph=$('phone').value,pw=$('pass').value;
+  $('user').value=u;
   if(reg){
-    if(!/^[A-Za-z0-9_.]{3,24}$/.test(u)){setErr('user','Use 3–24 letters, numbers, dots or underscores.');bad=true}
+    const usernameValidation=window.DEVMATCH_USERNAME.validate(u);
+    if(!usernameValidation.valid){setErr('user',usernameValidation.message);bad=true}
     if(em.toLowerCase() === (sessionStorage.getItem('devmatch-separate-account-email') || '').toLowerCase()){setErr('email','Use a different email for a separate account, or log in to your existing account and choose Connect.');bad=true}
     if(!emailRe.test(em)){setErr('email','Enter a valid email address, like you@example.com.');bad=true}
     if(ph.length<9||ph.length>13){setErr('phone','Enter your number without the leading 0, like 812 3456 7890.');bad=true}
@@ -131,6 +173,20 @@ $('form').addEventListener('submit',async e=>{
     await backend.ready;
     const activeRole=role==='dev'?'dev':'client';
     if(reg){
+      let available;
+      try{
+        available=await window.DEVMATCH_USERNAME.isAvailable(u);
+      }catch(error){
+        console.error('Unable to check username availability before registration.',error);
+        setErr('user','Unable to check username right now. Please try again.');
+        $('user').focus();
+        return;
+      }
+      if(!available){
+        setErr('user',window.DEVMATCH_USERNAME.messages.taken);
+        $('user').focus();
+        return;
+      }
       const registrationPermit=await requestRegistrationPermit(em);
       const {data,error}=await backend.client.auth.signUp({
         email:em,password:pw,
@@ -161,7 +217,12 @@ $('form').addEventListener('submit',async e=>{
     sessionStorage.setItem('devmatch-profile-draft',JSON.stringify({...backend.profileDataForCache(row.profile_data),username:row.username||'',role:row.account_role}));
     location.assign(backend.destination(row,user));
   }catch(error){
-    setErr('pass',error.message||'Unable to connect. Please try again.');
+    if(reg&&Object.values(window.DEVMATCH_USERNAME.messages).includes(error.message)){
+      setErr('user',error.message);
+      $('user').focus();
+    }else{
+      setErr('pass',error.message||'Unable to connect. Please try again.');
+    }
   }finally{
     $('submit').disabled=false;
     $('submit').textContent=reg?'Create account':'Log in';
