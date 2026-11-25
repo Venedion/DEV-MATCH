@@ -14,6 +14,17 @@
   const username=String(profile.username||'').replace(/^@/,'');
   const city=profile.city||'';
   const country=profile.country||'';
+  const publicProfileUrlPromise=Promise.resolve().then(async()=>{
+    const backend=window.devMatchBackend;
+    if(!backend||!backend.ready||typeof backend.publicProfileUrl!=='function'){
+      throw new Error('Public profile sharing is unavailable.');
+    }
+    const user=await backend.ready;
+    const path=user&&backend.publicProfileUrl(user.id,role);
+    if(!path)throw new Error('The public profile URL could not be created.');
+    return new URL(path,location.href).href;
+  });
+  publicProfileUrlPromise.catch(()=>{});
   const specialty=(Array.isArray(profile.specialty)?profile.specialty:typeof profile.specialty==='string'?[profile.specialty]:[]).map(value=>String(value).trim()).filter(Boolean).map(value=>value==='Other'&&typeof profile.specialtyOther==='string'&&profile.specialtyOther.trim()?profile.specialtyOther.trim():value);
   const specialtyDetails={
     'Full-stack':{description:'Front + back end',icon:'<path d="m16 18 6-6-6-6M8 6l-6 6 6 6"/>'},
@@ -112,6 +123,7 @@
   function configureRole(){
     const profileUrl=`devmatch-my-profile.html?role=${role}`;
     const settingsUrl=`devmatch-settings.html?role=${role}#account`;
+    const profileDetailsUrl=`devmatch-settings.html?role=${role}&edit=profile-details#profile-details`;
     const specializationUrl=`devmatch-settings.html${isDeveloper?'?role=dev&edit=specialization':'?role=client&edit=specialization'}#profile-details`;
     const skillsUrl=`devmatch-settings.html${isDeveloper?'?role=dev&edit=skills':'?role=client&edit=skills'}#profile-details`;
     const experienceUrl=`devmatch-settings.html${isDeveloper?'?role=dev&edit=experience':'?role=client&edit=experience'}#profile-details`;
@@ -135,6 +147,7 @@
     setLink('settingsLink',settingsUrl.replace('#account',''));
     setLink('editSkillsLink',skillsUrl);
     setLink('editExperienceLink',experienceUrl);
+    setLink('editProfileMobile',profileDetailsUrl);
     setLink('messagesLink',chatUrl);
     setLink('projectsLink',isDeveloper?'devmatch-my-projects.html':`${dashboardUrl}#requests`);
     setLink('findProjectsLink',isDeveloper?'devmatch-find-projects.html':'devmatch-discover-projects.html');
@@ -159,6 +172,7 @@
     document.getElementById('identitySpecialty').hidden=!isDeveloper&&!profile.industry;
     if(!isDeveloper&&profile.industry)setText('identitySpecialty',profile.industry);
     setText('identityBio',bio||'No bio added yet.');
+    setText('mobileIdentityBio',bio||'No bio added yet.');
     setText('aboutHeading',isDeveloper?'About':'About the business');
     setText('aboutCopy',bio||'No bio added yet.');
     setText('skillsHeading',isDeveloper?'Skills & Tech Stacks':'Services & Focus');
@@ -254,9 +268,13 @@
     setText('topUserName',username||displayName);
     setText('identityHandle',username?`@${username}`:'');
     document.getElementById('identityHandle').hidden=!username;
+    setText('mobileIdentityHandle',username?`@${username}`:'');
+    document.getElementById('mobileIdentityHandle').hidden=!username;
     const location=[city,country].filter(Boolean).join(', ');
-    setText('identityLocation',location);
+    setText('identityLocationText',location);
+    setText('mobileIdentityLocation',location);
     document.getElementById('identityLocation').hidden=!location;
+    document.querySelector('.mobile-profile-location').hidden=!location;
     setText('identitySpecialty',isDeveloper?title:profile.industry||'');
     const joined=formatJoined();
     setText('identityJoined',joined?`Joined ${joined}`:'');
@@ -396,6 +414,7 @@
           ?'<p class="empty-state">Client reviews will appear here after a completed project.</p>'
           :'<p class="empty-state">Developer reviews will appear here after a completed project.</p>';
         setText('statRating','—');
+        setText('mobileStatRating','-');
         setText('statReviews','no reviews yet');
         return;
       }
@@ -405,11 +424,13 @@
       }).join('');
       const average=reviews.reduce((sum,item)=>sum+item.rating,0)/reviews.length;
       setText('statRating',`★ ${average.toFixed(1)}`);
+      setText('mobileStatRating',average.toFixed(1));
       setText('statReviews',`from ${reviews.length} reviews`);
     }catch(error){
       console.error('Unable to load profile reviews from Supabase.',error);
       root.innerHTML='<p class="empty-state">Reviews could not be loaded. Check your connection and try again.</p>';
       setText('statRating','—');
+      setText('mobileStatRating','-');
       setText('statReviews','unable to load reviews');
     }
   }
@@ -444,6 +465,8 @@
       setText('statSaves',formatCompact(saves));
       setText('statViews',formatCompact(views));
     }
+    setText('mobileStatFavorites',document.getElementById('statSaves').textContent.trim()||'0');
+    setText('mobileStatViews',document.getElementById('statViews').textContent.trim()||'0');
   }
 
   function showToast(message,isError){
@@ -454,8 +477,7 @@
     toastTimer=setTimeout(()=>toast.classList.remove('show'),3000);
   }
 
-  async function shareProfile(){
-    const url=new URL(`devmatch-my-profile.html?role=${role}`,location.href).href;
+  async function copyProfileUrl(url){
     try{
       if(navigator.clipboard&&window.isSecureContext){
         await navigator.clipboard.writeText(url);
@@ -467,10 +489,50 @@
         field.style.opacity='0';
         document.body.append(field);
         field.select();
-        const copied=document.execCommand('copy');
+        const copied=typeof document.execCommand==='function'&&document.execCommand('copy');
         field.remove();
         if(!copied)throw new Error('Clipboard copy was not permitted.');
       }
+    }catch(error){
+      throw new Error('Unable to copy the profile link.',{cause:error});
+    }
+  }
+
+  function openProfileShareDialog(url){
+    const dialog=document.getElementById('profileShareDialog');
+    const whatsapp=document.getElementById('shareProfileWhatsapp');
+    const message=`Check out ${displayName}'s profile on DEV-MATCH: ${url}`;
+    whatsapp.href=`https://wa.me/?text=${encodeURIComponent(message)}`;
+    dialog.dataset.profileUrl=url;
+    if(typeof dialog.showModal==='function')dialog.showModal();
+    else dialog.setAttribute('open','');
+    document.getElementById('copyProfileLink').focus();
+  }
+
+  async function shareProfile(){
+    if(window.matchMedia('(orientation: portrait)').matches){
+      try{
+        const url=await publicProfileUrlPromise;
+        if(typeof navigator.share==='function'){
+          try{
+            await navigator.share({title:`${displayName} | DEV-MATCH`,text:`Check out ${displayName}'s profile on DEV-MATCH.`,url});
+            return;
+          }catch(error){
+            if(error&&error.name==='AbortError')return;
+            console.warn('Native sharing is unavailable; showing the share options.',error);
+          }
+        }
+        openProfileShareDialog(url);
+      }catch(error){
+        console.error('Unable to prepare the public profile link.',error);
+        showToast('Unable to prepare the public profile link. Please try again.',true);
+      }
+      return;
+    }
+
+    const url=new URL(`devmatch-my-profile.html?role=${role}`,location.href).href;
+    try{
+      await copyProfileUrl(url);
       showToast('Profile link copied to clipboard.');
     }catch(error){
       console.error('Unable to copy the profile link.',error);
@@ -546,6 +608,37 @@
   renderActivity();
   renderStats();
   document.getElementById('shareProfile').addEventListener('click',shareProfile);
+  document.getElementById('shareProfileMobile').addEventListener('click',shareProfile);
+  const profileShareDialog=document.getElementById('profileShareDialog');
+  const closeProfileShareDialog=()=>{
+    if(typeof profileShareDialog.close==='function'&&profileShareDialog.open)profileShareDialog.close();
+    else{
+      profileShareDialog.removeAttribute('open');
+      document.getElementById('shareProfileMobile').focus();
+    }
+  };
+  document.getElementById('closeProfileShare').addEventListener('click',closeProfileShareDialog);
+  document.getElementById('copyProfileLink').addEventListener('click',async()=>{
+    const url=profileShareDialog.dataset.profileUrl;
+    if(!url){
+      console.error('The public profile URL is missing from the share dialog.');
+      showToast('Unable to prepare the public profile link. Please try again.',true);
+      return;
+    }
+    try{
+      await copyProfileUrl(url);
+      closeProfileShareDialog();
+      showToast('Profile link copied to clipboard.');
+    }catch(error){
+      console.error('Unable to copy the public profile link.',error);
+      showToast('Could not copy the link. Please try again.',true);
+    }
+  });
+  document.getElementById('shareProfileWhatsapp').addEventListener('click',closeProfileShareDialog);
+  profileShareDialog.addEventListener('click',event=>{
+    if(event.target===profileShareDialog)closeProfileShareDialog();
+  });
+  profileShareDialog.addEventListener('close',()=>document.getElementById('shareProfileMobile').focus());
   document.querySelectorAll('.profile-tab').forEach((button,index,tabs)=>{
     button.addEventListener('click',()=>activateTab(button,false));
     button.addEventListener('keydown',event=>{

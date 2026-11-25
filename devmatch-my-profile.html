@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="assets/css/dashboard.css?v=20261126-rebase-merge-v1">
-  <link rel="stylesheet" href="assets/css/my-profile.css?v=20261125-responsive-orientation-v1">
+  <link rel="stylesheet" href="assets/css/my-profile.css?v=20261127-mobile-profile-redesign-v1">
   <link rel="stylesheet" href="assets/css/client-shell.css?v=20261125-responsive-orientation-v1">
   <link rel="stylesheet" href="assets/css/mode-switch-animation.css?v=20261030-client-mode-route">
   <link rel="stylesheet" href="assets/css/mobile-navigation.css?v=20261126-scrollbar-hidden-v1">
@@ -96,7 +96,11 @@
       <div class="identity-body">
         <div class="identity-avatar" id="profileAvatar">DM</div>
         <div class="identity-main">
-          <div class="identity-title-row"><div><h2 id="profileName">Developer</h2><span class="availability-badge" id="availabilityBadge" hidden><i></i><span></span></span></div>
+          <div class="identity-title-row"><div class="identity-name-block"><h2 id="profileName">Developer</h2><span class="availability-badge" id="availabilityBadge" hidden><i></i><span></span></span><span class="mobile-identity-handle" id="mobileIdentityHandle" hidden></span><div class="mobile-profile-stats" role="group" aria-label="Profile statistics">
+              <span class="mobile-profile-stat" role="group" aria-label="Profile Views"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.6-6 10-6 10 6 10 6-3.6 6-10 6-10-6-10-6Z"/><circle cx="12" cy="12" r="2.5"/></svg><strong id="mobileStatViews">0</strong></span>
+              <span class="mobile-profile-stat" role="group" aria-label="Favorites"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.8 8.7c0 5.2-8.8 10.1-8.8 10.1S3.2 13.9 3.2 8.7A4.7 4.7 0 0 1 12 6.4a4.7 4.7 0 0 1 8.8 2.3Z"/></svg><strong id="mobileStatFavorites">0</strong></span>
+              <span class="mobile-profile-stat" role="group" aria-label="Rating"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 2.8 5.7 6.2.9-4.5 4.4 1.1 6.2-5.6-3-5.6 3 1.1-6.2L3 9.6l6.2-.9L12 3Z"/></svg><strong id="mobileStatRating">-</strong></span>
+            </div></div>
             <div class="profile-actions">
               <button class="button button-secondary" id="shareProfile" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.6 10.6 6.8-4.2m-6.8 7 6.8 4.2"/></svg>Share Profile</button>
               <a class="button button-secondary" id="previewProfile" href="#" target="_blank" rel="noopener noreferrer"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>Preview as Public</a>
@@ -104,8 +108,16 @@
           </div>
           <p class="identity-bio" id="identityBio"></p>
           <div class="identity-meta">
-            <span id="identityHandle"></span><span id="identityLocation"></span><span id="identitySpecialty"></span><span id="identityJoined"></span>
+            <span id="identityHandle"></span><span id="identityLocation"><svg class="identity-location-pin" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 10c0 5-8 12-8 12S4 15 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="2.5"/></svg><span id="identityLocationText"></span></span><span id="identitySpecialty"></span><span id="identityJoined"></span>
           </div>
+        </div>
+      </div>
+      <div class="mobile-profile-details">
+        <div class="mobile-profile-location"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 10c0 5-8 12-8 12S4 15 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="2.5"/></svg><span id="mobileIdentityLocation"></span></div>
+        <p class="mobile-profile-bio" id="mobileIdentityBio"></p>
+        <div class="mobile-profile-actions">
+          <button class="button button-secondary" id="shareProfileMobile" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.6 10.6 6.8-4.2m-6.8 7 6.8 4.2"/></svg>Share Profile</button>
+          <a class="button button-secondary" id="editProfileMobile" href="devmatch-settings.html?role=dev&amp;edit=profile-details#profile-details"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m14 5 5 5M4 20l4-.8L19.2 8a2.8 2.8 0 0 0-4-4L4 15.2 4 20z"/></svg>Edit Profile</a>
         </div>
       </div>
     </section>
@@ -178,12 +190,20 @@
         </div>
       </section>
     </div>
+    <dialog class="profile-share-dialog" id="profileShareDialog" aria-labelledby="profileShareTitle">
+      <div class="profile-share-dialog-content">
+        <div class="profile-share-dialog-heading"><h2 id="profileShareTitle">Share profile</h2><button class="profile-share-close" id="closeProfileShare" type="button" aria-label="Close share options"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg></button></div>
+        <p>Share your public DEV-MATCH profile.</p>
+        <button class="profile-share-option" id="copyProfileLink" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="8" width="12" height="13" rx="2"/><path d="M16 8V5a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h2"/></svg>Copy Link</button>
+        <a class="profile-share-option" id="shareProfileWhatsapp" href="#" target="_blank" rel="noopener noreferrer"><span class="profile-share-whatsapp-icon" aria-hidden="true">WA</span>WhatsApp</a>
+      </div>
+    </dialog>
     <div class="profile-toast" id="profileToast" role="status" aria-live="polite"></div>
   </main>
   <a class="floating-chat" href="devmatch-chat.html" aria-label="Messages &amp; Chat" title="Open Messages &amp; Chat">
     <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5c-5 0-9 3.65-9 8.15 0 2.24 1.04 4.27 2.73 5.74L4.7 21l5.24-1.28c.67.12 1.36.18 2.06.18 5 0 9-3.65 9-8.15S17 3.5 12 3.5Z"/><circle cx="8.5" cy="11.7" r="1" fill="currentColor" stroke="none"/><circle cx="12" cy="11.7" r="1" fill="currentColor" stroke="none"/><circle cx="15.5" cy="11.7" r="1" fill="currentColor" stroke="none"/></svg>
   </a>
-  <script src="assets/js/my-profile.js?v=20261125-developer-mode-icon-v1"></script>
+  <script src="assets/js/my-profile.js?v=20261127-mobile-profile-redesign-v1"></script>
   <script src="assets/js/nav-behavior.js?v=20261125-responsive-orientation-v1"></script>
 <script src="assets/js/presence.js?v=20261119-global"></script>
 </body>
