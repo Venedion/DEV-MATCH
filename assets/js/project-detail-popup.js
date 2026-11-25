@@ -26,7 +26,7 @@
     const dialog=ensureDialog();
     const frame=dialog.querySelector('#requestDetailFrame');
     frame.title=`Project request: ${title}`;
-    frame.src=`devmatch-find-project-detail.html?request=${encodeURIComponent(requestId)}&modal=1`;
+    frame.src=`devmatch-find-project-detail.html?request=${encodeURIComponent(requestId)}&modal=1&v=20261126-request-popup`;
     if(!dialog.open)dialog.showModal();
   };
 

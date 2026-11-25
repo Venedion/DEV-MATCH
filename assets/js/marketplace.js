@@ -1168,7 +1168,7 @@
       if (requestDetailDialog && requestDetailFrame) {
         updateRequestDetailUrl(item.id);
         requestDetailFrame.title = `Project request: ${item.title}`;
-        requestDetailFrame.src = `devmatch-find-project-detail.html?request=${encodeURIComponent(item.id)}&modal=1`;
+        requestDetailFrame.src = `devmatch-find-project-detail.html?request=${encodeURIComponent(item.id)}&modal=1&v=20261126-request-popup`;
         if (!requestDetailDialog.open) requestDetailDialog.showModal();
       } else {
         window.location.href = `devmatch-find-project-detail.html?request=${encodeURIComponent(item.id)}`;
