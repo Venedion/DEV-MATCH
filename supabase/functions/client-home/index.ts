@@ -1,4 +1,5 @@
 import {getCorsHeaders, jsonResponse} from '../_shared/registration.mjs';
+import {fetchBatchedRows} from './fetch-batched-rows.mjs';
 import {buildClientDashboard} from './logic.mjs';
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -100,39 +101,58 @@ async function loadDashboard(
   serviceRoleKey: string,
   profileComplete: boolean
 ) {
-  const requests = await fetchRows(supabaseUrl, serviceRoleKey, 'projects', {
-    select: 'id,owner_id,project_kind,title,status,price,data,created_at,updated_at',
-    owner_id: `eq.${userId}`,
-    project_kind: 'eq.request',
-    order: 'created_at.desc,id.asc'
-  });
-  const parents = await fetchRows(supabaseUrl, serviceRoleKey, 'conversations', {
-    select: 'id,participant_a_id,participant_b_id,participant_a_role,participant_b_role,project_id,workspace_pair_key,merged_into,updated_at,last_message_at',
-    or: `(and(participant_a_id.eq.${userId},participant_a_role.eq.client),and(participant_b_id.eq.${userId},participant_b_role.eq.client))`,
-    merged_into: 'is.null',
-    order: 'last_message_at.desc.nullslast,updated_at.desc,id.asc'
-  });
-  const parentIds = parents.map(conversation => conversation.id);
-  const children: Record<string, any>[] = [];
-  for (let offset = 0; offset < parentIds.length; offset += 100) {
-    children.push(...await fetchRows(supabaseUrl, serviceRoleKey, 'conversations', {
+  const [requests, parents, projectViews, engagements] = await Promise.all([
+    fetchRows(supabaseUrl, serviceRoleKey, 'projects', {
+      select: 'id,owner_id,project_kind,title,status,price,data,created_at,updated_at',
+      owner_id: `eq.${userId}`,
+      project_kind: 'eq.request',
+      order: 'created_at.desc,id.asc'
+    }),
+    fetchRows(supabaseUrl, serviceRoleKey, 'conversations', {
       select: 'id,participant_a_id,participant_b_id,participant_a_role,participant_b_role,project_id,workspace_pair_key,merged_into,updated_at,last_message_at',
-      merged_into: inFilter(parentIds.slice(offset, offset + 100))
-    }));
-  }
+      or: `(and(participant_a_id.eq.${userId},participant_a_role.eq.client),and(participant_b_id.eq.${userId},participant_b_role.eq.client))`,
+      merged_into: 'is.null',
+      order: 'last_message_at.desc.nullslast,updated_at.desc,id.asc'
+    }),
+    fetchRows(supabaseUrl, serviceRoleKey, 'project_views', {
+      select: 'project_id,projects!inner(project_kind,status)',
+      viewer_id: `eq.${userId}`,
+      'projects.project_kind': 'eq.portfolio',
+      'projects.status': 'eq.published',
+      limit: '1'
+    }),
+    fetchRows(supabaseUrl, serviceRoleKey, 'project_engagements', {
+      select: 'id,conversation_id,project_id,developer_id,client_completed_at,developer_completed_at,project_reviews(reviewer_id)',
+      client_id: `eq.${userId}`,
+      client_completed_at: 'not.is.null',
+      developer_completed_at: 'not.is.null',
+      order: 'client_completed_at.desc,id.asc'
+    })
+  ]);
+  const parentIds = parents.map(conversation => conversation.id);
+  const children = await fetchBatchedRows(
+    parentIds,
+    100,
+    batch => fetchRows(supabaseUrl, serviceRoleKey, 'conversations', {
+      select: 'id,participant_a_id,participant_b_id,participant_a_role,participant_b_role,project_id,workspace_pair_key,merged_into,updated_at,last_message_at',
+      merged_into: inFilter(batch)
+    })
+  );
   const conversationsById = new Map<string, Record<string, any>>();
   [...parents, ...children].forEach(conversation => conversationsById.set(conversation.id, conversation));
   const sourceIds = [...conversationsById.keys()];
   const messagesByConversation = new Map<string, Record<string, any>[]>();
   sourceIds.forEach(id => messagesByConversation.set(id, []));
-  for (let offset = 0; offset < sourceIds.length; offset += 100) {
-    const messageRows = await fetchRows(supabaseUrl, serviceRoleKey, 'messages', {
+  const messageRows = await fetchBatchedRows(
+    sourceIds,
+    100,
+    batch => fetchRows(supabaseUrl, serviceRoleKey, 'messages', {
       select: 'id,conversation_id,sender_id,created_at,read_at,project_id,project_kind',
-      conversation_id: inFilter(sourceIds.slice(offset, offset + 100)),
+      conversation_id: inFilter(batch),
       order: 'created_at.asc,id.asc'
-    });
-    messageRows.forEach(message => messagesByConversation.get(message.conversation_id)?.push(message));
-  }
+    })
+  );
+  messageRows.forEach(message => messagesByConversation.get(message.conversation_id)?.push(message));
   const childrenByParent = new Map<string, Record<string, any>[]>();
   parentIds.forEach(id => childrenByParent.set(id, []));
   const parentsById = new Map(parents.map(parent => [parent.id, parent]));
@@ -148,20 +168,6 @@ async function loadDashboard(
       messages: messagesByConversation.get(source.id) || []
     }))
   })).filter(conversation => conversation.sources.some(source => source.messages.length > 0));
-  const projectViews = await fetchRows(supabaseUrl, serviceRoleKey, 'project_views', {
-    select: 'project_id,projects!inner(project_kind,status)',
-    viewer_id: `eq.${userId}`,
-    'projects.project_kind': 'eq.portfolio',
-    'projects.status': 'eq.published',
-    limit: '1'
-  });
-  const engagements = await fetchRows(supabaseUrl, serviceRoleKey, 'project_engagements', {
-    select: 'id,conversation_id,project_id,developer_id,client_completed_at,developer_completed_at,project_reviews(reviewer_id)',
-    client_id: `eq.${userId}`,
-    client_completed_at: 'not.is.null',
-    developer_completed_at: 'not.is.null',
-    order: 'client_completed_at.desc,id.asc'
-  });
   const relatedProjectIds = [...new Set([
     ...conversations.flatMap(conversation => [
       conversation.project_id,
@@ -173,47 +179,51 @@ async function loadDashboard(
     ...engagements.map(engagement => engagement.project_id)
   ].filter((id): id is string => typeof id === 'string'))]
     .filter(id => !requests.some(request => request.id === id));
-  const relatedProjects = [];
-  for (let offset = 0; offset < relatedProjectIds.length; offset += 100) {
-    relatedProjects.push(...await fetchRows(supabaseUrl, serviceRoleKey, 'projects', {
+  const relatedProjectsTask = fetchBatchedRows(
+    relatedProjectIds,
+    100,
+    batch => fetchRows(supabaseUrl, serviceRoleKey, 'projects', {
       select: 'id,owner_id,project_kind,title,status',
-      id: inFilter(relatedProjectIds.slice(offset, offset + 100))
-    }));
-  }
-  const projects = [...requests, ...relatedProjects];
+      id: inFilter(batch)
+    })
+  );
   const developerIds = [...new Set([
     ...conversations.map(conversation => conversation.participant_a_id === userId
       ? conversation.participant_b_id
       : conversation.participant_a_id),
     ...engagements.map(engagement => engagement.developer_id)
   ].filter((id): id is string => typeof id === 'string'))];
-  let developers: {id: string; name: string}[] = [];
-  for (let offset = 0; offset < developerIds.length; offset += 100) {
-    const batch = developerIds.slice(offset, offset + 100);
-    const [profiles, workspaces] = await Promise.all([
-      fetchRows(supabaseUrl, serviceRoleKey, 'profiles', {
-        select: 'id,username,display_name,account_role',
-        id: inFilter(batch)
-      }),
-      fetchRows(supabaseUrl, serviceRoleKey, 'account_workspaces', {
-        select: 'user_id,role,display_name',
-        user_id: inFilter(batch),
-        role: 'eq.dev'
-      })
-    ]);
-    const workspaceNames = new Map(workspaces.map(workspace => [workspace.user_id, workspace.display_name]));
-    developers.push(...profiles.filter(profile =>
-      profile.account_role === 'dev' || workspaceNames.has(profile.id)
-    ).map(profile => ({
-      id: profile.id,
-      name: String(
-        (profile.account_role === 'dev' ? profile.display_name : '')
-        || workspaceNames.get(profile.id)
-        || profile.username
-        || 'Developer'
-      )
-    })));
-  }
+  const developersTask = fetchBatchedRows(
+    developerIds,
+    100,
+    async batch => {
+      const [profiles, workspaces] = await Promise.all([
+        fetchRows(supabaseUrl, serviceRoleKey, 'profiles', {
+          select: 'id,username,display_name,account_role',
+          id: inFilter(batch)
+        }),
+        fetchRows(supabaseUrl, serviceRoleKey, 'account_workspaces', {
+          select: 'user_id,role,display_name',
+          user_id: inFilter(batch),
+          role: 'eq.dev'
+        })
+      ]);
+      const workspaceNames = new Map(workspaces.map(workspace => [workspace.user_id, workspace.display_name]));
+      return profiles.filter(profile =>
+        profile.account_role === 'dev' || workspaceNames.has(profile.id)
+      ).map(profile => ({
+        id: profile.id,
+        name: String(
+          (profile.account_role === 'dev' ? profile.display_name : '')
+          || workspaceNames.get(profile.id)
+          || profile.username
+          || 'Developer'
+        )
+      }));
+    }
+  );
+  const [relatedProjects, developers] = await Promise.all([relatedProjectsTask, developersTask]);
+  const projects = [...requests, ...relatedProjects];
   return buildClientDashboard({
     userId,
     requests,

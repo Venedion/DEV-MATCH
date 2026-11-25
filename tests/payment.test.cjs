@@ -11,6 +11,8 @@ const client = '33333333-3333-4333-8333-333333333333';
 const reviewer = '44444444-4444-4444-8444-444444444444';
 const stranger = '55555555-5555-4555-8555-555555555555';
 const projectId = 'test-project';
+const agreementId = '66666666-6666-4666-8666-666666666666';
+const proposalId = '77777777-7777-4777-8777-777777777777';
 const proposal = {
   name: 'Website', description: 'Test', scope: 'UI', deliverables: 'Code',
   revisions: 'One', duration: 'Two weeks', total: 100001, dpPercent: 25
@@ -28,10 +30,16 @@ async function fixture(t) {
       participant_b_id uuid not null, participant_a_role text not null, participant_b_role text not null,
       merged_into uuid, created_at timestamptz default now());
     create table public.messages (conversation_id uuid, project_id text, project_reference_id text);
+    create table public.project_proposals (id uuid primary key, status text not null);
+    create table public.project_agreements (id uuid primary key, proposal_id uuid not null,
+      conversation_id uuid not null, developer_id uuid not null, client_id uuid not null,
+      terms jsonb not null, total_price numeric(16, 0) not null, dp_amount numeric(16, 0) not null,
+      payment_status text not null default 'pending', created_at timestamptz default now());
   `);
   const path = join(__dirname, '../supabase/migrations/20261124120000_midtrans_sandbox_payments.sql');
   await db.exec(readFileSync(path, 'utf8'));
   await db.exec(readFileSync(join(__dirname, '../supabase/migrations/20261125140000_payment_room_chat_context.sql'), 'utf8'));
+  await db.exec(readFileSync(join(__dirname, '../supabase/migrations/202611260001_proposal_agreement_payments.sql'), 'utf8'));
   await db.query('insert into auth.users values ($1), ($2), ($3)', [developer, client, reviewer]);
   await db.query("insert into public.projects values ($1, $2, 'portfolio', 'Project')", [projectId, developer]);
   await db.query(`insert into public.conversations
@@ -42,16 +50,29 @@ async function fixture(t) {
   const row = async (sql, args) => (await db.query(sql, args)).rows[0];
   const args = ref => [ref.conversationId, ref.projectId];
   const store = {
-    context: async (user, ref) => (await row('select public.payment_room_context($1, $2, $3) as data',
-      [user, ...args(ref)])).data,
-    reviewerRooms: async user => (await row('select public.payment_reviewer_rooms($1) as data', [user])).data,
-    save: async (ref, version, state, orderId = null) => (await row(
-      'select public.payment_save_room($1, $2, $3, $4, $5) as saved',
-      [...args(ref), version, JSON.stringify(state), orderId])).saved,
-    state: async ref => await row('select version, state from public.payment_rooms where conversation_id=$1 and project_id=$2',
-      args(ref)) || {version: 0, state: null},
-    orderRef: orderId => row('select conversation_id as "conversationId", project_id as "projectId" from public.payment_order_refs where order_id=$1',
-      [orderId])
+    context: async (user, ref) => ref.agreementId
+      ? (await row('select public.payment_agreement_context($1, $2) as data', [user, ref.agreementId])).data
+      : (await row('select public.payment_room_context($1, $2, $3) as data', [user, ...args(ref)])).data,
+    reviewerRooms: async user => {
+      const projects = (await row('select public.payment_reviewer_rooms($1) as data', [user])).data;
+      const agreements = (await row('select public.payment_agreement_review_rooms($1) as data', [user])).data;
+      return [...projects, ...agreements];
+    },
+    save: async (ref, version, state, orderId = null) => ref.agreementId
+      ? (await row('select public.payment_agreement_save($1, $2, $3, $4) as saved',
+        [ref.agreementId, version, JSON.stringify(state), orderId])).saved
+      : (await row('select public.payment_save_room($1, $2, $3, $4, $5) as saved',
+        [...args(ref), version, JSON.stringify(state), orderId])).saved,
+    state: async ref => ref.agreementId
+      ? await row('select version, state from public.payment_agreement_rooms where agreement_id=$1',
+        [ref.agreementId]) || {version: 0, state: null}
+      : await row('select version, state from public.payment_rooms where conversation_id=$1 and project_id=$2',
+        args(ref)) || {version: 0, state: null},
+    orderRef: async orderId => await row(
+      'select agreement_id from public.payment_agreement_order_refs where order_id=$1', [orderId])
+      .then(agreement => agreement && ({agreementId: agreement.agreement_id}))
+      || row('select conversation_id as "conversationId", project_id as "projectId" from public.payment_order_refs where order_id=$1',
+        [orderId])
   };
   const {sandboxGateway} = await import('../supabase/functions/payment-api/midtrans.mjs');
   const {paymentService} = await import('../supabase/functions/payment-api/service.mjs');
@@ -66,7 +87,12 @@ async function fixture(t) {
         const finish = new URL(callbacks.finish);
         assert.equal(finish.origin, 'https://devm4tch.vercel.app');
         assert.equal(finish.searchParams.get('conversation'), conversationId);
-        assert.equal(finish.searchParams.get('paymentProject'), projectId);
+        if (finish.searchParams.get('paymentAgreement')) {
+          assert.equal(finish.searchParams.get('paymentAgreement'), agreementId);
+          assert.equal(finish.searchParams.has('paymentProject'), false);
+        } else {
+          assert.equal(finish.searchParams.get('paymentProject'), projectId);
+        }
         assert.ok(!orders.has(order_id), 'order must be created once');
         orders.set(order_id, {order_id, gross_amount: gross_amount + '.00'});
         return Response.json({redirect_url: 'https://app.sandbox.midtrans.com/snap/v3/redirection/' + order_id});
@@ -158,4 +184,59 @@ test('Hosted checkout verifies authoritative status and records ledger once on c
   const finish = await apply(developer, 'complete-payout');
   assert.equal(finish.room.project, 'COMPLETED');
   assert.deepEqual(finish.ledger.map(entry => entry.entry), ['DP_HELD', 'FULL_PAYMENT_HELD', 'RELEASE_PENDING', 'RELEASED']);
+});
+
+test('accepted project agreements use the proposal terms for sandbox payments and project completion', async t => {
+  const {db, service, orders, event} = await fixture(t);
+  const terms = {
+    projectName: 'Proposal flow', description: 'Agreement-backed project', totalPrice: 100000,
+    dpPercent: 25, dpAmount: 25000, remainingAmount: 75000, deadline: '2027-01-15',
+    scope: ['Design the interface', 'Deliver the source'], revisionCount: 1, revisionNotes: 'One revision round'
+  };
+  await db.query("insert into public.project_proposals (id,status) values ($1,'accepted')", [proposalId]);
+  await db.query(`insert into public.project_agreements
+    (id,proposal_id,conversation_id,developer_id,client_id,terms,total_price,dp_amount)
+    values ($1,$2,$3,$4,$5,$6,$7,$8)`,
+  [agreementId, proposalId, conversationId, developer, client,
+    JSON.stringify({terms, attachments: []}), terms.totalPrice, terms.dpAmount]);
+  await db.query('insert into public.payment_agreement_dispute_reviewers values ($1,$2)', [agreementId, reviewer]);
+  const handle = (user, operation, body = {}) =>
+    service.handle(user, {agreementId, operation, ...body});
+  const apply = (user, action, fields = {}) => handle(user, 'apply', {action, ...fields});
+
+  assert.equal((await handle(client, 'snapshot')).room.proposal.agreementId, agreementId);
+  assert.equal((await handle(developer, 'snapshot')).role, 'developer');
+  await assert.rejects(handle(stranger, 'snapshot'), {status: 403});
+  await assert.rejects(handle(developer, 'checkout', {kind: 'DP'}), {status: 403});
+
+  const checkout = await handle(client, 'checkout', {kind: 'DP'});
+  assert.match(checkout.redirectUrl, /app\.sandbox\.midtrans\.com/);
+  const [dpOrder] = orders.values();
+  assert.equal(dpOrder.gross_amount, '25000.00');
+  assert.equal((await handle(client, 'checkout', {kind: 'DP'})).redirectUrl, checkout.redirectUrl);
+  await assert.rejects(handle(client, 'checkout', {kind: 'REMAINING'}), {status: 409});
+  dpOrder.transaction_status = 'settlement';
+  await service.webhook(event(dpOrder));
+  assert.equal((await handle(developer, 'snapshot')).room.project, 'IN_PROGRESS');
+
+  const balanceCheckout = await handle(client, 'checkout', {kind: 'REMAINING'});
+  const balanceOrder = [...orders.values()][1];
+  assert.equal(balanceOrder.gross_amount, '75000.00');
+  assert.match(balanceCheckout.redirectUrl, /app\.sandbox\.midtrans\.com/);
+  balanceOrder.transaction_status = 'settlement';
+  await service.webhook(event(balanceOrder));
+  await apply(developer, 'deliver', {links: 'https://example.test/finish', notes: 'Delivered'});
+  await apply(client, 'revision', {reason: 'Please adjust the color'});
+  await apply(developer, 'deliver', {links: 'https://example.test/finish-v2', notes: 'Updated'});
+  await assert.rejects(apply(client, 'revision', {reason: 'Another revision'}), {status: 409});
+  await apply(developer, 'verify-payout');
+  await apply(client, 'approve');
+  const completed = await apply(developer, 'complete-payout');
+  assert.equal(completed.room.project, 'COMPLETED');
+  assert.deepEqual(await handle(reviewer, 'reviews'), []);
+  const agreement = await db.query('select payment_status from public.project_agreements where id=$1', [agreementId]);
+  assert.equal(agreement.rows[0].payment_status, 'paid');
+  const refs = await db.query('select agreement_id from public.payment_agreement_order_refs order by order_id');
+  assert.equal(refs.rows.length, 2);
+  assert.ok(refs.rows.every(row => row.agreement_id === agreementId));
 });

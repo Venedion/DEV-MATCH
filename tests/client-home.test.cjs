@@ -73,6 +73,49 @@ test('client home counts open requests and only unread developer inquiries on cl
   assert.equal(result.attention[0].context, 'Clinic booking app');
 });
 
+test('client home keeps the latest unread message from each inquiry run', () => {
+  const result = dashboard({
+    conversations: [{
+      id: 'multiple-inquiry-runs',
+      participant_a_id: userId,
+      participant_b_id: developerId,
+      participant_a_role: 'client',
+      participant_b_role: 'dev',
+      project_id: 'request-open',
+      messages: [
+        {sender_id: developerId, created_at: '2026-11-15T10:00:00.000Z', read_at: null},
+        {sender_id: developerId, created_at: '2026-11-16T10:00:00.000Z', read_at: recent},
+        {sender_id: userId, created_at: '2026-11-17T10:00:00.000Z', read_at: null},
+        {sender_id: developerId, created_at: '2026-11-18T10:00:00.000Z', read_at: recent},
+        {sender_id: developerId, created_at: '2026-11-19T10:00:00.000Z', read_at: null}
+      ]
+    }]
+  });
+
+  assert.equal(result.metrics.newInquiries, 2);
+  assert.deepEqual(result.attention.map(item => item.createdAt), [
+    '2026-11-19T10:00:00.000Z',
+    '2026-11-15T10:00:00.000Z'
+  ]);
+});
+
+test('client home fetches every batch in order with bounded concurrent requests', async () => {
+  const {fetchBatchedRows}=await import('../supabase/functions/client-home/fetch-batched-rows.mjs');
+  const ids=Array.from({length:11},(_,index)=>String(index));
+  let active=0;
+  let peak=0;
+  const result=await fetchBatchedRows(ids,2,async batch=>{
+    active++;
+    peak=Math.max(peak,active);
+    await new Promise(resolve=>setTimeout(resolve,1));
+    active--;
+    return batch.map(id=>({id}));
+  });
+
+  assert.deepEqual(result.map(row=>row.id),ids);
+  assert.equal(peak,4);
+});
+
 test('client home reports client messages awaiting a developer reply and pending ratings', () => {
   const result = dashboard({
     conversations: [{
@@ -402,4 +445,26 @@ test('client home hides checklist skeleton until available and shimmers active p
   assert.match(source, /renderHomeMetrics\(\{\.\.\.metrics,activeProjects:0\}\)/);
   assert.match(source, /renderHomeDashboardLoading\(\);\s*loadClientDashboardData\(\);/);
   assert.match(source, /loadHomeDashboard\(\{showLoading:false\}\)/);
+});
+
+test('client dashboard requests the dedicated recent-conversation preview', () => {
+  const source = fs.readFileSync(path.join(__dirname, '../assets/js/client-dashboard.js'), 'utf8');
+  const loadConversations = source.slice(
+    source.indexOf('async function loadHomeConversations()'),
+    source.indexOf("window.addEventListener('devmatch:project-favorite-change'")
+  );
+  assert.match(loadConversations, /action:'list-dashboard-conversations'/);
+  assert.doesNotMatch(loadConversations, /action:'list-conversations'/);
+});
+
+test('client dashboard shares one notification query between activity and unread count', () => {
+  const source = fs.readFileSync(path.join(__dirname, '../assets/js/client-dashboard.js'), 'utf8');
+  const loadStart = source.indexOf('async function loadClientDashboardData()');
+  const loadDashboard = source.slice(
+    loadStart,
+    source.indexOf('loadClientDashboardData();', loadStart)
+  );
+  assert.equal((loadDashboard.match(/client\.from\('notifications'\)/g) || []).length, 1);
+  assert.match(loadDashboard, /const notificationRowsTask=client\.from\('notifications'\)/);
+  assert.equal((loadDashboard.match(/notificationRowsTask/g) || []).length, 3);
 });

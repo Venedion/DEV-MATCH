@@ -5,6 +5,14 @@
   const client = backend.client;
   const LEGACY_CHAT_STORAGE_KEY = 'devmatch_chat_conversations_v2';
   const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+  const ALLOWED_PROPOSAL_ATTACHMENT_TYPES = new Set([
+    'application/pdf',
+    'application/msword',
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    'image/jpeg',
+    'image/png',
+    'image/webp'
+  ]);
   const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, character => ({
     '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
   }[character]));
@@ -190,6 +198,9 @@
     const project = conversation?.project;
     if (!proposalDialogEl || !conversation) return;
 
+    setProposalStatus(currentProfile?.account_role === 'dev'
+      ? 'Terms are saved with the proposal. Payment opens after the Client accepts.'
+      : 'Switch to Developer Mode to send a project proposal.');
     const requestProject = project?.project_kind === 'request' ? project : null;
     const contextId = `${conversation.id || 'draft'}:${project?.id || 'none'}:${conversation.contactId || conversation.participantId || ''}`;
     if (proposalContextId !== contextId) {
@@ -255,6 +266,446 @@
       item.textContent = `${file.name} · ${formatFileSize(file.size)}`;
       list.append(item);
     });
+  }
+
+  function formatProposalDeadline(value) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(value || '')) return 'Not set';
+    const date = new Date(`${value}T00:00:00`);
+    return Number.isNaN(date.getTime())
+      ? 'Not set'
+      : date.toLocaleDateString('en-US', {year: 'numeric', month: 'short', day: 'numeric'});
+  }
+
+  function renderProjectProposalCard(proposal) {
+    if (!proposal?.terms) return '';
+    const terms = proposal.terms;
+    const isCreator = proposal.developer_id === currentUser?.id;
+    const isPending = proposal.status === 'pending';
+    const isAccepted = proposal.status === 'accepted';
+    const status = isAccepted ? 'Accepted' : proposal.status === 'withdrawn' ? 'Withdrawn' : 'Pending approval';
+    const statusNote = isPending
+      ? isCreator
+        ? `Waiting for ${escapeHtml(getActiveConversation()?.contactDisplayName || getActiveConversation()?.name || 'the client')} to accept. The terms are locked once accepted.`
+        : 'After you accept, an agreement is created and the terms are locked. You can then open project payments.'
+      : isAccepted
+        ? 'Agreement created. The terms are locked. Open project payments to continue.'
+        : 'The proposal was withdrawn by its creator.';
+    const actions = [
+      isPending && !isCreator
+        ? `<button class="chat-proposal-card-primary" type="button" data-proposal-accept="${escapeHtml(proposal.id)}">Accept proposal</button>`
+        : '',
+      isAccepted && proposal.agreement?.id
+        ? `<button class="chat-proposal-card-primary" type="button" data-proposal-payments="${escapeHtml(proposal.id)}">Project payments</button>`
+        : '',
+      isPending && !isCreator
+        ? `<button type="button" data-proposal-ask-changes="${escapeHtml(proposal.id)}">Ask for changes</button>`
+        : '',
+      `<button type="button" data-proposal-view="${escapeHtml(proposal.id)}">View details</button>`,
+      isPending && isCreator
+        ? `<button type="button" data-proposal-withdraw="${escapeHtml(proposal.id)}">Withdraw proposal</button>`
+        : ''
+    ].filter(Boolean);
+    const hasPrimaryAction = (isPending && !isCreator) || (isAccepted && Boolean(proposal.agreement?.id));
+    const rows = [
+      ['DP', `${Number(terms.dpPercent) || 0}%`, terms.dpAmount],
+      ['Remaining payment', '', Number(terms.totalPrice) - Number(terms.dpAmount)],
+      ['Deadline', '', formatProposalDeadline(terms.deadline)],
+      ['Revisions', '', `${Number(terms.revisionCount) || 0} free rounds`],
+      ['Scope of work', '', `${Array.isArray(terms.scope) ? terms.scope.length : 0} points`]
+    ];
+    return `<article class="chat-project-proposal-card" data-project-proposal-card="${escapeHtml(proposal.id)}">
+      <header><span>Project proposal</span><strong class="chat-proposal-status">${status}</strong></header>
+      <h3>${escapeHtml(terms.projectName || 'Project proposal')}</h3>
+      <strong class="chat-proposal-card-price">${escapeHtml(formatProposalAmount(terms.totalPrice))}</strong>
+      <dl>${rows.map(([label, hint, amount]) => `<div><dt>${escapeHtml(label)}${hint ? ` (${escapeHtml(hint)})` : ''}</dt><dd>${typeof amount === 'number' ? escapeHtml(formatProposalAmount(amount)) : escapeHtml(amount)}</dd></div>`).join('')}</dl>
+      <p>${statusNote}</p>
+      <footer class="${hasPrimaryAction ? 'has-primary' : ''}">${actions.join('')}</footer>
+    </article>`;
+  }
+
+  function openProposalDetails(proposal) {
+    const dialog = document.getElementById('projectProposalDetailsDialog');
+    const content = document.getElementById('projectProposalDetailsContent');
+    if (!dialog || !content || !proposal?.terms) return;
+    const terms = proposal.terms;
+    const conversation = getActiveConversation();
+    const isCreator = proposal.developer_id === currentUser?.id;
+    const isPending = proposal.status === 'pending';
+    const isAccepted = proposal.status === 'accepted';
+    const status = isAccepted ? 'Accepted' : proposal.status === 'withdrawn' ? 'Withdrawn' : 'Pending approval';
+    const sender = isCreator
+      ? 'You'
+      : conversation?.contactDisplayName || conversation?.name || 'Developer';
+    const statusLabel = document.getElementById('projectProposalDetailsStatus');
+    const senderLabel = document.getElementById('projectProposalDetailsFrom');
+    const statusNote = document.getElementById('projectProposalDetailsStatusNote');
+    content.replaceChildren();
+    const addText = (tag, className, value) => {
+      const element = document.createElement(tag);
+      if (className) element.className = className;
+      element.textContent = value;
+      content.append(element);
+      return element;
+    };
+    const addSection = (title, count) => {
+      const section = document.createElement('section');
+      section.className = 'chat-proposal-details-section';
+      const heading = document.createElement('h4');
+      heading.textContent = count === undefined ? title : `${title} (${count})`;
+      section.append(heading);
+      content.append(section);
+      return section;
+    };
+    const addFact = (container, label, value) => {
+      const row = document.createElement('div');
+      const term = document.createElement('dt');
+      term.textContent = label;
+      const detail = document.createElement('dd');
+      detail.textContent = value;
+      row.append(term, detail);
+      container.append(row);
+    };
+    const setAction = (id, action, visible) => {
+      const button = document.getElementById(id);
+      if (!button) return;
+      button.hidden = !visible;
+      button.disabled = false;
+      button.removeAttribute('data-proposal-details-action');
+      if (visible) {
+        button.dataset.proposalDetailsAction = action;
+        button.dataset.proposalId = proposal.id;
+      } else {
+        button.removeAttribute('data-proposal-id');
+      }
+    };
+
+    addText('p', 'chat-proposal-details-eyebrow', 'PROJECT PROPOSAL');
+    addText('h3', '', terms.projectName || 'Project proposal');
+    if (terms.description) addText('p', 'chat-proposal-details-description', terms.description);
+
+    const pricing = addSection('Price and payment');
+    const totalPrice = document.createElement('strong');
+    totalPrice.className = 'chat-proposal-details-price';
+    totalPrice.textContent = formatProposalAmount(terms.totalPrice);
+    pricing.append(totalPrice);
+    const paymentFacts = document.createElement('dl');
+    paymentFacts.className = 'chat-proposal-details-facts';
+    addFact(paymentFacts, `Down payment (${Number(terms.dpPercent) || 0}%)`, formatProposalAmount(terms.dpAmount));
+    addFact(
+      paymentFacts,
+      'Remaining payment',
+      formatProposalAmount(terms.remainingAmount ?? (Number(terms.totalPrice) - Number(terms.dpAmount)))
+    );
+    pricing.append(paymentFacts);
+
+    const delivery = addSection('Timeline and revisions');
+    const deliveryFacts = document.createElement('dl');
+    deliveryFacts.className = 'chat-proposal-details-facts';
+    addFact(deliveryFacts, 'Deadline', formatProposalDeadline(terms.deadline));
+    addFact(deliveryFacts, 'Free revisions', `${Number(terms.revisionCount) || 0} rounds`);
+    delivery.append(deliveryFacts);
+
+    const scopeItems = Array.isArray(terms.scope) ? terms.scope : [];
+    const scopeSection = addSection('Scope of work', scopeItems.length);
+    const scope = document.createElement('ol');
+    scope.className = 'chat-proposal-details-scope';
+    scopeItems.forEach(point => {
+      const item = document.createElement('li');
+      item.textContent = point;
+      scope.append(item);
+    });
+    scopeSection.append(scope);
+
+    const revisionSection = addSection('Revision notes');
+    const revisionNotes = document.createElement('p');
+    revisionNotes.className = 'chat-proposal-details-notes';
+    revisionNotes.textContent = terms.revisionNotes || 'No additional revision notes.';
+    revisionSection.append(revisionNotes);
+
+    if (proposal.attachments?.length) {
+      const attachmentSection = addSection('Attachments', proposal.attachments.length);
+      const files = document.createElement('ul');
+      files.className = 'chat-proposal-details-files';
+      proposal.attachments.forEach(file => {
+        const item = document.createElement('li');
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.dataset.proposalDownload = file.id;
+        button.dataset.proposalId = proposal.id;
+        button.textContent = `${file.name} · ${formatFileSize(file.size)}`;
+        item.append(button);
+        files.append(item);
+      });
+      attachmentSection.append(files);
+    }
+
+    const project = conversation?.project;
+    if (project?.project_kind === 'request') {
+      const requestData = project.requestData || {};
+      const lower = proposalAmount(requestData.budgetFrom);
+      const upper = proposalAmount(requestData.budgetTo);
+      const amount = proposalAmount(terms.totalPrice);
+      const budgetLabel = lower && upper
+        ? `${formatProposalAmount(lower)} — ${formatProposalAmount(upper)}`
+        : requestData.budget || project.price || 'Not specified';
+      let comparison = 'No budget set';
+      if (lower && upper) comparison = amount >= lower && amount <= upper ? 'Within budget' : 'Outside budget';
+      else if (upper) comparison = amount <= upper ? 'Within budget' : 'Above budget';
+      else if (lower) comparison = amount >= lower ? 'Within budget' : 'Below budget';
+      const comparisonSection = addSection('Compared with your request');
+      const comparisonFacts = document.createElement('dl');
+      comparisonFacts.className = 'chat-proposal-details-facts';
+      addFact(comparisonFacts, 'Request budget', String(budgetLabel));
+      addFact(comparisonFacts, 'Proposal price', comparison);
+      comparisonSection.append(comparisonFacts);
+    }
+
+    if (statusLabel) {
+      statusLabel.textContent = status;
+      statusLabel.className = `chat-proposal-details-status is-${proposal.status}`;
+    }
+    if (senderLabel) {
+      const sentDate = proposal.created_at ? new Date(proposal.created_at) : null;
+      const sentLabel = sentDate && !Number.isNaN(sentDate.getTime())
+        ? ` · sent ${sentDate.toLocaleString('en-US', {
+          year: 'numeric',
+          month: 'short',
+          day: 'numeric',
+          hour: 'numeric',
+          minute: '2-digit'
+        })}`
+        : '';
+      senderLabel.textContent = `From ${sender}${sentLabel}`;
+    }
+    if (statusNote) {
+      statusNote.textContent = isPending
+        ? isCreator
+          ? `Waiting for ${conversation?.contactDisplayName || conversation?.name || 'the client'} to accept.`
+          : 'Accepting creates an agreement and locks these terms.'
+        : isAccepted
+          ? 'Agreement created. Open project payments to continue.'
+          : 'This proposal was withdrawn by its creator.';
+    }
+    setAction('projectProposalDetailsAskChanges', 'ask-changes', isPending && !isCreator);
+    setAction('projectProposalDetailsWithdraw', 'withdraw', isPending && isCreator);
+    setAction('projectProposalDetailsPayments', 'payments', isAccepted && Boolean(proposal.agreement?.id));
+    setAction('projectProposalDetailsAccept', 'accept', isPending && !isCreator);
+
+    if (dialog.open) dialog.close();
+    dialog.showModal();
+  }
+
+  function setProposalStatus(message, isError = false) {
+    const status = document.getElementById('proposeProjectStatus');
+    if (!status) return;
+    status.textContent = message;
+    status.classList.toggle('is-error', isError);
+  }
+
+  async function ensureProposalConversation(conversation) {
+    if (conversation.id) return conversation;
+    const row = conversation.projectId
+      ? await invokeChat('start-project', {projectId: conversation.projectId})
+      : await invokeChat('start-user', {participantId: conversation.participantId});
+    if (!row || typeof row.id !== 'string' || !row.id) {
+      throw new Error('Chat service returned an invalid conversation.');
+    }
+    const contact = {
+      id: conversation.participantId,
+      account_role: conversation.roleType,
+      username: conversation.contactUsername,
+      display_name: conversation.contactDisplayName
+    };
+    const sourceConversations = Array.isArray(row.source_conversations) && row.source_conversations.length
+      ? row.source_conversations
+      : [{id: row.id, my_role: conversation.myRole}];
+    const knownProjects = new Map();
+    if (conversation.projectId && conversation.sourceProject) {
+      knownProjects.set(conversation.projectId, conversation.sourceProject);
+    }
+    const persisted = conversations.find(item =>
+      item.id === row.id || item.sourceConversationIds.includes(row.id)
+    ) || mapConversation({
+      ...row,
+      project_id: conversation.projectId || row.project_id,
+      contact,
+      source_conversations: sourceConversations
+    }, knownProjects);
+
+    if (!conversations.some(item => item.id === persisted.id)) conversations.unshift(persisted);
+    pendingConversationDraft = null;
+    activeConvId = persisted.id;
+    updateConversationQuery(persisted.id);
+    renderConversationsList();
+    renderMessagesThread();
+    return persisted;
+  }
+
+  async function submitProjectProposal(event) {
+    event.preventDefault();
+    if (!proposalFormEl || !proposalFormEl.reportValidity()) return;
+    if (currentProfile?.account_role !== 'dev') {
+      setProposalStatus('Switch to Developer Mode to send a project proposal.', true);
+      return;
+    }
+    const conversation = getActiveConversation();
+    if (!conversation) {
+      setProposalStatus('Open a conversation before sending a proposal.', true);
+      return;
+    }
+
+    const input = document.getElementById('proposeProjectAttachments');
+    const selectedFiles = Array.from(input?.files || []);
+    const totalBytes = selectedFiles.reduce((sum, file) => sum + file.size, 0);
+    if (selectedFiles.length > 5
+      || totalBytes > 2 * 1024 * 1024
+      || selectedFiles.some(file => file.size < 1 || file.size > 2 * 1024 * 1024
+        || !ALLOWED_PROPOSAL_ATTACHMENT_TYPES.has(file.type))) {
+      setProposalStatus('Choose up to five PDF, DOC, DOCX, JPG, PNG, or WebP files totaling no more than 2 MB.', true);
+      return;
+    }
+
+    const scope = Array.from(proposalScopeListEl?.querySelectorAll('input') || [])
+      .map(scopeInput => scopeInput.value.trim());
+    if (!scope.length || scope.length > 20 || scope.some(point => !point || point.length > 300)) {
+      setProposalStatus('Add 1 to 20 scope points, each with 1 to 300 characters.', true);
+      proposalScopeListEl?.querySelector('input')?.focus();
+      return;
+    }
+    const totalPrice = proposalAmount(document.getElementById('proposeProjectPrice').value);
+    if (!Number.isSafeInteger(totalPrice) || totalPrice < 40000 || totalPrice > 1000000000) {
+      setProposalStatus('Enter a total price between Rp40,000 and Rp1 billion.', true);
+      document.getElementById('proposeProjectPrice').focus();
+      return;
+    }
+
+    const submitButton = proposalFormEl.querySelector('[type="submit"]');
+    if (submitButton?.disabled) return;
+    if (submitButton) submitButton.disabled = true;
+    setProposalStatus('Sending proposal securely…');
+    try {
+      const activeConversation = await ensureProposalConversation(conversation);
+      const attachments = await Promise.all(selectedFiles.map(async file => ({
+        name: file.name,
+        type: file.type,
+        base64: await fileAsBase64(file)
+      })));
+      const result = await invokeChat('create-project-proposal', {
+        conversationId: activeConversation.id,
+        terms: {
+          projectName: document.getElementById('proposeProjectName').value.trim(),
+          description: document.getElementById('proposeProjectDescription').value.trim(),
+          totalPrice,
+          dpPercent: proposalDownPayment,
+          deadline: document.getElementById('proposeProjectDeadline').value,
+          scope,
+          revisionCount: proposalRevisionCount,
+          revisionNotes: document.getElementById('proposeProjectRevisionNotes').value.trim()
+        },
+        attachments
+      });
+      if (!result?.message?.proposal?.id || !result.message.id) {
+        throw new Error('Chat service returned an invalid proposal.');
+      }
+      const existing = activeConversation.messages.findIndex(message => message.id === result.message.id);
+      if (existing >= 0) activeConversation.messages.splice(existing, 1, result.message);
+      else activeConversation.messages.push(result.message);
+      activeConversation.lastMessage = result.message;
+      renderConversationsList();
+      renderMessagesThread();
+      scrollThreadToBottom();
+      proposalDialogEl?.close();
+      proposalContextId = null;
+      proposalFormEl.reset();
+      proposalScopeItems = [];
+      renderProposalScopeItems();
+      renderProposalAttachments();
+      setStatus('Proposal sent. Waiting for the client to accept.');
+    } catch (error) {
+      console.error('Unable to send project proposal.', error);
+      setProposalStatus(error.message || 'Unable to send this proposal. Please try again.', true);
+    } finally {
+      if (submitButton) submitButton.disabled = false;
+    }
+  }
+
+  function updateProposalMessage(conversation, proposal) {
+    const message = conversation?.messages?.find(item =>
+      item.proposal?.id === proposal?.id || item.proposal_id === proposal?.id
+    );
+    if (!message) return false;
+    message.proposal = proposal;
+    if (conversation.lastMessage?.id === message.id) conversation.lastMessage = message;
+    renderConversationsList();
+    if (conversation.id === activeConvId) renderMessagesThread();
+    return true;
+  }
+
+  async function changeProjectProposal(action, proposalId, button) {
+    const conversation = getActiveConversation();
+    if (!conversation?.id || !proposalId) return false;
+    if (button) button.disabled = true;
+    try {
+      const result = await invokeChat(action, {
+        conversationId: conversation.id,
+        proposalId
+      });
+      if (!result?.proposal || !updateProposalMessage(conversation, result.proposal)) {
+        throw new Error('The updated proposal could not be displayed.');
+      }
+      setStatus(action === 'accept-project-proposal'
+        ? 'Proposal accepted. Open Project payments on the proposal card to continue.'
+        : 'Proposal withdrawn.');
+      return true;
+    } catch (error) {
+      console.error('Unable to update project proposal.', error);
+      setStatus(error.message || 'Unable to update this proposal. Please try again.', true);
+      return false;
+    } finally {
+      if (button) button.disabled = false;
+    }
+  }
+
+  function askForProposalChanges(proposalId) {
+    const conversation = getActiveConversation();
+    const proposal = conversation?.messages?.find(message => message.proposal?.id === proposalId)?.proposal;
+    if (!proposal || proposal.status !== 'pending') return;
+    if (!messageInputEl?.value.trim()) {
+      const developerName = conversation.name || 'the developer';
+      messageInputEl.value = `Hi ${developerName}, I'd like to discuss some changes to your project proposal.`;
+      messageInputEl.dispatchEvent(new Event('input'));
+    }
+    messageInputEl?.focus();
+    setStatus('Review the message and send it to ask for changes.');
+  }
+
+  async function downloadProposalAttachment(proposalId, attachmentId, button) {
+    const conversation = getActiveConversation();
+    if (!conversation?.id) return;
+    if (button) button.disabled = true;
+    try {
+      const result = await invokeChat('download-project-proposal-attachment', {
+        conversationId: conversation.id,
+        proposalId,
+        attachmentId
+      });
+      if (!result || typeof result.base64 !== 'string' || typeof result.name !== 'string') {
+        throw new Error('Chat service returned an invalid proposal attachment.');
+      }
+      const url = URL.createObjectURL(new Blob([decodeBase64(result.base64)], {
+        type: result.type || 'application/octet-stream'
+      }));
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = result.name;
+      link.click();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    } catch (error) {
+      console.error('Unable to download proposal attachment.', error);
+      setStatus(error.message || 'Unable to download this proposal attachment.', true);
+    } finally {
+      if (button) button.disabled = false;
+    }
   }
 
   async function edgeError(error, fallback) {
@@ -839,17 +1290,20 @@
       const messageText = message.text
         ? escapeHtml(message.text).replace(/\n/g, '<br>')
         : '';
-      const bubble = projectContext || messageText
+      const proposalCard = renderProjectProposalCard(message.proposal);
+      const bubble = proposalCard
+        ? `<div class="chat-msg-bubble chat-proposal-message-bubble">${proposalCard}</div>`
+        : projectContext || messageText
         ? `<div class="chat-msg-bubble">${projectContext}${projectContext && messageText ? '<div class="chat-project-reply-divider" aria-hidden="true"></div>' : ''}${messageText}</div>`
         : '';
       return `${dateSeparator}
-        <div class="chat-msg-row ${isSent ? 'sent' : 'received'}">
+        <div class="chat-msg-row ${isSent ? 'sent' : 'received'}${proposalCard ? ' chat-proposal-row' : ''}">
           ${!isSent ? `<div class="chat-msg-avatar ${escapeHtml(conversation.color)}">${escapeHtml(conversation.initials)}</div>` : ''}
           <div class="chat-msg-content">
             <div class="chat-msg-body-row">
               <div class="chat-msg-body">
                 ${bubble}
-                ${attachmentCards}
+                ${proposalCard ? '' : attachmentCards}
               </div>
             </div>
             <div class="chat-msg-meta"><span>${escapeHtml(formatTime(message.created_at))}</span>${isSent
@@ -1129,6 +1583,21 @@
         } catch (error) {
           console.error('Unable to refresh chat read receipts.', error);
           setStatus(error.message || 'Unable to refresh read receipts.', true);
+        }
+      })
+      .on('postgres_changes', {
+        event: 'UPDATE',
+        schema: 'public',
+        table: 'project_proposals'
+      }, async payload => {
+        const conversationId = payload.new?.conversation_id;
+        const active = getActiveConversation();
+        if (!conversationId || !active?.sourceConversationIds?.includes(conversationId)) return;
+        try {
+          await loadMessages(active.id);
+        } catch (error) {
+          console.error('Unable to refresh a project proposal.', error);
+          setStatus(error.message || 'Unable to refresh the proposal.', true);
         }
       })
       .on('postgres_changes', {
@@ -1804,12 +2273,59 @@
       setComposerMenuOpen(false);
       openProposalForm();
     });
-    proposalFormEl?.addEventListener('submit', event => event.preventDefault());
+    proposalFormEl?.addEventListener('submit', event => void submitProjectProposal(event));
     proposalDialogEl?.querySelectorAll('[data-close-propose-project]').forEach(button => {
       button.addEventListener('click', () => proposalDialogEl.close());
     });
     proposalDialogEl?.addEventListener('click', event => {
       if (event.target === proposalDialogEl) proposalDialogEl.close();
+    });
+    const proposalDetailsDialog = document.getElementById('projectProposalDetailsDialog');
+    proposalDetailsDialog?.querySelectorAll('[data-close-proposal-details]').forEach(button => {
+      button.addEventListener('click', () => proposalDetailsDialog.close());
+    });
+    proposalDetailsDialog?.addEventListener('click', event => {
+      if (event.target === proposalDetailsDialog) proposalDetailsDialog.close();
+    });
+    proposalDetailsDialog?.addEventListener('click', event => {
+      const actionButton = event.target.closest('[data-proposal-details-action]');
+      if (!actionButton || !proposalDetailsDialog.contains(actionButton)) return;
+      const proposalId = actionButton.dataset.proposalId;
+      const action = actionButton.dataset.proposalDetailsAction;
+      if (action === 'ask-changes') {
+        proposalDetailsDialog.close();
+        askForProposalChanges(proposalId);
+      } else if (action === 'accept') {
+        proposalDetailsDialog.close();
+        void changeProjectProposal('accept-project-proposal', proposalId, actionButton);
+      } else if (action === 'withdraw') {
+        if (window.confirm('Withdraw this proposal? The client will no longer be able to accept it.')) {
+          void changeProjectProposal('withdraw-project-proposal', proposalId, actionButton)
+            .then(updated => {
+              if (updated) proposalDetailsDialog.close();
+            });
+        }
+      } else if (action === 'payments') {
+        const proposal = getActiveConversation()?.messages
+          .find(message => message.proposal?.id === proposalId)?.proposal;
+        if (proposal?.agreement?.id) {
+          proposalDetailsDialog.close();
+          window.DEVMATCH_ROOM_PAYMENT?.openAgreement({
+            id: proposal.agreement.id,
+            conversationId: proposal.conversation_id,
+            title: proposal.terms?.projectName
+          });
+        }
+      }
+    });
+    proposalDetailsDialog?.addEventListener('click', event => {
+      const attachmentButton = event.target.closest('[data-proposal-download]');
+      if (!attachmentButton || !proposalDetailsDialog.contains(attachmentButton)) return;
+      void downloadProposalAttachment(
+        attachmentButton.dataset.proposalId,
+        attachmentButton.dataset.proposalDownload,
+        attachmentButton
+      );
     });
     document.querySelectorAll('[data-proposal-dp]').forEach(button => {
       button.addEventListener('click', () => {
@@ -1842,7 +2358,7 @@
       document.getElementById('proposeProjectRevisionCount').textContent = String(proposalRevisionCount);
     });
     document.getElementById('increaseProposalRevisions')?.addEventListener('click', () => {
-      proposalRevisionCount += 1;
+      proposalRevisionCount = Math.min(99, proposalRevisionCount + 1);
       document.getElementById('proposeProjectRevisionCount').textContent = String(proposalRevisionCount);
     });
     document.getElementById('proposeProjectAttachments')?.addEventListener('change', renderProposalAttachments);
@@ -1878,6 +2394,56 @@
       setStatus('Attachment ready. Files are encrypted before storage.');
     });
     chatMessagesEl?.addEventListener('click', event => {
+      const viewProposalButton = event.target.closest('[data-proposal-view]');
+      if (viewProposalButton && chatMessagesEl.contains(viewProposalButton)) {
+        event.preventDefault();
+        const proposal = getActiveConversation()?.messages
+          .find(message => message.proposal?.id === viewProposalButton.dataset.proposalView)?.proposal;
+        if (proposal) openProposalDetails(proposal);
+        return;
+      }
+      const proposalPaymentsButton = event.target.closest('[data-proposal-payments]');
+      if (proposalPaymentsButton && chatMessagesEl.contains(proposalPaymentsButton)) {
+        event.preventDefault();
+        const proposal = getActiveConversation()?.messages
+          .find(message => message.proposal?.id === proposalPaymentsButton.dataset.proposalPayments)?.proposal;
+        if (proposal?.agreement?.id) {
+          window.DEVMATCH_ROOM_PAYMENT?.openAgreement({
+            id: proposal.agreement.id,
+            conversationId: proposal.conversation_id,
+            title: proposal.terms?.projectName
+          });
+        }
+        return;
+      }
+      const acceptProposalButton = event.target.closest('[data-proposal-accept]');
+      if (acceptProposalButton && chatMessagesEl.contains(acceptProposalButton)) {
+        event.preventDefault();
+        void changeProjectProposal(
+          'accept-project-proposal',
+          acceptProposalButton.dataset.proposalAccept,
+          acceptProposalButton
+        );
+        return;
+      }
+      const withdrawProposalButton = event.target.closest('[data-proposal-withdraw]');
+      if (withdrawProposalButton && chatMessagesEl.contains(withdrawProposalButton)) {
+        event.preventDefault();
+        if (window.confirm('Withdraw this proposal? The client will no longer be able to accept it.')) {
+          void changeProjectProposal(
+            'withdraw-project-proposal',
+            withdrawProposalButton.dataset.proposalWithdraw,
+            withdrawProposalButton
+          );
+        }
+        return;
+      }
+      const askChangesButton = event.target.closest('[data-proposal-ask-changes]');
+      if (askChangesButton && chatMessagesEl.contains(askChangesButton)) {
+        event.preventDefault();
+        askForProposalChanges(askChangesButton.dataset.proposalAskChanges);
+        return;
+      }
       const cancelButton = event.target.closest('[data-cancel-project-reply]');
       if (cancelButton && chatMessagesEl.contains(cancelButton)) {
         event.preventDefault();

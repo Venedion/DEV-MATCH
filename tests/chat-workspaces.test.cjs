@@ -12,7 +12,7 @@ const projectPairKey=(userRole,projectId=null)=>{
   const projectKey=projectId==null?'0:':`${Array.from(projectId).length}:${projectId}`;
   return `${A}:${userRole}:${B}:${peerRole}:${projectKey}`;
 };
-function setup({existingProjectConversation=null,includeChildThread=false,includeDuplicateProjectRoot=false,includeDeveloperMessage=false,includeDeletedPortfolioMessage=false,includePortfolioMessage=false,requestStatus='open',currentUserId=A,portfolioOwnerId=B,requestOwnerId=B,childMessageSenderId=B}={}){
+function setup({existingProjectConversation=null,includeChildThread=false,includeDuplicateProjectRoot=false,includeDeveloperMessage=false,includeDeletedPortfolioMessage=false,includePortfolioMessage=false,requestStatus='open',currentUserId=A,portfolioOwnerId=B,requestOwnerId=B,childMessageSenderId=B,conversationRows=null}={}){
   const calls=[];
   const conversation={id:C,participant_a_id:A,participant_b_id:B,participant_a_role:'client',participant_b_role:'dev',project_id:null,pair_key:`${A}:${B}`,workspace_pair_key:projectPairKey('client'),merged_into:null,created_at:'2026-01-02T03:00:00.000Z',is_primary:false,messages:[]};
   const developerConversation={id:D,participant_a_id:A,participant_b_id:B,participant_a_role:'dev',participant_b_role:'client',project_id:null,pair_key:`${A}:${B}`,workspace_pair_key:projectPairKey('dev'),merged_into:null,created_at:'2026-01-02T03:00:00.000Z',is_primary:false,messages:[]};
@@ -75,6 +75,12 @@ function setup({existingProjectConversation=null,includeChildThread=false,includ
       else if(u.searchParams.has('merged_into')){
         const filter=u.searchParams.get('merged_into');
         if(filter==='is.null'){
+          if(conversationRows){
+            rows=conversationRows.filter(row=>
+              (row.participant_a_id===A&&row.participant_a_role==='client')
+              ||(row.participant_b_id===A&&row.participant_b_role==='client'));
+            return new Response(JSON.stringify(rows),{status:200,headers:{'Content-Type':'application/json'}});
+          }
           const role=u.searchParams.get('or')?.includes('participant_a_role.eq.dev')?'dev':'client';
           rows=[conversation,developerConversation,...(includeDuplicateProjectRoot?[projectConversation]:[])].filter(row=>
             (row.participant_a_id===A&&row.participant_a_role===role)
@@ -145,6 +151,48 @@ test('Virtual threads return child messages using their original conversation en
   assert.equal(messages.length,1);
   assert.equal(messages[0].conversation_id,CHILD);
   assert.equal(x.decryptContexts.at(-1).conversationId,CHILD);
+});
+test('Client dashboard preview is limited to five without limiting the full chat list',async()=>{
+  const conversationRows=Array.from({length:7},(_,index)=>{
+    const sequence=String(index+1).padStart(12,'0');
+    const createdAt=`2026-01-02T03:04:${String(index+1).padStart(2,'0')}.000Z`;
+    const id=`aaaaaaaa-0000-4000-8000-${sequence}`;
+    return {
+      id,
+      participant_a_id:A,
+      participant_b_id:B,
+      participant_a_role:'client',
+      participant_b_role:'dev',
+      project_id:null,
+      pair_key:`pair-${index}`,
+      workspace_pair_key:`workspace-pair-${index}`,
+      merged_into:null,
+      created_at:createdAt,
+      updated_at:createdAt,
+      last_message_at:createdAt,
+      is_primary:true,
+      messages:[{
+        id:`eeeeeeee-0000-4000-8000-${sequence}`,
+        conversation_id:id,
+        sender_id:B,
+        ciphertext:`Preview ${index+1}`,
+        nonce:'1234567890123456',
+        key_version:1,
+        created_at:createdAt,
+        read_at:null
+      }]
+    };
+  });
+  const x=setup({conversationRows});
+  const preview=await x.run({action:'list-dashboard-conversations',workspaceRole:'client'});
+  assert.equal(x.decryptContexts.length,5);
+  const full=await x.run({action:'list-conversations',workspaceRole:'client'});
+
+  assert.deepEqual(Array.from(preview,row=>row.last_message.text),[
+    'Preview 7','Preview 6','Preview 5','Preview 4','Preview 3'
+  ]);
+  assert.equal(full.length,7);
+  assert.equal(x.decryptContexts.length,12);
 });
 test('Duplicate project roots for one workspace pair produce one item and preserve source messages',async()=>{
   const x=setup({includeDuplicateProjectRoot:true});

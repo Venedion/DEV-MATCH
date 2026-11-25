@@ -6,6 +6,46 @@ export const terminal = status => ['PAID', 'EXPIRED', 'CANCELLED'].includes(stat
 const clientActions = new Set(['accept', 'decline', 'revision', 'approve', 'cancel', 'dispute']);
 const developerActions = new Set(['propose', 'progress', 'deliver', 'verify-payout', 'complete-payout', 'dispute']);
 
+export function agreementPaymentState(agreement) {
+  const terms = agreement?.terms?.terms;
+  const total = Number(agreement?.total_price);
+  const dp = Number(agreement?.dp_amount);
+  requireCondition(agreement?.id && terms && Number.isSafeInteger(total) && total > 0 &&
+    Number.isSafeInteger(dp) && dp > 0 && dp <= total,
+  'Agreement pembayaran tidak valid.', 409);
+  const scopeItems = Array.isArray(terms.scope) ? terms.scope : [];
+  const revisionCount = Number(terms.revisionCount);
+  return {
+    room: {
+      proposal: {
+        agreementId: agreement.id,
+        name: terms.projectName,
+        description: terms.description,
+        scope: scopeItems.join('\n'),
+        scopeItems,
+        deliverables: scopeItems.join('\n'),
+        revisions: terms.revisionNotes || `${revisionCount} free revision rounds`,
+        revisionCount,
+        revisionNotes: terms.revisionNotes || '',
+        duration: terms.deadline,
+        deadline: terms.deadline,
+        total,
+        dpPercent: Number(terms.dpPercent),
+        dp,
+        remaining: total - dp,
+        status: 'ACCEPTED'
+      },
+      project: 'NOT_STARTED',
+      escrow: 'AWAITING_DP',
+      progress: [],
+      revisionsUsed: 0
+    },
+    payments: [],
+    ledger: [],
+    events: []
+  };
+}
+
 export function paymentSnapshot(state, role, checkoutConfigured) {
   return {
     role, checkoutConfigured, room: state.room, ledger: state.ledger,
@@ -79,7 +119,12 @@ export function applyAction(state, role, {action, ...body}) {
       break;
     case 'revision':
       requireCondition(reviewing, 'Final delivery sudah disetujui atau belum tersedia.');
+      if (Number.isInteger(room.proposal.revisionCount)) {
+        requireCondition((room.revisionsUsed || 0) < room.proposal.revisionCount,
+          'Jumlah revisi gratis sesuai proposal sudah habis.');
+      }
       room.revision = {reason: text(body.reason, 'Alasan revisi'), at: now()};
+      room.revisionsUsed = (room.revisionsUsed || 0) + 1;
       room.project = 'REVISION';
       break;
     case 'verify-payout':

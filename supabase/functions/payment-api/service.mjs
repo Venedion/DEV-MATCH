@@ -1,5 +1,5 @@
 import {PaymentError, matchingAmount, requireCondition} from './midtrans.mjs';
-import {applyAction, checkoutOrder, emptyState, paymentSnapshot, reconcile, terminal} from './state.mjs';
+import {agreementPaymentState, applyAction, checkoutOrder, emptyState, paymentSnapshot, reconcile, terminal} from './state.mjs';
 
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const orderPattern = /^devmatch-[0-9a-f-]{36}$/i;
@@ -7,8 +7,9 @@ const orderPattern = /^devmatch-[0-9a-f-]{36}$/i;
 export function paymentService(store, gateway) {
   async function mutate(ref, load, update) {
     for (let attempt = 0; attempt < 6; attempt++) {
-      const {state: stored, role, version} = await load();
-      const state = stored || emptyState();
+      const loaded = await load();
+      const {state: stored, role, version} = loaded;
+      const state = stored || (ref.agreementId ? agreementPaymentState(loaded.agreement) : emptyState());
       const before = JSON.stringify(state);
       const result = update(state, role);
       if (before === JSON.stringify(state) || await store.save(ref, version, state, result?.newOrderId)) {
@@ -39,7 +40,7 @@ export function paymentService(store, gateway) {
 
     let redirectUrl;
     try {
-      redirectUrl = await gateway.create(order, ref.conversationId, 'client', ref.projectId);
+      redirectUrl = await gateway.create(order, ref.conversationId, 'client', ref.projectId, ref.agreementId);
     } catch (error) {
       await mutate(ref, () => store.state(ref), state => {
         const saved = state.payments.find(payment => payment.order_id === order.order_id);
@@ -62,26 +63,48 @@ export function paymentService(store, gateway) {
     return {redirectUrl};
   }
 
+  function withPaymentState(ref, result) {
+    if (!result.state) {
+      result.state = ref.agreementId ? agreementPaymentState(result.agreement) : emptyState();
+    }
+    return result;
+  }
+
   return {
     async handle(user, body) {
-      const {operation, conversationId, projectId} = body;
+      const {operation, conversationId, projectId, agreementId} = body;
       if (operation === 'reviews') return store.reviewerRooms(user);
-      requireCondition(typeof conversationId === 'string' && uuidPattern.test(conversationId) &&
-        typeof projectId === 'string' && /^[\w-]{1,160}$/.test(projectId), 'Room atau proyek tidak valid.', 400);
       requireCondition(!Object.hasOwn(body, 'role'), 'Peran pembayaran ditentukan oleh peserta room.', 400);
-      const requested = {conversationId, projectId};
-      let canonicalId;
-      const load = async () => {
-        const result = await store.context(user, requested);
-        requireCondition(['client', 'developer', 'reviewer'].includes(result?.role),
-          'Akun ini tidak memiliki akses pembayaran untuk proyek di room ini.', 403);
-        requireCondition(!canonicalId || canonicalId === (result.conversationId || conversationId),
-          'Room pembayaran sedang diperbarui. Coba lagi.');
-        return result;
-      };
-      let result = await load();
-      canonicalId = result.conversationId || conversationId;
-      const ref = {conversationId: canonicalId, projectId};
+      let ref;
+      let load;
+      if (typeof agreementId === 'string') {
+        requireCondition(uuidPattern.test(agreementId), 'Agreement tidak valid.', 400);
+        ref = {agreementId};
+        load = async () => {
+          const result = await store.context(user, ref);
+          requireCondition(['client', 'developer', 'reviewer'].includes(result?.role),
+            'Akun ini tidak memiliki akses pembayaran untuk agreement ini.', 403);
+          return result;
+        };
+      } else {
+        requireCondition(typeof conversationId === 'string' && uuidPattern.test(conversationId) &&
+          typeof projectId === 'string' && /^[\w-]{1,160}$/.test(projectId), 'Room atau proyek tidak valid.', 400);
+        const requested = {conversationId, projectId};
+        let canonicalId;
+        load = async () => {
+          const result = await store.context(user, requested);
+          requireCondition(['client', 'developer', 'reviewer'].includes(result?.role),
+            'Akun ini tidak memiliki akses pembayaran untuk proyek di room ini.', 403);
+          requireCondition(!canonicalId || canonicalId === (result.conversationId || conversationId),
+            'Room pembayaran sedang diperbarui. Coba lagi.');
+          return result;
+        };
+        const result = await load();
+        canonicalId = result.conversationId || conversationId;
+        ref = {conversationId: canonicalId, projectId};
+      }
+      let result = withPaymentState(ref, await load());
+      if (ref.agreementId) ref.conversationId = result.conversationId;
       if (operation === 'checkout') {
         requireCondition(result.role === 'client', 'Pembayaran tersedia untuk Client.', 403);
         return makeCheckout(ref, load, body.kind);
@@ -94,7 +117,7 @@ export function paymentService(store, gateway) {
       if (operation === 'refresh' && gateway.configured) {
         const active = (result.state?.payments || []).filter(payment => !terminal(payment.status));
         await Promise.all(active.map(payment => sync(ref, load, payment.order_id)));
-        result = await load();
+        result = withPaymentState(ref, await load());
       }
       return paymentSnapshot(result.state || emptyState(), result.role, gateway.configured);
     },

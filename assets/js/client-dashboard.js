@@ -518,7 +518,7 @@ async function loadHomeConversations(){
   renderHomeLoading(list,'person',3);
   try{
     const {data,error}=await window.devMatchBackend.client.functions.invoke('chat-api',{
-      body:{action:'list-conversations',workspaceRole:'client'}
+      body:{action:'list-dashboard-conversations',workspaceRole:'client'}
     });
     if(error)throw error;
     if(!data||!Array.isArray(data.data))throw new Error('Chat service returned an invalid conversation list.');
@@ -2349,13 +2349,17 @@ async function loadClientDashboardData(){
       renderRequestDetailClientMetrics();
       document.getElementById('requestsMessage').textContent='Unable to load dashboard metrics. Check your connection and try again.';
     });
+    const notificationRowsTask=client.from('notifications')
+      .select('id,actor_id,actor_role,kind,project_id,conversation_id,created_at')
+      .eq('recipient_id',user.id).eq('recipient_role','client')
+      .order('created_at',{ascending:false})
+      .then(({data,error})=>{
+        if(error)throw error;
+        return data||[];
+      });
     const activityTask=(async()=>{
-      const {data:notifications,error}=await client.from('notifications')
-        .select('id,actor_id,actor_role,kind,project_id,conversation_id,created_at')
-        .eq('recipient_id', user.id).eq('recipient_role', 'client')
-        .order('created_at',{ascending:false});
-      if(error)throw error;
-      const entries=(notifications||[]).slice().sort((a,b)=>{
+      const notifications=await notificationRowsTask;
+      const entries=notifications.slice().sort((a,b)=>{
         const timeA=new Date(a.created_at).getTime();
         const timeB=new Date(b.created_at).getTime();
         if(!Number.isFinite(timeA))return Number.isFinite(timeB)?1:0;
@@ -2406,11 +2410,10 @@ async function loadClientDashboardData(){
       requestActivityList.replaceChildren(message);
     });
     const unreadTask=(async()=>{
-      const [readIds,{data:notifications,error}]=await Promise.all([
+      const [readIds,notifications]=await Promise.all([
         backend.loadNotificationReads(),
-        client.from('notifications').select('id').eq('recipient_id', user.id).eq('recipient_role', 'client')
+        notificationRowsTask
       ]);
-      if(error)throw error;
       const unread=(notifications||[]).filter(entry=>!readIds.includes(entry.id)).length;
       document.querySelectorAll('.client-notification-count').forEach(count=>{
         count.textContent=String(unread);

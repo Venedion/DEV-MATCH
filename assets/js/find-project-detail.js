@@ -219,9 +219,9 @@
       .eq('id',projectId).eq('project_kind','request').eq('status','open').maybeSingle();
     if(error)throw error;
     if(!row){status.hidden=true;notFound.hidden=false;return;}
-    const {count:clientRequestCount,error:clientRequestCountError}=await window.devMatchBackend.client.from('projects')
-      .select('id',{count:'exact',head:true}).eq('owner_id',row.owner_id).eq('project_kind','request').eq('status','open');
-    if(clientRequestCountError)throw clientRequestCountError;
+    const clientRequestCountTask=(async()=>await window.devMatchBackend.client.from('projects')
+      .select('id',{count:'exact',head:true}).eq('owner_id',row.owner_id).eq('project_kind','request').eq('status','open'))();
+    const userTask=window.devMatchBackend.ready;
     const data=row.data&&typeof row.data==='object'&&!Array.isArray(row.data)?row.data:{};
     const categoryValue=String(row.category||data.category||'');
     const typeValue=String(row.project_type||data.projectType||data.type||'');
@@ -241,8 +241,10 @@
       attachments:Array.isArray(data.attachments)?data.attachments:[],
       negotiable:data.negotiable===true,deadline:String(data.deadline||''),targetStart:String(data.targetStart||''),
       budgetLabel,popularity:0,ownerId:row.owner_id,createdAt:row.created_at||row.updated_at};
+    const {count:clientRequestCount,error:clientRequestCountError}=await clientRequestCountTask;
+    if(clientRequestCountError)throw clientRequestCountError;
     let clientName='DEV-MATCH member',profileLocation='Location not provided',accountRole=null;
-    const user=await window.devMatchBackend.ready;
+    const user=await userTask;
     currentUserId=user?.id||null;
     if(user){
       try{await window.devMatchBackend.recordProjectView(project.id);}
@@ -304,7 +306,7 @@
     document.getElementById('requestSpecialtySection').hidden=stackValues.length===0;
     renderReferenceLinks(project.references);
     document.getElementById('requestReferencesSection').hidden=project.attachments.length===0;
-    await renderReferenceFiles(project.id,project.attachments);
+    const referenceFilesTask=renderReferenceFiles(project.id,project.attachments).then(()=>null,error=>error);
     document.getElementById('requestPopularity').textContent='';
     document.getElementById('contactClient').href=user&&accountRole==='dev'?`devmatch-chat.html?role=dev&request=${encodeURIComponent(project.id)}`:'devmatch-auth.html?mode=login';
     const saveButton=document.getElementById('saveRequestButton');
@@ -344,18 +346,28 @@
         );
       }catch(error){console.error('Unable to update saved project requests in Supabase.',error);window.alert('Unable to save this request. Please try again.');}
     });
-    const {data:similar,error:similarError}=await window.devMatchBackend.client.from('projects')
-      .select('id,title,price,category').eq('project_kind','request').eq('status','open').neq('id',project.id)
-      .order('updated_at',{ascending:false}).limit(4);
+    const commentsTask=window.devMatchBackend.loadProjectComments(project.id)
+      .then(result=>({result,error:null}),error=>({result:null,error}));
+    const [similarResult,commentsResult,referenceFilesError]=await Promise.all([
+      window.devMatchBackend.client.from('projects')
+        .select('id,title,price,category').eq('project_kind','request').eq('status','open').neq('id',project.id)
+        .order('updated_at',{ascending:false}).limit(4),
+      commentsTask,
+      referenceFilesTask
+    ]);
+    if(referenceFilesError)throw referenceFilesError;
+    const {data:similar,error:similarError}=similarResult;
     if(similarError)throw similarError;
     renderSimilarRequests(similar||[]);
     let commentsFailed=false;
-    try{
-      const result=await window.devMatchBackend.loadProjectComments(project.id);
-      comments=result.comments;
-      repliesSupported=result.repliesSupported;
+    if(commentsResult.error){
+      console.error('Unable to load public project comments from Supabase.',commentsResult.error);
+      status.textContent='Project details loaded, but comments could not be loaded.';
+      commentsFailed=true;
+    }else{
+      comments=commentsResult.result.comments;
+      repliesSupported=commentsResult.result.repliesSupported;
     }
-    catch(error){console.error('Unable to load public project comments from Supabase.',error);status.textContent='Project details loaded, but comments could not be loaded.';commentsFailed=true;}
     await loadCommenterRoles();
     renderComments();
     if(commentsFailed)status.textContent='Project details loaded, but comments could not be loaded.';

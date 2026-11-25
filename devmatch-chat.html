@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="assets/css/dashboard.css?v=20261118-hide-favorites-nav-badge">
-  <link rel="stylesheet" href="assets/css/chat.css?v=20261125-bottom-nav-responsive-breakpoint-v1">
+  <link rel="stylesheet" href="assets/css/chat.css?v=20261126-proposal-details-v4">
   <link rel="stylesheet" href="assets/css/chat-payment.css?v=20261125-backend-workspace">
   <link rel="stylesheet" href="assets/css/project-detail-popup.css?v=20261120-popup-detail">
   <link rel="stylesheet" href="assets/css/client-shell.css?v=20261030-header-size-match">
@@ -269,7 +269,7 @@
     <p id="roomPaymentError" role="alert" hidden></p>
     <div id="roomPaymentContent" aria-live="polite"></div>
   </dialog>
-  <script src="assets/js/chat-payment.js?v=20261125-backend-workspace"></script>
+  <script src="assets/js/chat-payment.js?v=20261126-proposal-agreement-payments-v1"></script>
   <dialog class="chat-proposal-dialog" id="proposeProjectDialog" aria-labelledby="proposeProjectTitle">
     <form class="chat-proposal-form" id="proposeProjectForm">
       <header class="chat-proposal-header">
@@ -295,6 +295,7 @@
           <label class="chat-proposal-field">
             <strong>Total price</strong>
             <input id="proposeProjectPrice" inputmode="numeric" maxlength="32" placeholder="Rp 4.500.000" required>
+            <small class="chat-proposal-hint">Rp40,000–Rp1,000,000,000</small>
             <small id="proposeProjectBudget" class="chat-proposal-hint"></small>
           </label>
           <fieldset class="chat-proposal-field">
@@ -352,23 +353,46 @@
           <label class="chat-proposal-upload">
             <input id="proposeProjectAttachments" type="file" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.webp" multiple>
             <span class="chat-proposal-upload-icon" aria-hidden="true">＋</span>
-            <span><b>Add files</b><small>Brief, mockup, or other references</small></span>
+            <span><b>Add files</b><small>PDF, DOC, DOCX, JPG, PNG, or WebP · up to 5 files, 2 MB total</small></span>
           </label>
           <ul class="chat-proposal-attachment-list" id="proposeProjectAttachmentList" aria-live="polite"></ul>
         </section>
       </div>
       <footer class="chat-proposal-footer">
-        <small>Sending proposals will be available in a later update.</small>
+        <small id="proposeProjectStatus" role="status" aria-live="polite">Terms are saved with the proposal. Payment opens after the Client accepts.</small>
         <div>
           <button type="button" class="chat-proposal-cancel" data-close-propose-project>Cancel</button>
-          <button type="submit" class="chat-proposal-submit" disabled>Send proposal</button>
+          <button type="submit" class="chat-proposal-submit">Send proposal</button>
         </div>
       </footer>
     </form>
   </dialog>
 
-  <script src="assets/js/chat.js?v=20261125-payment-workspace"></script>
-<script src="assets/js/project-detail-popup.js?v=20261126-request-popup"></script>
+  <dialog class="chat-proposal-details-dialog" id="projectProposalDetailsDialog" aria-labelledby="projectProposalDetailsTitle">
+    <header>
+      <div class="chat-proposal-details-heading">
+        <div>
+          <h2 id="projectProposalDetailsTitle">Proposal details</h2>
+          <p id="projectProposalDetailsFrom"></p>
+        </div>
+        <span id="projectProposalDetailsStatus" class="chat-proposal-details-status"></span>
+      </div>
+      <button type="button" data-close-proposal-details aria-label="Close proposal details">×</button>
+    </header>
+    <div id="projectProposalDetailsContent"></div>
+    <footer>
+      <small id="projectProposalDetailsStatusNote"></small>
+      <div class="chat-proposal-details-actions">
+        <button type="button" id="projectProposalDetailsAskChanges" hidden>Ask for changes</button>
+        <button type="button" id="projectProposalDetailsWithdraw" hidden>Withdraw proposal</button>
+        <button type="button" id="projectProposalDetailsPayments" class="is-primary" hidden>Project payments</button>
+        <button type="button" id="projectProposalDetailsAccept" class="is-primary" hidden>Accept proposal</button>
+      </div>
+    </footer>
+  </dialog>
+
+  <script src="assets/js/chat.js?v=20261126-proposal-withdraw-v1"></script>
+  <script src="assets/js/project-detail-popup.js?v=20261126-request-popup"></script>
   <script src="assets/js/nav-behavior.js?v=20261125-bottom-nav-responsive-breakpoint-v1"></script>
 </body>
 </html>

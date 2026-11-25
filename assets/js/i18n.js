@@ -826,6 +826,8 @@
     'Privacy Policy': 'Kebijakan Privasi',
     'Create an account': 'Buat akun',
     'New to DEV-MATCH?': 'Baru di DEV-MATCH?',
+    'Login as developer': 'Masuk sebagai developer',
+    'Login as client': 'Masuk sebagai klien',
     'Log in to DEV-MATCH': 'Masuk ke DEV-MATCH',
     'The right developer, within reach.': 'Developer yang tepat, kini lebih mudah ditemukan.',
     'The right project, within reach.': 'Proyek yang tepat, kini lebih mudah ditemukan.',

@@ -49,12 +49,13 @@ export function sandboxGateway({serverKey, signatureSecret = serverKey, returnOr
 
   return {
     configured,
-    async create(order, conversationId, role, projectId) {
+    async create(order, conversationId, role, projectId, agreementId) {
       const finish = new URL('/devmatch-chat.html', returnOrigin);
       finish.searchParams.set('conversation', conversationId);
       if (role === 'client') finish.searchParams.set('role', 'client');
       finish.searchParams.set('payment', 'return');
       if (projectId) finish.searchParams.set('paymentProject', projectId);
+      if (agreementId) finish.searchParams.set('paymentAgreement', agreementId);
       const result = await call(`${sandboxHost}/snap/v1/transactions`, {
         transaction_details: {order_id: order.order_id, gross_amount: order.amount},
         credit_card: {secure: true},

@@ -726,11 +726,46 @@
   }
 
   // Open "View Requests" Modal Dialog
-  function openClientRequestsModal(clientId) {
+  async function openClientRequestsModal(clientId) {
     const client = CLIENTS_DATA.find(c => c.id === clientId);
     if (!client || !clientDialog || !dialogContent) return;
 
-    const reqs = client.requests;
+    let reqs = client.requests;
+    if (!Array.isArray(reqs)) {
+      if (client.openRequestsCount === 0) {
+        reqs = client.requests = [];
+      } else {
+        try {
+          if (!client.requestsTask) {
+            client.requestsTask = window.devMatchBackend.client.from('projects')
+              .select('id,title,project_type,category,price,data')
+              .eq('owner_id',client.id).eq('project_kind','request').eq('status','open')
+              .order('updated_at',{ascending:false})
+              .then(({data,error})=>{
+                if(error)throw error;
+                return (data||[]).map(row=>{
+                  const data=row.data&&typeof row.data==='object'?row.data:{};
+                  return {
+                    id:row.id,title:row.title,category:row.category,type:row.project_type,
+                    budget:row.price||data.budgetLabel||data.budget||'',
+                    description:data.description||data.overview||'',
+                    tags:Array.isArray(data.stack)?data.stack:[]
+                  };
+                });
+              }).catch(error=>{
+                client.requestsTask=null;
+                throw error;
+              });
+          }
+          reqs = client.requests = await client.requestsTask;
+          client.requestsTask=null;
+        } catch (error) {
+          console.error('Unable to load open requests for the selected client.',error);
+          window.alert("Unable to load this client's open requests. Please try again.");
+          return;
+        }
+      }
+    }
     let reqsHtml = '';
 
     if (reqs && reqs.length > 0) {
@@ -1128,14 +1163,14 @@
       if (account.account_role !== 'dev') throw new Error('The client directory is available in developer mode.');
       const [
         {data: people, count: clientCount, error: peopleError},
-        {data: rows, count: projectRequestCount, error: projectsError}
+        {count: projectRequestCount, error: projectsError}
       ] = await Promise.all([
         window.devMatchBackend.client.from('directory_people')
           .select('id,display_name,username,account_role,profile_data,open_request_count', {count:'exact'})
           .eq('account_role', 'client'),
         window.devMatchBackend.client.from('projects')
-          .select('id,owner_id,title,project_type,category,price,data,status,created_at,updated_at', {count:'exact'})
-          .eq('project_kind', 'request').eq('status', 'open').order('updated_at', {ascending:false})
+          .select('id', {count:'exact',head:true})
+          .eq('project_kind', 'request').eq('status', 'open')
       ]);
       if (peopleError) throw peopleError;
       if (projectsError) throw projectsError;
@@ -1144,24 +1179,15 @@
       }
       if (projectRequestsTabCount && projectRequestCount !== null) projectRequestsTabCount.textContent = String(projectRequestCount);
       if (clientsTabCount && clientCount !== null) clientsTabCount.textContent = String(clientCount);
-      const requestsByOwner = new Map();
-      (rows || []).forEach(row => {
-        const data = row.data && typeof row.data === 'object' ? row.data : {};
-        const request = {id:row.id,title:row.title,category:row.category,type:row.project_type,
-          budget:row.price || data.budgetLabel || data.budget || '',description:data.description || data.overview || '',
-          tags:Array.isArray(data.stack)?data.stack:[]};
-        requestsByOwner.set(row.owner_id,[...(requestsByOwner.get(row.owner_id)||[]),request]);
-      });
       CLIENTS_DATA = (people || []).map((person,index) => {
         const profile = person.profile_data || {};
         const name = String(person.display_name || 'DEV-MATCH member');
-        const requests = requestsByOwner.get(person.id) || [];
         const category = String(profile.industry || '');
         return {id:person.id,contactId:person.id,name,initials:(name.match(/\b\p{L}/gu)||[]).slice(0,2).join('').toUpperCase()||'DM',
           business:String(profile.companyName || name),category,businessType:category||'Business type not provided',type:'Client',
           country:String(profile.country || ''),profileCity:String(profile.city || ''),
-          openRequestsCount:requests.length,location:String(profile.city || 'Location not provided'),activeText:'Profile listed',
-          orderIndex:index,requests};
+          openRequestsCount:Number(person.open_request_count)||0,location:String(profile.city || 'Location not provided'),activeText:'Profile listed',
+          orderIndex:index};
       });
       status.hidden = true;
       emptyState.hidden = CLIENTS_DATA.length > 0;

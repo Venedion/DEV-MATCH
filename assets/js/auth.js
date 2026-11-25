@@ -71,6 +71,9 @@ function render(){
   if(otpLink){
     otpLink.href=`devmatch-email-otp.html${role==='cli'?'?role=client':'?role=dev'}`;
   }
+  const roleSwitchLink=$('roleSwitchLink');
+  roleSwitchLink.href=`devmatch-auth.html?mode=login&role=${role==='cli'?'dev':'client'}`;
+  roleSwitchLink.textContent=role==='cli'?'Login as developer':'Login as client';
   document.querySelectorAll('.reg').forEach(e=>e.classList.toggle('hide',!reg));
   document.querySelectorAll('.log').forEach(e=>e.classList.toggle('hide',reg));
   $('sideBadge').innerHTML=c.badge;$('sideTitle').innerHTML=reg?c.side:'Welcome back.';

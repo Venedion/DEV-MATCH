@@ -229,6 +229,26 @@ conversation participants. Supported files are PDF, DOC, DOCX, JPG, PNG, or
 WebP up to 2 MB. Redeploy `chat-api` after updating it. Do not upload chat
 attachments directly from the browser.
 
+Project proposals use
+`migrations/202611240001_project_proposals.sql`, after the encrypted chat and
+private `chat-attachments` bucket migrations. It adds participant-readable
+proposal and agreement records, developer-only proposal creation, recipient-only
+acceptance, and creator-only withdrawal. Proposal events are encrypted chat
+messages linked to their structured terms; proposal attachment bytes are
+AES-GCM encrypted in the existing private chat bucket and are downloaded only
+through `chat-api`. Acceptance snapshots and locks the proposal terms in an
+agreement. Apply the migration, deploy the updated `chat-api`, and deploy the
+updated chat page before using proposal cards. Do not expose proposal or
+agreement tables to direct client writes.
+
+Accepted proposal agreements use
+`migrations/202611260001_proposal_agreement_payments.sql` for agreement-linked
+payment state, order references, and dispute reviewer assignments. This keeps
+proposal terms as the source of truth while the existing project payment tables
+remain available for legacy project rooms. Deploy the updated `payment-api` and
+chat frontend after applying the migration. Midtrans checkout uses Sandbox;
+escrow, refunds, and payouts remain simulations.
+
 Apply `migrations/202611180001_realtime_notifications.sql` after
 `202611120006_live_data_metrics_notifications_storage.sql` to add the
 notification table to Supabase Realtime. This allows the app's notification

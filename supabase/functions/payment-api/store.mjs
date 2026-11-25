@@ -35,19 +35,38 @@ export function supabasePaymentStore(url, key, request = fetch) {
       return (await response.json()).id || null;
     },
     context(user, ref) {
+      if (ref.agreementId) return rpc('payment_agreement_context', {p_user: user, p_agreement: ref.agreementId});
       return rpc('payment_room_context', {p_user: user, ...args(ref)});
     },
-    reviewerRooms(user) {
-      return rpc('payment_reviewer_rooms', {p_user: user});
+    async reviewerRooms(user) {
+      const [projects, agreements] = await Promise.all([
+        rpc('payment_reviewer_rooms', {p_user: user}),
+        rpc('payment_agreement_review_rooms', {p_user: user})
+      ]);
+      return [...projects, ...agreements];
     },
     save(ref, version, state, orderId = null) {
+      if (ref.agreementId) {
+        return rpc('payment_agreement_save', {
+          p_agreement: ref.agreementId, p_version: version, p_state: state, p_order_id: orderId
+        });
+      }
       return rpc('payment_save_room', {...args(ref), p_version: version, p_state: state, p_order_id: orderId});
     },
     async state(ref) {
+      if (ref.agreementId) {
+        return await one('payment_agreement_rooms', {
+          select: 'version,state', agreement_id: `eq.${ref.agreementId}`
+        }) || {version: 0, state: null};
+      }
       return await one('payment_rooms', {select: 'version,state', conversation_id: `eq.${ref.conversationId}`,
         project_id: `eq.${ref.projectId}`}) || {version: 0, state: null};
     },
     async orderRef(orderId) {
+      const agreement = await one('payment_agreement_order_refs', {
+        select: 'agreement_id', order_id: `eq.${orderId}`
+      });
+      if (agreement) return {agreementId: agreement.agreement_id};
       const row = await one('payment_order_refs', {select: 'conversation_id,project_id', order_id: `eq.${orderId}`});
       return row && {conversationId: row.conversation_id, projectId: row.project_id};
     }

@@ -1003,6 +1003,15 @@
 
   function updateCategoryCounts() {
     const source = isRequestsPage ? requests : projects;
+    const categoryCounts = new Map([['all',source.length]]);
+    source.forEach(item => {
+      const categories = new Set([item.category]);
+      if (item.type === 'Android / iOS') categories.add('Android / iOS');
+      categories.forEach(category => {
+        if (!category || category === 'all') return;
+        categoryCounts.set(category,(categoryCounts.get(category)||0)+1);
+      });
+    });
     document.querySelectorAll('[data-category-count]').forEach(label => {
       if (catalogError) {
         label.textContent = '—';
@@ -1013,7 +1022,7 @@
         return;
       }
       const category = label.dataset.categoryCount;
-      const count = category === 'all' ? source.length : source.filter(item => category === 'Android / iOS' ? item.type === category : item.category === category).length;
+      const count = categoryCounts.get(category)||0;
       const countLabel = count === 1 ? 'project' : 'projects';
       label.textContent = `${count} ${countLabel}`;
     });
@@ -1394,12 +1403,16 @@
         const account = await window.devMatchBackend.loadProfile(user);
         const expectedRole=isRequestsPage?'dev':'client';
         if(account.account_role!==expectedRole)throw new Error(`This project catalog is available in ${expectedRole} mode.`);
-        const {data: people, error: peopleError} = await window.devMatchBackend.client
-          .from('directory_people')
-          .select('id,display_name,username,account_role,profile_data,published_portfolio_count,open_request_count')
-          .eq('account_role',isRequestsPage?'client':'dev');
-        if (peopleError) throw peopleError;
-        peopleById = new Map((people || []).map(person => [person.id, person]));
+        const ownerIds=[...new Set(rows.map(row=>row.owner_id).filter(Boolean))];
+        if(ownerIds.length){
+          const {data: people, error: peopleError} = await window.devMatchBackend.client
+            .from('directory_people')
+            .select('id,display_name,username,account_role,profile_data,published_portfolio_count,open_request_count')
+            .eq('account_role',isRequestsPage?'client':'dev')
+            .in('id',ownerIds);
+          if (peopleError) throw peopleError;
+          peopleById = new Map((people || []).map(person => [person.id, person]));
+        }
       }
       let metricsByProjectId=new Map();
       if(isRequestsPage&&rows?.length&&user){

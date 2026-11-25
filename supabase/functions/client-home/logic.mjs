@@ -49,27 +49,28 @@ function unreadInquiryRuns(conversation, messages, userId, projectsById, develop
   const peer = conversationPeer(conversation, userId);
   if (!peer.id || !developerIds.has(peer.id)) return [];
 
-  const byRequest = new Map();
+  const runsByRequest = new Map();
   messages.forEach(message => {
     const project = projectsById.get(message.project_id);
     if (project?.project_kind !== 'request' || project.owner_id !== userId) return;
-    const runs = byRequest.get(project.id) || [];
+    const runs = runsByRequest.get(project.id) || [];
     if (message.sender_id === peer.id) {
       let run = runs[runs.length - 1];
       if (!run || run.ended) {
-        run = {developerId: peer.id, messages: [], ended: false};
+        run = {latestUnreadMessage: null, ended: false};
         runs.push(run);
       }
-      run.messages.push(message);
-      byRequest.set(project.id, runs);
+      if (!message.read_at) run.latestUnreadMessage = message;
+      runsByRequest.set(project.id, runs);
     } else if (message.sender_id === userId && runs.length) {
       runs[runs.length - 1].ended = true;
     }
   });
 
-  return [...byRequest.entries()].flatMap(([projectId, runs]) => runs.flatMap(run => {
-    const message = [...run.messages].reverse().find(item => !item.read_at);
-    return message ? [{message, project: projectsById.get(projectId)}] : [];
+  return [...runsByRequest.entries()].flatMap(([projectId, runs]) => runs.flatMap(run => {
+    return run.latestUnreadMessage
+      ? [{message: run.latestUnreadMessage, project: projectsById.get(projectId)}]
+      : [];
   }));
 }
 
@@ -141,18 +142,17 @@ export function buildClientDashboard({
   const sentConversations = newestFirst(threads.flatMap(({conversation, messages}) => {
     const peer = conversationPeer(conversation, userId);
     if (!developerIds.has(peer.id)) return [];
-    const sentProjects = new Map();
+    const sentProjectIds = new Set();
+    const latestMessageByProject = new Map();
     messages.forEach(message => {
-      if (message.sender_id !== userId) return;
       const project = projectsById.get(message.project_id);
-      if (project?.owner_id === peer.id && project.project_kind === 'portfolio'
-        && !sentProjects.has(project.id)) {
-        sentProjects.set(project.id, project);
-      }
+      if (project?.owner_id !== peer.id || project.project_kind !== 'portfolio') return;
+      latestMessageByProject.set(project.id, message);
+      if (message.sender_id === userId) sentProjectIds.add(project.id);
     });
-    return [...sentProjects.entries()].map(([projectId, project]) => {
-      const projectMessages = messages.filter(message => message.project_id === projectId);
-      const latestMessage = projectMessages[projectMessages.length - 1];
+    return [...sentProjectIds].map(projectId => {
+      const project = projectsById.get(projectId);
+      const latestMessage = latestMessageByProject.get(projectId);
       return {
         conversationId: conversation.id,
         projectId,

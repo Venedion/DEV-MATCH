@@ -13,6 +13,7 @@
 
   let roomKey;
   let chatRoomKey;
+  let agreementConversationId;
   let roomTitle;
   let snapshot;
   let busy = false;
@@ -55,19 +56,6 @@
     error.hidden = !message;
   }
 
-  function proposalForm() {
-    return form('propose', [
-      field('name', 'Nama proyek', false, true, roomTitle),
-      field('description', 'Deskripsi', true),
-      '<label>Total (IDR)<input name="total" type="number" required min="40000" max="1000000000" step="1"></label>',
-      '<label>Uang muka<select name="dpPercent"><option value="25">25%</option><option value="50">50%</option></select></label>',
-      field('duration', 'Estimasi durasi'),
-      field('scope', 'Ruang lingkup', true),
-      field('deliverables', 'Deliverables', true),
-      field('revisions', 'Ketentuan revisi', true)
-    ].join(''), 'Kirim proposal');
-  }
-
   function paymentStep(kind, label, amount, payments, checkoutConfigured) {
     const latest = payments.findLast(payment => payment.kind === kind);
     const paymentLabel = latest ? labels[latest.status] : 'Belum dibayar';
@@ -79,7 +67,6 @@
   }
 
   function renderReceipts(ledger) {
-    if (roomKey !== chatRoomKey) return;
     receipts.innerHTML = ledger.map(entry => `<p>Sandbox · ${labels[entry.entry]} · ${rupiah.format(entry.amount)}
       ${entry.order_id ? `<br><small>${safe(entry.order_id)} · ${formatTime.format(new Date(entry.recorded_at))}</small>` : ''}</p>`).join('');
     receipts.hidden = !ledger.length;
@@ -96,7 +83,9 @@
     const client = role === 'client';
     const developer = role === 'developer';
     if (!room) {
-      content.innerHTML = developer ? proposalForm() : '<p>Menunggu proposal dari Developer.</p>';
+      content.innerHTML = developer
+        ? '<p>Kirim proposal melalui tombol Propose project di composer chat.</p>'
+        : '<p>Menunggu Developer mengirim proposal melalui chat.</p>';
       return;
     }
     const { proposal, project, escrow, delivery, revision, progress, payout, dispute, demoPayoutVerified } = room;
@@ -112,7 +101,8 @@
       <p class="payment-text">${safe(proposal.description)}</p>
       <dl>
         <dt>Proposal</dt><dd>${labels[proposal.status]}</dd>
-        <dt>Estimasi durasi</dt><dd class="payment-text">${safe(proposal.duration)}</dd>
+        <dt>${proposal.deadline ? 'Deadline' : 'Estimasi durasi'}</dt>
+        <dd class="payment-text">${safe(proposal.deadline || proposal.duration)}</dd>
         <dt>Total</dt><dd>${rupiah.format(proposal.total)}</dd>
         <dt>Proyek</dt><dd>${labels[project]}</dd>
         ${showPayments ? paymentStep('DP', 'DP', proposal.dp, payments, checkoutConfigured)
@@ -124,7 +114,9 @@
           <br><small>Biaya simulasi ${rupiah.format(payout.fee)}</small></dd>` : ''}
       </dl>
       ${showPayments && !checkoutConfigured ? '<p>Checkout memerlukan konfigurasi Midtrans Sandbox di server.</p>' : ''}
-      ${section('Ruang lingkup &amp; deliverables', `<p class="payment-text">${safe(proposal.scope)}</p>
+      ${section('Ruang lingkup &amp; deliverables', `${proposal.scopeItems?.length
+        ? `<ul class="payment-list">${proposal.scopeItems.map(item => `<li>${safe(item)}</li>`).join('')}</ul>`
+        : `<p class="payment-text">${safe(proposal.scope)}</p>`}
         <p class="payment-text"><strong>Deliverables</strong><br>${safe(proposal.deliverables)}</p>
         <p class="payment-text"><strong>Ketentuan revisi</strong><br>${safe(proposal.revisions)}</p>`)}
       ${client && proposal.status === 'PENDING' ? `<div class="payment-actions">
@@ -170,9 +162,12 @@
   }
 
   async function request(key, operation = 'snapshot', body = {}) {
-    const [conversationId, projectId] = key ? JSON.parse(key) : [];
+    const stored = key ? JSON.parse(key) : null;
+    const context = Array.isArray(stored)
+      ? {conversationId: stored[0], projectId: stored[1]}
+      : (stored || {});
     const {data, error: failure} = await window.devMatchBackend.client.functions.invoke('payment-api', {
-      body: {...body, operation, conversationId, projectId}
+      body: {...body, operation, ...context}
     });
     if (failure) {
       const response = failure.context;
@@ -308,6 +303,14 @@
       item.type = 'button';
       item.textContent = review.title;
       item.addEventListener('click', () => {
+        if (review.agreementId) {
+          openAgreement({
+            id: review.agreementId,
+            conversationId: review.conversationId,
+            title: review.title
+          });
+          return;
+        }
         roomKey = JSON.stringify([review.conversationId, review.projectId]);
         roomTitle = review.title;
         openPayments();
@@ -325,20 +328,43 @@
     if (!action) return;
     event.preventDefault();
     const fields = Object.fromEntries(new FormData(event.target));
-    if (action === 'propose') {
-      fields.total = Number(fields.total);
-      fields.dpPercent = Number(fields.dpPercent);
-    }
     if (action === 'resolve-dispute') fields.partialRefund = Number(fields.partialRefund);
     perform(action, fields);
   });
 
+  function openAgreement(agreement, operation = 'snapshot') {
+    if (!agreement?.id) return;
+    roomKey = JSON.stringify({agreementId: agreement.id});
+    agreementConversationId = agreement.conversationId || null;
+    roomTitle = agreement.title || agreement.terms?.projectName || 'Project agreement';
+    openPayments(operation);
+  }
+
   window.DEVMATCH_ROOM_PAYMENT = {
+    openAgreement,
     setRoom(conversation) {
       const params = new URL(location.href);
       const returning = params.searchParams.get('payment') === 'return';
+      const returnAgreement = returning && params.searchParams.get('paymentAgreement');
       const returnProject = returning && params.searchParams.get('paymentProject');
       const openConversation = params.searchParams.get('conversation');
+      const matchedAgreement = returnAgreement && conversation && (
+        openConversation === conversation.id || conversation.sourceConversationIds?.includes(openConversation));
+      if (matchedAgreement) {
+        openButton.hidden = true;
+        const proposal = conversation.messages?.find(message =>
+          message.proposal?.agreement?.id === returnAgreement)?.proposal;
+        for (const name of ['payment', 'paymentAgreement', 'paymentProject', 'order_id', 'status_code', 'transaction_status']) {
+          params.searchParams.delete(name);
+        }
+        history.replaceState(history.state, '', params);
+        openAgreement({
+          id: returnAgreement,
+          conversationId: proposal?.conversation_id || conversation.id,
+          title: proposal?.terms?.projectName
+        }, 'refresh');
+        return;
+      }
       const matchedReturn = returnProject && conversation && (
         openConversation === conversation.id || conversation.sourceConversationIds?.includes(openConversation));
       const recentContext = conversation?.messages?.findLast(message => message.project_context?.available)?.project_context;
@@ -349,17 +375,30 @@
       }
       const project = returnedRoom?.project || (conversation?.project?.id ? conversation.project : recentContext);
       const key = project?.id && conversation?.id ? JSON.stringify([conversation.id, project.id]) : null;
-      openButton.hidden = !key;
-      if (key === chatRoomKey) return;
+      const hasProposalCard = conversation?.messages?.some(message => message.proposal?.id);
+      openButton.hidden = !key || hasProposalCard;
+      const activeAgreement = roomKey ? JSON.parse(roomKey).agreementId : null;
+      const sameAgreementConversation = activeAgreement && agreementConversationId && conversation && (
+        conversation.id === agreementConversationId ||
+        conversation.sourceConversationIds?.includes(agreementConversationId));
+      if (sameAgreementConversation) {
+        chatRoomKey = key;
+        chatRoomTitle = project?.title || 'Pembayaran proyek';
+        return;
+      }
+      if (key === chatRoomKey && !activeAgreement) return;
       roomKey = chatRoomKey = key;
+      agreementConversationId = null;
       roomTitle = chatRoomTitle = project?.title || 'Pembayaran proyek';
       snapshot = undefined;
       receipts.hidden = true;
       receipts.replaceChildren();
       if (dialog.open) dialog.close();
       if (!key) return;
-      if (matchedReturn || (returning && !returnProject)) {
-        for (const name of ['payment', 'paymentProject', 'order_id', 'status_code', 'transaction_status']) params.searchParams.delete(name);
+      if (matchedReturn || (returning && !returnProject && !returnAgreement)) {
+        for (const name of ['payment', 'paymentAgreement', 'paymentProject', 'order_id', 'status_code', 'transaction_status']) {
+          params.searchParams.delete(name);
+        }
         history.replaceState(history.state, '', params);
         openPayments('refresh');
       } else {

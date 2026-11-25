@@ -11,6 +11,12 @@ test('Discover project cards show developer identity without a View details link
   assert.doesNotMatch(renderProject,/View details/);
 });
 
+test('Marketplace loads directory profiles only for owners in the catalog result',()=>{
+  const source=fs.readFileSync('assets/js/marketplace.js','utf8');
+  assert.match(source,/const ownerIds=\[\.\.\.new Set\(rows\.map\(row=>row\.owner_id\)\.filter\(Boolean\)\)\]/);
+  assert.match(source,/\.eq\('account_role',isRequestsPage\?'client':'dev'\)\s*\.in\('id',ownerIds\)/);
+});
+
 test('Discover project artworks use uploaded project cover images',()=>{
   const source=fs.readFileSync('assets/js/marketplace.js','utf8');
   assert.match(source,/safeProjectCover\(item\.coverImage\)/);

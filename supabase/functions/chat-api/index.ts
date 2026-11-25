@@ -12,6 +12,8 @@ const MAX_MESSAGE_LENGTH = 5000;
 const INITIAL_MESSAGE_ROWS = 75;
 const MAX_MESSAGE_ROWS = 200;
 const MAX_ATTACHMENT_BYTES = 2 * 1024 * 1024;
+const MAX_PROPOSAL_ATTACHMENTS = 5;
+const MAX_PROPOSAL_ATTACHMENT_TOTAL_BYTES = 2 * 1024 * 1024;
 const ALLOWED_ATTACHMENT_TYPES = new Set([
   'application/pdf',
   'application/msword',
@@ -21,6 +23,14 @@ const ALLOWED_ATTACHMENT_TYPES = new Set([
   'image/webp',
   'application/zip',
   'application/x-zip-compressed'
+]);
+const ALLOWED_PROPOSAL_ATTACHMENT_TYPES = new Set([
+  'application/pdf',
+  'application/msword',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  'image/jpeg',
+  'image/png',
+  'image/webp'
 ]);
 
 class ChatApiError extends Error {
@@ -168,6 +178,34 @@ async function requestRows(supabaseUrl, serviceRoleKey, path, query, init = {}) 
   return rows;
 }
 
+async function requestRpc(supabaseUrl, serviceRoleKey, functionName, body) {
+  const response = await fetch(
+    `${supabaseUrl.replace(/\/$/, '')}/rest/v1/rpc/${functionName}`,
+    {
+      method: 'POST',
+      headers: supabaseHeaders(serviceRoleKey),
+      body: JSON.stringify(body)
+    }
+  );
+  if (!response.ok) {
+    console.error(`Chat database operation ${functionName} failed (${response.status}).`);
+    if (response.status === 400 || response.status === 422) {
+      throw new ChatApiError('The proposal details or status are no longer valid.', 400);
+    }
+    if (response.status === 403) {
+      throw new ChatApiError('You are not allowed to perform this proposal action.', 403);
+    }
+    if (response.status === 404) {
+      throw new ChatApiError('Proposal not found.', 404);
+    }
+    if (response.status === 409) {
+      throw new ChatApiError('The proposal has already been updated.', 409);
+    }
+    throw new ChatApiError('Chat service is temporarily unavailable.', 503);
+  }
+  return response.json();
+}
+
 async function authenticateUser(request, supabaseUrl, serviceRoleKey) {
   const authorization = request.headers.get('authorization');
   if (!authorization || !/^Bearer\s+\S+$/i.test(authorization)) {
@@ -307,6 +345,7 @@ async function decryptRow(row, keyring) {
     id: row.id,
     conversation_id: row.conversation_id,
     sender_id: row.sender_id,
+    proposal_id: row.proposal_id || null,
     text: sanitizeMessageText(text),
     attachments,
     created_at: row.created_at,
@@ -395,6 +434,66 @@ async function attachMessageProjectContexts(
         available: true
       }
     };
+  });
+}
+
+function exposeProposal(row, agreement = null) {
+  return {
+    id: row.id,
+    conversation_id: row.conversation_id,
+    developer_id: row.developer_id,
+    client_id: row.client_id,
+    terms: row.terms,
+    attachments: (Array.isArray(row.attachments) ? row.attachments : []).map(item => ({
+      id: item.id,
+      name: item.name,
+      type: item.type,
+      size: item.size
+    })),
+    status: row.status,
+    created_at: row.created_at,
+    updated_at: row.updated_at,
+    accepted_at: row.accepted_at,
+    withdrawn_at: row.withdrawn_at,
+    agreement: agreement ? {
+      id: agreement.id,
+      payment_status: agreement.payment_status,
+      created_at: agreement.created_at
+    } : null
+  };
+}
+
+async function getProposalDetailsByIds(supabaseUrl, serviceRoleKey, proposalIds) {
+  const ids = [...new Set(proposalIds.filter(id =>
+    typeof id === 'string' && UUID_PATTERN.test(id)
+  ))];
+  if (!ids.length) return new Map();
+  const [proposals, agreements] = await Promise.all([
+    requestRows(supabaseUrl, serviceRoleKey, 'project_proposals', {
+      select: 'id,conversation_id,developer_id,client_id,terms,attachments,status,created_at,updated_at,accepted_at,withdrawn_at',
+      id: `in.(${ids.join(',')})`
+    }),
+    requestRows(supabaseUrl, serviceRoleKey, 'project_agreements', {
+      select: 'id,proposal_id,payment_status,created_at',
+      proposal_id: `in.(${ids.join(',')})`
+    })
+  ]);
+  const agreementsByProposal = new Map(agreements.map(agreement => [agreement.proposal_id, agreement]));
+  return new Map(proposals.map(proposal => [
+    proposal.id,
+    exposeProposal(proposal, agreementsByProposal.get(proposal.id))
+  ]));
+}
+
+async function attachProposalDetails(messages, rows, supabaseUrl, serviceRoleKey) {
+  const proposalsById = await getProposalDetailsByIds(
+    supabaseUrl,
+    serviceRoleKey,
+    rows.map(row => row.proposal_id).filter(Boolean)
+  );
+  return messages.map((message, index) => {
+    const proposal = proposalsById.get(rows[index]?.proposal_id);
+    return proposal ? {...message, proposal} : message;
   });
 }
 
@@ -507,6 +606,84 @@ async function startConversation(
   }
 }
 
+function validateProposalTerms(value) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    throw new ChatApiError('Complete the proposal details before sending.', 400);
+  }
+  const projectName = typeof value.projectName === 'string' ? value.projectName.trim() : '';
+  const description = typeof value.description === 'string' ? value.description.trim() : '';
+  const totalPriceText = String(value.totalPrice ?? '').replace(/\D/g, '');
+  const totalPrice = Number(totalPriceText);
+  const dpPercent = Number(value.dpPercent);
+  const deadline = typeof value.deadline === 'string' ? value.deadline : '';
+  const scope = Array.isArray(value.scope)
+    ? value.scope.map(item => typeof item === 'string' ? item.trim() : '')
+    : [];
+  const revisionCount = Number(value.revisionCount);
+  const revisionNotes = typeof value.revisionNotes === 'string'
+    ? value.revisionNotes.trim()
+    : '';
+
+  if (!projectName || projectName.length > 80) {
+    throw new ChatApiError('Project name must contain 1 to 80 characters.', 400);
+  }
+  if (!description || description.length > 1000) {
+    throw new ChatApiError('Description must contain 1 to 1,000 characters.', 400);
+  }
+  if (!Number.isSafeInteger(totalPrice) || totalPrice < 40000 || totalPrice > 1000000000) {
+    throw new ChatApiError('Enter a total price between Rp40,000 and Rp1 billion.', 400);
+  }
+  if (![25, 50].includes(dpPercent)) {
+    throw new ChatApiError('Choose a 25% or 50% down payment.', 400);
+  }
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(deadline)
+    || !Number.isFinite(Date.parse(`${deadline}T00:00:00Z`))
+    || deadline < new Date().toISOString().slice(0, 10)) {
+    throw new ChatApiError('Choose a valid deadline that is today or later.', 400);
+  }
+  if (!scope.length || scope.length > 20
+    || scope.some(item => !item || item.length > 300)) {
+    throw new ChatApiError('Add 1 to 20 scope points, each up to 300 characters.', 400);
+  }
+  if (!Number.isInteger(revisionCount) || revisionCount < 0 || revisionCount > 99) {
+    throw new ChatApiError('Choose between 0 and 99 free revision rounds.', 400);
+  }
+  if (revisionNotes.length > 300) {
+    throw new ChatApiError('Revision notes must be 300 characters or fewer.', 400);
+  }
+
+  return {
+    projectName,
+    description,
+    totalPrice,
+    dpPercent,
+    deadline,
+    scope,
+    revisionCount,
+    revisionNotes
+  };
+}
+
+async function requireParticipantConversation(
+  conversationId,
+  user,
+  workspaceRole,
+  supabaseUrl,
+  serviceRoleKey
+) {
+  const requested = await getConversation(supabaseUrl, serviceRoleKey, conversationId);
+  const conversation = await getThreadRoot(supabaseUrl, serviceRoleKey, requested);
+  if (!userIsParticipant(conversation, user.id, workspaceRole)) {
+    throw new ChatApiError('Conversation not found.', 404);
+  }
+  const sourceConversations = await getThreadSources(
+    supabaseUrl,
+    serviceRoleKey,
+    conversation
+  );
+  return {conversation, sourceConversations};
+}
+
 async function handleAction(body, user, keyring, supabaseUrl, serviceRoleKey, authorization = null) {
   if (body.workspaceRole != null && !['client', 'dev'].includes(body.workspaceRole)) {
     throw new ChatApiError('Invalid workspace.', 400);
@@ -515,9 +692,214 @@ async function handleAction(body, user, keyring, supabaseUrl, serviceRoleKey, au
   if (!account) throw new ChatApiError('Workspace not found.', 403);
   const workspaceRole = account.account_role;
 
-  if (body.action === 'list-conversations') {
+  if (body.action === 'create-project-proposal') {
+    if (workspaceRole !== 'dev') {
+      throw new ChatApiError('Switch to Developer Mode to create a project proposal.', 403);
+    }
+    const {conversation} = await requireParticipantConversation(
+      body.conversationId, user, workspaceRole, supabaseUrl, serviceRoleKey
+    );
+    const terms = validateProposalTerms(body.terms);
+    const inputAttachments = body.attachments === undefined ? [] : body.attachments;
+    if (!Array.isArray(inputAttachments) || inputAttachments.length > MAX_PROPOSAL_ATTACHMENTS) {
+      throw new ChatApiError('Choose up to five proposal attachments.', 400);
+    }
+
+    const proposalId = crypto.randomUUID();
+    const messageId = crypto.randomUUID();
+    const attachments = [];
+    const uploadedPaths = [];
+    let totalAttachmentBytes = 0;
+    try {
+      for (const input of inputAttachments) {
+        if (!input || typeof input !== 'object' || Array.isArray(input)
+          || !ALLOWED_PROPOSAL_ATTACHMENT_TYPES.has(input.type)) {
+          throw new ChatApiError('Choose supported PDF, Word, JPG, PNG, or WebP attachments.', 400);
+        }
+        const name = safeAttachmentName(input.name);
+        const bytes = decodeAttachmentBase64(input.base64);
+        totalAttachmentBytes += bytes.length;
+        if (totalAttachmentBytes > MAX_PROPOSAL_ATTACHMENT_TOTAL_BYTES) {
+          throw new ChatApiError('Proposal attachments must total no more than 2 MB.', 400);
+        }
+
+        const id = crypto.randomUUID();
+        const keyVersion = keyring.activeVersion;
+        const attachmentContext = {
+          conversationId: `${proposalId}:attachment:${id}`,
+          senderId: user.id,
+          keyVersion
+        };
+        const encrypted = await encryptBinary(
+          bytes,
+          attachmentContext,
+          keyring.keys.get(keyVersion)
+        );
+        const path = `chat-attachments/project-proposals/${proposalId}/${id}.bin`;
+        await uploadEncryptedAttachment(supabaseUrl, serviceRoleKey, path, encrypted.ciphertext);
+        uploadedPaths.push(path);
+        attachments.push({
+          id,
+          path,
+          name,
+          type: input.type,
+          size: bytes.length,
+          nonce: encrypted.nonce,
+          key_version: keyVersion
+        });
+      }
+
+      const messageContext = {
+        conversationId: conversation.id,
+        senderId: user.id,
+        keyVersion: keyring.activeVersion
+      };
+      const encryptedMessage = await encryptMessage(
+        JSON.stringify({version: 1, text: 'Project proposal', attachments: []}),
+        messageContext,
+        keyring.keys.get(keyring.activeVersion)
+      );
+      await requestRpc(supabaseUrl, serviceRoleKey, 'create_project_proposal', {
+        p_proposal_id: proposalId,
+        p_message_id: messageId,
+        p_conversation_id: conversation.id,
+        p_actor_id: user.id,
+        p_workspace_role: workspaceRole,
+        p_terms: terms,
+        p_attachments: attachments,
+        p_ciphertext: encryptedMessage.ciphertext,
+        p_nonce: encryptedMessage.nonce,
+        p_key_version: keyring.activeVersion
+      });
+
+      const [messageRows] = await Promise.all([
+        requestRows(supabaseUrl, serviceRoleKey, 'messages', {
+          select: 'id,conversation_id,sender_id,ciphertext,nonce,key_version,created_at,read_at,proposal_id',
+          id: `eq.${messageId}`,
+          limit: '1'
+        })
+      ]);
+      if (!messageRows[0]) throw new ChatApiError('Proposal message could not be loaded.', 503);
+      const proposalMap = await getProposalDetailsByIds(supabaseUrl, serviceRoleKey, [proposalId]);
+      const proposal = proposalMap.get(proposalId);
+      if (!proposal) throw new ChatApiError('Proposal could not be loaded.', 503);
+      const message = await decryptRow(messageRows[0], keyring);
+      return {message: {...message, proposal}, proposal};
+    } catch (error) {
+      if (uploadedPaths.length) {
+        await Promise.all(uploadedPaths.map(path =>
+          deleteChatAttachment(supabaseUrl, serviceRoleKey, path)
+        ));
+      }
+      throw error;
+    }
+  }
+
+  if (body.action === 'accept-project-proposal' || body.action === 'withdraw-project-proposal') {
+    const expectedRole = body.action === 'accept-project-proposal' ? 'client' : 'dev';
+    if (workspaceRole !== expectedRole || !UUID_PATTERN.test(body.proposalId || '')) {
+      throw new ChatApiError('This proposal action is not available in the selected workspace.', 403);
+    }
+    const {conversation, sourceConversations} = await requireParticipantConversation(
+      body.conversationId, user, workspaceRole, supabaseUrl, serviceRoleKey
+    );
+    const proposals = await requestRows(supabaseUrl, serviceRoleKey, 'project_proposals', {
+      select: 'id,conversation_id,developer_id,client_id',
+      id: `eq.${body.proposalId}`,
+      limit: '1'
+    });
+    const proposal = proposals[0];
+    if (!proposal || !sourceConversations.some(source => source.id === proposal.conversation_id)) {
+      throw new ChatApiError('Proposal not found.', 404);
+    }
+
+    if (body.action === 'accept-project-proposal') {
+      const result = await requestRpc(supabaseUrl, serviceRoleKey, 'accept_project_proposal', {
+        p_proposal_id: proposal.id,
+        p_actor_id: user.id,
+        p_workspace_role: workspaceRole
+      });
+      if (!result?.proposal || !result?.agreement) {
+        throw new ChatApiError('Chat service returned an invalid accepted proposal.', 503);
+      }
+      return {
+        proposal: exposeProposal(result.proposal, result.agreement),
+        agreement: {
+          id: result.agreement.id,
+          payment_status: result.agreement.payment_status,
+          created_at: result.agreement.created_at
+        }
+      };
+    }
+
+    const updated = await requestRpc(supabaseUrl, serviceRoleKey, 'withdraw_project_proposal', {
+      p_proposal_id: proposal.id,
+      p_actor_id: user.id,
+      p_workspace_role: workspaceRole
+    });
+    if (!updated?.id) throw new ChatApiError('Chat service returned an invalid proposal.', 503);
+    const [agreement] = await requestRows(supabaseUrl, serviceRoleKey, 'project_agreements', {
+      select: 'id,proposal_id,payment_status,created_at',
+      proposal_id: `eq.${proposal.id}`,
+      limit: '1'
+    });
+    return {proposal: exposeProposal(updated, agreement || null)};
+  }
+
+  if (body.action === 'download-project-proposal-attachment') {
+    if (!UUID_PATTERN.test(body.proposalId || '') || !UUID_PATTERN.test(body.attachmentId || '')) {
+      throw new ChatApiError('A valid proposal attachment is required.', 400);
+    }
+    const {sourceConversations} = await requireParticipantConversation(
+      body.conversationId, user, workspaceRole, supabaseUrl, serviceRoleKey
+    );
+    const proposals = await requestRows(supabaseUrl, serviceRoleKey, 'project_proposals', {
+      select: 'id,conversation_id,developer_id,client_id,attachments',
+      id: `eq.${body.proposalId}`,
+      limit: '1'
+    });
+    const proposal = proposals[0];
+    if (!proposal
+      || !sourceConversations.some(source => source.id === proposal.conversation_id)
+      || ![proposal.developer_id, proposal.client_id].includes(user.id)) {
+      throw new ChatApiError('Proposal attachment not found.', 404);
+    }
+    const item = (Array.isArray(proposal.attachments) ? proposal.attachments : [])
+      .find(attachment => attachment?.id === body.attachmentId);
+    if (!item
+      || item.path !== `chat-attachments/project-proposals/${proposal.id}/${item.id}.bin`
+      || !ALLOWED_PROPOSAL_ATTACHMENT_TYPES.has(item.type)
+      || !Number.isInteger(item.size)
+      || item.size < 1
+      || item.size > MAX_ATTACHMENT_BYTES
+      || !/^[A-Za-z0-9_-]{16}$/.test(item.nonce || '')) {
+      throw new ChatApiError('Proposal attachment not found.', 404);
+    }
+    const attachmentKey = keyring.keys.get(Number(item.key_version));
+    if (!attachmentKey) throw new ChatApiError('This attachment cannot be decrypted right now.', 503);
+    const encryptedBytes = await downloadEncryptedAttachment(
+      supabaseUrl, serviceRoleKey, item.path
+    );
+    const attachmentContext = {
+      conversationId: `${proposal.id}:attachment:${item.id}`,
+      senderId: proposal.developer_id,
+      keyVersion: Number(item.key_version)
+    };
+    const bytes = await decryptBinary(
+      {ciphertext: encryptedBytes, nonce: item.nonce},
+      attachmentContext,
+      attachmentKey
+    );
+    if (bytes.length !== item.size) {
+      throw new ChatApiError('The proposal attachment data is invalid.', 503);
+    }
+    return {name: safeAttachmentName(item.name), type: item.type, size: bytes.length, base64: encodeBase64(bytes)};
+  }
+
+  const dashboardConversationPreview = body.action === 'list-dashboard-conversations';
+  if (body.action === 'list-conversations' || dashboardConversationPreview) {
     const parents = await requestRows(supabaseUrl, serviceRoleKey, 'conversations', {
-      select: 'id,participant_a_id,participant_b_id,participant_a_role,participant_b_role,project_id,pair_key,workspace_pair_key,merged_into,created_at,is_primary,updated_at,last_message_at,messages(id,conversation_id,sender_id,ciphertext,nonce,key_version,created_at,read_at)',
+      select: 'id,participant_a_id,participant_b_id,participant_a_role,participant_b_role,project_id,pair_key,workspace_pair_key,merged_into,created_at,is_primary,updated_at,last_message_at,messages(id,conversation_id,sender_id,ciphertext,nonce,key_version,created_at,read_at,proposal_id)',
       or: `(and(participant_a_id.eq.${user.id},participant_a_role.eq.${workspaceRole}),and(participant_b_id.eq.${user.id},participant_b_role.eq.${workspaceRole}))`,
       merged_into: 'is.null',
       'messages.order': 'created_at.desc',
@@ -527,7 +909,7 @@ async function handleAction(body, user, keyring, supabaseUrl, serviceRoleKey, au
     });
     const parentIds = parents.map(conversation => conversation.id);
     const children = parentIds.length ? await requestRows(supabaseUrl, serviceRoleKey, 'conversations', {
-      select: 'id,participant_a_id,participant_b_id,participant_a_role,participant_b_role,project_id,pair_key,workspace_pair_key,merged_into,updated_at,last_message_at,messages(id,conversation_id,sender_id,ciphertext,nonce,key_version,created_at,read_at)',
+      select: 'id,participant_a_id,participant_b_id,participant_a_role,participant_b_role,project_id,pair_key,workspace_pair_key,merged_into,updated_at,last_message_at,messages(id,conversation_id,sender_id,ciphertext,nonce,key_version,created_at,read_at,proposal_id)',
       merged_into: `in.(${parentIds.join(',')})`,
       'messages.order': 'created_at.desc',
       'messages.limit': '1',
@@ -589,7 +971,14 @@ async function handleAction(body, user, keyring, supabaseUrl, serviceRoleKey, au
         contextProjectId: contextRoot?.project_id || null
       };
     }).filter(thread => thread.last);
-    const projectIds = [...new Set(threadMessages
+    const selectedThreadMessages = dashboardConversationPreview
+      ? threadMessages.slice().sort((first, second) => {
+        const firstDate = Date.parse(first.last?.created_at || first.conversation.updated_at || '');
+        const secondDate = Date.parse(second.last?.created_at || second.conversation.updated_at || '');
+        return (Number.isFinite(secondDate) ? secondDate : 0) - (Number.isFinite(firstDate) ? firstDate : 0);
+      }).slice(0, 5)
+      : threadMessages;
+    const projectIds = [...new Set(selectedThreadMessages
       .map(({contextProjectId}) => contextProjectId)
       .filter(id => typeof id === 'string' && /^[A-Za-z0-9_-]{1,160}$/.test(id)))];
     const projects = [];
@@ -601,12 +990,19 @@ async function handleAction(body, user, keyring, supabaseUrl, serviceRoleKey, au
       }));
     }
     const projectsById = new Map(projects.map(project => [project.id, project]));
-    const ids = [...new Set(parents.map(c => c.participant_a_id === user.id ? c.participant_b_id : c.participant_a_id))];
+    const ids = [...new Set(selectedThreadMessages.map(({conversation}) =>
+      conversation.participant_a_id === user.id ? conversation.participant_b_id : conversation.participant_a_id
+    ))];
     const [identities, workspaces] = ids.length ? await Promise.all([
       requestRows(supabaseUrl, serviceRoleKey, 'profiles', {select:'id,username,display_name,account_role', id:`in.(${ids.join(',')})`}),
       requestRows(supabaseUrl, serviceRoleKey, 'account_workspaces', {select:'user_id,role,display_name', user_id:`in.(${ids.join(',')})`})
     ]) : [[], []];
-    const mapped = await Promise.all(threadMessages.map(async ({conversation, sourceConversations, last, contextProjectId}) => {
+    const proposalsById = await getProposalDetailsByIds(
+      supabaseUrl,
+      serviceRoleKey,
+      selectedThreadMessages.map(thread => thread.last?.proposal_id).filter(Boolean)
+    );
+    const mapped = await Promise.all(selectedThreadMessages.map(async ({conversation, sourceConversations, last, contextProjectId}) => {
       const {messages, ...details} = conversation;
       delete details.created_at;
       delete details.is_primary;
@@ -615,6 +1011,8 @@ async function handleAction(body, user, keyring, supabaseUrl, serviceRoleKey, au
       const identity = identities.find(p => p.id === partnerId);
       const profile = identity?.account_role === partnerRole ? identity : workspaces.find(w => w.user_id === partnerId && w.role === partnerRole);
       const contextProject = contextProjectId ? projectsById.get(contextProjectId) : null;
+      const lastMessage = await decryptRow(last, keyring);
+      const proposal = proposalsById.get(last.proposal_id);
       const contextKind = contextProject?.project_kind || null;
       const developerName = contextProject?.project_kind === 'portfolio'
         ? workspaces.find(workspace => workspace.user_id === partnerId && workspace.role === 'dev')?.display_name
@@ -670,7 +1068,7 @@ async function handleAction(body, user, keyring, supabaseUrl, serviceRoleKey, au
             ? source.participant_a_role
             : source.participant_b_role
         })),
-        last_message: await decryptRow(last, keyring)
+        last_message: proposal ? {...lastMessage, proposal} : lastMessage
       };
     }));
     return mapped.filter(Boolean).sort((a, b) =>
@@ -832,7 +1230,7 @@ async function handleAction(body, user, keyring, supabaseUrl, serviceRoleKey, au
         ? Math.max(1, Math.min(requestedLimit, MAX_MESSAGE_ROWS))
         : INITIAL_MESSAGE_ROWS;
       const rows = await requestRows(supabaseUrl, serviceRoleKey, 'messages', {
-        select: 'id,conversation_id,sender_id,ciphertext,nonce,key_version,created_at,read_at,project_id,project_reference_id,project_kind',
+        select: 'id,conversation_id,sender_id,ciphertext,nonce,key_version,created_at,read_at,project_id,project_reference_id,project_kind,proposal_id',
         conversation_id: sourceFilter,
         ...(typeof body.before === 'string' && !Number.isNaN(Date.parse(body.before))
           ? {created_at: `lt.${body.before}`}
@@ -842,8 +1240,11 @@ async function handleAction(body, user, keyring, supabaseUrl, serviceRoleKey, au
       });
       const orderedRows = rows.reverse();
       const messages = await Promise.all(orderedRows.map(row => decryptRow(row, keyring)));
-      return attachMessageProjectContexts(
+      const withProjectContexts = await attachMessageProjectContexts(
         messages, orderedRows, conversation, supabaseUrl, serviceRoleKey
+      );
+      return attachProposalDetails(
+        withProjectContexts, orderedRows, supabaseUrl, serviceRoleKey
       );
     }
 
