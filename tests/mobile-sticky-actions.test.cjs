@@ -101,6 +101,9 @@ test('mobile Messages uses back and MESSAGES header instead of logo and search',
   assert.match(sidebarNavJs,/devmatch-mobile-chat-return-tab/);
   assert.match(sidebarNavJs,/if \(page === 'devmatch-chat\.html'\)/);
   assert.match(navJs,/chatLink && mobileNavigationBreakpoint\.matches/);
+  const savedChatOrigin=navJs.indexOf('sessionStorage.setItem(mobileChatReturnUrlStorageKey, window.location.href);');
+  const preventedClickGuard=navJs.indexOf('if (event.defaultPrevented) return;',savedChatOrigin);
+  assert.ok(savedChatOrigin>=0&&preventedClickGuard>savedChatOrigin);
 });
 
 test('mobile room chat uses mobile composer and latest-message button',()=>{

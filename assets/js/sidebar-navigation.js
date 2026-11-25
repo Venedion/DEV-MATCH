@@ -1,6 +1,8 @@
 (function () {
   'use strict';
 
+  const mobileNavigationTransitionKey = 'devmatch-mobile-bottom-nav-transition';
+
   const icons = {
     overview: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>',
     home: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-6v-7h-4v7H4a1 1 0 0 1-1-1z"/></svg>',
@@ -254,6 +256,28 @@
       if (!(event.target instanceof Element)) return;
       const clickedItem = event.target.closest('.mobile-bottom-nav__item');
       if (!clickedItem) return;
+      scrollIntent.direction = 0;
+      scrollIntent.expiresAt = 0;
+      scrollIntent.touchY = null;
+      scrollIntent.touchMoved = false;
+      if (clickedItem instanceof HTMLAnchorElement) {
+        const activeItem = nav.querySelector('.mobile-bottom-nav__item.active');
+        const activeKey = activeItem?.dataset.mobileNavKey;
+        const destinationKey = clickedItem.dataset.mobileNavKey;
+        try {
+          if (activeKey && destinationKey && activeKey !== destinationKey) {
+            const destinationPath = new URL(clickedItem.href, location.href).pathname;
+            sessionStorage.setItem(
+              mobileNavigationTransitionKey,
+              `${nav.dataset.workspace}|${activeKey}|${destinationPath}`
+            );
+          } else {
+            sessionStorage.removeItem(mobileNavigationTransitionKey);
+          }
+        } catch (error) {
+          console.warn('Unable to save the previous mobile navigation tab.', error);
+        }
+      }
       if (clickedItem.href && clickedItem.href.includes('devmatch-chat.html')) {
         const activeItem = nav.querySelector('.mobile-bottom-nav__item.active');
         const activeKey = activeItem?.dataset.mobileNavKey;
@@ -275,6 +299,62 @@
     [document.scrollingElement, document.documentElement, document.body, main].forEach(target => {
       if (target instanceof HTMLElement) scrollPositions.set(target, target.scrollTop);
     });
+
+    const mobileViewport = window.matchMedia('(max-width: 820px)');
+    const scrollIntent = { direction: 0, expiresAt: 0, touchY: null, touchMoved: false };
+    const noteScrollIntent = (scrollDirection, duration) => {
+      if (!mobileViewport.matches || !scrollDirection) return;
+      scrollIntent.direction = Math.sign(scrollDirection);
+      scrollIntent.expiresAt = performance.now() + duration;
+    };
+
+    window.addEventListener('wheel', event => {
+      noteScrollIntent(event.deltaY, 300);
+    }, {passive: true});
+
+    window.addEventListener('touchstart', event => {
+      if (event.touches.length === 1) {
+        scrollIntent.touchY = event.touches[0].clientY;
+        scrollIntent.touchMoved = false;
+      }
+    }, {passive: true});
+
+    window.addEventListener('touchmove', event => {
+      if (scrollIntent.touchY === null || event.touches.length !== 1) return;
+      const currentY = event.touches[0].clientY;
+      const delta = scrollIntent.touchY - currentY;
+      if (Math.abs(delta) > 3) {
+        scrollIntent.touchMoved = true;
+        noteScrollIntent(delta, 700);
+      }
+      scrollIntent.touchY = currentY;
+    }, {passive: true});
+
+    const clearTouchPosition = () => {
+      scrollIntent.touchY = null;
+      if (scrollIntent.touchMoved && scrollIntent.direction) {
+        scrollIntent.expiresAt = Math.max(scrollIntent.expiresAt, performance.now() + 500);
+      }
+      scrollIntent.touchMoved = false;
+    };
+    window.addEventListener('touchend', clearTouchPosition, {passive: true});
+    window.addEventListener('touchcancel', clearTouchPosition, {passive: true});
+
+    window.addEventListener('keydown', event => {
+      if (event.target instanceof Element
+        && event.target.closest('input, textarea, select, [contenteditable="true"], [role="textbox"]')) return;
+      const keyDirection = {
+        ArrowDown: 1,
+        PageDown: 1,
+        ' ': 1,
+        End: 1,
+        ArrowUp: -1,
+        PageUp: -1,
+        Home: -1
+      }[event.key];
+      noteScrollIntent(keyDirection, 500);
+    });
+
     let scrollTarget = null;
     let direction = 0;
     let directionDistance = 0;
@@ -286,23 +366,33 @@
       const currentTop = Math.max(0, target.scrollTop);
       const previousTop = scrollPositions.get(target);
       scrollPositions.set(target, currentTop);
+      if (!mobileViewport.matches) {
+        direction = 0;
+        directionDistance = 0;
+        return;
+      }
       if (target !== scrollTarget) {
         scrollTarget = target;
         direction = 0;
         directionDistance = 0;
       }
-
       if (previousTop === undefined) return;
+
       const delta = currentTop - previousTop;
+      if (!delta) return;
+      const nextDirection = delta > 0 ? 1 : -1;
+      if (performance.now() > scrollIntent.expiresAt || scrollIntent.direction !== nextDirection) {
+        direction = 0;
+        directionDistance = 0;
+        return;
+      }
       if (currentTop < 24) {
         setMobileBottomNavigationHidden(nav, false);
         direction = 0;
         directionDistance = 0;
         return;
       }
-      if (!delta) return;
 
-      const nextDirection = delta > 0 ? 1 : -1;
       if (nextDirection !== direction) {
         direction = nextDirection;
         directionDistance = 0;
@@ -315,6 +405,12 @@
     }, {capture: true, passive: true});
 
     window.addEventListener('resize', () => {
+      scrollIntent.direction = 0;
+      scrollIntent.expiresAt = 0;
+      scrollIntent.touchY = null;
+      scrollIntent.touchMoved = false;
+      direction = 0;
+      directionDistance = 0;
       setMobileBottomNavigationHidden(nav, false);
       updateMobileBottomNavigationIndicator(nav);
     });
@@ -350,6 +446,35 @@
     }
 
     nav.classList.add('is-initializing-indicator');
+    let savedTransition = null;
+    try {
+      savedTransition = sessionStorage.getItem(mobileNavigationTransitionKey);
+      sessionStorage.removeItem(mobileNavigationTransitionKey);
+    } catch (error) {
+      console.warn('Unable to restore the previous mobile navigation tab.', error);
+    }
+    const [previousRole, previousKey, destinationPath] = savedTransition?.split('|') || [];
+    const previousItem = previousRole === nav.dataset.workspace && destinationPath === location.pathname
+      ? Array.from(nav.querySelectorAll('.mobile-bottom-nav__item'))
+        .find(item => item.dataset.mobileNavKey === previousKey)
+      : null;
+
+    if (previousItem && previousItem !== activeItem) {
+      setPosition(previousItem);
+      nav.classList.add('has-active-indicator');
+      nav.dataset.mobileNavIndicatorPending = 'true';
+      requestAnimationFrame(() => {
+        nav.classList.remove('is-initializing-indicator');
+        requestAnimationFrame(() => {
+          const currentActiveItem = nav.querySelector('.mobile-bottom-nav__item.active');
+          if (currentActiveItem) setPosition(currentActiveItem);
+          nav.dataset.mobileNavIndicatorPending = 'false';
+          nav.dataset.mobileNavIndicatorInitialized = 'true';
+        });
+      });
+      return;
+    }
+
     setPosition(activeItem);
     nav.classList.add('has-active-indicator');
     requestAnimationFrame(() => requestAnimationFrame(() => {
@@ -466,6 +591,9 @@
     }
     const workspace = role === 'dev' ? 'developer' : role;
     const activeKey = getCurrentPage(workspace);
+    const desktopActiveKey = location.pathname.split('/').pop() === 'devmatch-chat.html'
+      ? 'messages'
+      : activeKey;
     if (location.pathname.split('/').pop() !== 'devmatch-chat.html'
       && activeKey
       && activeKey !== 'messages') {
@@ -480,7 +608,7 @@
     document.querySelectorAll('[data-shared-navigation]').forEach(nav => {
       const group = nav.dataset.sharedNavigation;
       if (group === 'primary' || group === 'account') {
-        renderGroup(nav, groups[group], workspace, activeKey);
+        renderGroup(nav, groups[group], workspace, desktopActiveKey);
       }
     });
     renderMobileBottomNavigation(workspace, activeKey);

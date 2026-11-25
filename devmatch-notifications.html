@@ -8,9 +8,9 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="assets/css/client-dashboard.css?v=20261123-header-cleanup-v1">
-  <link rel="stylesheet" href="assets/css/notifications.css?v=20261125-mobile-notification-list-v1">
+  <link rel="stylesheet" href="assets/css/notifications.css?v=20261125-bottom-nav-responsive-breakpoint-v1">
   <link rel="stylesheet" href="assets/css/mode-switch-animation.css?v=20261030-active-indicator">
-  <link rel="stylesheet" href="assets/css/mobile-navigation.css?v=20261123-notification-badge-v1">
+  <link rel="stylesheet" href="assets/css/mobile-navigation.css?v=20261125-bottom-nav-responsive-breakpoint-v1">
   <script src="assets/js/i18n.js?v=20261102-profile-details"></script>
 <script src="assets/vendor/supabase-2.119.0.js"></script>
 <script src="assets/js/backend.js?v=20261123-chat-read-v1"></script>
@@ -35,7 +35,12 @@
       <span id="notificationMobileFilterLabel">All Activity</span>
       <svg viewBox="0 0 16 16" aria-hidden="true"><path d="m3 5.5 5 5 5-5z"/></svg>
     </button>
-    <div class="notification-mobile-filter-menu" id="notificationFilterMenu" role="group" aria-label="Filter notifications" hidden>
+    <button class="notification-mobile-settings" id="notificationSettingsToggle" type="button" aria-expanded="false" aria-controls="notification-settings" aria-label="Notification settings">
+      <img src="assets/images/notification-settings-gear.png" alt="">
+    </button>
+  </header>
+  <div class="notification-mobile-filter-menu" id="notificationFilterMenu" role="group" aria-label="Filter notifications" hidden>
+    <div class="notification-mobile-filter-panel">
       <button type="button" data-notification-filter-option="all" aria-pressed="true">All Activity</button>
       <button type="button" data-notification-filter-option="unread" aria-pressed="false">Unread</button>
       <button type="button" data-notification-filter-option="comments" aria-pressed="false">Comments</button>
@@ -43,7 +48,7 @@
       <button type="button" data-notification-filter-option="favorites" aria-pressed="false">Favorites</button>
       <button type="button" data-notification-filter-option="ratings" aria-pressed="false">Ratings</button>
     </div>
-  </header>
+  </div>
 
   <aside class="client-sidebar">
     <div class="client-workspace"><span class="workspace-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="7" width="18" height="14" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></span><span><b>Client workspace</b><small>Discover &amp; hire</small></span></div>
@@ -56,7 +61,7 @@
     </nav>
     <div class="client-sidebar-foot"><span></span>Client workspace</div>
   </aside>
-  <script src="assets/js/sidebar-navigation.js?v=20261123-mobile-nav-stable-v1"></script>
+  <script src="assets/js/sidebar-navigation.js?v=20261125-mobile-nav-user-scroll-v2"></script>
 
   <main class="client-main notifications-page">
     <header class="notifications-heading">
@@ -106,8 +111,8 @@
   <a class="floating-chat" href="devmatch-chat.html?role=client" aria-label="Messages &amp; Chat" title="Open Messages &amp; Chat">
     <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5c-5 0-9 3.65-9 8.15 0 2.24 1.04 4.27 2.73 5.74L4.7 21l5.24-1.28c.67.12 1.36.18 2.06.18 5 0 9-3.65 9-8.15S17 3.5 12 3.5Z"/><circle cx="8.5" cy="11.7" r="1" fill="currentColor" stroke="none"/><circle cx="12" cy="11.7" r="1" fill="currentColor" stroke="none"/><circle cx="15.5" cy="11.7" r="1" fill="currentColor" stroke="none"/></svg>
   </a>
-  <script src="assets/js/notifications.js?v=20261125-mobile-notification-list-v1"></script>
-  <script src="assets/js/nav-behavior.js?v=20261125-mobile-chat-origin-history-v6"></script>
+  <script src="assets/js/notifications.js?v=20261125-bottom-nav-responsive-breakpoint-v3"></script>
+  <script src="assets/js/nav-behavior.js?v=20261125-bottom-nav-responsive-breakpoint-v1"></script>
 <script src="assets/js/presence.js?v=20261119-global"></script>
 </body>
 </html>

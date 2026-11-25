@@ -1,0 +1,62 @@
+const {test}=require('node:test');
+const assert=require('node:assert/strict');
+const fs=require('node:fs');
+const path=require('node:path');
+
+const profileCss=fs.readFileSync(path.join(__dirname,'..','assets/css/my-profile.css'),'utf8');
+const mobileNavigationCss=fs.readFileSync(path.join(__dirname,'..','assets/css/mobile-navigation.css'),'utf8');
+const favoriteFeedbackCss=fs.readFileSync(path.join(__dirname,'..','assets/css/favorite-feedback.css'),'utf8');
+const myProjectsCss=fs.readFileSync(path.join(__dirname,'..','assets/css/my-projects.css'),'utf8');
+const profileHtml=fs.readFileSync(path.join(__dirname,'..','devmatch-my-profile.html'),'utf8');
+const navigationJs=fs.readFileSync(path.join(__dirname,'..','assets/js/nav-behavior.js'),'utf8');
+const chatJs=fs.readFileSync(path.join(__dirname,'..','assets/js/chat.js'),'utf8');
+const favoriteFeedbackJs=fs.readFileSync(path.join(__dirname,'..','assets/js/favorite-feedback.js'),'utf8');
+const notificationsJs=fs.readFileSync(path.join(__dirname,'..','assets/js/notifications.js'),'utf8');
+const myProjectsJs=fs.readFileSync(path.join(__dirname,'..','assets/js/my-projects.js'),'utf8');
+
+test('mobile My Profile header replaces notification and avatar actions with the account menu icon',()=>{
+  assert.match(profileCss,/@media\(max-width:820px\)\{[\s\S]*?body\.my-profile-page:not\(\.client-profile-public\)>header\.topbar>\.top-actions>\.notification-button\{display:none\}/);
+  assert.match(profileCss,/body\.my-profile-page:not\(\.client-profile-public\)>header\.topbar>\.mobile-search-toggle,\s*body\.my-profile-page:not\(\.client-profile-public\)>header\.topbar>\.search\{display:none\}/);
+  assert.match(profileCss,/\.mobile-profile-menu-icon\{display:none\}/);
+  assert.match(profileCss,/\.user-menu>\.mobile-profile-menu-icon\{[\s\S]*?display:block[\s\S]*?stroke-width:2;/);
+  assert.match(profileCss,/@media\(max-width:820px\)\{[\s\S]*?body\.my-profile-page:not\(\.client-profile-public\)>header\.topbar>\.brand\{display:none\}[\s\S]*?\.mode-switch\.mobile-profile-header-mode-switch\{[\s\S]*?left:50%/);
+  assert.match(profileHtml,/<a class="user-menu" id="userMenu"[^>]*aria-label="Account menu">[\s\S]*?<svg class="mobile-profile-menu-icon"/);
+  assert.match(profileHtml,/d="M10 8h10M4 16h16"/);
+  assert.match(profileHtml,/window\.matchMedia\('\(max-width: 820px\)'\)\.matches/);
+  assert.match(navigationJs,/const isMobileMyProfilePage = document\.body\.matches\('\.my-profile-page:not\(\.client-profile-public\)'\)/);
+  assert.match(navigationJs,/if \(modeSwitch\.parentElement !== header\) header\.appendChild\(modeSwitch\)/);
+  assert.match(navigationJs,/if \(!isMobileMyProfilePage && identity\?\.nextSibling !== modeSwitch\)/);
+  assert.match(navigationJs,/const requestedRole = new URLSearchParams\(window\.location\.search\)\.get\('role'\)/);
+  assert.match(navigationJs,/if \(requestedRole === 'client' \|\| requestedRole === 'dev'\)[\s\S]*?link\.classList\.toggle\('active', getMode\(link\) === activeMode\)/);
+  assert.match(navigationJs,/if \(isMobileMyProfilePage && mobileSearchBreakpoint\.matches\) \{\s*prepareMobileAccountModeSwitch\(\)/);
+  assert.match(navigationJs,/if \(modeSwitch\.querySelector\('a\.mobile-account-mode-action'\) !== targetLink\)/);
+  assert.match(navigationJs,/const returnToMobileProfile = isMobileMyProfilePage && mobileSearchBreakpoint\.matches/);
+  assert.match(navigationJs,/location\.assign\(returnToProfile\s*\? `devmatch-my-profile\.html\?role=\$\{role\}`\s*: backend\.destination\(profile, user\)\)/);
+  assert.match(navigationJs,/function isMobileProfileModeSwitching\(\)[\s\S]*?return isMobileMyProfilePage && mobileSearchBreakpoint\.matches && switchingWorkspace/);
+  assert.match(navigationJs,/const profile = await backend\.loadProfile\(user\);\s*if \(isMobileProfileModeSwitching\(\)\) return;/);
+  assert.match(navigationJs,/const returnToProfile = isMobileMyProfilePage && mobileSearchBreakpoint\.matches;[\s\S]*?switchAccountWorkspace\(\s*targetRole,\s*returnToProfile,\s*modeLink\s*\)\.catch/);
+  assert.match(navigationJs,/async function animateMobileModeSwitchExit\(link\)/);
+  assert.match(navigationJs,/if \(returnToProfile && modeLink\) await animateMobileModeSwitchExit\(modeLink\)/);
+  assert.match(navigationJs,/event\.animationName !== animationName/);
+  assert.match(navigationJs,/function clearMobileModeSwitchArrival\(icon\)/);
+  assert.match(profileCss,/mobile-profile-arrow-hide-right-to-left/);
+  assert.match(profileCss,/mobile-profile-arrow-show-left-to-right/);
+  assert.match(profileHtml,/mobile-mode-switch-arrow-arrival/);
+});
+
+test('mobile interactions use the bottom navigation breakpoint',()=>{
+  assert.match(navigationJs,/const mobileNavigationBreakpoint = window\.matchMedia\('\(max-width: 820px\)'\)/);
+  assert.match(navigationJs,/const mobileSearchBreakpoint = window\.matchMedia\('\(max-width: 820px\)'\)/);
+  assert.match(navigationJs,/isFavoritesTabSwitch \? '\(max-width: 820px\)'/);
+  assert.match(navigationJs,/if \(mobileNavigationBreakpoint\.matches\) \{\s*window\.dispatchEvent\(new CustomEvent\('devmatch:notification-received'/);
+  assert.match(mobileNavigationCss,/@media \(max-width: 820px\) \{\s*\.header-account-dropdown > \.mode-switch/);
+  assert.match(mobileNavigationCss,/@media \(max-width: 820px\) \{\s*body\.chat-body\.mobile-chat-room-open/);
+  assert.match(chatJs,/const mobileChatBreakpoint = window\.matchMedia\('\(max-width: 820px\)'\)/);
+  assert.match(chatJs,/const mobileRoom = mobileChatBreakpoint\.matches/);
+  assert.match(favoriteFeedbackJs,/window\.matchMedia\('\(max-width: 820px\)'\)/);
+  assert.match(favoriteFeedbackCss,/@media \(max-width: 820px\) \{/);
+  assert.match(notificationsJs,/desktopMarkAllLayout = window\.matchMedia\('\(min-width: 821px\)'\)/);
+  assert.match(notificationsJs,/mobileListLayout = window\.matchMedia\('\(max-width: 820px\)'\)/);
+  assert.match(myProjectsJs,/projectsMobileBreakpoint=window\.matchMedia\('\(max-width: 820px\)'\)/);
+  assert.match(myProjectsCss,/@media\(max-width:820px\)\{[\s\S]*?\.project-table\{display:none\}[\s\S]*?\.mobile-project-list\{display:grid/);
+});

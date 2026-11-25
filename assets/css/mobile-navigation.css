@@ -1372,7 +1372,7 @@ body > .client-sidebar .post-request .sidebar-action-label {
   }
 }
 
-@media (max-width: 600px) {
+@media (max-width: 820px) {
   body.chat-body.mobile-chat-room-leaving > header.topbar {
     display: grid !important;
   }
@@ -1960,7 +1960,7 @@ body > .client-sidebar .post-request .sidebar-action-label {
   }
 }
 
-@media (max-width: 600px) {
+@media (max-width: 820px) {
   body.chat-body.mobile-chat-room-open > header.topbar {
     display: none !important;
   }
@@ -2079,7 +2079,7 @@ body > .client-sidebar .post-request .sidebar-action-label {
   }
 }
 
-@media (max-width: 600px) {
+@media (max-width: 820px) {
   .header-account-dropdown > .mode-switch,
   .header-account-dropdown > .client-mode-switch {
     position: relative;
@@ -2212,19 +2212,11 @@ body > .client-sidebar .post-request .sidebar-action-label {
   }
 }
 
-@media (min-width: 601px) and (max-width: 820px) {
-  header.topbar .mode-switch > .mode:not(.active),
-  header.client-topbar .client-mode-switch > .client-mode:not(.active),
-  header.profile-topbar .mode-switch > .mode:not(.active) {
-    display: flex;
-  }
-}
-
 .mobile-explore-favorites {
   display: none;
 }
 
-@media (max-width: 600px) {
+@media (max-width: 820px) {
   body.developer-explore-page > header.topbar > .top-actions > .notification-button,
   body.developer-explore-page > header.topbar > .top-actions > .user-menu {
     display: none;

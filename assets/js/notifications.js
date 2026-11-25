@@ -7,21 +7,27 @@
   const notificationFilterActions = document.querySelector('.notification-filter-actions');
   const mobileFilterToggle = document.getElementById('notificationFilterToggle');
   const mobileFilterMenu = document.getElementById('notificationFilterMenu');
+  const mobileFilterPanel = mobileFilterMenu?.querySelector('.notification-mobile-filter-panel');
+  const mobileSettingsToggle = document.getElementById('notificationSettingsToggle');
+  const mobileSettingsCard = document.getElementById('notification-settings');
   const mobileFilterLabel = document.getElementById('notificationMobileFilterLabel');
   const mobileFilterOptions = [...(mobileFilterMenu?.querySelectorAll('[data-notification-filter-option]') || [])];
-  const desktopMarkAllLayout = window.matchMedia('(min-width: 601px)');
-  const mobileListLayout = window.matchMedia('(max-width: 600px)');
+  const desktopMarkAllLayout = window.matchMedia('(min-width: 821px)');
+  const mobileListLayout = window.matchMedia('(max-width: 820px)');
+  const MOBILE_NOTIFICATION_DISPLAY_BOUNDARY_RATIO = 0.73;
   const listToggle = document.createElement('button');
   listToggle.className = 'notification-list-toggle';
   listToggle.type = 'button';
   listToggle.setAttribute('aria-controls', 'notificationItems');
   listToggle.hidden = true;
+  const stickyListToggle = document.createElement('div');
+  stickyListToggle.className = 'notification-list-sticky';
   const itemsContainer = document.getElementById('notificationItems');
+  const notificationList = itemsContainer?.closest('.notification-list');
   const notificationStatus = document.getElementById('notificationStatus');
   const notificationEmpty = document.getElementById('notificationEmpty');
   const actionList = document.getElementById('notificationActions');
   const preferenceInputs = [...document.querySelectorAll('[data-preference]')];
-  const MOBILE_NOTIFICATION_LIMIT = 10;
   const readNotifications = new Set();
   let newlyReceivedNotificationIds = new Set();
   let notificationRows = [];
@@ -34,7 +40,14 @@
   let activeFilter = 'all';
   let activeQuery = '';
   let mobileListExpanded = false;
+  let mobileListExpandedScrollTop = null;
+  let mobileFilterClosePending = false;
+  let mobileBoundaryFrame = 0;
+  let mobileBoundaryResizeObserver = null;
   let listHeightAnimation = null;
+  let stickyNavigation = null;
+  let stickyNavigationTransitioning = false;
+  let stickyPositionFrame = 0;
   let stateReady = false;
 
   function syncMobileFilterSelection(filter) {
@@ -48,9 +61,43 @@
 
   function setMobileFilterMenuOpen(open, restoreFocus = false) {
     if (!mobileFilterToggle || !mobileFilterMenu) return;
-    mobileFilterToggle.setAttribute('aria-expanded', String(open));
-    mobileFilterMenu.hidden = !open;
+    if (open) {
+      const wasHidden = mobileFilterMenu.hidden;
+      mobileFilterMenu.hidden = false;
+      mobileFilterToggle.setAttribute('aria-expanded', 'true');
+      mobileFilterClosePending = false;
+      if (wasHidden) {
+        mobileFilterMenu.classList.remove('is-open');
+        window.requestAnimationFrame(() => {
+          if (mobileFilterToggle.getAttribute('aria-expanded') === 'true') {
+            mobileFilterMenu.classList.add('is-open');
+          }
+        });
+      } else {
+        mobileFilterMenu.classList.add('is-open');
+      }
+    } else {
+      mobileFilterToggle.setAttribute('aria-expanded', 'false');
+      const wasOpen = mobileFilterMenu.classList.contains('is-open');
+      mobileFilterMenu.classList.remove('is-open');
+      const canAnimateClose = mobileListLayout.matches
+        && !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      if (canAnimateClose && (wasOpen || mobileFilterClosePending)) {
+        mobileFilterClosePending = true;
+      } else {
+        mobileFilterClosePending = false;
+        mobileFilterMenu.hidden = true;
+      }
+    }
     if (restoreFocus) mobileFilterToggle.focus();
+  }
+
+  function setMobileSettingsMenuOpen(open, restoreFocus = false) {
+    if (!mobileSettingsToggle || !mobileSettingsCard) return;
+    const shouldOpen = open && mobileListLayout.matches;
+    mobileSettingsToggle.setAttribute('aria-expanded', String(shouldOpen));
+    mobileSettingsCard.classList.toggle('is-mobile-settings-open', shouldOpen);
+    if (restoreFocus) mobileSettingsToggle.focus();
   }
 
   window.DEVMATCH_SKELETON?.rows(itemsContainer,4);
@@ -259,10 +306,18 @@
     void addRealtimeNotification(notification);
   }
 
-  function isPriorityNotification(row) {
-    return row.classList.contains('is-unread')
-      || newlyReceivedNotificationIds.has(row.dataset.notification)
-      || row.closest('.notification-group')?.dataset.groupKey === 'today';
+  function getMobileNotificationDisplayBoundary() {
+    const viewport = window.visualViewport;
+    return (viewport?.offsetTop || 0)
+      + (viewport?.height || window.innerHeight) * MOBILE_NOTIFICATION_DISPLAY_BOUNDARY_RATIO;
+  }
+
+  function scheduleMobileBoundaryUpdate() {
+    if (!mobileListLayout.matches || mobileListExpanded || mobileBoundaryFrame) return;
+    mobileBoundaryFrame = window.requestAnimationFrame(() => {
+      mobileBoundaryFrame = 0;
+      updateNotifications();
+    });
   }
 
   function animateListHeight(previousHeight) {
@@ -293,6 +348,105 @@
     itemsContainer.style.removeProperty('overflow');
   }
 
+  function updateStickyListTogglePosition() {
+    if (!stickyNavigation || !stickyListToggle.isConnected) return;
+    const navigationTop = stickyNavigation.getBoundingClientRect().top;
+    const viewport = window.visualViewport;
+    const viewportBottom = (viewport?.offsetTop || 0) + (viewport?.height || window.innerHeight);
+    const scrollRoot = itemsContainer.closest('main');
+    const scrollRootRect = scrollRoot?.getBoundingClientRect();
+    const scrollRootPaddingBottom = scrollRoot
+      ? Number.parseFloat(getComputedStyle(scrollRoot).paddingBottom) || 0
+      : 0;
+    const scrollportBottom = scrollRootRect ? scrollRootRect.bottom - scrollRootPaddingBottom : window.innerHeight;
+    const wrapperRect = stickyListToggle.getBoundingClientRect();
+    const buttonRect = listToggle.getBoundingClientRect();
+    const buttonBottomGap = Math.max(0, wrapperRect.bottom - buttonRect.bottom);
+    const safeAreaBottom = Number.parseFloat(
+      getComputedStyle(stickyListToggle).getPropertyValue('--notification-sticky-safe-area')
+    ) || 0;
+    const maxButtonBottom = viewportBottom - safeAreaBottom - 6;
+    const buttonBottom = Math.min(navigationTop - buttonBottomGap, maxButtonBottom);
+    const wrapperBottom = buttonBottom + buttonBottomGap;
+    document.body.style.setProperty(
+      '--notification-list-sticky-bottom',
+      `${scrollportBottom - wrapperBottom}px`
+    );
+  }
+
+  function scheduleStickyPositionUpdate() {
+    if (stickyPositionFrame) return;
+    const update = () => {
+      stickyPositionFrame = 0;
+      updateStickyListTogglePosition();
+      if (stickyNavigationTransitioning) {
+        stickyPositionFrame = window.requestAnimationFrame(update);
+      }
+    };
+    stickyPositionFrame = window.requestAnimationFrame(update);
+  }
+
+  function handleStickyNavigationTransition(event) {
+    if (event.target !== stickyNavigation || event.propertyName !== 'transform') return;
+    stickyNavigationTransitioning = event.type === 'transitionrun';
+    scheduleStickyPositionUpdate();
+  }
+
+  function isStickyNavigationTransitioning() {
+    const animations = stickyNavigation?.getAnimations?.() || [];
+    return animations.some(animation =>
+      animation.transitionProperty === 'transform' && animation.playState === 'running'
+    );
+  }
+
+  function stopStickyPositionTracking() {
+    if (stickyPositionFrame) window.cancelAnimationFrame(stickyPositionFrame);
+    stickyPositionFrame = 0;
+    if (stickyNavigation) {
+      stickyNavigation.removeEventListener('transitionrun', handleStickyNavigationTransition);
+      stickyNavigation.removeEventListener('transitionend', handleStickyNavigationTransition);
+      stickyNavigation.removeEventListener('transitioncancel', handleStickyNavigationTransition);
+    }
+    window.removeEventListener('resize', scheduleStickyPositionUpdate);
+    window.visualViewport?.removeEventListener('resize', scheduleStickyPositionUpdate);
+    window.visualViewport?.removeEventListener('scroll', scheduleStickyPositionUpdate);
+    stickyNavigation = null;
+    stickyNavigationTransitioning = false;
+  }
+
+  function startStickyPositionTracking(mobileNavigation) {
+    if (stickyNavigation === mobileNavigation) return;
+    stopStickyPositionTracking();
+    stickyNavigation = mobileNavigation;
+    stickyNavigation.addEventListener('transitionrun', handleStickyNavigationTransition);
+    stickyNavigation.addEventListener('transitionend', handleStickyNavigationTransition);
+    stickyNavigation.addEventListener('transitioncancel', handleStickyNavigationTransition);
+    window.addEventListener('resize', scheduleStickyPositionUpdate);
+    window.visualViewport?.addEventListener('resize', scheduleStickyPositionUpdate);
+    window.visualViewport?.addEventListener('scroll', scheduleStickyPositionUpdate);
+  }
+
+  function clearStickyListToggle() {
+    stopStickyPositionTracking();
+    stickyListToggle.remove();
+    document.body.classList.remove('mobile-notification-list-expanded');
+    document.body.style.removeProperty('--notification-list-sticky-bottom');
+  }
+
+  function placeStickyListToggle() {
+    const mobileNavigation = document.querySelector('.mobile-bottom-nav');
+    const notificationList = itemsContainer.closest('.notification-list');
+    if (!mobileNavigation || !notificationList) return false;
+    stickyListToggle.append(listToggle);
+    notificationList.append(stickyListToggle);
+    document.body.classList.add('mobile-notification-list-expanded');
+    startStickyPositionTracking(mobileNavigation);
+    updateStickyListTogglePosition();
+    stickyNavigationTransitioning = isStickyNavigationTransitioning();
+    if (stickyNavigationTransitioning) scheduleStickyPositionUpdate();
+    return true;
+  }
+
   function updateNotifications({animate = false} = {}) {
     if (!stateReady) {
       notificationEmpty.hidden = true;
@@ -319,61 +473,59 @@
     });
 
     const isMobile = mobileListLayout.matches;
-    const defaultVisibleRows = new Set(matchingRows.slice(0, MOBILE_NOTIFICATION_LIMIT));
-    let visibleCount = 0;
+    notificationList?.classList.remove('has-mobile-overflow');
+    notificationList?.style.removeProperty('--notification-list-collapsed-height');
     matchingRows.forEach(row => {
-      const collapse = isMobile
-        && !mobileListExpanded
-        && !defaultVisibleRows.has(row)
-        && !isPriorityNotification(row);
+      row.classList.remove('is-mobile-collapsed');
+      row.inert = false;
+      row.removeAttribute('aria-hidden');
+    });
+    const groups = [...itemsContainer.querySelectorAll('[data-group]')];
+    groups.forEach(group => {
+      group.hidden = !group.querySelector('.notification-row:not([hidden])');
+    });
+
+    const displayBoundary = isMobile ? getMobileNotificationDisplayBoundary() : 0;
+    const firstOverflowIndex = isMobile
+      ? matchingRows.findIndex(row => row.getBoundingClientRect().bottom > displayBoundary + 0.5)
+      : -1;
+    const hasMore = firstOverflowIndex >= 0;
+    matchingRows.forEach((row, index) => {
+      const collapse = isMobile && !mobileListExpanded && hasMore && index >= firstOverflowIndex;
       row.classList.toggle('is-mobile-collapsed', collapse);
       row.inert = collapse;
       if (collapse) row.setAttribute('aria-hidden', 'true');
       else row.removeAttribute('aria-hidden');
-      if (!collapse) visibleCount++;
     });
-
-    document.querySelectorAll('[data-group]').forEach(group => {
+    groups.forEach(group => {
       group.hidden = !group.querySelector('.notification-row:not([hidden]):not(.is-mobile-collapsed)');
     });
-    const hasMore = matchingRows.some(row =>
-      !defaultVisibleRows.has(row) && !isPriorityNotification(row)
-    );
+    if (isMobile && hasMore && !mobileListExpanded && notificationList) {
+      const collapsedHeight = Math.max(0, displayBoundary - itemsContainer.getBoundingClientRect().top);
+      notificationList.classList.add('has-mobile-overflow');
+      notificationList.style.setProperty('--notification-list-collapsed-height', `${collapsedHeight}px`);
+    }
+
     if (isMobile && hasMore) {
-      const newCount = matchingRows.filter(row =>
-        row.classList.contains('is-unread') || newlyReceivedNotificationIds.has(row.dataset.notification)
-      ).length;
-      const todayCount = matchingRows.filter(row =>
-        row.closest('.notification-group')?.dataset.groupKey === 'today'
-      ).length;
-      listToggle.textContent = mobileListExpanded
-        ? 'View Less'
-        : newCount > MOBILE_NOTIFICATION_LIMIT
-          ? 'View All'
-          : todayCount > MOBILE_NOTIFICATION_LIMIT
-            ? 'View More'
-            : 'View All';
+      listToggle.textContent = mobileListExpanded ? 'View Less' : 'View All';
       listToggle.setAttribute('aria-expanded', String(mobileListExpanded));
       listToggle.hidden = false;
       if (mobileListExpanded) {
-        itemsContainer.append(listToggle);
+        if (!placeStickyListToggle()) {
+          clearStickyListToggle();
+          itemsContainer.append(listToggle);
+        }
       } else {
-        const newRows = matchingRows.filter(row =>
-          row.classList.contains('is-unread') || newlyReceivedNotificationIds.has(row.dataset.notification)
-        );
-        const anchorRow = newCount > MOBILE_NOTIFICATION_LIMIT
-          ? newRows[newRows.length - 1]
-          : todayCount > MOBILE_NOTIFICATION_LIMIT
-            ? matchingRows.find(row => row.closest('.notification-group')?.dataset.groupKey === 'today')
-            : matchingRows[Math.min(matchingRows.length, MOBILE_NOTIFICATION_LIMIT) - 1];
-        const anchorGroup = anchorRow?.closest('.notification-group');
-        itemsContainer.insertBefore(listToggle, anchorGroup?.nextElementSibling || null);
+        clearStickyListToggle();
+        if (notificationList) notificationList.append(listToggle);
+        else itemsContainer.append(listToggle);
       }
     } else {
+      clearStickyListToggle();
       listToggle.hidden = true;
       listToggle.remove();
     }
-    notificationEmpty.hidden = !stateReady || visibleCount > 0;
+    notificationEmpty.hidden = !stateReady || matchingRows.length > 0;
     if (stateReady) notificationStatus.hidden = true;
     buildActions();
     if (animate) animateListHeight(previousHeight);
@@ -486,14 +638,35 @@
   syncMobileFilterSelection(activeFilter);
   listToggle.addEventListener('click', () => {
     if (!mobileListLayout.matches) return;
-    mobileListExpanded = !mobileListExpanded;
+    if (mobileListExpanded) {
+      mobileListExpanded = false;
+      const scrollRoot = itemsContainer.closest('main');
+      if (scrollRoot) scrollRoot.scrollTop = mobileListExpandedScrollTop ?? 0;
+      else window.scrollTo(0, mobileListExpandedScrollTop ?? 0);
+      mobileListExpandedScrollTop = null;
+    } else {
+      const scrollRoot = itemsContainer.closest('main');
+      mobileListExpandedScrollTop = scrollRoot ? scrollRoot.scrollTop : window.scrollY;
+      mobileListExpanded = true;
+    }
     updateNotifications({animate: true});
   });
   mobileListLayout.addEventListener('change', () => {
     cancelListHeightAnimation();
     mobileListExpanded = false;
+    mobileListExpandedScrollTop = null;
     updateNotifications();
   });
+  window.addEventListener('resize', scheduleMobileBoundaryUpdate);
+  window.addEventListener('scroll', scheduleMobileBoundaryUpdate, {passive: true});
+  window.visualViewport?.addEventListener('resize', scheduleMobileBoundaryUpdate);
+  window.visualViewport?.addEventListener('scroll', scheduleMobileBoundaryUpdate);
+  itemsContainer.closest('main')?.addEventListener('scroll', scheduleMobileBoundaryUpdate, {passive: true});
+  if (typeof ResizeObserver === 'function') {
+    mobileBoundaryResizeObserver = new ResizeObserver(scheduleMobileBoundaryUpdate);
+    if (notificationList) mobileBoundaryResizeObserver.observe(notificationList);
+    if (notificationsHeading) mobileBoundaryResizeObserver.observe(notificationsHeading);
+  }
   window.addEventListener('devmatch:notification-received', event => {
     if (!mobileListLayout.matches || !(event instanceof CustomEvent)) return;
     const notification = event.detail;
@@ -502,10 +675,18 @@
   });
   desktopMarkAllLayout.addEventListener('change', () => {
     positionMarkAllReadButton();
-    if (desktopMarkAllLayout.matches) setMobileFilterMenuOpen(false);
+    if (desktopMarkAllLayout.matches) {
+      setMobileFilterMenuOpen(false);
+      setMobileSettingsMenuOpen(false);
+    }
   });
   mobileFilterToggle?.addEventListener('click', () => {
     setMobileFilterMenuOpen(mobileFilterToggle.getAttribute('aria-expanded') !== 'true');
+  });
+  mobileSettingsToggle?.addEventListener('click', () => {
+    const open = mobileSettingsToggle.getAttribute('aria-expanded') !== 'true';
+    if (open) setMobileFilterMenuOpen(false);
+    setMobileSettingsMenuOpen(open);
   });
   mobileFilterMenu?.addEventListener('click', event => {
     const option = event.target instanceof Element
@@ -515,17 +696,23 @@
     document.querySelector(`.notification-filter[data-filter="${option.dataset.notificationFilterOption}"]`)?.click();
     setMobileFilterMenuOpen(false);
   });
+  mobileFilterPanel?.addEventListener('transitionend', event => {
+    if (event.target !== mobileFilterPanel || event.propertyName !== 'transform'
+      || !mobileFilterClosePending || mobileFilterToggle?.getAttribute('aria-expanded') === 'true') return;
+    mobileFilterClosePending = false;
+    mobileFilterMenu.hidden = true;
+  });
   document.addEventListener('click', event => {
-    if (event.target instanceof Node
-      && !mobileFilterMenu?.contains(event.target)
-      && !mobileFilterToggle?.contains(event.target)) {
-      setMobileFilterMenuOpen(false);
-    }
+    if (!(event.target instanceof Node)) return;
+    if (!mobileFilterMenu?.contains(event.target)
+      && !mobileFilterToggle?.contains(event.target)) setMobileFilterMenuOpen(false);
+    if (!mobileSettingsCard?.contains(event.target)
+      && !mobileSettingsToggle?.contains(event.target)) setMobileSettingsMenuOpen(false);
   });
   document.addEventListener('keydown', event => {
-    if (event.key === 'Escape' && mobileFilterToggle?.getAttribute('aria-expanded') === 'true') {
-      setMobileFilterMenuOpen(false, true);
-    }
+    if (event.key !== 'Escape') return;
+    if (mobileFilterToggle?.getAttribute('aria-expanded') === 'true') setMobileFilterMenuOpen(false, true);
+    if (mobileSettingsToggle?.getAttribute('aria-expanded') === 'true') setMobileSettingsMenuOpen(false, true);
   });
   document.querySelectorAll('.notification-filter').forEach(button => {
     button.addEventListener('click', () => {

@@ -1626,7 +1626,7 @@ button.chat-attachment-card:hover {
   }
 }
 
-@media (max-width: 600px) {
+@media (max-width: 820px) {
   body.chat-body {
     overflow-x: hidden;
   }

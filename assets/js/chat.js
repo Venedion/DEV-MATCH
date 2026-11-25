@@ -1685,7 +1685,7 @@
       if (button && chatMessagesEl.contains(button)) void downloadAttachment(button);
     });
     messageInputEl?.addEventListener('keydown', event => {
-      const mobileRoom = window.matchMedia('(max-width: 600px)').matches
+      const mobileRoom = mobileChatBreakpoint.matches
         && document.body.classList.contains('mobile-chat-room-open');
       if (event.key === 'Enter' && !mobileRoom && !event.shiftKey && !event.isComposing) {
         event.preventDefault();

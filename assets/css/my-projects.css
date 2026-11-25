@@ -337,7 +337,7 @@
 @media(min-width:601px) and (max-width:820px){.editor-aside>.editor-preview-panel{grid-column:1;grid-row:1}.editor-aside>.publish-checklist{grid-column:2;grid-row:1}}
 @media(max-width:600px){.editor-aside>.publish-checklist{grid-column:1}}
 .my-projects-topbar .top-actions>.mobile-add-project{display:none}
-@media(max-width:600px){.my-projects-topbar .top-actions>.notification-button,.my-projects-topbar .top-actions>.user-menu{display:none}.my-projects-topbar .top-actions>.mobile-add-project{display:grid;border:0}.my-projects-topbar .top-actions>.mobile-add-project svg{width:22px;height:22px}}
+@media(max-width:820px){.my-projects-topbar .top-actions>.notification-button,.my-projects-topbar .top-actions>.user-menu{display:none}.my-projects-topbar .top-actions>.mobile-add-project{display:grid;border:0}.my-projects-topbar .top-actions>.mobile-add-project svg{width:22px;height:22px}}
 @media(max-width:600px){.project-management{overflow:visible;border:0;border-radius:0;background:transparent}.projects-toolbar{padding-right:0;padding-left:0}}
 @media(max-width:600px){.project-tabs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:0}.project-tab{justify-content:center}}
 @media(max-width:600px){.project-tools{justify-content:flex-end}.project-tools>.table-search{display:none}}
@@ -348,7 +348,7 @@
 @media(max-width:600px){.projects-heading{margin-bottom:8px}.projects-toolbar{gap:2px;padding-top:6px;padding-bottom:2px}}
 .mobile-project-list{display:none}
 .mobile-table-summary{display:none}
-@media(max-width:600px){
+@media(max-width:820px){
   .editor-field input::placeholder,.editor-field textarea::placeholder,.currency-input input::placeholder{font-size:12px}
   .project-tools{justify-content:space-between;gap:4px}
   .mobile-table-summary{display:block;flex:1;min-width:0;overflow:hidden;color:#777d8c;font-size:10px;text-overflow:ellipsis;white-space:nowrap}

@@ -68,7 +68,7 @@ const tableSummary=document.getElementById('resultSummary');
 const mobileTableSummary=document.getElementById('mobileResultSummary');
 const projectScrollContainer=document.querySelector('.projects-page');
 const projectEditorActionBreakpoint=window.matchMedia('(max-width: 820px)');
-const projectsMobileBreakpoint=window.matchMedia('(max-width: 600px)');
+const projectsMobileBreakpoint=window.matchMedia('(max-width: 820px)');
 const perPage=6;
 let currentStatus=new URLSearchParams(location.search).get('status')==='favorites'?'published':'all';
 let currentPage=1;

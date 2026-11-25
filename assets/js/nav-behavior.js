@@ -18,7 +18,7 @@
     '.find-projects-page .mobile-market-sticky-actions, .find-clients-main .mobile-clients-actions'
   );
   const exploreSwitchBreakpoint = window.matchMedia(
-    isFavoritesTabSwitch ? '(max-width: 600px)' : '(max-width: 860px)'
+    isFavoritesTabSwitch ? '(max-width: 820px)' : '(max-width: 860px)'
   );
 
   if (exploreSwitch && explorePageHeader && exploreScrollContainer) {
@@ -104,17 +104,62 @@
   }
 
   function setModeSwitchDestinations(activeMode) {
+    const returnToMobileProfile = isMobileMyProfilePage && mobileSearchBreakpoint.matches;
     document.querySelectorAll(modeSwitchSelector).forEach(link => {
       const linkMode = getMode(link);
       link.dataset.workspaceMode = linkMode;
       link.href = linkMode === activeMode
         ? (linkMode === 'client' ? 'devmatch-client-dashboard.html' : 'devmatch-dashboard.html')
-        : `devmatch-auth.html?mode=register&role=${linkMode === 'client' ? 'client' : 'dev'}`;
+        : returnToMobileProfile
+          ? `devmatch-my-profile.html?role=${linkMode === 'client' ? 'client' : 'dev'}`
+          : `devmatch-auth.html?mode=register&role=${linkMode === 'client' ? 'client' : 'dev'}`;
     });
   }
 
   let switchingWorkspace = false;
-  async function switchAccountWorkspace(role) {
+  async function animateMobileModeSwitchExit(link) {
+    const arrows = [...link.querySelectorAll('.mobile-mode-arrow')];
+    if (!arrows.length || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+    document.documentElement.classList.remove('mobile-mode-switch-arrow-arrival');
+    link.classList.add('mobile-mode-switch-leaving');
+    await Promise.all(arrows.map(arrow => {
+      const animationName = arrow.classList.contains('mobile-mode-arrow--top')
+        ? 'mobile-profile-arrow-hide-right-to-left'
+        : 'mobile-profile-arrow-hide-left-to-right';
+      return new Promise(resolve => {
+        const onAnimationEnd = event => {
+          if (event.animationName !== animationName) return;
+          arrow.removeEventListener('animationend', onAnimationEnd);
+          resolve();
+        };
+        arrow.addEventListener('animationend', onAnimationEnd);
+      });
+    }));
+  }
+
+  function clearMobileModeSwitchArrival(icon) {
+    if (!document.documentElement.classList.contains('mobile-mode-switch-arrow-arrival')) return;
+
+    const arrows = [...icon.querySelectorAll('.mobile-mode-arrow')];
+    let remainingAnimations = arrows.length;
+    arrows.forEach(arrow => {
+      const animationName = arrow.classList.contains('mobile-mode-arrow--top')
+        ? 'mobile-profile-arrow-show-left-to-right'
+        : 'mobile-profile-arrow-show-right-to-left';
+      const onAnimationEnd = event => {
+        if (event.animationName !== animationName) return;
+        arrow.removeEventListener('animationend', onAnimationEnd);
+        remainingAnimations -= 1;
+        if (remainingAnimations === 0) {
+          document.documentElement.classList.remove('mobile-mode-switch-arrow-arrival');
+        }
+      };
+      arrow.addEventListener('animationend', onAnimationEnd);
+    });
+  }
+
+  async function switchAccountWorkspace(role, returnToProfile = false, modeLink = null) {
     const backend = window.devMatchBackend;
     const user = await backend.ready;
     if (!user) throw new Error('Please log in first.');
@@ -133,8 +178,11 @@
       }
       create = true;
     }
+    if (returnToProfile && modeLink) await animateMobileModeSwitchExit(modeLink);
     const profile = await backend.switchWorkspace(role, create);
-    location.assign(backend.destination(profile, user));
+    location.assign(returnToProfile
+      ? `devmatch-my-profile.html?role=${role}`
+      : backend.destination(profile, user));
   }
 
   function chooseWorkspace(role) {
@@ -155,6 +203,7 @@
   }
 
   const header = document.querySelector('header.topbar, header.client-topbar, header.profile-topbar');
+  const isMobileMyProfilePage = document.body.matches('.my-profile-page:not(.client-profile-public)');
   if (document.body.classList.contains('chat-body')) {
     const chatBackLink = document.getElementById('mobileChatBack');
     if (chatBackLink) {
@@ -200,7 +249,7 @@
   }
   const sidebar = document.querySelector('body > .sidebar, body > .client-sidebar');
   const modeSwitch = document.querySelector('.mode-switch, .client-mode-switch');
-  const mobileSearchBreakpoint = window.matchMedia('(max-width: 600px)');
+  const mobileSearchBreakpoint = window.matchMedia('(max-width: 820px)');
   const mobileSearchField = header?.querySelector('.search, .client-search, .top-search');
   let mobileSearchToggle;
   const mobileMenuButton = document.createElement('button');
@@ -271,13 +320,27 @@
   let activeModeLink = document.querySelector(
     '.mode-switch a.active, .client-mode-switch a.active'
   );
-  let isClientMode = activeModeLink
-    ? getMode(activeModeLink) === 'client'
-    : (
-      new URLSearchParams(window.location.search).get('role') === 'client'
-      || document.body.classList.contains('client-shell-page')
-      || document.body.dataset.workspace === 'client'
+  const requestedRole = new URLSearchParams(window.location.search).get('role');
+  let isClientMode = requestedRole === 'client'
+    ? true
+    : requestedRole === 'dev'
+      ? false
+      : activeModeLink
+        ? getMode(activeModeLink) === 'client'
+        : (
+          document.body.classList.contains('client-shell-page')
+          || document.body.dataset.workspace === 'client'
+        );
+
+  if (requestedRole === 'client' || requestedRole === 'dev') {
+    const activeMode = isClientMode ? 'client' : 'developer';
+    document.querySelectorAll(modeSwitchSelector).forEach(link => {
+      link.classList.toggle('active', getMode(link) === activeMode);
+    });
+    activeModeLink = document.querySelector(
+      '.mode-switch a.active, .client-mode-switch a.active'
     );
+  }
 
   setModeSwitchDestinations(isClientMode ? 'client' : 'developer');
 
@@ -333,12 +396,17 @@
 
   updateHeaderProfile();
 
+  function isMobileProfileModeSwitching() {
+    return isMobileMyProfilePage && mobileSearchBreakpoint.matches && switchingWorkspace;
+  }
+
   async function syncWorkspaceModeWithAccount() {
     const backend = window.devMatchBackend;
-    if (!backend) return;
+    if (!backend || isMobileProfileModeSwitching()) return;
     const user = await backend.ready;
-    if (!user) return;
+    if (!user || isMobileProfileModeSwitching()) return;
     const profile = await backend.loadProfile(user);
+    if (isMobileProfileModeSwitching()) return;
     if (!['client', 'dev'].includes(profile.account_role)) {
       throw new Error('The account has no supported workspace role.');
     }
@@ -357,6 +425,9 @@
       '.mode-switch a.active, .client-mode-switch a.active'
     );
     updateHeaderProfile();
+    if (isMobileMyProfilePage && mobileSearchBreakpoint.matches) {
+      prepareMobileAccountModeSwitch();
+    }
     window.DEVMATCH_SIDEBAR_NAVIGATION?.setWorkspace(isClientMode ? 'client' : 'developer');
     updateNavBadges();
   }
@@ -380,30 +451,50 @@
       .find(link => !link.hidden && !link.classList.contains('active'));
     if (!targetLink) return;
 
-    const targetMode = getMode(targetLink);
-    const icon = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-    icon.setAttribute('viewBox', '0 0 24 24');
-    icon.setAttribute('aria-hidden', 'true');
-    icon.innerHTML = '<path d="M17 3l4 4-4 4M3 7h18M7 21l-4-4 4-4m14 4H3"/>';
+    if (modeSwitch.querySelector('a.mobile-account-mode-action') !== targetLink) {
+      originalModeLinkMarkup.forEach(({link, innerHTML, ariaLabel}) => {
+        if (link === targetLink) return;
+        link.innerHTML = innerHTML;
+        if (ariaLabel === null) link.removeAttribute('aria-label');
+        else link.setAttribute('aria-label', ariaLabel);
+        link.classList.remove('mobile-account-mode-action');
+      });
 
-    const label = document.createElement('span');
-    label.className = 'mobile-account-mode-label';
-    label.textContent = `Switch to ${targetMode} mode`;
+      const targetMode = getMode(targetLink);
+      const icon = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+      icon.setAttribute('viewBox', '0 0 24 24');
+      icon.setAttribute('aria-hidden', 'true');
+      icon.classList.add('mobile-mode-switch-icon');
+      icon.innerHTML = '<g class="mobile-mode-arrow mobile-mode-arrow--top"><path d="M3 7h18M17 3l4 4-4 4"/></g><g class="mobile-mode-arrow mobile-mode-arrow--bottom"><path d="M21 17H3M7 13l-4 4 4 4"/></g>';
+
+      const label = document.createElement('span');
+      label.className = 'mobile-account-mode-label';
+      label.textContent = `Switch to ${targetMode} mode`;
+
+      targetLink.replaceChildren(icon, label);
+      targetLink.setAttribute('aria-label', `Switch to ${targetMode} mode`);
+      if (isMobileMyProfilePage) clearMobileModeSwitchArrival(icon);
+    }
 
     modeSwitch.querySelectorAll('a').forEach(link => {
       link.classList.toggle('mobile-account-mode-action', link === targetLink);
-      if (link === targetLink) {
-        link.replaceChildren(icon, label);
-        link.setAttribute('aria-label', `Switch to ${targetMode} mode`);
-      }
+      link.setAttribute('aria-expanded', 'false');
     });
     modeSwitch.classList.remove('mobile-mode-open');
-    modeSwitch.querySelectorAll('a').forEach(link => link.setAttribute('aria-expanded', 'false'));
-    headerAccountDropdown.appendChild(modeSwitch);
+    if (isMobileMyProfilePage) {
+      modeSwitch.classList.add('mobile-profile-header-mode-switch');
+      if (modeSwitch.parentElement !== header) header.appendChild(modeSwitch);
+    } else {
+      modeSwitch.classList.remove('mobile-profile-header-mode-switch');
+      if (modeSwitch.parentElement !== headerAccountDropdown) {
+        headerAccountDropdown.appendChild(modeSwitch);
+      }
+    }
   }
 
   function restoreModeSwitchPosition() {
     if (!modeSwitch || !modeSwitchHome) return;
+    modeSwitch.classList.remove('mobile-profile-header-mode-switch');
     originalModeLinkMarkup.forEach(({link, innerHTML, ariaLabel}) => {
       link.innerHTML = innerHTML;
       if (ariaLabel === null) link.removeAttribute('aria-label');
@@ -441,7 +532,7 @@
     }
     if (mobileSearchBreakpoint.matches && modeSwitch) {
       const identity = headerAccountDropdown.querySelector('.header-account-identity');
-      if (identity?.nextSibling !== modeSwitch) {
+      if (!isMobileMyProfilePage && identity?.nextSibling !== modeSwitch) {
         headerAccountDropdown.insertBefore(modeSwitch, identity?.nextSibling || null);
       }
     } else {
@@ -450,6 +541,7 @@
   }
 
   mobileSearchBreakpoint.addEventListener('change', event => {
+    setModeSwitchDestinations(isClientMode ? 'client' : 'developer');
     if (event.matches) {
       if (headerAccountDropdown && !headerAccountDropdown.hidden) updateHeaderAccountOptions();
       else prepareMobileAccountModeSwitch();
@@ -741,7 +833,7 @@
           filter: `recipient_id=eq.${user.id}`
         }, payload => {
           refreshNotificationBadges();
-          if (window.matchMedia('(max-width: 600px)').matches) {
+          if (mobileNavigationBreakpoint.matches) {
             window.dispatchEvent(new CustomEvent('devmatch:notification-received', {detail: payload.new}));
           }
         })
@@ -862,20 +954,8 @@
   window.addEventListener('devmatch:messages-changed', refreshMessageBadges);
 
   document.addEventListener('click', event => {
-    if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+    if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
     if (!(event.target instanceof Element)) return;
-
-    const mobileChatBackLink = event.target.closest('#mobileChatBack');
-    if (mobileChatBackLink && mobileNavigationBreakpoint.matches && mobileChatHasStoredOrigin) {
-      event.preventDefault();
-      try {
-        sessionStorage.removeItem(mobileChatReturnUrlStorageKey);
-      } catch (error) {
-        console.warn('Unable to clear the mobile chat return destination.', error);
-      }
-      window.history.back();
-      return;
-    }
 
     const chatLink = event.target.closest('a[href^="devmatch-chat.html"], .floating-chat');
     if (chatLink && mobileNavigationBreakpoint.matches && !document.body.classList.contains('chat-body')) {
@@ -893,6 +973,20 @@
       } catch (error) {
         console.warn('Unable to save the previous mobile page for chat navigation.', error);
       }
+    }
+
+    if (event.defaultPrevented) return;
+
+    const mobileChatBackLink = event.target.closest('#mobileChatBack');
+    if (mobileChatBackLink && mobileNavigationBreakpoint.matches && mobileChatHasStoredOrigin) {
+      event.preventDefault();
+      try {
+        sessionStorage.removeItem(mobileChatReturnUrlStorageKey);
+      } catch (error) {
+        console.warn('Unable to clear the mobile chat return destination.', error);
+      }
+      window.history.back();
+      return;
     }
 
     if (header?.classList.contains('mobile-header-search-open')
@@ -977,7 +1071,13 @@
       if (switchingWorkspace) return;
       switchingWorkspace = true;
       const targetRole = getMode(modeLink) === 'client' ? 'client' : 'dev';
-      switchAccountWorkspace(targetRole).catch(error => {
+      const returnToProfile = isMobileMyProfilePage && mobileSearchBreakpoint.matches;
+      switchAccountWorkspace(
+        targetRole,
+        returnToProfile,
+        modeLink
+      ).catch(error => {
+        if (returnToProfile) modeLink.classList.remove('mobile-mode-switch-leaving');
         console.error('Unable to switch workspace.', error);
         alert(error.message || 'Unable to switch accounts right now. Please try again.');
       }).finally(() => { switchingWorkspace = false; });
