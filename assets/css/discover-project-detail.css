@@ -148,6 +148,9 @@
 .discover-project-content{min-width:0}
 .discover-gallery{margin-bottom:14px}
 .discover-project-preview{height:clamp(240px,32vw,350px);margin:0;border:0;border-radius:12px}
+.discover-project-preview .discover-uploaded-cover{position:absolute;inset:0;width:100%;height:100%;object-fit:contain}
+.discover-preview-thumbnail .discover-uploaded-cover{width:100%;height:100%;min-height:0;object-fit:cover;border-radius:3px}
+.has-uploaded-cover :is(.preview-browser,.preview-count,.thumbnail-browser,.preview-illustration-count){display:none}
 .discover-project-preview.food-art{background:linear-gradient(135deg,#f3eadc,#ece3d4)}
 .discover-project-preview.dashboard-art,.discover-project-preview.analytics-art{background:linear-gradient(135deg,#e7e8f7,#ebebf4)}
 .preview-browser{width:80%;height:82%;border-radius:8px}

@@ -1,6 +1,7 @@
 const {test}=require('node:test');
 const assert=require('node:assert/strict');
 const fs=require('node:fs');
+const vm=require('node:vm');
 
 test('Project detail assignments match dynamic dialog and dashboard elements',()=>{
   const source=fs.readFileSync('assets/js/project-detail.js','utf8');
@@ -25,6 +26,61 @@ test('Project detail displays the uploaded project cover when available',()=>{
   assert.match(source,/image\.src=activeProject\.coverImage/);
   assert.match(source,/cover\.classList\.add\('has-uploaded-image'\)/);
   assert.match(styles,/\.project-cover\.has-uploaded-image:before,.project-cover\.has-uploaded-image:after\{display:none\}/);
+});
+
+test('Direct portfolio detail replaces the placeholder only after the stored cover loads',()=>{
+  const source=fs.readFileSync('assets/js/discover-project-detail.js','utf8');
+  const functions=source.slice(source.indexOf('  function safeProjectCover('),source.indexOf('  function initializeDetailLayout('));
+  const portal='https://yxwktllqbmhustmhdaqi.supabase.co';
+  const cover=portal+'/storage/v1/object/public/project-media/test/cover.png';
+  const project={title:'Website Rasa Kota',coverImage:''};
+  let image, onLoad, label;
+  const thumbnails=[], hero=[], classes=[];
+  const gallery={
+    classList:{add:value=>classes.push(value)},
+    querySelector:()=>({append:value=>thumbnails.push(value)})
+  };
+  const preview={
+    closest:()=>gallery,
+    prepend:value=>hero.push(value),
+    setAttribute:(_name,value)=>{label=value;}
+  };
+  const target=vm.runInNewContext(functions+';({safeProjectCover,renderProjectCover})',{
+    URL,project,Image:class {
+      constructor(){image=this;}
+      addEventListener(event,handler){assert.equal(event,'load');onLoad=handler;}
+      cloneNode(){return {src:this.src};}
+    }
+  });
+  assert.equal(target.safeProjectCover(cover),cover);
+  assert.equal(target.safeProjectCover(cover.replace(portal,'https://example.test')),'');
+  assert.equal(target.safeProjectCover(portal+'/storage/v1/object/public/other/cover.png'),'');
+  target.renderProjectCover(preview);
+  assert.equal(image,undefined);
+  project.coverImage=cover;
+  target.renderProjectCover(preview);
+  assert.equal(image.src,cover);
+  assert.equal(hero.length,0);
+  assert.equal(thumbnails.length,0);
+  assert.deepEqual(classes,[]);
+  onLoad();
+  assert.equal(hero[0],image);
+  assert.equal(hero[0].alt,project.title);
+  assert.equal(thumbnails.length,1);
+  assert.equal(label,'Project cover');
+  assert.deepEqual(classes,['has-uploaded-cover']);
+});
+
+test('Only the embedded request detail opts into same-origin framing',()=>{
+  const config=JSON.parse(fs.readFileSync('vercel.json','utf8'));
+  const defaultRule=config.headers.find(rule=>rule.source==='/:path*');
+  const framedRule=config.headers.find(rule=>rule.source==='/devmatch-find-project-detail.html');
+  const headers=rule=>Object.fromEntries(rule.headers.map(({key,value})=>[key,value]));
+  assert.equal(headers(defaultRule)['X-Frame-Options'],'DENY');
+  assert.match(headers(defaultRule)['Content-Security-Policy'],/frame-ancestors 'none'/);
+  assert.deepEqual(framedRule.has,[{type:'query',key:'modal',value:'1'}]);
+  assert.equal(headers(framedRule)['X-Frame-Options'],'SAMEORIGIN');
+  assert.equal(headers(framedRule)['Content-Security-Policy'],headers(defaultRule)['Content-Security-Policy'].replace("frame-ancestors 'none'","frame-ancestors 'self'"));
 });
 
 test('Contact Developer carries the selected project into Messages',()=>{

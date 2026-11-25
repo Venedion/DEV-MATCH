@@ -132,10 +132,36 @@
     const form=event.target.form;
     if(form&&!form.querySelector('button[type="submit"]').disabled)form.requestSubmit();
   }
+  function safeProjectCover(value){
+    if(typeof value!=='string')return '';
+    try{
+      const url=new URL(value);
+      if(url.origin==='https://yxwktllqbmhustmhdaqi.supabase.co'
+        &&url.pathname.startsWith('/storage/v1/object/public/project-media/'))return url.href;
+    }catch{}
+    return '';
+  }
+  function renderProjectCover(preview){
+    if(!project.coverImage)return;
+    const image=new Image();
+    image.className='discover-uploaded-cover';
+    image.alt=project.title;
+    image.addEventListener('load',()=>{
+      preview.prepend(image);
+      preview.setAttribute('aria-label','Project cover');
+      const gallery=preview.closest('.discover-gallery');
+      const thumbnail=image.cloneNode();
+      thumbnail.alt='';
+      gallery.querySelector('.discover-preview-thumbnail').append(thumbnail);
+      gallery.classList.add('has-uploaded-cover');
+    },{once:true});
+    image.src=project.coverImage;
+  }
   function initializeDetailLayout(){
     const preview=document.getElementById('projectPreview');
     const art=['food-art','dashboard-art','analytics-art','store-art','inventory-art'].includes(project.art)?project.art:'dashboard-art';
     preview.classList.add(art);
+    renderProjectCover(preview);
     document.getElementById('previewCategory').textContent=project.category;
     document.getElementById('previewHeading').textContent=project.title;
     document.getElementById('previewDescription').textContent=project.description;
@@ -215,7 +241,10 @@
     if(error)throw error;
     if(!row){status.hidden=true;notFound.hidden=false;layout.hidden=true;return;}
     const data=row.data&&typeof row.data==='object'?row.data:{};
-    project={...data,id:row.id,title:row.title,type:row.project_type,category:row.category,
+    const imageMedia=Array.isArray(data.media)?data.media.filter(url=>typeof url==='string'&&/\.(png|jpe?g|webp|gif)(?:[?#]|$)/i.test(url)):[];
+    const coverCandidates=[row.cover_image,data.coverImage,...imageMedia];
+    const coverImage=coverCandidates.map(safeProjectCover).find(Boolean)||'';
+    project={...data,id:row.id,title:row.title,type:row.project_type,category:row.category,coverImage,
       price:row.price||data.price||'',description:String(data.description||data.overview||''),
       overview:String(data.overview||data.description||''),stack:Array.isArray(data.stack)?data.stack.join(', '):String(data.stack||''),
       created:new Intl.DateTimeFormat(undefined,{dateStyle:'medium'}).format(new Date(row.created_at||row.updated_at)),
