@@ -92,7 +92,7 @@
   let suppressedProjectCardClick = null;
   function isMobileFilterPanelOpen() {
     const panel = document.getElementById('mobileFiltersPanel');
-    return window.matchMedia('(max-width: 860px)').matches && Boolean(panel && !panel.hidden);
+    return window.matchMedia('(orientation: portrait)').matches && Boolean(panel && !panel.hidden);
   }
 
   function createCheckmarkIcon() {
@@ -161,7 +161,7 @@
           label=`Rp ${fromText} – ${toText}`;
         }
         trigger.querySelector('span').textContent=label;
-        const showAppliedValue=window.matchMedia('(max-width: 860px)').matches
+        const showAppliedValue=window.matchMedia('(orientation: portrait)').matches
           &&Boolean(menu.closest('.mobile-budget-filter'))
           &&!menu.classList.contains('mobile-budget-editing');
         const selectedOptionLabel=values.mode==='range'?`Price Range · ${label}`:label;
@@ -310,7 +310,7 @@
       });
       trigger.addEventListener('click',event=>{
         if(config.custom&&trigger.closest('.mobile-budget-filter')
-          &&window.matchMedia('(max-width: 860px)').matches){
+          &&window.matchMedia('(orientation: portrait)').matches){
           event.preventDefault();
           if(menu.matches(':popover-open'))menu.hidePopover();
           trigger.setAttribute('aria-expanded','false');
@@ -328,7 +328,7 @@
         menu.showPopover();
         const triggerBounds=trigger.getBoundingClientRect();
         const menuBounds=menu.getBoundingClientRect();
-        const mobileSort=config.selectId==='sortFilter'&&window.matchMedia('(max-width: 860px)').matches;
+        const mobileSort=config.selectId==='sortFilter'&&window.matchMedia('(orientation: portrait)').matches;
         const preferredWidth=config.custom
           ?budgetValues.mode==='all'?165:430
           :mobileSort?Math.min(280,window.innerWidth-20):config.width;
@@ -378,7 +378,7 @@
     const budgetRangeHint=document.getElementById('budgetRangeHint');
     const budgetSingleHeading=document.getElementById('budgetSingleValueHeading');
     const budgetLabel=budgetTrigger.closest('label');
-    const mobileBudgetBreakpoint=window.matchMedia('(max-width: 860px)');
+    const mobileBudgetBreakpoint=window.matchMedia('(orientation: portrait)');
     const isMobileBudgetPanel=()=>mobileBudgetBreakpoint.matches
       &&Boolean(document.querySelector('.mobile-filter-selects')?.contains(budgetLabel));
     const budgetModeHeading=document.createElement('span');
@@ -718,7 +718,7 @@
       label.append(options);
     });
 
-    const mobileFilterBreakpoint = window.matchMedia('(max-width: 860px)');
+    const mobileFilterBreakpoint = window.matchMedia('(orientation: portrait)');
 
     function setPanelOpen(isOpen) {
       panel.hidden = !isOpen;

@@ -27,7 +27,7 @@ test('mobile bottom navigation animates from the previous tab after page navigat
 });
 
 test('mobile bottom navigation only hides in response to user scroll input',()=>{
-  assert.match(source,/window\.matchMedia\('\(max-width: 820px\)'\)/);
+  assert.match(source,/window\.matchMedia\('\(orientation: portrait\)'\)/);
   assert.match(source,/window\.addEventListener\('wheel'/);
   assert.match(source,/window\.addEventListener\('touchmove'/);
   assert.match(source,/window\.addEventListener\('keydown'/);

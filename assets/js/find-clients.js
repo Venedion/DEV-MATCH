@@ -24,7 +24,7 @@
   let sortOrder = 'az';
   let favoriteIds = getSavedFavorites();
   let mobileFilterDraft = null;
-  const mobileClientsFilterBreakpoint = window.matchMedia('(max-width: 860px)');
+  const mobileClientsFilterBreakpoint = window.matchMedia('(orientation: portrait)');
 
   // Elements
   const searchInput = document.getElementById('clientSearchInput');

@@ -53,7 +53,7 @@ body.client-shell-page .sidebar-foot span{
 }
 body.client-shell-page .sidebar-foot b,
 body.client-shell-page .sidebar-foot a{display:none}
-@media(max-width:1220px){
+@media(max-width:1220px) and (orientation: landscape){
   body.client-shell-page{--sidebar-expanded:230px}
   body.client-shell-page .topbar,
   body.client-shell-page .profile-topbar{
@@ -64,7 +64,7 @@ body.client-shell-page .sidebar-foot a{display:none}
   body.client-shell-page .mode{padding:7px 9px;font-size:13px}
   body.client-shell-page .top-actions{gap:8px}
 }
-@media(max-width:820px){
+@media(orientation: portrait){
   body.client-shell-page{--sidebar:66px}
   body.client-shell-page .topbar,
   body.client-shell-page .profile-topbar{grid-template-columns:155px minmax(120px,1fr) auto}
@@ -99,7 +99,7 @@ body.client-shell-page .sidebar-foot a{display:none}
   body.client-shell-page .user-link>span:nth-child(2),
   body.client-shell-page .user-link>svg{display:none}
 }
-@media(max-width:820px){
+@media(orientation: portrait){
   body.client-shell-page .mode-switch{padding:4px}
   body.client-shell-page .mode-switch>.mode{padding:0 8px}
   body.client-shell-page .mode-switch>.mode,
@@ -107,13 +107,13 @@ body.client-shell-page .sidebar-foot a{display:none}
   body.client-shell-page .top-actions>.user-menu,
   body.client-shell-page .top-actions>.user-link{width:32px;height:32px;flex:0 0 32px}
 }
-@media(max-width:600px){
+@media(max-width:600px) and (orientation: portrait){
   body.client-shell-page .topbar,
   body.client-shell-page .profile-topbar{grid-template-columns:42px minmax(80px,1fr) auto}
   body.client-shell-page .brand{width:36px;overflow:hidden}
   body.client-shell-page .brand span{display:none}
 }
-@media(max-width:600px){
+@media(max-width:600px) and (orientation: portrait){
   body.client-shell-page .topbar,
   body.client-shell-page .profile-topbar{
     height:56px;

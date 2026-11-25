@@ -4,20 +4,26 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Settings — DEV-MATCH</title>
+  <script>
+    if (window.matchMedia('(orientation: portrait)').matches) {
+      document.documentElement.classList.add('mobile-settings-route');
+    }
+  </script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="assets/css/dashboard.css?v=20261118-pink-nav-badges">
-  <link rel="stylesheet" href="assets/css/settings.css?v=20261119-experience-delete-undo">
+  <link rel="stylesheet" href="assets/css/dashboard.css?v=20261126-rebase-merge-v1">
+  <link rel="stylesheet" href="assets/css/settings.css?v=20261125-responsive-orientation-v1">
   <link rel="stylesheet" href="assets/css/custom-select.css?v=20261123-no-ring-select-v1">
-  <link rel="stylesheet" href="assets/css/client-shell.css?v=20261030-header-size-match">
+  <link rel="stylesheet" href="assets/css/client-shell.css?v=20261125-responsive-orientation-v1">
   <link rel="stylesheet" href="assets/css/mode-switch-animation.css?v=20261030-client-mode-route">
-  <link rel="stylesheet" href="assets/css/mobile-navigation.css?v=20261125-bottom-nav-responsive-breakpoint-v1">
+  <link rel="stylesheet" href="assets/css/mobile-navigation.css?v=20261126-scrollbar-hidden-v1">
   <script src="assets/js/mode-switch-state.js?v=20261030-client-mode-indicator"></script>
   <script src="assets/js/i18n.js?v=20261119-experience-delete-undo"></script>
 <script src="assets/vendor/supabase-2.119.0.js"></script>
-<script src="assets/js/backend.js?v=20261123-chat-read-v1"></script>
-<link rel="stylesheet" href="assets/css/form-controls.css?v=20261124-mobile-input-zoom-v1">
+<script src="assets/js/backend.js?v=20261125-responsive-orientation-v1"></script>
+<link rel="stylesheet" href="assets/css/form-controls.css?v=20261126-scrollbar-hidden-v1">
+<link rel="stylesheet" href="assets/css/developer-mode-icon.css?v=20261125-developer-mode-icon-v2">
 </head>
 <body class="page-scroll-shell">
   <!-- Topbar -->
@@ -29,7 +35,7 @@
     </label>
     <div class="top-actions">
       <div class="mode-switch" role="group" aria-label="Workspace mode">
-        <a class="mode active" id="devModeLink" href="devmatch-dashboard.html"><span aria-hidden="true">&lt;/&gt;</span>Developer Mode</a>
+        <a class="mode active" id="devModeLink" href="devmatch-dashboard.html"><span class="developer-mode-icon" aria-hidden="true"></span>Developer Mode</a>
         <a class="mode" id="clientModeLink" href="devmatch-client-dashboard.html"><svg viewBox="0 0 24 24"><rect x="3" y="7" width="18" height="14" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>Client Mode</a>
       </div>
       <a class="icon-button notification-button" href="devmatch-developer-notifications.html" aria-label="Notifications">
@@ -45,7 +51,7 @@
   <!-- Sidebar -->
   <aside class="sidebar">
     <div class="workspace" id="workspaceBadge">
-      <span class="workspace-icon">&lt;/&gt;</span>
+      <span class="workspace-icon"><span class="developer-mode-icon" aria-hidden="true"></span></span>
       <span><b>Developer workspace</b><small>Showcase &amp; find clients</small></span>
     </div>
     <a class="add-project side-add" href="devmatch-my-projects.html?create=1"><svg viewBox="0 0 24 24"><path d="M12 5v14m-7-7h14"/></svg>Add Project</a>
@@ -57,7 +63,7 @@
     </nav>
     <div class="sidebar-foot"><span class="online-dot"></span>Demo workspace</div>
   </aside>
-  <script src="assets/js/sidebar-navigation.js?v=20261125-mobile-nav-user-scroll-v2"></script>
+  <script src="assets/js/sidebar-navigation.js?v=20261125-responsive-orientation-v1"></script>
 
   <!-- Main Settings Layout -->
   <main class="dashboard settings-page">
@@ -164,23 +170,34 @@
               </div>
 
               <div class="settings-field">
-                <label class="settings-label" for="settingsPhone">Account phone number</label>
-                <input class="settings-input" id="settingsPhone" type="tel" readonly>
-                <span class="settings-hint" id="phoneVerificationStatus" role="status">Checking phone verification…</span>
-                <button class="settings-btn" id="startWhatsAppVerification" type="button" disabled>Prepare WhatsApp verification</button>
-    <a class="login-link" id="openWhatsAppVerification" target="_blank" rel="noopener noreferrer" hidden>Open WhatsApp</a>
-    <button class="settings-btn" id="checkWhatsAppVerification" type="button" hidden>Check verification</button>
-              </div>
-
-              <div class="settings-field">
                 <label class="settings-label" for="settingsWhatsapp">WhatsApp Number</label>
                 <input class="settings-input" id="settingsWhatsapp" type="tel" placeholder="6281234567890">
                 <span class="settings-hint">Clients can contact you directly via one-tap WhatsApp.</span>
               </div>
 
               <div class="settings-field span-2">
-                <label class="settings-label" for="settingsCity">City / Location</label>
-                <input class="settings-input" id="settingsCity" type="text" placeholder="e.g. Medan, Sumatera Utara">
+                <div class="settings-location-grid">
+                  <div class="settings-field">
+                    <label class="settings-label" for="settingsCountry">Country</label>
+                    <select class="settings-select" id="settingsCountry">
+                      <option value="Indonesia">Indonesia</option>
+                      <option value="Malaysia">Malaysia</option>
+                      <option value="Singapore">Singapore</option>
+                    </select>
+                  </div>
+                  <div class="settings-field">
+                    <label class="settings-label" id="settingsLocationLabel" for="settingsCity">Province, City</label>
+                    <div class="settings-location-picker" id="settingsLocationPicker">
+                      <input class="settings-input" id="settingsCity" type="text" autocomplete="off" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="settingsLocationOptions" aria-describedby="settingsLocationHint settingsLocationError" placeholder="Search a province or city">
+                      <button class="settings-location-toggle" type="button" aria-label="Open location options" aria-expanded="false" aria-controls="settingsLocationOptions">
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m7 10 5 5 5-5"/></svg>
+                      </button>
+                      <div class="settings-location-options" id="settingsLocationOptions" role="listbox" aria-label="Location options" hidden></div>
+                    </div>
+                    <span class="settings-hint" id="settingsLocationHint" role="status">Search and select a province, then a city.</span>
+                    <span class="settings-field-error" id="settingsLocationError" role="alert" hidden>Please select a valid location from the options.</span>
+                  </div>
+                </div>
               </div>
 
               <div class="settings-field span-2">
@@ -824,10 +841,10 @@
 
   </a>
 
-  <script src="assets/js/phone-verification.js?v=20261119-whatsapp"></script>
-  <script src="assets/js/settings.js?v=20261123-auth-data-skeleton-v1"></script>
+  <script src="assets/js/client-profile-options.js?v=20261123-client-profile-options-v1"></script>
+  <script src="assets/js/settings.js?v=20261125-responsive-orientation-v1"></script>
   <script src="assets/js/custom-select.js?v=20261028-custom-dropdowns-v3"></script>
-  <script src="assets/js/nav-behavior.js?v=20261125-bottom-nav-responsive-breakpoint-v1"></script>
+  <script src="assets/js/nav-behavior.js?v=20261125-responsive-orientation-v1"></script>
 <script src="assets/js/presence.js?v=20261119-global"></script>
 </body>
 </html>

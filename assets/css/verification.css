@@ -26,4 +26,4 @@ body{display:block;background:var(--chip);color:var(--ink)}
 .recovery-actions{margin-top:24px;border-top:1px solid var(--line);padding-top:4px}
 .verification [hidden]{display:none!important}
 @media(prefers-color-scheme:dark){.verification-badge.verified{background:#163725;color:#8de2ab}}
-@media(max-width:480px){.verification{padding:28px 20px;margin:20px auto;border-radius:16px}}
+@media(max-width:480px) and (orientation: portrait){.verification{padding:28px 20px;margin:20px auto;border-radius:16px}}

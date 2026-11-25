@@ -121,13 +121,15 @@ function escapeHtml(value){
 
 function renderLocationField(){
   const labels=getLocationLabels(profile.country);
+  const parentArticle=locationArticle(labels.parent);
+  const childArticle=locationArticle(labels.child);
   const fieldLabel=`<label class="field-label" for="city">${labels.parent}, ${labels.child} <span class="required-mark" aria-hidden="true">*</span></label>`;
   if(!locationPickerCountries.has(profile.country)){
     return `<div class="location-field" id="locationField">${fieldLabel}<input class="control" id="city" name="city" maxlength="80" aria-describedby="cityError" required placeholder="City, Region" value="${escapeHtml(profile.city)}"><p class="field-error" id="cityError" hidden>Please enter your city or region.</p></div>`;
   }
-  const hint=locationOptionsError||`Search and select a ${labels.parent.toLocaleLowerCase()}, then a ${labels.child.toLocaleLowerCase()}.`;
-  const errorMessage=`Please select a ${labels.parent.toLocaleLowerCase()} and ${labels.child.toLocaleLowerCase()}.`;
-  const placeholder=`Search a ${labels.parent.toLocaleLowerCase()} or ${labels.child.toLocaleLowerCase()}`;
+  const hint=locationOptionsError||`Search and select ${parentArticle} ${labels.parent.toLocaleLowerCase()}, then ${childArticle} ${labels.child.toLocaleLowerCase()}.`;
+  const errorMessage=`Please select ${parentArticle} ${labels.parent.toLocaleLowerCase()} and ${childArticle} ${labels.child.toLocaleLowerCase()}.`;
+  const placeholder=`Search ${parentArticle} ${labels.parent.toLocaleLowerCase()} or ${childArticle} ${labels.child.toLocaleLowerCase()}`;
   return `<div class="location-field" id="locationField">${fieldLabel}<div class="location-picker" id="locationPicker"><input class="control" id="city" name="city" maxlength="80" autocomplete="off" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="locationOptions" aria-describedby="cityError locationHint" required placeholder="${placeholder}" value="${escapeHtml(profile.city)}"><button class="location-toggle" type="button" aria-label="Open location options" aria-expanded="false" aria-controls="locationOptions"><svg class="location-chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="m7 10 5 5 5-5"/></svg></button><div class="location-options" id="locationOptions" role="listbox" aria-label="${labels.parent} and ${labels.child} options" hidden></div></div><p class="field-error" id="cityError" hidden>${errorMessage}</p><p class="field-hint" id="locationHint">${escapeHtml(hint)}</p></div>`;
 }
 
@@ -135,6 +137,10 @@ function getLocationLabels(country){
   if(country==='Malaysia')return {parent:'State',parentPlural:'states',child:'City',childPlural:'cities'};
   if(country==='Singapore')return {parent:'Region',parentPlural:'regions',child:'Area',childPlural:'areas'};
   return {parent:'Province',parentPlural:'provinces',child:'City',childPlural:'cities'};
+}
+
+function locationArticle(value){
+  return /^[aeiou]/i.test(value)?'an':'a';
 }
 
 function isLocationPickerCountry(country){
@@ -185,8 +191,8 @@ function openLocationPicker(input){
   activeLocationGroup=null;
   input.value='';
   const labels=getLocationLabels(profile.country);
-  input.placeholder=`Search a ${labels.parent.toLocaleLowerCase()}`;
-  input.setAttribute('aria-label',`Search a ${labels.parent.toLocaleLowerCase()}`);
+  input.placeholder=`Search ${locationArticle(labels.parent)} ${labels.parent.toLocaleLowerCase()}`;
+  input.setAttribute('aria-label',`Search ${locationArticle(labels.parent)} ${labels.parent.toLocaleLowerCase()}`);
   renderLocationOptions();
   picker.classList.add('open');
   options.hidden=false;
@@ -207,7 +213,7 @@ function closeLocationPicker({restoreValue=true}={}){
   picker.querySelector('.location-toggle')?.setAttribute('aria-label','Open location options');
   input.removeAttribute('aria-label');
   const labels=getLocationLabels(profile.country);
-  input.placeholder=`Search a ${labels.parent.toLocaleLowerCase()} or ${labels.child.toLocaleLowerCase()}`;
+  input.placeholder=`Search ${locationArticle(labels.parent)} ${labels.parent.toLocaleLowerCase()} or ${locationArticle(labels.child)} ${labels.child.toLocaleLowerCase()}`;
   input.value=restoreValue?profile.city:'';
   activeLocationGroup=null;
 }
@@ -254,8 +260,8 @@ function selectLocationOption(option){
     activeLocationGroup=null;
     input.value='';
     const labels=getLocationLabels(profile.country);
-    input.placeholder=`Search a ${labels.parent.toLocaleLowerCase()}`;
-    input.setAttribute('aria-label',`Search a ${labels.parent.toLocaleLowerCase()}`);
+    input.placeholder=`Search ${locationArticle(labels.parent)} ${labels.parent.toLocaleLowerCase()}`;
+    input.setAttribute('aria-label',`Search ${locationArticle(labels.parent)} ${labels.parent.toLocaleLowerCase()}`);
     renderLocationOptions();
     input.focus();
     return;

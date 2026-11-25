@@ -32,7 +32,7 @@ test('mobile client sort and filter buttons stick inside a compact dock',()=>{
   assert.match(stickyStyles?.[0]||'',/grid-template-rows: 38px 38px;\s*gap: 2px;/);
   assert.match(stickyStyles?.[0]||'',/margin: 4px -14px 10px auto;\s*padding: 0 0 4px;/);
   assert.match(findClientsCss,/\.find-clients-main \.clients-count-header \{\s*position: relative;\s*margin: 0 0 14px;\s*padding: 12px 0;/);
-  assert.match(findClientsCss,/@media \(max-width: 640px\) \{\s*\.find-clients-main \{\s*--page-scroll-mobile-top: 60px;\s*\}\s*\.find-clients-main \.clients-count-header \{\s*margin-top: -54px;/);
+  assert.match(findClientsCss,/@media\s*\(orientation:\s*portrait\)\s*\{\s*\.find-clients-main \{\s*--page-scroll-mobile-top: 60px;\s*\}\s*\.find-clients-main \.clients-count-header \{\s*margin-top: -54px;/);
   assert.doesNotMatch(findClientsCss,/mobile-actions-background-bleed|mobile-clients-actions::before|mobile-clients-actions::after/);
 });
 
@@ -87,7 +87,7 @@ test('mobile Messages uses back and MESSAGES header instead of logo and search',
   assert.match(navCss,/body\.chat-body > header\.topbar > \.brand,[\s\S]*?body\.chat-body > header\.topbar > \.search,[\s\S]*?body\.chat-body > header\.topbar > \.mobile-search-toggle,[\s\S]*?body\.chat-body > header\.topbar > \.top-actions \{\s*display: none !important;/);
   assert.match(navCss,/body\.chat-body > header\.topbar > \.mobile-chat-heading-wrap \{\s*grid-column: 2;/);
   assert.match(navCss,/body\.chat-body > header\.topbar > \.mobile-chat-heading \{[\s\S]*?font-size: 15px !important;/);
-  assert.match(chatCss,/@media \(max-width: 600px\) \{[\s\S]*?\.chat-viewport \{\s*top: 56px;\s*left: 0;/);
+  assert.match(chatCss,/@media\s*\(orientation:\s*portrait\)\s*\{[\s\S]*?\.chat-viewport \{\s*top: 56px;\s*left: 0;/);
   assert.match(navJs,/document\.body\.classList\.contains\('chat-body'\)/);
   assert.match(navJs,/role === 'client'\s*\?\s*'devmatch-discover-projects\.html'\s*:\s*'devmatch-find-projects\.html'/);
   assert.match(navJs,/const mobileChatReturnUrlStorageKey = 'devmatch-mobile-chat-return-url'/);
@@ -113,7 +113,7 @@ test('mobile room chat uses mobile composer and latest-message button',()=>{
 
   assert.match(chatHtml,/placeholder="Type a message\.\."/);
   assert.match(chatHtml,/id="chatScrollBottomBtn"/);
-  assert.match(chatJs,/const mobileRoom = window\.matchMedia\('\(max-width: 600px\)'\)\.matches[\s\S]*?event\.key === 'Enter' && !mobileRoom/);
+  assert.match(chatJs,/const mobileRoom = mobileChatBreakpoint\.matches[\s\S]*?event\.key === 'Enter' && !mobileRoom/);
   assert.equal((chatJs.match(/if \(mobileChatBreakpoint\.matches\) messageInputEl\?\.blur\(\);\s*else messageInputEl\?\.focus\(\);/g)||[]).length,2);
   assert.match(chatJs,/chatScrollBottomBtn/);
   assert.match(chatJs,/addEventListener\('click'/);
@@ -131,7 +131,7 @@ test('mobile room chat uses mobile composer and latest-message button',()=>{
   assert.match(chatCss,/body\.mobile-chat-room-open \.chat-thread-container \{[\s\S]*?height: 100%;[\s\S]*?padding-top: 70px;/);
   assert.match(chatCss,/body\.mobile-chat-room-open \.chat-main-header \{[\s\S]*?border-bottom: 0;[\s\S]*?isolation: isolate;[\s\S]*?background: transparent;/);
   assert.match(chatCss,/body\.mobile-chat-room-open \.chat-header-actions \.chat-action-btn\.icon-only \{[\s\S]*?border: 0;[\s\S]*?background: transparent;/);
-  assert.match(chatCss,/@media \(max-width: 820px\) \{[\s\S]*?\.chat-detail-pane \{\s*position: fixed;[\s\S]*?inset: 0 0 0 auto;[\s\S]*?width: min\(var\(--chat-detail-width\), 88vw\);/);
+  assert.match(chatCss,/@media\s*\(orientation:\s*portrait\)\s*\{[\s\S]*?\.chat-detail-pane \{\s*position: fixed;[\s\S]*?inset: 0 0 0 auto;[\s\S]*?width: min\(var\(--chat-detail-width\), 88vw\);/);
   assert.match(chatHtml,/id="chatDetailBackdrop"[^>]*hidden/);
   assert.match(chatJs,/if \(detailBackdropEl\) detailBackdropEl\.hidden = !isMobileModal/);
   assert.match(chatJs,/detailBackdropEl\?\.addEventListener\('click', \(\) => setDetailPaneOpen\(false\)\)/);
@@ -180,7 +180,7 @@ test('mobile Favorites uses an Explore header, active Explore navigation, and st
   assert.match(favoritesCss,/body\.favorites-page-layout > main\.dashboard\.favorites-page \{\s*padding-top: 0 !important;/);
   assert.match(favoritesCss,/body\.favorites-page-layout \.fav-tabs \{\s*position: sticky;\s*top: 0;\s*z-index: 20;/);
   assert.match(navBehaviorJs,/document\.querySelector\('\.favorites-page-layout \.fav-tabs'\)/);
-  assert.match(navBehaviorJs,/isFavoritesTabSwitch \? '\(max-width: 600px\)' : '\(max-width: 860px\)'/);
+  assert.match(navBehaviorJs,/const exploreSwitchBreakpoint = window\.matchMedia\('\(orientation: portrait\)'\)/);
   assert.match(navBehaviorJs,/setExploreSwitchHidden\(nextDirection > 0\)/);
   assert.match(navBehaviorJs,/exploreSwitch\.contains\(document\.activeElement\) &&\s*\(!isFavoritesTabSwitch \|\| document\.activeElement\.matches\(':focus-visible'\)\)/);
   assert.match(favoritesCss,/\.fav-tabs\.scroll-aware-switch \{\s*transition: transform 240ms cubic-bezier\(\.22, \.61, \.36, 1\);/);

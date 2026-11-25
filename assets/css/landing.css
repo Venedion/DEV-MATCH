@@ -169,6 +169,6 @@ footer a:not(.logo){position:relative;width:fit-content}
 footer a:not(.logo)::after{content:"";position:absolute;right:0;bottom:-1px;left:0;height:1px;background:currentColor;transform:scaleX(0);transform-origin:right center;transition:transform .45s ease}
 footer a:not(.logo):hover::after,footer a:not(.logo):focus-visible::after{transform:scaleX(1);transform-origin:left center}
 .copy{grid-column:1/-1;border-top:1px solid var(--line);padding-top:24px;color:var(--muted);font-size:13px}
-@media(max-width:1000px){.grid4,.why{grid-template-columns:1fr 1fr}.links{display:none}}
-@media(max-width:720px){.paths,.how,.two{grid-template-columns:1fr}.grid4,.why{grid-template-columns:1fr}.wrap{padding:0 18px}section{padding:64px 0}#how{padding-top:19px}.hero{padding-top:32px}nav .wrap{gap:12px}.right #loginLink,.logo span{display:none}.stats{flex-direction:column}.stats div+div{border-left:0;border-top:1px solid var(--line)}footer .wrap{grid-template-columns:1fr 1fr}.final{padding:32px}}
+@media(max-width:1000px) and (orientation: landscape){.grid4,.why{grid-template-columns:1fr 1fr}.links{display:none}}
+@media(orientation: portrait){.paths,.how,.two{grid-template-columns:1fr}.grid4,.why{grid-template-columns:1fr}.wrap{padding:0 18px}section{padding:64px 0}#how{padding-top:19px}.hero{padding-top:32px}nav .wrap{gap:12px}.right #loginLink,.logo span{display:none}.stats{flex-direction:column}.stats div+div{border-left:0;border-top:1px solid var(--line)}footer .wrap{grid-template-columns:1fr 1fr}.final{padding:32px}}
 @media(prefers-reduced-motion:reduce){*{transition:none!important;scroll-behavior:auto!important}}

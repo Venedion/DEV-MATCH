@@ -46,7 +46,7 @@
 .comment-system.find-comments,.comment-system.request-detail-comments{padding:0;border:0;border-radius:0;background:transparent;box-shadow:none}
 .comment-system.discover-comments{padding-top:0;border-top:0}
 .comment-system.discover-comments .comment-system-list{max-height:none;overflow:visible}
-@media(max-width:600px){
+@media(max-width:600px) and (orientation: portrait){
   .comment-system .comment-system-heading h2{font-size:18px}
   .comment-system .comment-system-replies{margin-left:24px;padding-left:10px}
 }

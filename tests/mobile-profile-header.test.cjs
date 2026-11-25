@@ -15,14 +15,24 @@ const notificationsJs=fs.readFileSync(path.join(__dirname,'..','assets/js/notifi
 const myProjectsJs=fs.readFileSync(path.join(__dirname,'..','assets/js/my-projects.js'),'utf8');
 
 test('mobile My Profile header replaces notification and avatar actions with the account menu icon',()=>{
-  assert.match(profileCss,/@media\(max-width:820px\)\{[\s\S]*?body\.my-profile-page:not\(\.client-profile-public\)>header\.topbar>\.top-actions>\.notification-button\{display:none\}/);
+  assert.match(profileCss,/@media\s*\(orientation:\s*portrait\)\s*\{[\s\S]*?body\.my-profile-page:not\(\.client-profile-public\)>header\.topbar>\.top-actions>\.notification-button\{display:none\}/);
   assert.match(profileCss,/body\.my-profile-page:not\(\.client-profile-public\)>header\.topbar>\.mobile-search-toggle,\s*body\.my-profile-page:not\(\.client-profile-public\)>header\.topbar>\.search\{display:none\}/);
   assert.match(profileCss,/\.mobile-profile-menu-icon\{display:none\}/);
   assert.match(profileCss,/\.user-menu>\.mobile-profile-menu-icon\{[\s\S]*?display:block[\s\S]*?stroke-width:2;/);
-  assert.match(profileCss,/@media\(max-width:820px\)\{[\s\S]*?body\.my-profile-page:not\(\.client-profile-public\)>header\.topbar>\.brand\{display:none\}[\s\S]*?\.mode-switch\.mobile-profile-header-mode-switch\{[\s\S]*?left:50%/);
+  assert.match(profileCss,/@media\s*\(orientation:\s*portrait\)\s*\{[\s\S]*?body\.my-profile-page:not\(\.client-profile-public\)>header\.topbar>\.brand\{display:none\}[\s\S]*?\.mode-switch\.mobile-profile-header-mode-switch\{[\s\S]*?left:50%/);
   assert.match(profileHtml,/<a class="user-menu" id="userMenu"[^>]*aria-label="Account menu">[\s\S]*?<svg class="mobile-profile-menu-icon"/);
   assert.match(profileHtml,/d="M10 8h10M4 16h16"/);
-  assert.match(profileHtml,/window\.matchMedia\('\(max-width: 820px\)'\)\.matches/);
+  assert.match(profileHtml,/window\.matchMedia\('\(orientation: portrait\)'\)\.matches/);
+  assert.match(navigationJs,/function createMobileSettingsDrawer\(\)/);
+  assert.match(navigationJs,/mobileSettingsDrawer\.setAttribute\('aria-modal', 'true'\)/);
+  assert.match(navigationJs,/title\.textContent = 'Settings'/);
+  assert.match(navigationJs,/link\.href = `devmatch-settings\.html\?role=\$\{role\}&returnTo=profile-settings#panel-\$\{category\.id\}`/);
+  assert.match(navigationJs,/setMobileSettingsDrawerOpen\(true\);\s*\}/);
+  assert.match(navigationJs,/currentUrl\.searchParams\.delete\('openSettings'\)/);
+  assert.match(navigationJs,/mobileSettingsBackdrop\.setAttribute\('aria-hidden', 'true'\)/);
+  assert.match(navigationJs,/setMobileSettingsDrawerOpen\(mobileSettingsDrawer\?\.hidden \?\? true\)/);
+  assert.match(navigationJs,/id: 'preferences', label: 'Preferences & Region'/);
+  assert.match(profileCss,/\.mobile-settings-drawer\.is-open\{transform:translateX\(0\)\}/);
   assert.match(navigationJs,/const isMobileMyProfilePage = document\.body\.matches\('\.my-profile-page:not\(\.client-profile-public\)'\)/);
   assert.match(navigationJs,/if \(modeSwitch\.parentElement !== header\) header\.appendChild\(modeSwitch\)/);
   assert.match(navigationJs,/if \(!isMobileMyProfilePage && identity\?\.nextSibling !== modeSwitch\)/);
@@ -45,18 +55,18 @@ test('mobile My Profile header replaces notification and avatar actions with the
 });
 
 test('mobile interactions use the bottom navigation breakpoint',()=>{
-  assert.match(navigationJs,/const mobileNavigationBreakpoint = window\.matchMedia\('\(max-width: 820px\)'\)/);
-  assert.match(navigationJs,/const mobileSearchBreakpoint = window\.matchMedia\('\(max-width: 820px\)'\)/);
-  assert.match(navigationJs,/isFavoritesTabSwitch \? '\(max-width: 820px\)'/);
+  assert.match(navigationJs,/const mobileNavigationBreakpoint = window\.matchMedia\('\(orientation: portrait\)'\)/);
+  assert.match(navigationJs,/const mobileSearchBreakpoint = window\.matchMedia\('\(orientation: portrait\)'\)/);
+  assert.match(navigationJs,/const exploreSwitchBreakpoint = window\.matchMedia\('\(orientation: portrait\)'\)/);
   assert.match(navigationJs,/if \(mobileNavigationBreakpoint\.matches\) \{\s*window\.dispatchEvent\(new CustomEvent\('devmatch:notification-received'/);
-  assert.match(mobileNavigationCss,/@media \(max-width: 820px\) \{\s*\.header-account-dropdown > \.mode-switch/);
-  assert.match(mobileNavigationCss,/@media \(max-width: 820px\) \{\s*body\.chat-body\.mobile-chat-room-open/);
-  assert.match(chatJs,/const mobileChatBreakpoint = window\.matchMedia\('\(max-width: 820px\)'\)/);
+  assert.match(mobileNavigationCss,/@media\s*\(orientation:\s*portrait\)\s*\{\s*\.header-account-dropdown > \.mode-switch/);
+  assert.match(mobileNavigationCss,/@media\s*\(orientation:\s*portrait\)\s*\{\s*body\.chat-body\.mobile-chat-room-open/);
+  assert.match(chatJs,/const mobileChatBreakpoint = window\.matchMedia\('\(orientation: portrait\)'\)/);
   assert.match(chatJs,/const mobileRoom = mobileChatBreakpoint\.matches/);
-  assert.match(favoriteFeedbackJs,/window\.matchMedia\('\(max-width: 820px\)'\)/);
-  assert.match(favoriteFeedbackCss,/@media \(max-width: 820px\) \{/);
-  assert.match(notificationsJs,/desktopMarkAllLayout = window\.matchMedia\('\(min-width: 821px\)'\)/);
-  assert.match(notificationsJs,/mobileListLayout = window\.matchMedia\('\(max-width: 820px\)'\)/);
-  assert.match(myProjectsJs,/projectsMobileBreakpoint=window\.matchMedia\('\(max-width: 820px\)'\)/);
-  assert.match(myProjectsCss,/@media\(max-width:820px\)\{[\s\S]*?\.project-table\{display:none\}[\s\S]*?\.mobile-project-list\{display:grid/);
+  assert.match(favoriteFeedbackJs,/window\.matchMedia\('\(orientation: portrait\)'\)/);
+  assert.match(favoriteFeedbackCss,/@media\s*\(orientation:\s*portrait\)\s*\{/);
+  assert.match(notificationsJs,/desktopMarkAllLayout = window\.matchMedia\('\(orientation: landscape\)'\)/);
+  assert.match(notificationsJs,/mobileListLayout = window\.matchMedia\('\(orientation: portrait\)'\)/);
+  assert.match(myProjectsJs,/projectsMobileBreakpoint=window\.matchMedia\('\(orientation: portrait\)'\)/);
+  assert.match(myProjectsCss,/@media\s*\(orientation:\s*portrait\)\s*\{[\s\S]*?\.project-table\{display:none\}[\s\S]*?\.mobile-project-list\{display:grid/);
 });

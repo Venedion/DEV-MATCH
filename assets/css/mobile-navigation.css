@@ -18,7 +18,7 @@ body > .client-sidebar .post-request .sidebar-action-label {
   font-size: inherit;
 }
 
-@media (min-width: 821px) {
+@media (min-width: 821px) and (orientation: landscape){
   :root {
     --sidebar-rail: 72px;
     --sidebar-expanded: 260px;
@@ -582,7 +582,7 @@ body > .client-sidebar .post-request .sidebar-action-label {
   }
 }
 
-@media (min-width: 1001px) {
+@media (min-width: 1001px) and (orientation: landscape){
   body.chat-body > header.topbar > .top-actions > .user-menu,
   body.page-scroll-shell > header.topbar > .top-actions > .user-menu,
   body.page-scroll-shell > header.profile-topbar > .top-actions > .user-link,
@@ -602,7 +602,7 @@ body > .client-sidebar .post-request .sidebar-action-label {
   }
 }
 
-@media (min-width: 821px) and (max-width: 1220px) {
+@media (min-width: 821px) and (max-width: 1220px) and (orientation: landscape){
   :root {
     --sidebar-expanded: 230px;
     --cd-sidebar-expanded: 230px;
@@ -654,7 +654,7 @@ body > .client-sidebar .post-request .sidebar-action-label {
   }
 }
 
-@media (min-width: 1221px) {
+@media (min-width: 1221px) and (orientation: landscape){
   body[class] header.topbar,
   body[class] header.profile-topbar {
     grid-template-columns: var(--sidebar) minmax(0, min(380px, max(0px, calc(50vw - var(--sidebar) - 208.5px + var(--header-mode-center-shift))))) 1fr;
@@ -684,29 +684,6 @@ body > .client-sidebar .post-request .sidebar-action-label {
 .mobile-search-toggle,
 .mobile-navigation-backdrop {
   display: none;
-}
-
-* {
-  scrollbar-color: rgb(23 23 25 / 18%) transparent;
-  scrollbar-width: thin;
-}
-
-*::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
-
-*::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-*::-webkit-scrollbar-thumb {
-  border-radius: 999px;
-  background: rgb(23 23 25 / 18%);
-}
-
-*::-webkit-scrollbar-thumb:hover {
-  background: rgb(23 23 25 / 30%);
 }
 
 .header-account-dropdown {
@@ -800,7 +777,7 @@ body > .client-sidebar .post-request .sidebar-action-label {
   }
 }
 
-@media (max-width: 820px) {
+@media (orientation: portrait){
   .sidebar-pin-toggle {
     display: none;
   }
@@ -1372,7 +1349,7 @@ body > .client-sidebar .post-request .sidebar-action-label {
   }
 }
 
-@media (max-width: 820px) {
+@media (orientation: portrait){
   body.chat-body.mobile-chat-room-leaving > header.topbar {
     display: grid !important;
   }
@@ -1620,7 +1597,7 @@ body > .client-sidebar .post-request .sidebar-action-label {
   }
 }
 
-@media (max-width: 820px) {
+@media (orientation: portrait){
   .header-account-dropdown {
     right: 12px;
     min-width: min(230px, calc(100vw - 24px));
@@ -1700,7 +1677,7 @@ body > .client-sidebar .post-request .sidebar-action-label {
   }
 }
 
-@media (max-width: 820px) {
+@media (orientation: portrait){
   body.has-mobile-bottom-navigation > header.topbar,
   body.has-mobile-bottom-navigation > header.client-topbar,
   body.has-mobile-bottom-navigation > header.profile-topbar {
@@ -1960,7 +1937,17 @@ body > .client-sidebar .post-request .sidebar-action-label {
   }
 }
 
-@media (max-width: 820px) {
+@media (orientation: portrait) and (min-width: 700px) {
+  body.page-scroll-shell main,
+  body:not(.page-scroll-shell) main {
+    width: 100%;
+    max-width: 760px !important;
+    margin-right: auto !important;
+    margin-left: auto !important;
+  }
+}
+
+@media (orientation: portrait){
   body.chat-body.mobile-chat-room-open > header.topbar {
     display: none !important;
   }
@@ -2079,7 +2066,7 @@ body > .client-sidebar .post-request .sidebar-action-label {
   }
 }
 
-@media (max-width: 820px) {
+@media (orientation: portrait){
   .header-account-dropdown > .mode-switch,
   .header-account-dropdown > .client-mode-switch {
     position: relative;
@@ -2216,7 +2203,7 @@ body > .client-sidebar .post-request .sidebar-action-label {
   display: none;
 }
 
-@media (max-width: 820px) {
+@media (orientation: portrait){
   body.developer-explore-page > header.topbar > .top-actions > .notification-button,
   body.developer-explore-page > header.topbar > .top-actions > .user-menu {
     display: none;

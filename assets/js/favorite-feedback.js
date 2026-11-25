@@ -23,7 +23,7 @@
     toast.replaceChildren(messageElement, undoButton);
     messageElement.replaceChildren();
 
-    const isMobile = window.matchMedia('(max-width: 820px)').matches;
+    const isMobile = window.matchMedia('(orientation: portrait)').matches;
     if (isMobile && favoriteLink?.tab && /\badded\b/i.test(message) && /\bfavorites?\b/i.test(message)) {
       const role = document.body.classList.contains('client-shell-page') || new URLSearchParams(location.search).get('role') === 'client'
         ? 'client'

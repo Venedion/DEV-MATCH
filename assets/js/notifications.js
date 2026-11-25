@@ -12,8 +12,8 @@
   const mobileSettingsCard = document.getElementById('notification-settings');
   const mobileFilterLabel = document.getElementById('notificationMobileFilterLabel');
   const mobileFilterOptions = [...(mobileFilterMenu?.querySelectorAll('[data-notification-filter-option]') || [])];
-  const desktopMarkAllLayout = window.matchMedia('(min-width: 821px)');
-  const mobileListLayout = window.matchMedia('(max-width: 820px)');
+  const desktopMarkAllLayout = window.matchMedia('(orientation: landscape)');
+  const mobileListLayout = window.matchMedia('(orientation: portrait)');
   const MOBILE_NOTIFICATION_DISPLAY_BOUNDARY_RATIO = 0.73;
   const listToggle = document.createElement('button');
   listToggle.className = 'notification-list-toggle';

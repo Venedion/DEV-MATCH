@@ -38,7 +38,7 @@ test('Find Projects loads the favorite feedback controls used by request-card lo
 
 test('mobile favorite feedback keeps its message on one line',()=>{
   const css=fs.readFileSync('assets/css/favorite-feedback.css','utf8');
-  assert.match(css,/@media \(max-width: 600px\) \{\s*\.fav-toast \{[^}]*max-width: calc\(100vw - 24px\);[^}]*flex-wrap: nowrap;[^}]*white-space: nowrap;/);
+  assert.match(css,/@media \(orientation: portrait\)\s*\{\s*\.fav-toast \{[^}]*max-width: calc\(100vw - 24px\);[^}]*flex-wrap: nowrap;[^}]*white-space: nowrap;/);
   assert.match(css,/\.fav-toast-message \{\s*min-width: 0;\s*overflow: hidden;\s*text-overflow: ellipsis;/);
   assert.match(css,/\.fav-toast-undo \{\s*flex: none;\s*white-space: nowrap;/);
 });
@@ -48,7 +48,7 @@ test('favorite toast links to the matching Favorites tab on mobile',()=>{
   const favoritesJs=fs.readFileSync('assets/js/favorites.js','utf8');
   const marketplaceJs=fs.readFileSync('assets/js/marketplace.js','utf8');
   const findClientsJs=fs.readFileSync('assets/js/find-clients.js','utf8');
-  assert.match(source,/matchMedia\('\(max-width: 600px\)'\)/);
+  assert.match(source,/matchMedia\('\(orientation: portrait\)'\)/);
   assert.match(source,/fav-toast-favorites-link/);
   assert.match(source,/devmatch-favorites\.html\?role=\$\{role\}&tab=\$\{encodeURIComponent\(favoriteLink\.tab\)\}/);
   assert.match(favoritesJs,/requestedTab === 'clients' \|\| requestedTab === 'saved-clients'/);

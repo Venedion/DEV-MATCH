@@ -300,7 +300,7 @@
       if (target instanceof HTMLElement) scrollPositions.set(target, target.scrollTop);
     });
 
-    const mobileViewport = window.matchMedia('(max-width: 820px)');
+    const mobileViewport = window.matchMedia('(orientation: portrait)');
     const scrollIntent = { direction: 0, expiresAt: 0, touchY: null, touchMoved: false };
     const noteScrollIntent = (scrollDirection, duration) => {
       if (!mobileViewport.matches || !scrollDirection) return;
@@ -563,7 +563,7 @@
     if (!brand || !sidebar) return;
 
     const header = brand.parentElement;
-    const desktop = window.matchMedia('(min-width: 821px)');
+    const desktop = window.matchMedia('(orientation: landscape)');
     let placeholder = null;
 
     function updatePlacement() {

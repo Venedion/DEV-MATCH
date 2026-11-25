@@ -11,13 +11,13 @@
 .project-detail-route-dialog>main{width:100%;max-width:none;min-height:0;flex:1;margin:0;padding:30px 36px 48px;overflow:auto}
 .project-detail-route-dialog .discover-detail-layout{grid-template-columns:minmax(0,1.65fr) minmax(280px,.8fr);gap:24px}
 .project-detail-route-dialog .find-detail-layout{grid-template-columns:minmax(0,1.65fr) minmax(280px,.8fr);gap:24px}
-@media(max-width:780px){
+@media(orientation: portrait){
   .project-request-detail-dialog[open],.project-detail-route-dialog[open]{width:calc(100vw - 28px);height:calc(100dvh - 28px);border-radius:15px}
   .project-detail-popup-bar{height:54px;padding:0 16px}
   .project-detail-route-dialog>main{padding:24px 20px 36px}
   .project-detail-route-dialog .discover-detail-layout,.project-detail-route-dialog .find-detail-layout{grid-template-columns:minmax(0,1fr);gap:14px}
 }
-@media(max-width:480px){
+@media(max-width:480px) and (orientation: portrait){
   .project-request-detail-dialog[open],.project-detail-route-dialog[open]{width:calc(100vw - 16px);height:calc(100dvh - 16px);border-radius:13px}
   .project-detail-popup-bar{height:50px;gap:10px;padding:0 12px}
   .project-detail-popup-bar img{width:29px;height:29px}

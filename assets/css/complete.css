@@ -14,5 +14,5 @@ h1{font-size:27px;line-height:1.2;letter-spacing:-.045em}
 .button.primary{border-color:var(--ink);background:var(--ink);color:#fff}
 .button.primary:hover{background:#333}
 .button.secondary:hover{border-color:#b8b8bd;background:#fafafa}
-@media(max-width:520px){.completion{padding:34px 22px 28px;border-radius:20px}.actions{display:grid}.button{width:100%;min-height:46px}h1{font-size:24px}.completion p{font-size:13px}}
+@media(max-width:520px) and (orientation: portrait){.completion{padding:34px 22px 28px;border-radius:20px}.actions{display:grid}.button{width:100%;min-height:46px}h1{font-size:24px}.completion p{font-size:13px}}
 @media(prefers-reduced-motion:reduce){*,*:before,*:after{transition:none!important}}

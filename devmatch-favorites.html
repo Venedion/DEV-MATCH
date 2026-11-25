@@ -7,21 +7,22 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="assets/css/dashboard.css?v=20261122-comment-system-v1">
-  <link rel="stylesheet" href="assets/css/favorites.css?v=20261124-mobile-sticky-filters-v7">
-  <link rel="stylesheet" href="assets/css/find-clients.css?v=20261123-client-card-click-v1">
-  <link rel="stylesheet" href="assets/css/client-shell.css?v=20261030-header-size-match">
+  <link rel="stylesheet" href="assets/css/dashboard.css?v=20261126-rebase-merge-v1">
+  <link rel="stylesheet" href="assets/css/favorites.css?v=20261125-responsive-orientation-v1">
+  <link rel="stylesheet" href="assets/css/find-clients.css?v=20261125-responsive-orientation-v1">
+  <link rel="stylesheet" href="assets/css/client-shell.css?v=20261125-responsive-orientation-v1">
   <link rel="stylesheet" href="assets/css/mode-switch-animation.css?v=20261030-client-mode-route">
-  <link rel="stylesheet" href="assets/css/mobile-navigation.css?v=20261125-bottom-nav-responsive-breakpoint-v1">
-  <link rel="stylesheet" href="assets/css/favorite-feedback.css?v=20261125-bottom-nav-responsive-breakpoint-v1">
-  <link rel="stylesheet" href="assets/css/project-detail.css?v=20261125-preview-section-navigation">
-  <link rel="stylesheet" href="assets/css/project-detail-popup.css?v=20261120-popup-detail">
-  <link rel="stylesheet" href="assets/css/comment-system.css?v=20261122-reference-ui-v2">
+  <link rel="stylesheet" href="assets/css/mobile-navigation.css?v=20261126-rebase-merge-v1">
+  <link rel="stylesheet" href="assets/css/favorite-feedback.css?v=20261126-rebase-merge-v1">
+  <link rel="stylesheet" href="assets/css/project-detail.css?v=20261126-rebase-merge-v1">
+  <link rel="stylesheet" href="assets/css/project-detail-popup.css?v=20261126-rebase-merge-v1">
+  <link rel="stylesheet" href="assets/css/comment-system.css?v=20261126-rebase-merge-v1">
   <script src="assets/js/mode-switch-state.js?v=20261030-client-mode-indicator"></script>
   <script src="assets/js/i18n.js?v=20261102-profile-details"></script>
 <script src="assets/vendor/supabase-2.119.0.js"></script>
-<link rel="stylesheet" href="assets/css/form-controls.css?v=20261124-mobile-input-zoom-v1">
-<script src="assets/js/backend.js?v=20261123-chat-read-v1"></script>
+<link rel="stylesheet" href="assets/css/form-controls.css?v=20261126-scrollbar-hidden-v1">
+<script src="assets/js/backend.js?v=20261125-responsive-orientation-v1"></script>
+<link rel="stylesheet" href="assets/css/developer-mode-icon.css?v=20261125-developer-mode-icon-v2">
 </head>
 <body class="client-nav-home-layout page-scroll-shell favorites-page-layout">
   <!-- Topbar -->
@@ -40,7 +41,7 @@
     </label>
     <div class="top-actions">
       <div class="mode-switch" role="group" aria-label="Workspace mode">
-        <a class="mode active" href="devmatch-dashboard.html"><span aria-hidden="true">&lt;/&gt;</span>Developer Mode</a>
+        <a class="mode active" href="devmatch-dashboard.html"><span class="developer-mode-icon" aria-hidden="true"></span>Developer Mode</a>
         <a class="mode" href="devmatch-client-dashboard.html"><svg viewBox="0 0 24 24"><rect x="3" y="7" width="18" height="14" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>Client Mode</a>
       </div>
       <a class="icon-button notification-button" href="devmatch-developer-notifications.html" aria-label="Notifications">
@@ -59,7 +60,7 @@
   </header>
   <!-- Sidebar -->
   <aside class="sidebar">
-    <div class="workspace"><span class="workspace-icon">&lt;/&gt;</span><span><b>Developer workspace</b><small>Showcase &amp; find clients</small></span></div>
+    <div class="workspace"><span class="workspace-icon"><span class="developer-mode-icon" aria-hidden="true"></span></span><span><b>Developer workspace</b><small>Showcase &amp; find clients</small></span></div>
     <a class="add-project side-add" href="devmatch-my-projects.html?create=1"><svg viewBox="0 0 24 24"><path d="M12 5v14m-7-7h14"/></svg>Add Project</a>
     <span class="nav-label">Menu</span>
     <nav class="side-nav" aria-label="Dashboard navigation" data-shared-navigation="primary">
@@ -69,7 +70,7 @@
     </nav>
     <div class="sidebar-foot"><span class="online-dot"></span>Demo workspace</div>
   </aside>
-  <script src="assets/js/sidebar-navigation.js?v=20261125-mobile-nav-user-scroll-v2"></script>
+  <script src="assets/js/sidebar-navigation.js?v=20261125-responsive-orientation-v1"></script>
 
   <!-- Main Content -->
   <main class="dashboard favorites-page">
@@ -230,11 +231,11 @@
 
   </a>
 
-  <script src="assets/js/project-detail.js?v=20261125-preview-section-navigation"></script>
-  <script src="assets/js/project-detail-popup.js?v=20261126-request-popup"></script>
+  <script src="assets/js/project-detail.js?v=20261126-rebase-merge-v1"></script>
+  <script src="assets/js/project-detail-popup.js?v=20261126-rebase-merge-v1"></script>
   <script src="assets/js/client-profile-options.js?v=20261123-client-profile-options-v1"></script>
   <script src="assets/js/favorites.js?v=20261124-favorites-toast-tab-v1"></script>
-  <script src="assets/js/nav-behavior.js?v=20261125-bottom-nav-responsive-breakpoint-v1"></script>
+  <script src="assets/js/nav-behavior.js?v=20261125-responsive-orientation-v1"></script>
 <script src="assets/js/presence.js?v=20261119-global"></script>
 </body>
 </html>

@@ -1,0 +1,28 @@
+.developer-mode-icon {
+  display: inline-block;
+  width: 1.15em;
+  height: 0.7em;
+  flex: 0 0 auto;
+  background-color: #000;
+  vertical-align: middle;
+  -webkit-mask: url("../images/developer-mode-icon.png") center / contain no-repeat;
+  mask: url("../images/developer-mode-icon.png") center / contain no-repeat;
+}
+
+.workspace-icon .developer-mode-icon {
+  width: 16px;
+  height: 10px;
+  background-color: #fff;
+}
+
+.cover-code .developer-mode-icon {
+  width: 1.2em;
+  height: 0.74em;
+  background-color: #fff;
+}
+
+.logo i .developer-mode-icon {
+  width: 20px;
+  height: 12px;
+  background-color: #000;
+}

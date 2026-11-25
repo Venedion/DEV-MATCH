@@ -1516,13 +1516,13 @@
 }
 
 /* Responsive */
-@media (max-width: 900px) {
+@media (orientation: portrait){
   .settings-layout {
     grid-template-columns: 1fr;
     gap: 20px;
   }
 
-  @media (max-width: 520px) {
+  @media (max-width: 520px) and (orientation: portrait){
     .settings-app-card {
       align-items: flex-start;
       flex-wrap: wrap;
@@ -1562,12 +1562,242 @@
   }
 }
 
-@media (max-width: 520px) {
+@media (max-width: 520px) and (orientation: portrait){
   .settings-experience-fields {
     grid-template-columns: 1fr;
   }
 
   .settings-specialty-grid .specialty-card {
     flex-basis: 145px;
+  }
+}
+
+@media (orientation: portrait){
+  html.mobile-settings-route body > header.topbar,
+  html.mobile-settings-route body > aside.sidebar,
+  html.mobile-settings-route body > aside.client-sidebar,
+  html.mobile-settings-route body > main.settings-page,
+  html.mobile-settings-route body > .mobile-bottom-nav,
+  html.mobile-settings-route body > .floating-chat {
+    display: none !important;
+  }
+
+  .mobile-settings-detail-page[hidden] {
+    display: none;
+  }
+
+  .mobile-settings-detail-page {
+    position: fixed;
+    inset: 0;
+    z-index: 301;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    background: #fff;
+    color: var(--ink);
+    transform: translateX(100%);
+    transition: transform 240ms cubic-bezier(.22, .61, .36, 1);
+  }
+
+  .mobile-settings-detail-page.is-open {
+    transform: translateX(0);
+  }
+
+  .mobile-settings-detail-header {
+    box-sizing: border-box;
+    min-height: calc(56px + env(safe-area-inset-top, 0px));
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: env(safe-area-inset-top, 0px) 14px 0;
+    border-bottom: 1px solid #ececf0;
+    background: #fff;
+  }
+
+  .mobile-settings-detail-back {
+    width: 36px;
+    height: 36px;
+    flex: 0 0 36px;
+    display: grid;
+    place-items: center;
+    padding: 0;
+    border: 0;
+    border-radius: 50%;
+    background: transparent;
+    color: var(--ink);
+    cursor: pointer;
+  }
+
+  .mobile-settings-detail-back:hover,
+  .mobile-settings-detail-back:focus-visible {
+    background: #f2f2f4;
+  }
+
+  .mobile-settings-detail-back svg {
+    width: 22px;
+    height: 22px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  .mobile-settings-detail-title {
+    min-width: 0;
+    margin: 0;
+    overflow: hidden;
+    color: var(--ink);
+    font-size: 17px;
+    font-weight: 700;
+    letter-spacing: -.02em;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .mobile-settings-detail-content {
+    min-height: 0;
+    flex: 1 1 auto;
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding: 14px 14px calc(92px + env(safe-area-inset-bottom, 0px));
+  }
+
+  .mobile-settings-detail-content > .settings-panel {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .mobile-settings-detail-content .settings-card {
+    padding: 18px 15px;
+  }
+}
+
+@media (orientation: portrait) and (prefers-reduced-motion: reduce){
+  .mobile-settings-detail-page {
+    transition: none;
+  }
+}
+
+.settings-location-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.settings-location-picker {
+  position: relative;
+}
+
+.settings-location-picker .settings-input {
+  width: 100%;
+  font-size: 13px;
+  padding-right: 48px;
+}
+
+.settings-location-toggle {
+  position: absolute;
+  top: 1px;
+  right: 1px;
+  z-index: 1;
+  width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.settings-location-toggle:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: -3px;
+}
+
+.settings-location-toggle svg {
+  width: 18px;
+  height: 18px;
+  transition: transform .15s ease;
+}
+
+.settings-location-picker.open .settings-location-toggle svg {
+  transform: rotate(180deg);
+}
+
+.settings-location-options {
+  max-height: min(300px, 45vh);
+  position: absolute;
+  z-index: 40;
+  top: calc(100% + 6px);
+  right: 0;
+  left: 0;
+  overflow: auto;
+  padding: 5px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #fff;
+  box-shadow: 0 12px 30px rgb(23 23 25 / 12%);
+  scrollbar-width: thin;
+}
+
+.settings-location-options[hidden] {
+  display: none;
+}
+
+.settings-location-heading {
+  padding: 8px 11px;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.settings-location-option,
+.settings-location-back {
+  width: 100%;
+  min-height: 38px;
+  display: flex;
+  align-items: center;
+  padding: 7px 10px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  font-size: 12px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.settings-location-option:hover,
+.settings-location-option:focus-visible,
+.settings-location-back:hover,
+.settings-location-back:focus-visible {
+  outline: 0;
+  background: var(--soft);
+}
+
+.settings-location-back {
+  min-height: 34px;
+  margin-bottom: 4px;
+  border-bottom: 1px solid var(--line);
+  border-radius: 5px;
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.settings-location-message {
+  padding: 10px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+@media (orientation: portrait){
+  .settings-location-grid {
+    grid-template-columns: minmax(0, 1fr);
   }
 }

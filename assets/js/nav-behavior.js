@@ -6,7 +6,7 @@
   const mobileChatReturnUrlStorageKey = 'devmatch-mobile-chat-return-url';
   let mobileChatHasStoredOrigin = false;
   const modeSwitchSelector = '.mode-switch a, .client-mode-switch a';
-  const mobileNavigationBreakpoint = window.matchMedia('(max-width: 820px)');
+  const mobileNavigationBreakpoint = window.matchMedia('(orientation: portrait)');
   const favoritesTabs = document.querySelector('.favorites-page-layout .fav-tabs');
   const exploreSwitch = document.querySelector(
     '.find-projects-page .find-projects-switch, .find-clients-main .clients-tabs-toggle'
@@ -17,9 +17,7 @@
   const exploreFilterActions = document.querySelector(
     '.find-projects-page .mobile-market-sticky-actions, .find-clients-main .mobile-clients-actions'
   );
-  const exploreSwitchBreakpoint = window.matchMedia(
-    isFavoritesTabSwitch ? '(max-width: 820px)' : '(max-width: 860px)'
-  );
+  const exploreSwitchBreakpoint = window.matchMedia('(orientation: portrait)');
 
   if (exploreSwitch && explorePageHeader && exploreScrollContainer) {
     const exploreSwitchPlaceholder = document.createComment('explore switch placement');
@@ -249,7 +247,7 @@
   }
   const sidebar = document.querySelector('body > .sidebar, body > .client-sidebar');
   const modeSwitch = document.querySelector('.mode-switch, .client-mode-switch');
-  const mobileSearchBreakpoint = window.matchMedia('(max-width: 820px)');
+  const mobileSearchBreakpoint = window.matchMedia('(orientation: portrait)');
   const mobileSearchField = header?.querySelector('.search, .client-search, .top-search');
   let mobileSearchToggle;
   const mobileMenuButton = document.createElement('button');
@@ -435,6 +433,10 @@
   const headerUserLink = header?.querySelector('.user-menu, .client-user, .user-link');
   let headerAccountDropdown;
   let headerAccountDropdownCloseTimer;
+  let mobileSettingsDrawer;
+  let mobileSettingsBackdrop;
+  let mobileSettingsDrawerCloseTimer;
+  let previousBodyOverflow;
   const modeSwitchHome = modeSwitch?.parentElement;
   const modeSwitchNextSibling = modeSwitch?.nextSibling;
   const originalModeLinkMarkup = modeSwitch
@@ -542,6 +544,13 @@
 
   mobileSearchBreakpoint.addEventListener('change', event => {
     setModeSwitchDestinations(isClientMode ? 'client' : 'developer');
+    if (isMobileMyProfilePage && headerUserLink && headerAccountDropdown) {
+      headerUserLink.setAttribute('aria-controls', event.matches
+        ? mobileSettingsDrawer.id
+        : headerAccountDropdown.id);
+      headerUserLink.setAttribute('aria-haspopup', event.matches ? 'dialog' : 'menu');
+      if (!event.matches) setMobileSettingsDrawerOpen(false);
+    }
     if (event.matches) {
       if (headerAccountDropdown && !headerAccountDropdown.hidden) updateHeaderAccountOptions();
       else prepareMobileAccountModeSwitch();
@@ -639,7 +648,123 @@
     headerUserLink.setAttribute('aria-controls', headerAccountDropdown.id);
     headerUserLink.setAttribute('aria-expanded', 'false');
   }
+
+  const mobileSettingsCategories = [
+    {id: 'account', label: 'Profile & Account', icon: '<circle cx="12" cy="7" r="4"/><path d="M20 21v-2a8 8 0 0 0-16 0v2"/>'},
+    {id: 'profile-details', label: 'Profile Details', icon: '<path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L8 18l-4 1 1-4Z"/>'},
+    {id: 'security', label: 'Login & Security', icon: '<rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>'},
+    {id: 'role-specific', label: 'Rates & Payouts', icon: '<rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>'},
+    {id: 'notifications', label: 'Notifications', icon: '<path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9m-8 13h4"/>'},
+    {id: 'privacy', label: 'Privacy & Visibility', icon: '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>'},
+    {id: 'integrations', label: 'Connected Apps', icon: '<path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>'},
+    {id: 'preferences', label: 'Preferences & Region', icon: '<circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15 15 0 0 1 0 20M12 2a15 15 0 0 0 0 20"/>'}
+  ];
+
+  function setMobileSettingsDrawerOpen(isOpen) {
+    if (!mobileSettingsDrawer || !mobileSettingsBackdrop) return;
+    window.clearTimeout(mobileSettingsDrawerCloseTimer);
+    if (isOpen) {
+      const role = isClientMode ? 'client' : 'dev';
+      mobileSettingsDrawer.querySelectorAll('.mobile-settings-item').forEach(link => {
+        link.href = `devmatch-settings.html?role=${role}&returnTo=profile-settings#panel-${link.dataset.settingsCategory}`;
+      });
+      mobileSettingsDrawer.hidden = false;
+      mobileSettingsBackdrop.hidden = false;
+      previousBodyOverflow = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
+      headerUserLink?.setAttribute('aria-expanded', 'true');
+      requestAnimationFrame(() => {
+        mobileSettingsDrawer?.classList.add('is-open');
+        mobileSettingsBackdrop?.classList.add('is-open');
+        mobileSettingsDrawer?.querySelector('.mobile-settings-back')?.focus();
+      });
+      return;
+    }
+
+    mobileSettingsDrawer.classList.remove('is-open');
+    mobileSettingsBackdrop.classList.remove('is-open');
+    headerUserLink?.setAttribute('aria-expanded', 'false');
+    document.body.style.overflow = previousBodyOverflow || '';
+    const currentUrl = new URL(window.location.href);
+    if (currentUrl.searchParams.get('openSettings') === '1') {
+      currentUrl.searchParams.delete('openSettings');
+      history.replaceState(null, '', `${currentUrl.pathname}${currentUrl.search}${currentUrl.hash}`);
+    }
+    mobileSettingsDrawerCloseTimer = window.setTimeout(() => {
+      if (mobileSettingsDrawer) mobileSettingsDrawer.hidden = true;
+      if (mobileSettingsBackdrop) mobileSettingsBackdrop.hidden = true;
+    }, window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 240);
+    headerUserLink?.focus();
+  }
+
+  function createMobileSettingsDrawer() {
+    if (!isMobileMyProfilePage || !header || !headerUserLink) return;
+
+    mobileSettingsBackdrop = document.createElement('div');
+    mobileSettingsBackdrop.className = 'mobile-settings-backdrop';
+    mobileSettingsBackdrop.setAttribute('aria-hidden', 'true');
+    mobileSettingsBackdrop.hidden = true;
+
+    mobileSettingsDrawer = document.createElement('section');
+    mobileSettingsDrawer.className = 'mobile-settings-drawer';
+    mobileSettingsDrawer.id = 'mobileAccountSettingsDrawer';
+    mobileSettingsDrawer.setAttribute('role', 'dialog');
+    mobileSettingsDrawer.setAttribute('aria-modal', 'true');
+    mobileSettingsDrawer.setAttribute('aria-labelledby', 'mobileSettingsTitle');
+    mobileSettingsDrawer.hidden = true;
+
+    const drawerHeader = document.createElement('header');
+    drawerHeader.className = 'mobile-settings-header';
+    const backButton = document.createElement('button');
+    backButton.className = 'mobile-settings-back';
+    backButton.type = 'button';
+    backButton.setAttribute('aria-label', 'Back to My Profile');
+    backButton.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg>';
+    const title = document.createElement('h2');
+    title.className = 'mobile-settings-title';
+    title.id = 'mobileSettingsTitle';
+    title.textContent = 'Settings';
+    drawerHeader.append(backButton, title);
+
+    const navigation = document.createElement('nav');
+    navigation.className = 'mobile-settings-list';
+    navigation.setAttribute('aria-label', 'Settings categories');
+    const role = isClientMode ? 'client' : 'dev';
+    mobileSettingsCategories.forEach(category => {
+      const link = document.createElement('a');
+      link.className = 'mobile-settings-item';
+      link.dataset.settingsCategory = category.id;
+      link.href = `devmatch-settings.html?role=${role}&returnTo=profile-settings#panel-${category.id}`;
+      const icon = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+      icon.setAttribute('viewBox', '0 0 24 24');
+      icon.setAttribute('aria-hidden', 'true');
+      icon.innerHTML = category.icon;
+      const label = document.createElement('span');
+      label.textContent = category.label;
+      const chevron = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+      chevron.setAttribute('viewBox', '0 0 24 24');
+      chevron.setAttribute('aria-hidden', 'true');
+      chevron.classList.add('mobile-settings-chevron');
+      chevron.innerHTML = '<path d="m9 18 6-6-6-6"/>';
+      link.append(icon, label, chevron);
+      navigation.appendChild(link);
+    });
+
+    mobileSettingsDrawer.append(drawerHeader, navigation);
+    document.body.append(mobileSettingsBackdrop, mobileSettingsDrawer);
+    const usesMobileSettingsDrawer = mobileSearchBreakpoint.matches;
+    headerUserLink.setAttribute('aria-haspopup', usesMobileSettingsDrawer ? 'dialog' : 'menu');
+    headerUserLink.setAttribute('aria-controls', usesMobileSettingsDrawer
+      ? mobileSettingsDrawer.id
+      : headerAccountDropdown.id);
+  }
+
+  createMobileSettingsDrawer();
   if (mobileSearchBreakpoint.matches) prepareMobileAccountModeSwitch();
+  if (mobileSearchBreakpoint.matches
+    && new URLSearchParams(window.location.search).get('openSettings') === '1') {
+    setMobileSettingsDrawerOpen(true);
+  }
 
   function getAccountReturnUrl() {
     try {
@@ -1009,10 +1134,22 @@
     const userLink = event.target.closest('header .user-menu, header .client-user, header .user-link');
     if (userLink && userLink === headerUserLink) {
       event.preventDefault();
+      if (isMobileMyProfilePage && mobileSearchBreakpoint.matches) {
+        setMobileSettingsDrawerOpen(mobileSettingsDrawer?.hidden ?? true);
+        return;
+      }
       const isOpen = headerAccountDropdown && !headerAccountDropdown.hidden;
       const hasOptions = isOpen || updateHeaderAccountOptions();
       setHeaderAccountDropdownOpen(!isOpen && hasOptions);
       return;
+    }
+
+    if (mobileSettingsDrawer && !mobileSettingsDrawer.hidden) {
+      if (event.target.closest('.mobile-settings-back, .mobile-settings-backdrop')) {
+        event.preventDefault();
+        setMobileSettingsDrawerOpen(false);
+        return;
+      }
     }
 
     if (headerAccountDropdown && !headerAccountDropdown.hidden) {
@@ -1112,6 +1249,18 @@
   });
 
   document.addEventListener('keydown', event => {
+    if (mobileSettingsDrawer && !mobileSettingsDrawer.hidden && event.key === 'Tab') {
+      const focusable = [...mobileSettingsDrawer.querySelectorAll('a[href], button:not([disabled])')];
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last?.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first?.focus();
+      }
+    }
     if (event.key === 'Escape' && header?.classList.contains('mobile-header-search-open')) {
       setMobileSearchOpen(false);
       mobileSearchToggle?.focus();
@@ -1119,6 +1268,10 @@
     if (event.key !== 'Escape') return;
     setMobileNavigationOpen(false);
     setMobileModeMenuOpen(false);
+    if (mobileSettingsDrawer && !mobileSettingsDrawer.hidden) {
+      setMobileSettingsDrawerOpen(false);
+      return;
+    }
     if (headerAccountDropdown && !headerAccountDropdown.hidden) {
       setHeaderAccountDropdownOpen(false);
       headerUserLink?.focus();

@@ -41,7 +41,7 @@
   const totalBadgeEl = document.getElementById('chatTotalBadge');
   const statusEl = document.getElementById('chatStatus');
   const sendBtnEl = chatFormEl?.querySelector('[type="submit"]');
-  const mobileChatBreakpoint = window.matchMedia('(max-width: 820px)');
+  const mobileChatBreakpoint = window.matchMedia('(orientation: portrait)');
   const elements = {
     activeAvatar: document.getElementById('activeAvatar'),
     activeName: document.getElementById('activeName'),
@@ -85,7 +85,7 @@
   let realtimeChannel = null;
 
   function syncMobileChatRoomNavbar(isRoomOpen) {
-    if (!window.matchMedia('(max-width: 820px)').matches) return;
+    if (!window.matchMedia('(orientation: portrait)').matches) return;
     const nav = document.querySelector('.mobile-bottom-nav');
     if (!nav) return;
     nav.classList.toggle('chat-room-open', isRoomOpen);
@@ -2537,7 +2537,7 @@
     bindControls();
     renderConversationSkeleton();
     setStatus('Loading conversations…');
-    if (window.matchMedia('(max-width: 820px)').matches
+    if (window.matchMedia('(orientation: portrait)').matches
       && new URLSearchParams(location.search).get('conversation')) {
       document.body.classList.add('mobile-chat-room-open');
     }

@@ -67,6 +67,6 @@
 .room-payment-receipts { margin: .75rem auto; max-width: 34rem; text-align: center; color: #405579; font-size: .8rem; }
 .room-payment-receipts p { margin: .3rem 0; }
 
-@media (max-width: 620px) {
+@media (max-width: 620px) and (orientation: portrait) {
   #roomPaymentButton { padding: .25rem .4rem; }
 }

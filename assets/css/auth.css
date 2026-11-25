@@ -64,5 +64,5 @@ label{display:block;font-size:14px;font-weight:600;margin-bottom:8px}
 .done .ok svg{width:26px;height:26px}
 .done p{color:var(--muted);margin:10px 0 24px}
 .hide{display:none!important}
-@media(max-width:900px){.page{grid-template-columns:1fr}.side{position:static;height:auto;padding:28px 24px;gap:20px}.side h2{font-size:30px;margin-top:14px}.quote{display:none}.main{padding:32px 20px 48px;align-items:flex-start}}
+@media(orientation: portrait){.page{grid-template-columns:1fr}.side{position:static;height:auto;padding:28px 24px;gap:20px}.side h2{font-size:30px;margin-top:14px}.quote{display:none}.main{padding:32px 20px 48px;align-items:flex-start}}
 @media(prefers-reduced-motion:reduce){*{transition:none!important}}

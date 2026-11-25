@@ -140,8 +140,8 @@ test('Discover project detail popup separates the comments card from project det
   assert.match(styles,/\.project-detail-dialog \.comments-section\{margin:0;padding:24px;border:1px solid #e5e5e8;border-radius:16px;background:#fff;box-shadow:0 2px 6px #17171908\}/);
   assert.match(styles,/\.comments-section \.comment-system-heading h2>span\.comment-system-count\{color:#171719;font-size:15px\}/);
   assert.match(styles,/\.comments-section \.comment-reply-form\.comment-system-reply-form textarea\{min-height:108px/);
-  assert.match(discover,/assets\/css\/project-detail\.css\?v=20261125-preview-section-navigation/);
-  assert.match(discover,/assets\/js\/project-detail\.js\?v=20261125-preview-section-navigation/);
+  assert.match(discover,/assets\/css\/project-detail\.css\?v=20261126-rebase-merge-v1/);
+  assert.match(discover,/assets\/js\/project-detail\.js\?v=20261126-rebase-merge-v1/);
 });
 
 test('Every comment page loads the shared comment presentation',()=>{
@@ -421,7 +421,7 @@ test('Find and Discover project comments show live counts and use the same inlin
   assert.match(findStyles,/\.find-detail-card\.find-comments\.comment-system \.comment-system-view-replies\{grid-column:2;justify-self:start;width:max-content;margin-top:0;text-align:left\}/);
   assert.match(findStyles,/\.find-detail-card\.find-comments\.comment-system \.comment-system-heading h2>span\.comment-system-count\{color:#171719;font-size:15px\}/);
   assert.match(discoverStyles,/\.discover-detail-section\.comment-system\.discover-comments\{[^}]*padding:24px;border:1px solid #e5e5e8;border-radius:16px;background:#fff/);
-  assert.match(discoverStyles,/@media\(max-width:600px\)\{\.discover-detail-section\.comment-system\.discover-comments\{padding:18px\}\}/);
+  assert.match(discoverStyles,/@media\(max-width:\s*600px\)\s*and\s*\(orientation:\s*portrait\)\s*\{\.discover-detail-section\.comment-system\.discover-comments\{padding:18px\}\}/);
   assert.match(discoverStyles,/\.discover-comments \.comment-system-actions\{[^}]*align-items:baseline/);
   assert.match(discoverStyles,/\.discover-comments \.comment-system-reply\{margin-top:0\}/);
   for(const source of [find,discover]){
@@ -446,13 +446,13 @@ test('requested comment sections follow the reference card and typography styles
   const requestPopupSource=fs.readFileSync('assets/js/project-detail-popup.js','utf8');
 
   assert.match(discoverStyles,/\.discover-detail-section\.comment-system\.discover-comments \.comment-system-heading h2\{font-size:19px/);
-  assert.match(discoverStyles,/@media\(max-width:600px\)\{\.discover-detail-section\.comment-system\.discover-comments\{padding:18px\}\}/);
+  assert.match(discoverStyles,/@media\(max-width:\s*600px\)\s*and\s*\(orientation:\s*portrait\)\s*\{\.discover-detail-section\.comment-system\.discover-comments\{padding:18px\}\}/);
   assert.match(clientHtml,/id="requestDetailCommentCount" class="comment-system-count"/);
   assert.match(clientStyles,/#requestDetailComments\.comment-system\{padding:24px;border:1px solid #e5e5e8;border-radius:16px/);
   assert.match(clientStyles,/\.request-detail-comments\.comment-system \.comment-system-actions\{display:grid;grid-template-columns:max-content minmax\(0,1fr\);align-items:baseline/);
-  assert.match(findHtml,/find-project-detail\.css\?v=20261124-comment-action-layout-v3/);
+  assert.match(findHtml,/find-project-detail\.css\?v=20261125-responsive-orientation-v1/);
   assert.match(findStyles,/\.find-project-detail-page\.is-modal-detail \.find-detail-card\.find-comments\.comment-system\{padding:24px;border:1px solid #e5e5e8;border-radius:16px/);
-  assert.match(findStyles,/@media\(max-width:600px\)\s*\{\s*\.find-project-detail-page\.is-modal-detail \.find-detail-card\.find-comments\.comment-system\{padding:18px\}/);
+  assert.match(findStyles,/@media\(max-width:\s*600px\)\s*and\s*\(orientation:\s*portrait\)\s*\{\s*\.find-project-detail-page\.is-modal-detail \.find-detail-card\.find-comments\.comment-system\{padding:18px\}/);
   assert.match(clientProfileSource,/devmatch-find-project-detail\.html\?request=/);
   assert.match(requestPopupSource,/devmatch-find-project-detail\.html\?request=.*&modal=1/);
   assert.match(dashboardHtml,/<article class="panel comments-panel comment-system" id="interactions">/);

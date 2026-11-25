@@ -14,4 +14,4 @@
 .client-profile-breadcrumb b{overflow:hidden;color:#171719;text-overflow:ellipsis;white-space:nowrap}
 .request-tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
 .request-tags span{padding:4px 8px;border:1px solid #e8e8eb;border-radius:99px;background:#fafafa;color:#4d525c;font-size:9px;font-weight:700}
-@media(max-width:640px){.client-profile-status,.client-profile-unavailable{width:calc(100% - 28px);margin:18px auto}.client-profile-unavailable{padding:22px}.client-profile-page-heading h1{font-size:22px}.client-profile-breadcrumb{font-size:11px}}
+@media(orientation: portrait){.client-profile-status,.client-profile-unavailable{width:calc(100% - 28px);margin:18px auto}.client-profile-unavailable{padding:22px}.client-profile-page-heading h1{font-size:22px}.client-profile-breadcrumb{font-size:11px}}

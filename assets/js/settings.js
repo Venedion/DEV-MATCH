@@ -269,7 +269,435 @@
   const userAvatarEl = document.getElementById('userAvatar');
   const topUserNameEl = document.getElementById('topUserName');
   const settingsAvatarPreview = document.getElementById('settingsAvatarPreview');
+  const settingsCountrySelect = document.getElementById('settingsCountry');
+  const settingsCityInput = document.getElementById('settingsCity');
+  const settingsLocationPicker = document.getElementById('settingsLocationPicker');
+  const settingsLocationOptions = document.getElementById('settingsLocationOptions');
+  const settingsLocationLabel = document.getElementById('settingsLocationLabel');
+  const settingsLocationHint = document.getElementById('settingsLocationHint');
+  const settingsLocationError = document.getElementById('settingsLocationError');
+  const settingsLocationCountries = window.DEVMATCH_CLIENT_PROFILE_OPTIONS.countries;
+  let settingsLocationRegions = {Indonesia: [], Malaysia: [], Singapore: []};
+  let settingsLocationGroup = null;
+  let settingsLocationLoadError = '';
+  let settingsLocationDataReady = false;
+  let settingsLocationInitialValue = {country: 'Indonesia', city: ''};
+  const mobileSettingsDetailBreakpoint = window.matchMedia('(orientation: portrait)');
+  const settingsPage = document.querySelector('.settings-page');
+  let mobileSettingsDetailPage;
+  let mobileSettingsDetailContent;
+  let mobileSettingsDetailTitle;
+  let mobileSettingsDetailPanel;
+  let mobileSettingsDetailPlaceholder;
+  let mobileSettingsDetailCloseTimer;
+  let mobileSettingsPreviousOverflow = '';
+  let mobileSettingsPreviousInert = [];
   let closeExperienceEditors = () => {};
+
+  function getSettingsLocationLabels(country) {
+    if (country === 'Malaysia') return {parent: 'State', parentPlural: 'states', child: 'City', childPlural: 'cities'};
+    if (country === 'Singapore') return {parent: 'Region', parentPlural: 'regions', child: 'Area', childPlural: 'areas'};
+    return {parent: 'Province', parentPlural: 'provinces', child: 'City', childPlural: 'cities'};
+  }
+
+  function settingsLocationArticle(value) {
+    return /^[aeiou]/i.test(value) ? 'an' : 'a';
+  }
+
+  function canonicalSettingsLocation(value, country) {
+    const normalized = String(value || '').trim().toLocaleLowerCase();
+    if (!normalized) return '';
+    const matches = [];
+    (settingsLocationRegions[country] || []).forEach(group => {
+      group.cities.forEach(city => {
+        const canonical = `${group.name}, ${city.name}`;
+        const cityNames = country === 'Indonesia' && group.code === '31'
+          ? [city.name, `Administrasi ${city.name}`]
+          : [city.name];
+        const locationFormats = cityNames.flatMap(name => [
+          `${group.name}, ${name}`,
+          `${name}, ${group.localName || group.name}`,
+          `${name}, ${group.name}`
+        ]);
+        if (locationFormats.some(location => normalized === location.toLocaleLowerCase())
+          || cityNames.some(name => normalized === name.toLocaleLowerCase())) {
+          matches.push(canonical);
+        }
+      });
+    });
+    return matches.length === 1 ? matches[0] : '';
+  }
+
+  async function loadSettingsLocationOptions() {
+    const load = async path => {
+      const response = await fetch(path);
+      if (!response.ok) throw new Error(`Location data request failed with status ${response.status}.`);
+      return response.json();
+    };
+
+    try {
+      const [indonesiaData, internationalData] = await Promise.all([
+        load('assets/data/indonesia-regions.json?v=20261121-location-alpha-v1'),
+        load('assets/data/malaysia-singapore-regions.json?v=20261122-malaysia-singapore-v1')
+      ]);
+      const validGroups = groups => Array.isArray(groups) && groups.length > 0 && groups.every(group =>
+        typeof group.code === 'string' && typeof group.name === 'string'
+        && Array.isArray(group.cities) && group.cities.length > 0
+        && group.cities.every(city => typeof city.code === 'string' && typeof city.name === 'string'));
+      if (!Array.isArray(indonesiaData.provinces) || indonesiaData.provinces.length !== 38
+        || !validGroups(indonesiaData.provinces)) {
+        throw new Error('The Indonesian province and city list is incomplete.');
+      }
+      if (!internationalData.countries
+        || !validGroups(internationalData.countries.Malaysia)
+        || !validGroups(internationalData.countries.Singapore)) {
+        throw new Error('The Malaysia and Singapore location list is incomplete.');
+      }
+
+      settingsLocationRegions = {
+        Indonesia: indonesiaData.provinces,
+        Malaysia: internationalData.countries.Malaysia,
+        Singapore: internationalData.countries.Singapore
+      };
+      settingsLocationDataReady = true;
+    } catch (error) {
+      settingsLocationLoadError = 'Location options could not be loaded. Please refresh the page.';
+      console.error('Unable to load location options for Settings.', error);
+    }
+    renderSettingsLocationControls();
+  }
+
+  function renderSettingsLocationControls() {
+    if (!settingsCountrySelect || !settingsCityInput) return;
+    const country = settingsLocationCountries.includes(settingsCountrySelect.value)
+      ? settingsCountrySelect.value
+      : 'Indonesia';
+    const labels = getSettingsLocationLabels(country);
+    settingsLocationLabel.textContent = `${labels.parent}, ${labels.child}`;
+    settingsCityInput.placeholder = `Search ${settingsLocationArticle(labels.parent)} ${labels.parent.toLocaleLowerCase()} or ${settingsLocationArticle(labels.child)} ${labels.child.toLocaleLowerCase()}`;
+    settingsLocationHint.textContent = settingsLocationLoadError
+      || `Search and select ${settingsLocationArticle(labels.parent)} ${labels.parent.toLocaleLowerCase()}, then ${settingsLocationArticle(labels.child)} ${labels.child.toLocaleLowerCase()}.`;
+    settingsLocationPicker?.classList.remove('open');
+    settingsLocationOptions.hidden = true;
+    settingsLocationGroup = null;
+  }
+
+  function renderSettingsLocationOptions(query = '') {
+    const country = settingsCountrySelect.value;
+    const labels = getSettingsLocationLabels(country);
+    settingsLocationOptions.setAttribute('aria-label', `${labels.parent} and ${labels.child} options`);
+    const normalizedQuery = query.trim().toLocaleLowerCase();
+    if (settingsLocationLoadError) {
+      settingsLocationOptions.innerHTML = `<div class="settings-location-message" role="status">${escapeHtml(settingsLocationLoadError)}</div>`;
+      return;
+    }
+    if (!settingsLocationDataReady) {
+      settingsLocationOptions.innerHTML = '<div class="settings-location-message" role="status">Loading location options…</div>';
+      return;
+    }
+
+    const groups = settingsLocationRegions[country] || [];
+    const entries = settingsLocationGroup
+      ? settingsLocationGroup.cities.map(city => ({type: 'city', code: city.code, name: city.name}))
+      : groups.map(group => ({type: 'group', code: group.code, name: group.name, aliases: [group.localName].filter(Boolean)}));
+    const matches = entries.filter(entry => [entry.name, ...(entry.aliases || [])]
+      .some(name => name.toLocaleLowerCase().includes(normalizedQuery)))
+      .sort((first, second) => first.name.localeCompare(second.name, 'en', {sensitivity: 'base'}));
+    const backButton = settingsLocationGroup
+      ? `<button class="settings-location-back" type="button" role="option" data-location-back>All ${labels.parentPlural}</button>`
+      : '';
+    const heading = settingsLocationGroup
+      ? `<div class="settings-location-heading" role="presentation">${labels.childPlural[0].toLocaleUpperCase() + labels.childPlural.slice(1)} in ${escapeHtml(settingsLocationGroup.name)}</div>`
+      : '';
+    const options = matches.map(entry => `<button class="settings-location-option" type="button" role="option" data-location-option="${entry.type}" data-location-code="${escapeHtml(entry.code)}">${escapeHtml(entry.name)}</button>`).join('');
+    settingsLocationOptions.innerHTML = `${backButton}${heading}${options || '<div class="settings-location-message" role="status">No matches found</div>'}`;
+  }
+
+  function openSettingsLocationPicker() {
+    if (!settingsLocationPicker || settingsLocationPicker.classList.contains('open')) return;
+    settingsLocationGroup = null;
+    settingsCityInput.value = '';
+    const labels = getSettingsLocationLabels(settingsCountrySelect.value);
+    settingsCityInput.placeholder = `Search ${settingsLocationArticle(labels.parent)} ${labels.parent.toLocaleLowerCase()}`;
+    settingsCityInput.setAttribute('aria-label', `Search ${settingsLocationArticle(labels.parent)} ${labels.parent.toLocaleLowerCase()}`);
+    renderSettingsLocationOptions();
+    settingsLocationPicker.classList.add('open');
+    settingsLocationOptions.hidden = false;
+    settingsCityInput.setAttribute('aria-expanded', 'true');
+    settingsLocationPicker.querySelector('.settings-location-toggle')?.setAttribute('aria-expanded', 'true');
+  }
+
+  function closeSettingsLocationPicker({restoreValue = true} = {}) {
+    if (!settingsLocationPicker || !settingsCityInput || !settingsLocationOptions) return;
+    settingsLocationPicker.classList.remove('open');
+    settingsLocationOptions.hidden = true;
+    settingsCityInput.setAttribute('aria-expanded', 'false');
+    settingsLocationPicker.querySelector('.settings-location-toggle')?.setAttribute('aria-expanded', 'false');
+    settingsCityInput.removeAttribute('aria-label');
+    settingsCityInput.value = restoreValue ? profileData.city || '' : '';
+    settingsLocationGroup = null;
+    renderSettingsLocationControls();
+  }
+
+  function selectSettingsLocationOption(option) {
+    if (option.hasAttribute('data-location-back')) {
+      settingsLocationGroup = null;
+      settingsCityInput.value = '';
+      const labels = getSettingsLocationLabels(settingsCountrySelect.value);
+      settingsCityInput.placeholder = `Search ${settingsLocationArticle(labels.parent)} ${labels.parent.toLocaleLowerCase()}`;
+      settingsCityInput.setAttribute('aria-label', `Search ${settingsLocationArticle(labels.parent)} ${labels.parent.toLocaleLowerCase()}`);
+      renderSettingsLocationOptions();
+      settingsCityInput.focus();
+      return;
+    }
+    if (option.dataset.locationOption === 'group') {
+      settingsLocationGroup = settingsLocationRegions[settingsCountrySelect.value]
+        .find(group => group.code === option.dataset.locationCode) || null;
+      if (!settingsLocationGroup) return;
+      const labels = getSettingsLocationLabels(settingsCountrySelect.value);
+      settingsCityInput.value = '';
+      settingsCityInput.placeholder = `Search ${labels.childPlural} in ${settingsLocationGroup.name}`;
+      settingsCityInput.setAttribute('aria-label', `Search ${labels.childPlural} in ${settingsLocationGroup.name}`);
+      renderSettingsLocationOptions();
+      settingsCityInput.focus();
+      return;
+    }
+    if (option.dataset.locationOption === 'city' && settingsLocationGroup) {
+      const city = settingsLocationGroup.cities.find(item => item.code === option.dataset.locationCode);
+      if (!city) return;
+      profileData.city = `${settingsLocationGroup.name}, ${city.name}`;
+      settingsCityInput.value = profileData.city;
+      settingsLocationError.hidden = true;
+      settingsCityInput.removeAttribute('aria-invalid');
+      closeSettingsLocationPicker();
+      settingsCityInput.focus();
+    }
+  }
+
+  function validateSettingsLocation() {
+    const country = settingsCountrySelect.value;
+    const city = settingsCityInput.value.trim();
+    const changed = country !== settingsLocationInitialValue.country || city !== settingsLocationInitialValue.city;
+    const valid = !changed || !city || (
+      settingsLocationDataReady
+      && country === profileData.country
+      && city === profileData.city
+    );
+    settingsLocationError.hidden = valid;
+    settingsCityInput.setAttribute('aria-invalid', String(!valid));
+    if (!valid) settingsCityInput.focus();
+    return valid;
+  }
+
+  const settingsLocationDataPromise = loadSettingsLocationOptions();
+
+  settingsCountrySelect.addEventListener('change', () => {
+    if (settingsCountrySelect.value === profileData.country) {
+      renderSettingsLocationControls();
+      return;
+    }
+    profileData.country = settingsCountrySelect.value;
+    profileData.city = '';
+    settingsLocationError.hidden = true;
+    settingsCityInput.removeAttribute('aria-invalid');
+    closeSettingsLocationPicker({restoreValue: false});
+    renderSettingsLocationControls();
+  });
+
+  settingsCityInput.addEventListener('input', () => renderSettingsLocationOptions(settingsCityInput.value));
+  settingsCityInput.addEventListener('focus', openSettingsLocationPicker);
+  settingsLocationPicker.addEventListener('click', event => {
+    const toggle = event.target.closest('.settings-location-toggle');
+    if (toggle) {
+      if (settingsLocationPicker.classList.contains('open')) closeSettingsLocationPicker();
+      else {
+        openSettingsLocationPicker();
+        settingsCityInput.focus();
+      }
+      return;
+    }
+    const option = event.target.closest('#settingsLocationOptions [role="option"]');
+    if (option) {
+      event.stopPropagation();
+      selectSettingsLocationOption(option);
+    }
+  });
+  settingsLocationPicker.addEventListener('mousedown', event => {
+    if (event.target.closest('#settingsLocationOptions button')) event.preventDefault();
+  });
+  settingsLocationPicker.addEventListener('keydown', event => {
+    if (event.target === settingsCityInput) {
+      if (event.key === 'Tab' && settingsLocationPicker.classList.contains('open')) {
+        closeSettingsLocationPicker();
+        return;
+      }
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        closeSettingsLocationPicker();
+        settingsCityInput.focus();
+      } else if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+        event.preventDefault();
+        if (settingsLocationOptions.hidden) openSettingsLocationPicker();
+        settingsLocationOptions.querySelector('[role="option"]')?.focus();
+      } else if (event.key === 'Enter' && settingsLocationPicker.classList.contains('open')) {
+        event.preventDefault();
+        settingsLocationOptions.querySelector('[data-location-option]')?.click();
+      }
+      return;
+    }
+    const option = event.target.closest('#settingsLocationOptions [role="option"]');
+    if (!option) return;
+    if (event.key === 'Tab') {
+      event.preventDefault();
+      closeSettingsLocationPicker();
+      (event.shiftKey ? settingsCityInput : document.getElementById('settingsBio'))?.focus();
+      return;
+    }
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      closeSettingsLocationPicker();
+      settingsCityInput.focus();
+      return;
+    }
+    const options = [...settingsLocationOptions.querySelectorAll('[role="option"]')];
+    const index = options.indexOf(option);
+    const nextIndex = event.key === 'ArrowDown' ? Math.min(index + 1, options.length - 1)
+      : event.key === 'ArrowUp' ? index > 0 ? index - 1 : -1
+        : event.key === 'Home' ? 0
+          : event.key === 'End' ? options.length - 1
+            : null;
+    if (nextIndex === null) return;
+    event.preventDefault();
+    if (nextIndex < 0) settingsCityInput.focus();
+    else options[nextIndex]?.focus();
+  });
+  document.addEventListener('click', event => {
+    if (settingsLocationPicker && !settingsLocationPicker.contains(event.target)) {
+      closeSettingsLocationPicker();
+    }
+  });
+
+  function returnToMobileSettingsMenu() {
+    if (!mobileSettingsDetailBreakpoint.matches) {
+      closeMobileSettingsDetail();
+      return;
+    }
+    const menuRole = isDeveloper ? 'dev' : 'client';
+    window.location.assign(`devmatch-my-profile.html?role=${menuRole}&openSettings=1`);
+  }
+
+  function createMobileSettingsDetailPage() {
+    if (!settingsPage || navBtns.length === 0) return;
+
+    mobileSettingsDetailPage = document.createElement('section');
+    mobileSettingsDetailPage.className = 'mobile-settings-detail-page';
+    mobileSettingsDetailPage.id = 'mobileSettingsDetailPage';
+    mobileSettingsDetailPage.setAttribute('role', 'dialog');
+    mobileSettingsDetailPage.setAttribute('aria-modal', 'true');
+    mobileSettingsDetailPage.setAttribute('aria-labelledby', 'mobileSettingsDetailTitle');
+    mobileSettingsDetailPage.setAttribute('aria-busy', 'true');
+    mobileSettingsDetailPage.hidden = true;
+
+    const header = document.createElement('header');
+    header.className = 'mobile-settings-detail-header';
+    const backButton = document.createElement('button');
+    backButton.className = 'mobile-settings-detail-back';
+    backButton.type = 'button';
+    backButton.setAttribute('aria-label', 'Back to Settings categories');
+    backButton.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg>';
+    mobileSettingsDetailTitle = document.createElement('h1');
+    mobileSettingsDetailTitle.className = 'mobile-settings-detail-title';
+    mobileSettingsDetailTitle.id = 'mobileSettingsDetailTitle';
+    header.append(backButton, mobileSettingsDetailTitle);
+
+    mobileSettingsDetailContent = document.createElement('div');
+    mobileSettingsDetailContent.className = 'mobile-settings-detail-content';
+    mobileSettingsDetailContent.inert = document.body.classList.contains('devmatch-settings-loading');
+    mobileSettingsDetailContent.setAttribute('aria-busy', String(mobileSettingsDetailContent.inert));
+    mobileSettingsDetailPage.append(header, mobileSettingsDetailContent);
+    document.body.appendChild(mobileSettingsDetailPage);
+
+    backButton.addEventListener('click', returnToMobileSettingsMenu);
+  }
+
+  function lockMobileSettingsBackground() {
+    mobileSettingsPreviousOverflow = document.body.style.overflow;
+    mobileSettingsPreviousInert = [...document.querySelectorAll(
+      'body > header.topbar, body > .sidebar, body > .client-sidebar, body > main, body > .mobile-bottom-nav, body > .floating-chat'
+    )].map(element => ({element, inert: element.inert}));
+    mobileSettingsPreviousInert.forEach(({element}) => { element.inert = true; });
+    document.body.style.overflow = 'hidden';
+  }
+
+  function openMobileSettingsDetail(tabId) {
+    if (!mobileSettingsDetailPage || !mobileSettingsDetailBreakpoint.matches) return;
+    const panel = document.getElementById(`panel-${tabId}`);
+    const navButton = Array.from(navBtns).find(button => button.dataset.tab === tabId);
+    if (!panel || !navButton) return;
+    if (mobileSettingsDetailPanel === panel && !mobileSettingsDetailPage.hidden) {
+      if (mobileSettingsDetailCloseTimer !== undefined) {
+        clearTimeout(mobileSettingsDetailCloseTimer);
+        mobileSettingsDetailCloseTimer = undefined;
+        lockMobileSettingsBackground();
+        requestAnimationFrame(() => {
+          mobileSettingsDetailPage.classList.add('is-open');
+          mobileSettingsDetailPage.querySelector('.mobile-settings-detail-back')?.focus();
+        });
+      }
+      return;
+    }
+
+    if (mobileSettingsDetailPanel && mobileSettingsDetailPlaceholder) {
+      mobileSettingsDetailPlaceholder.replaceWith(mobileSettingsDetailPanel);
+    }
+
+    const titleSource = navButton.cloneNode(true);
+    titleSource.querySelector('.settings-nav-badge')?.remove();
+    mobileSettingsDetailTitle.textContent = titleSource.textContent.trim();
+    mobileSettingsDetailPlaceholder = document.createComment('settings detail panel position');
+    panel.before(mobileSettingsDetailPlaceholder);
+    mobileSettingsDetailContent.replaceChildren(panel);
+    panel.hidden = false;
+    mobileSettingsDetailPanel = panel;
+
+    clearTimeout(mobileSettingsDetailCloseTimer);
+    mobileSettingsDetailCloseTimer = undefined;
+    lockMobileSettingsBackground();
+    mobileSettingsDetailPage.hidden = false;
+    requestAnimationFrame(() => {
+      mobileSettingsDetailPage.classList.add('is-open');
+      mobileSettingsDetailPage.querySelector('.mobile-settings-detail-back')?.focus();
+    });
+  }
+
+  function closeMobileSettingsDetail(immediate = false) {
+    if (!mobileSettingsDetailPage || mobileSettingsDetailPage.hidden) return;
+    mobileSettingsDetailPage.classList.remove('is-open');
+    document.body.style.overflow = mobileSettingsPreviousOverflow;
+    mobileSettingsPreviousInert.forEach(({element, inert}) => { element.inert = inert; });
+    mobileSettingsPreviousInert = [];
+
+    const finishClosing = () => {
+      mobileSettingsDetailPage.hidden = true;
+      if (mobileSettingsDetailPanel && mobileSettingsDetailPlaceholder) {
+        mobileSettingsDetailPlaceholder.replaceWith(mobileSettingsDetailPanel);
+      }
+      mobileSettingsDetailPanel = null;
+      mobileSettingsDetailPlaceholder = null;
+      mobileSettingsDetailCloseTimer = undefined;
+      Array.from(navBtns).find(button => button.classList.contains('active'))?.focus();
+    };
+
+    clearTimeout(mobileSettingsDetailCloseTimer);
+    mobileSettingsDetailCloseTimer = undefined;
+    if (immediate || window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      finishClosing();
+      return;
+    }
+    mobileSettingsDetailCloseTimer = window.setTimeout(finishClosing, 240);
+  }
+
+  createMobileSettingsDetailPage();
 
   // Tab switching
   function switchTab(tabId, updateLocation = true) {
@@ -294,7 +722,39 @@
   navBtns.forEach(btn => {
     btn.addEventListener('click', () => {
       switchTab(btn.dataset.tab);
+      if (mobileSettingsDetailBreakpoint.matches) openMobileSettingsDetail(btn.dataset.tab);
     });
+  });
+
+  mobileSettingsDetailBreakpoint.addEventListener('change', event => {
+    if (event.matches) {
+      const activeTab = Array.from(navBtns).find(button => button.classList.contains('active'))?.dataset.tab || 'account';
+      openMobileSettingsDetail(activeTab);
+    } else {
+      closeMobileSettingsDetail(true);
+    }
+  });
+
+  document.addEventListener('keydown', event => {
+    if (!mobileSettingsDetailPage || mobileSettingsDetailPage.hidden) return;
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      returnToMobileSettingsMenu();
+      return;
+    }
+    if (event.key !== 'Tab') return;
+
+    const focusable = [...mobileSettingsDetailPage.querySelectorAll('a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])')]
+      .filter(element => !element.hidden && !element.closest('[inert]') && element.getClientRects().length > 0);
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    if (event.shiftKey && document.activeElement === first) {
+      event.preventDefault();
+      last?.focus();
+    } else if (!event.shiftKey && document.activeElement === last) {
+      event.preventDefault();
+      first?.focus();
+    }
   });
 
   // Check URL Hash on load
@@ -308,12 +768,16 @@
         ? hash
         : 'account';
     switchTab(panelTab, false);
+    if (hash && Array.from(navBtns).some(button => button.dataset.tab === panelTab)) {
+      openMobileSettingsDetail(panelTab);
+    }
     return target && targetPanel && target !== targetPanel ? target : null;
   }
 
   function openProfileDetailsTarget() {
     if (params.get('edit') !== null && window.location.hash.replace('#', '') === 'profile-details') {
       switchTab('profile-details');
+      if (mobileSettingsDetailBreakpoint.matches) openMobileSettingsDetail('profile-details');
     }
     const target = params.get('edit');
     if (target === 'specialization') {
@@ -338,8 +802,16 @@
     setVal('settingsDisplayName', profileData.displayName);
     setVal('settingsUsername', profileData.username || '');
     setVal('settingsEmail', profileData.email || '');
-    setVal('settingsPhone', profileData.phone || '');
-    setVal('settingsCity', profileData.city || '');
+    profileData.country = settingsLocationCountries.includes(profileData.country)
+      ? profileData.country
+      : 'Indonesia';
+    settingsCountrySelect.value = profileData.country;
+    settingsCountrySelect.dispatchEvent(new Event('change', {bubbles: true}));
+    profileData.city = canonicalSettingsLocation(profileData.city, profileData.country)
+      || (typeof profileData.city === 'string' ? profileData.city : '');
+    settingsCityInput.value = profileData.city;
+    settingsLocationInitialValue = {country: profileData.country, city: profileData.city};
+    renderSettingsLocationControls();
     setVal('settingsBio', profileData.bio || '');
     setVal('settingsWhatsapp', profileData.whatsapp || '');
     profileSkills = normalizeSkills(profileData.skills, []);
@@ -472,15 +944,18 @@
   if (accountForm) {
     accountForm.addEventListener('submit', async function(e) {
       e.preventDefault();
+      if (!validateSettingsLocation()) return;
       profileData.displayName = document.getElementById('settingsDisplayName').value.trim();
       profileData.username = document.getElementById('settingsUsername').value.trim();
       profileData.email = document.getElementById('settingsEmail').value.trim();
-      profileData.city = document.getElementById('settingsCity').value.trim();
+      profileData.country = settingsCountrySelect.value;
+      profileData.city = settingsCityInput.value.trim();
       profileData.bio = document.getElementById('settingsBio').value.trim();
       profileData.whatsapp = document.getElementById('settingsWhatsapp').value.trim().replace(/\D/g, '');
 
       try {
         await persistProfile(profileData);
+        settingsLocationInitialValue = {country: profileData.country, city: profileData.city};
         showToast('Profile and account details saved successfully!');
         updateAvatarPreview();
         renderAppConnection('WhatsApp', profileData.whatsappConnected ?? Boolean(profileData.whatsapp));
@@ -1814,16 +2289,23 @@
 
   // Initialize
   setupWorkspaceLinks();
+  if (mobileSettingsDetailBreakpoint.matches && !window.location.hash) {
+    const menuRole = isDeveloper ? 'dev' : 'client';
+    window.location.replace(`devmatch-my-profile.html?role=${menuRole}&openSettings=1`);
+    return;
+  }
   const hashScrollTarget = initHashTab();
   (async () => {
     ['bankName', 'accountNumber', 'accountHolder', 'npwp'].forEach(field => delete profileData[field]);
     try {
       Object.assign(profileData, await window.devMatchBackend.loadPrivateProfileFields());
+      await settingsLocationDataPromise;
       privateProfileFieldsLoaded = true;
       populateForm();
       openProfileDetailsTarget();
     } catch (error) {
       console.error('Unable to load private payout and tax details.', error);
+      await settingsLocationDataPromise;
       populateForm();
       openProfileDetailsTarget();
       showToast('Unable to load private payout and tax details. Reload the page and try again.');
@@ -1831,6 +2313,12 @@
       document.body.classList.remove('devmatch-settings-loading');
       settingsContent?.removeAttribute('inert');
       settingsContent?.removeAttribute('aria-busy');
+      mobileSettingsDetailContent?.removeAttribute('inert');
+      mobileSettingsDetailContent?.setAttribute('aria-busy', 'false');
+      mobileSettingsDetailPage?.setAttribute('aria-busy', 'false');
+      if (mobileSettingsDetailPage && !mobileSettingsDetailPage.hidden) {
+        mobileSettingsDetailPage.querySelector('.mobile-settings-detail-back')?.focus();
+      }
       if (hashScrollTarget && window.location.hash === `#${hashScrollTarget.id}`) {
         requestAnimationFrame(() => hashScrollTarget.scrollIntoView({block: 'start', behavior: 'instant'}));
       }

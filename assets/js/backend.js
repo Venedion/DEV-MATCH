@@ -99,7 +99,7 @@
     .devmatch-skeleton-card--marketplace-project .catalog-project-by { height: 48px; display: grid; grid-template-columns: 38px minmax(0, 1fr) auto; align-items: center; margin-top: auto; padding-top: 10px; }
     .devmatch-skeleton-card--favorite-project { min-height: 0; padding: 0; gap: 0; align-content: start; overflow: hidden; }
     .devmatch-skeleton-card--favorite-project .fav-card-footer { min-height: 42px; }
-    @media (max-width: 640px) {
+    @media (orientation: portrait) {
       .devmatch-skeleton-card--client { padding: 16px; }
     }
     .devmatch-skeleton-row { display: grid; grid-template-columns: 34px minmax(0, 1fr); align-items: center; gap: 10px; min-height: 55px; padding: 9px 0; border-top: 1px solid #efeff1; }
