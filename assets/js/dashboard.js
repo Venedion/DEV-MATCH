@@ -31,6 +31,14 @@
     comments: document.getElementById('totalComments')
   };
   const projectList = document.getElementById('projectList');
+  const performanceChart = document.getElementById('performanceChart');
+  const performanceBars = document.getElementById('performanceBars');
+  const performanceYAxis = document.getElementById('performanceYAxis');
+  const performanceXAxis = document.getElementById('performanceXAxis');
+  const performanceDetail = document.getElementById('performanceDetail');
+  const chartState = document.getElementById('dashboardChartState');
+  const chartViews = document.getElementById('chartViews');
+  const chartTrend = document.getElementById('chartTrend');
   const commentsList = document.querySelector('.comment-list');
   const interactionList = document.querySelector('.interaction-list');
   const periodSelect = document.getElementById('periodSelect');
@@ -51,7 +59,7 @@
   const periodCalendar = document.getElementById('periodCalendar');
   const stateText = {
     loading: 'Loading your dashboard…',
-    emptyProjects: 'No projects yet. Add a project to see it here.',
+    emptyProjects: 'No project views in this date range.',
     emptyComments: 'No comments on your projects yet.',
     emptyCommentsInRange: 'No comments in this date range.',
     emptyActivity: 'Recent project activity will appear here.',
@@ -61,6 +69,10 @@
   let currentUser = null;
   let currentProjects = [];
   let rangeRequestId = 0;
+  let performanceRequestId = 0;
+  let metricsRequestId = 0;
+  let performanceChannel;
+  let performanceRefreshTimer = null;
   let appliedRange = null;
   let draftRange = null;
   let calendarMonth = null;
@@ -231,6 +243,11 @@
     document.querySelectorAll('.period-presets [data-preset]').forEach(button => {
       button.setAttribute('aria-pressed', String(button.dataset.preset === activePreset));
     });
+    document.querySelectorAll('[data-chart-range]').forEach(button => {
+      const selected = button.dataset.chartRange === range?.key;
+      button.setAttribute('aria-pressed', String(selected));
+      button.classList.toggle('selected', selected);
+    });
   }
 
   function updateRangeControls(range) {
@@ -245,13 +262,7 @@
         ? 'Your account-wide project metrics and recent activity.'
         : `Metrics and activity for ${label.toLowerCase()}.`;
     }
-    const chartState = document.getElementById('dashboardChartState');
     const chartViewsLabel = document.getElementById('chartViewsLabel');
-    if (chartState) {
-      chartState.textContent = range.key === 'lifetime'
-        ? 'Views are provided as an account-wide total.'
-        : `Views within ${label.toLowerCase()}.`;
-    }
     if (chartViewsLabel) chartViewsLabel.textContent = range.key === 'lifetime' ? 'Total views' : 'Views in range';
     document.querySelectorAll('.stat-card .comparison').forEach(element => {
       element.textContent = label;
@@ -567,6 +578,7 @@
   }
 
   async function loadMetrics(range, requestId) {
+    const metricsId = ++metricsRequestId;
     const { data, error } = await client.rpc('get_dashboard_metrics_for_range', {
       p_role: 'dev',
       p_start_date: range.startDate,
@@ -578,29 +590,89 @@
       || Object.keys(metricElements).some(key => metrics[key] == null || !Number.isFinite(Number(metrics[key])))) {
       throw new Error('Dashboard metrics are unavailable.');
     }
-    if (requestId !== rangeRequestId) return;
+    if (requestId !== rangeRequestId || metricsId !== metricsRequestId) return;
     Object.entries(metricElements).forEach(([key, element]) => {
       if (element) element.textContent = formatNumber(metrics[key]);
     });
-    const chartViews = document.getElementById('chartViews');
-    if (chartViews) chartViews.textContent = formatNumber(metrics.views);
     const status = document.getElementById('dashboardStatus');
     if (status) status.hidden = true;
   }
 
-  async function loadProjects(user) {
-    const { data, error } = await client.from('projects')
-      .select('id,title,project_type,status')
-      .eq('owner_id', user.id)
-      .eq('project_kind', 'portfolio')
-      .order('updated_at', { ascending: false });
-    if (error) throw error;
-    if (!data?.length) {
-      showMessage(projectList, stateText.emptyProjects);
-      return [];
+  function chartLabel(value) {
+    return fromDateKey(value)?.toLocaleDateString('en-US', {month: 'short', day: 'numeric', timeZone: 'UTC'}) || '';
+  }
+
+  function renderPerformance({views, previous_views: previous, series}) {
+    chartViews.textContent = formatNumber(views);
+    chartTrend.hidden = !(previous > 0);
+    if (!chartTrend.hidden) {
+      const change = (views - previous) * 100 / previous;
+      const prefix = change > 0 ? '+' : '';
+      chartTrend.textContent = `${prefix}${change.toLocaleString('en-US', {maximumFractionDigits: 1})}%`;
+      chartTrend.dataset.direction = change < 0 ? 'down' : 'up';
+      chartTrend.title = 'Compared with the previous period of the same length';
     }
-    projectList.replaceChildren();
-    data.slice(0, 5).forEach(project => {
+    const peak = Math.max(0, ...series.flatMap(bucket => [bucket.views, bucket.favorites]));
+    performanceChart.hidden = !peak;
+    chartState.hidden = Boolean(peak);
+    if (!peak) {
+      chartState.textContent = 'No views or favorites in this date range.';
+      performanceBars.replaceChildren();
+      performanceXAxis.replaceChildren();
+      performanceYAxis.replaceChildren();
+      return;
+    }
+    const step = 10 ** Math.floor(Math.log10(Math.max(1, peak / 4)));
+    const tick = Math.max(1, Math.ceil(peak / (step * 4)) * step);
+    const maximum = tick * 4;
+    performanceChart.style.setProperty('--bucket-count', series.length);
+    performanceYAxis.replaceChildren(...[4, 3, 2, 1, 0].map(level => {
+      const label = document.createElement('span');
+      label.textContent = formatNumber(tick * level);
+      return label;
+    }));
+
+    const bars = series.map(bucket => {
+      const range = bucket.start_date === bucket.end_date ? chartLabel(bucket.start_date)
+        : `${chartLabel(bucket.start_date)} – ${chartLabel(bucket.end_date)}`;
+      const detail = `${range} · ${formatNumber(bucket.views)} views · ${formatNumber(bucket.favorites)} favorites`;
+      const group = document.createElement('button');
+      group.className = 'performance-bin';
+      group.type = 'button';
+      group.setAttribute('aria-label', detail);
+      group.title = detail;
+      const describe = () => { performanceDetail.textContent = detail; };
+      group.addEventListener('focus', describe);
+      group.addEventListener('pointerenter', describe);
+      group.addEventListener('click', describe);
+      for (const metric of ['views', 'favorites']) {
+        const bar = document.createElement('span');
+        bar.className = `performance-bar ${metric}`;
+        bar.style.setProperty('--bar-height', `${bucket[metric] * 100 / maximum}%`);
+        group.append(bar);
+      }
+      return group;
+    });
+    performanceBars.replaceChildren(...bars);
+    const labelCount = Math.min(5, series.length);
+    performanceXAxis.replaceChildren(...Array.from({length: labelCount}, (_, labelIndex) => {
+      const last = labelIndex === labelCount - 1 && labelCount > 1;
+      const index = Math.round(labelIndex * (series.length - 1) / Math.max(1, labelCount - 1));
+      const label = document.createElement('span');
+      label.style.gridColumn = String(index + 1);
+      label.textContent = chartLabel(last ? series[index].end_date : series[index].start_date);
+      return label;
+    }));
+    performanceDetail.textContent = '';
+  }
+
+  function renderViewedProjects(projects) {
+    if (!projects.length) {
+      showMessage(projectList, stateText.emptyProjects, 'range-empty');
+      return;
+    }
+    const maximumViews = projects[0].views;
+    projectList.replaceChildren(...projects.map(project => {
       const row = document.createElement('article');
       row.className = 'project-row';
       const info = document.createElement('div');
@@ -608,7 +680,15 @@
       const thumb = document.createElement('span');
       thumb.className = 'project-thumb';
       thumb.setAttribute('aria-hidden', 'true');
-      thumb.textContent = '↗';
+      if (typeof project.cover_image === 'string' && /^https:\/\//i.test(project.cover_image)) {
+        const image = document.createElement('img');
+        image.src = project.cover_image;
+        image.alt = '';
+        image.loading = 'lazy';
+        thumb.append(image);
+      } else {
+        thumb.textContent = '↗';
+      }
       const copy = document.createElement('div');
       const title = document.createElement('h3');
       title.className = 'project-name';
@@ -617,14 +697,78 @@
       type.className = 'project-type';
       type.textContent = project.project_type || 'Project';
       copy.append(title, type);
-      const status = document.createElement('p');
-      status.className = 'project-views';
-      status.textContent = project.status === 'published' ? 'Published' : 'Draft';
-      info.append(thumb, copy, status);
-      row.append(info);
-      projectList.append(row);
-    });
-    return data;
+      const views = document.createElement('p');
+      views.className = 'project-views';
+      views.textContent = formatNumber(project.views);
+      const unit = document.createElement('small');
+      unit.textContent = 'views';
+      views.append(unit);
+      info.append(thumb, copy, views);
+      const track = document.createElement('div');
+      track.className = 'project-bar';
+      track.setAttribute('aria-hidden', 'true');
+      const bar = document.createElement('i');
+      bar.style.width = `${project.views * 100 / maximumViews}%`;
+      track.append(bar);
+      row.append(info, track);
+      return row;
+    }));
+  }
+
+  async function loadPerformance(range, requestId) {
+    const performanceId = ++performanceRequestId;
+    try {
+      const {data, error} = await client.rpc('get_developer_project_performance', {
+        p_start_date: range.startDate,
+        p_end_date: range.endDate
+      });
+      if (error) throw error;
+      if (requestId !== rangeRequestId || performanceId !== performanceRequestId) return;
+      renderPerformance(data);
+      renderViewedProjects(data.ranking);
+    } catch (error) {
+      if (requestId !== rangeRequestId || performanceId !== performanceRequestId) return;
+      console.error('Unable to load project performance.', error);
+      performanceChart.hidden = true;
+      chartTrend.hidden = true;
+      chartViews.textContent = '—';
+      chartState.hidden = false;
+      chartState.textContent = stateText.error;
+      setError(projectList, stateText.error);
+    }
+  }
+
+  function schedulePerformanceRefresh() {
+    if (!currentUser || document.hidden || performanceRefreshTimer !== null) return;
+    performanceRefreshTimer = window.setTimeout(() => {
+      performanceRefreshTimer = null;
+      if (document.hidden) return;
+      const requestId = rangeRequestId;
+      const range = appliedRange;
+      void loadPerformance(range, requestId);
+      void loadMetrics(range, requestId).catch(error => console.error('Unable to refresh dashboard metrics.', error));
+    }, 250);
+  }
+
+  async function subscribePerformance() {
+    const {data, error} = await client.auth.getSession();
+    if (error || data.session?.user.id !== currentUser.id) return;
+    await client.realtime.setAuth(data.session.access_token);
+    performanceChannel = client.channel(`devmatch-project-performance:${currentUser.id}`, {config: {private: true}})
+      .on('broadcast', {event: 'refresh'}, schedulePerformanceRefresh)
+      .subscribe(status => {
+        if (status === 'SUBSCRIBED') schedulePerformanceRefresh();
+      });
+  }
+
+  async function loadProjects(user) {
+    const { data, error } = await client.from('projects')
+      .select('id,title')
+      .eq('owner_id', user.id)
+      .eq('project_kind', 'portfolio')
+      .order('updated_at', { ascending: false });
+    if (error) throw error;
+    return data || [];
   }
 
   async function loadComments(projects, range, requestId) {
@@ -839,8 +983,12 @@
     Object.values(metricElements).forEach(element => {
       if (element) window.DEVMATCH_SKELETON?.text(element,'Loading dashboard metric','42px');
     });
-    const chartViews = document.getElementById('chartViews');
     if (chartViews) window.DEVMATCH_SKELETON?.text(chartViews,'Loading dashboard views','42px');
+    performanceChart.hidden = true;
+    chartTrend.hidden = true;
+    chartState.hidden = false;
+    chartState.textContent = 'Loading project performance…';
+    showMessage(projectList, 'Loading most viewed projects…', 'range-empty');
     showMessage(commentsList, stateText.loading, 'range-empty');
     showMessage(interactionList, stateText.loading, 'range-empty');
     const status = document.getElementById('dashboardStatus');
@@ -850,6 +998,7 @@
     }
 
     await Promise.all([
+      loadPerformance(range, requestId),
       loadMetrics(range, requestId).catch(error => {
         if (requestId !== rangeRequestId) return;
         console.error('Unable to load dashboard metrics.', error);
@@ -879,7 +1028,6 @@
     Object.values(metricElements).forEach(element => {
       if (element) window.DEVMATCH_SKELETON?.text(element,'Loading dashboard metric','42px');
     });
-    const chartViews = document.getElementById('chartViews');
     if (chartViews) window.DEVMATCH_SKELETON?.text(chartViews,'Loading dashboard views','42px');
     const status = document.getElementById('dashboardStatus');
     if (status) {
@@ -904,10 +1052,10 @@
       currentUser = user;
       currentProjects = await loadProjects(user).catch(error => {
         console.error('Unable to load dashboard projects.', error);
-        setError(projectList, stateText.error);
         return [];
       });
       await applyRange(createPresetRange('30'));
+      void subscribePerformance().catch(error => console.error('Unable to subscribe to project performance.', error));
       const readIds = await backend.loadNotificationReads();
       const { data: notifications, error } = await client.from('notifications')
         .select('id')
@@ -932,6 +1080,18 @@
   const initialRange = createPresetRange('30');
   appliedRange = initialRange;
   updateRangeControls(initialRange);
+  document.querySelectorAll('[data-chart-range]').forEach(button => {
+    button.addEventListener('click', () => {
+      const range = createPresetRange(button.dataset.chartRange);
+      if (range) void applyRange(range);
+    });
+  });
+  document.addEventListener('visibilitychange', schedulePerformanceRefresh);
+  window.addEventListener('pagehide', event => {
+    if (event.persisted) return;
+    if (performanceRefreshTimer !== null) window.clearTimeout(performanceRefreshTimer);
+    if (performanceChannel) void client.removeChannel(performanceChannel);
+  });
   if (rangeStartInput && rangeEndInput) {
     rangeStartInput.value = formatDateInput(initialRange.startDate);
     rangeEndInput.value = formatDateInput(initialRange.endDate);

@@ -18,6 +18,7 @@ const C = '33333333-3333-4333-8333-333333333333';
     alter table realtime.messages enable row level security;
     grant select,insert on realtime.messages to authenticated;
     create function realtime.topic() returns text language sql stable as $$ select current_setting('request.realtime.topic',true) $$;
+    create function realtime.send(jsonb, text, text, boolean) returns void language sql as $$ select pg_catalog.pg_sleep(0) $$;
     create table storage.buckets(id text primary key,name text,public boolean,file_size_limit bigint,allowed_mime_types text[]);
     create table storage.objects(id uuid primary key default gen_random_uuid(),bucket_id text,name text,owner uuid);
     alter table storage.objects enable row level security;
@@ -28,6 +29,7 @@ const C = '33333333-3333-4333-8333-333333333333';
   const dir = path.join(__dirname, '../supabase/migrations');
   let isolationMigration; let activityMigration; let separationMigration;
   let commentAuthorMigration;
+  const paymentMigrations = [];
   for (const file of fs.readdirSync(dir).filter(f => f.endsWith('.sql')).sort()) {
     // Registration uses external proof-of-work and pgcrypto, tested separately.
     if (file.includes('registration_protection')) continue;
@@ -39,6 +41,10 @@ const C = '33333333-3333-4333-8333-333333333333';
     if (file.includes('chat_presence_and_receipts')) {activityMigration=fs.readFileSync(path.join(dir,file),'utf8');continue;}
     if (file.includes('workspace_data_isolation')) { isolationMigration=fs.readFileSync(path.join(dir,file),'utf8'); continue; }
     if (file.includes('separate_chat_workspace_threads')) { separationMigration=fs.readFileSync(path.join(dir,file),'utf8'); continue; }
+    if (file.includes('midtrans_sandbox_payments') || file.includes('payment_room_chat_context')) {
+      paymentMigrations.push(fs.readFileSync(path.join(dir,file),'utf8'));
+      continue;
+    }
     if (file === '202611190001_sync_project_comment_display_names.sql') {commentAuthorMigration=fs.readFileSync(path.join(dir,file),'utf8');continue;}
     try { await db.exec(fs.readFileSync(path.join(dir, file), 'utf8')); }
     catch (error) { throw new Error(`${file}: ${error.message}`); }
@@ -62,6 +68,7 @@ const C = '33333333-3333-4333-8333-333333333333';
   await db.exec(isolationMigration);
   await db.exec(activityMigration);
   await db.exec(separationMigration);
+  for (const migration of paymentMigrations) await db.exec(migration);
   assert.equal((await db.query("select participant_a_role from public.conversations")).rows[0].participant_a_role,'client');
   assert.equal((await db.query("select workspace_role from public.favorites")).rows[0].workspace_role,'client');
   assert.equal((await db.query("select recipient_role from public.notifications")).rows[0].recipient_role,'client');

@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="assets/css/dashboard.css?v=20261123-comment-reference-style-v1">
+  <link rel="stylesheet" href="assets/css/dashboard.css?v=20261125-project-performance">
   <link rel="stylesheet" href="assets/css/comment-system.css?v=20261122-reference-ui-v2">
   <link rel="stylesheet" href="assets/css/mode-switch-animation.css?v=20261030-active-indicator">
   <link rel="stylesheet" href="assets/css/mobile-navigation.css?v=20261125-bottom-nav-responsive-breakpoint-v1">
@@ -123,12 +123,36 @@
 
     <section class="content-grid">
       <article class="panel performance-panel">
-        <div class="panel-heading"><div><h2>Project performance</h2><div class="chart-summary"><strong id="chartViews">—</strong><span id="chartViewsLabel">Views in range</span></div></div></div>
-        <p id="dashboardChartState" role="status">Views within the selected date range.</p>
+        <div class="panel-heading performance-heading">
+          <h2>Project performance</h2>
+          <div class="chart-controls" role="group" aria-label="Project performance period">
+            <button type="button" data-chart-range="7" aria-pressed="false">7D</button>
+            <button type="button" data-chart-range="30" class="selected" aria-pressed="true">30D</button>
+            <button type="button" data-chart-range="90" aria-pressed="false">90D</button>
+          </div>
+        </div>
+        <div class="performance-summary">
+          <div class="chart-summary">
+            <strong id="chartViews">—</strong>
+            <span id="chartViewsLabel">Views in range</span>
+            <span id="chartTrend" class="chart-trend" hidden></span>
+          </div>
+          <div class="chart-legend">
+            <span><i class="legend-views"></i>Views</span>
+            <span><i class="legend-favorites"></i>Favorites</span>
+          </div>
+        </div>
+        <p class="range-empty" id="dashboardChartState" role="status">Loading project performance…</p>
+        <div class="performance-chart" id="performanceChart" hidden>
+          <div class="performance-y-axis" id="performanceYAxis" aria-hidden="true"></div>
+          <div class="performance-bars" id="performanceBars" role="group" aria-label="Views and favorites by date"></div>
+          <div class="performance-x-axis" id="performanceXAxis" aria-hidden="true"></div>
+          <p class="performance-detail" id="performanceDetail"></p>
+        </div>
       </article>
       <article class="panel viewed-panel" id="projects">
-        <div class="panel-heading"><h2>Your projects</h2><a href="devmatch-my-projects.html">View all</a></div>
-        <div class="project-list" id="projectList" aria-live="polite"><p>Loading projects…</p></div>
+        <div class="panel-heading"><h2>Most viewed projects</h2><a href="devmatch-my-projects.html">View all</a></div>
+        <div class="project-list" id="projectList" aria-live="polite"><p>Loading most viewed projects…</p></div>
       </article>
     </section>
 
@@ -149,7 +173,7 @@
   <a class="floating-chat" href="devmatch-chat.html" aria-label="Messages &amp; Chat" title="Open Messages &amp; Chat">
     <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5c-5 0-9 3.65-9 8.15 0 2.24 1.04 4.27 2.73 5.74L4.7 21l5.24-1.28c.67.12 1.36.18 2.06.18 5 0 9-3.65 9-8.15S17 3.5 12 3.5Z"/><circle cx="8.5" cy="11.7" r="1" fill="currentColor" stroke="none"/><circle cx="12" cy="11.7" r="1" fill="currentColor" stroke="none"/><circle cx="15.5" cy="11.7" r="1" fill="currentColor" stroke="none"/></svg>
   </a>
-  <script src="assets/js/dashboard.js?v=20261123-fluent-shimmer-v2"></script>
+  <script src="assets/js/dashboard.js?v=20261125-project-performance"></script>
   <script src="assets/js/nav-behavior.js?v=20261125-bottom-nav-responsive-breakpoint-v1"></script>
 <script src="assets/js/presence.js?v=20261119-global"></script>
 </body>
