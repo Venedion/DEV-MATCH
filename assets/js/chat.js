@@ -59,6 +59,7 @@
   let currentUser = null;
   let currentProfile = null;
   let conversations = [];
+  let openedRoom = null;
   let activeConvId = null;
   let currentFilter = 'all';
   let searchQuery = '';
@@ -179,6 +180,8 @@
     const project = projects.get(row.project_id) || null;
     const conversation = {
       id: row.id,
+      sourceIds: [row.id, ...(row.source_conversations || []).map(source => source.id)],
+      paymentConversationId: row.payment_conversation_id || row.last_message?.conversation_id || row.id,
       contactId: person?.username || otherId,
       participantId: otherId,
       name: person?.username || person?.display_name || 'Unavailable account',
@@ -257,6 +260,21 @@
   async function loadConversationList() {
     const rows = await invokeChat('list-conversations');
     if (!Array.isArray(rows)) throw new Error('Chat service returned an invalid conversation list.');
+    if (openedRoom) {
+      const index = rows.findIndex(row => row.id === openedRoom.id ||
+        row.source_conversations?.some(source => source.id === openedRoom.id));
+      if (index < 0) {
+        rows.unshift(openedRoom);
+      } else {
+        const listed = rows[index];
+        rows[index] = {
+          ...listed,
+          id: openedRoom.id,
+          project_id: openedRoom.project_id || listed.project_id,
+          payment_conversation_id: openedRoom.project_id ? openedRoom.id : undefined
+        };
+      }
+    }
 
     const projectIds = [...new Set(rows.map(row => row.project_id).filter(Boolean))];
     let projects = [];
@@ -653,7 +671,8 @@
         if (!conversationId) return;
         try {
           await loadConversationList();
-          if (conversationId === activeConvId) await loadMessages(conversationId);
+          const active = getActiveConversation();
+          if (active?.sourceIds.includes(conversationId)) await loadMessages(active.id);
         } catch (error) {
           console.error('Unable to refresh real-time chat messages.', error);
           setStatus(error.message || 'Unable to refresh messages.', true);
@@ -865,8 +884,7 @@
     const projectId = params.get('project') || params.get('request');
     if (projectId) {
       const conversation = await invokeChat('start-project', {projectId});
-      await loadConversationList();
-      await selectConversation(conversation.id);
+      await openStartedRoom(conversation);
       return;
     }
     const contact = params.get('contact');
@@ -875,14 +893,29 @@
       const recipient = await lookupContact(contact, participantId);
       if (!recipient) throw new Error('This contact is not available in the public directory.');
       const conversation = await invokeChat('start-user', {participantId: recipient.id});
-      await loadConversationList();
-      await selectConversation(conversation.id);
+      await openStartedRoom(conversation, recipient);
       return;
     }
     const requestedConversation = params.get('conversation');
     if (requestedConversation && conversations.some(item => item.id === requestedConversation)) {
       await selectConversation(requestedConversation);
     }
+  }
+
+  async function openStartedRoom(conversation, contact) {
+    if (!UUID_PATTERN.test(conversation?.id || '')) throw new Error('Chat service did not return a conversation.');
+    if (!contact) {
+      const isFirst = conversation.participant_a_id === currentUser.id;
+      const peerId = isFirst ? conversation.participant_b_id : conversation.participant_a_id;
+      const peerRole = isFirst ? conversation.participant_b_role : conversation.participant_a_role;
+      const {data} = await client.from('directory_people').select('id,username,display_name,account_role')
+        .eq('id', peerId).eq('account_role', peerRole).maybeSingle();
+      contact = data || {id: peerId, account_role: peerRole};
+    }
+    // The inbox omits empty rooms until their first message arrives.
+    openedRoom = {...conversation, contact, payment_conversation_id: conversation.id};
+    await loadConversationList();
+    await selectConversation(conversation.id);
   }
 
   function updateShell(profile) {

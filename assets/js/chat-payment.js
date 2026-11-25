@@ -334,7 +334,8 @@
 
   window.DEVMATCH_ROOM_PAYMENT = {
     setRoom(conversation) {
-      const key = conversation?.project ? JSON.stringify([conversation.id, conversation.project.id]) : null;
+      const key = conversation?.project
+        ? JSON.stringify([conversation.paymentConversationId || conversation.id, conversation.project.id]) : null;
       if (key === chatRoomKey) return;
       roomKey = chatRoomKey = key;
       roomTitle = chatRoomTitle = conversation?.project?.title;
