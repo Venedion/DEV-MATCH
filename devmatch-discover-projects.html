@@ -8,11 +8,11 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="assets/css/dashboard.css?v=20261126-rebase-merge-v1">
-  <link rel="stylesheet" href="assets/css/marketplace.css?v=20261125-responsive-orientation-v1">
+  <link rel="stylesheet" href="assets/css/marketplace.css?v=20261127-client-mobile-explore-v1">
   <link rel="stylesheet" href="assets/css/favorite-feedback.css?v=20261125-responsive-orientation-v1">
   <link rel="stylesheet" href="assets/css/client-shell.css?v=20261125-responsive-orientation-v1">
   <link rel="stylesheet" href="assets/css/mode-switch-animation.css?v=20261030-active-indicator">
-  <link rel="stylesheet" href="assets/css/mobile-navigation.css?v=20261126-scrollbar-hidden-v1">
+  <link rel="stylesheet" href="assets/css/mobile-navigation.css?v=20261126-square-mobile-v1">
   <link rel="stylesheet" href="assets/css/arrow-motion.css?v=20261118-arrow-motion-global-v2">
   <link rel="stylesheet" href="assets/css/project-detail.css?v=20261127-own-project">
   <link rel="stylesheet" href="assets/css/comment-system.css?v=20261126-rebase-merge-v1">
@@ -68,6 +68,8 @@
         </a>
       </div>
     </header>
+    <div class="mobile-market-actions"></div>
+    <div class="mobile-market-sticky-actions"></div>
 
     <form class="market-search market-discovery-search" id="marketSearchForm" role="search">
       <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
@@ -95,8 +97,16 @@
         </div>
         <div class="market-sort">
           <span id="resultsSummary" aria-live="polite">Showing 0 projects</span>
-          <label class="sort-control"><span>Sort by</span><span class="market-dropdown"><button class="market-select sort-select" id="sortFilterTrigger" type="button" aria-label="Sort projects" aria-haspopup="menu" aria-expanded="false" aria-controls="sortFilterMenu"><span>Recently updated</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m7 10 5 5 5-5"/></svg></button><span class="market-menu" id="sortFilterMenu" popover="manual" role="menu" aria-label="Sort projects"></span><select id="sortFilter" hidden aria-hidden="true" tabindex="-1"><option value="popular">Recently updated</option><option value="newest">Newest</option><option value="price-low">Price: Low to High</option><option value="price-high">Price: High to Low</option></select></span></label>
+          <button class="mobile-filter-toggle" id="mobileFiltersToggle" type="button" aria-label="Filter projects" aria-controls="mobileFiltersPanel" aria-expanded="false" title="Filter projects"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z"/></svg></button>
+          <label class="sort-control"><span class="sort-label">Sort by</span><span class="market-dropdown"><button class="market-select sort-select" id="sortFilterTrigger" type="button" aria-label="Sort projects" aria-haspopup="menu" aria-expanded="false" aria-controls="sortFilterMenu"><span class="sort-select-label">Recently updated</span><svg class="sort-select-chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="m7 10 5 5 5-5"/></svg><svg class="sort-direction-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 21V3m-3 4 3-4 3 4m5-4v18m-3-4 3 4 3-4"/></svg></button><span class="market-menu" id="sortFilterMenu" popover="manual" role="menu" aria-label="Sort projects"></span><select id="sortFilter" hidden aria-hidden="true" tabindex="-1"><option value="popular">Recently updated</option><option value="newest">Newest</option><option value="price-low">Price: Low to High</option><option value="price-high">Price: High to Low</option></select></span></label>
           <div class="view-toggle" role="group" aria-label="Project view"><button class="selected" type="button" data-view="grid" aria-pressed="true" aria-label="Grid view"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg></button><button type="button" data-view="list" aria-pressed="false" aria-label="List view"><svg viewBox="0 0 24 24"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg></button></div>
+        </div>
+      </div>
+      <div class="mobile-filters-panel" id="mobileFiltersPanel" hidden>
+        <div class="mobile-filter-selects"></div>
+        <div class="mobile-filter-actions">
+          <button class="mobile-filter-reset" id="mobileFilterReset" type="button">Reset</button>
+          <button class="mobile-filter-apply" id="mobileFilterApply" type="button">Apply</button>
         </div>
       </div>
       <header class="results-heading"><div><p class="market-eyebrow">FEATURED BY DEVELOPERS</p><h2 id="marketResultsTitle">Ready-to-Build Projects</h2></div><a class="arrow-action" href="devmatch-favorites.html?role=client">View Favorites <svg class="arrow-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12h20M17 8l5 4-5 4"/></svg></a></header>

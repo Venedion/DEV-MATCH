@@ -1054,3 +1054,16 @@ body.my-profile-page .sidebar nav a{line-height:normal}
 @media(max-width:520px) and (orientation:portrait){
   :is(body.client-profile-view,body.developer-profile-view) #roleInfoCard .role-info-grid{grid-template-columns:minmax(0,1fr)}
 }
+
+@media(orientation:portrait),(aspect-ratio:1 / 1){
+  .my-profile-page:not(.profile-preview-mode) .contact-card .contact-whatsapp,
+  .my-profile-page:not(.profile-preview-mode) .contact-card .contact-instagram{display:none}
+  .my-profile-page.client-profile-view #clientQuickContactMobile{order:-1}
+  .my-profile-page.client-profile-view #clientQuickContactMobile .contact-card{
+    padding:0;
+    border:0;
+    background:none;
+    box-shadow:none;
+  }
+  .my-profile-page.client-profile-view #clientQuickContactMobile .contact-card .card-heading{display:none}
+}

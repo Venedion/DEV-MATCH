@@ -2238,5 +2238,23 @@ body > .client-sidebar .post-request .sidebar-action-label {
 .workspace-choice button[data-choice="connect"] { background:#171717; color:#fff; border-color:#171717; }
 .workspace-choice button:hover { filter:brightness(.92); }
 .workspace-choice button:focus-visible { outline:3px solid #799cfa; outline-offset:3px; }
+
+@media (aspect-ratio: 1 / 1) {
+  :root {
+    --sidebar: 66px;
+    --cd-sidebar: 66px;
+  }
+
+  body > .sidebar,
+  body > .client-sidebar,
+  body .mobile-menu-toggle,
+  body .mobile-navigation-backdrop {
+    display: none !important;
+  }
+
+  .mobile-bottom-nav {
+    display: flex;
+  }
+}
 .workspace-choice button[data-choice="cancel"] { border-color:transparent; background:transparent; }
 .workspace-choice { margin:auto; max-height:calc(100dvh - 32px); overflow:auto; }

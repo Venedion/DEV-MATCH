@@ -99,6 +99,7 @@
 .sort-control .market-select{min-width:155px}
 .sort-direction-icon{display:none}
 .mobile-market-actions,.mobile-market-sticky-actions{display:none}
+.marketplace-main[data-marketplace="discover"] .mobile-filter-toggle{display:none}
 .mobile-filter-options{display:none}
 .mobile-sort-menu-heading{display:none}
 .market-menu button>svg{display:none}
@@ -714,7 +715,8 @@
     width:100%;
   }
   .find-projects-page .marketplace-main[data-marketplace="requests"] #resultsSummary{
-    width:auto;
+    width:100%;
+    text-align:left;
   }
   .find-projects-page .marketplace-main[data-marketplace="requests"] .mobile-filter-toggle{
     width:42px;
@@ -1216,5 +1218,307 @@
 @media (orientation: portrait) {
   .marketplace-main .project-grid:not(.is-list) {
     grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (orientation: portrait) {
+  .marketplace-main[data-marketplace="discover"] .market-discovery-header {
+    margin-bottom: 0;
+  }
+  .marketplace-main[data-marketplace="discover"] .market-discovery-header-copy,
+  .marketplace-main[data-marketplace="discover"] .market-discovery-search,
+  .marketplace-main[data-marketplace="discover"] > .quick-search {
+    display: none;
+  }
+  .marketplace-main[data-marketplace="discover"] .market-discovery-tabs {
+    width: 100%;
+    justify-content: space-between;
+  }
+  .marketplace-main[data-marketplace="discover"] .market-discovery-tab:first-child,
+  .marketplace-main[data-marketplace="discover"] .market-discovery-tab:last-child {
+    width: auto;
+    flex: 1;
+  }
+  .marketplace-main[data-marketplace="discover"] .mobile-market-actions {
+    display: block;
+    margin: 4px 0 0;
+    padding-bottom: 10px;
+  }
+  .marketplace-main[data-marketplace="discover"] .mobile-market-sticky-actions {
+    box-sizing: border-box;
+    width: 42px;
+    height: 82px;
+    display: grid;
+    grid-template-columns: 42px;
+    grid-template-rows: 38px 38px;
+    gap: 6px;
+    margin-top: -92px;
+    margin-bottom: 10px;
+    margin-right: -14px;
+    margin-left: auto;
+    position: sticky;
+    top: 42px;
+    z-index: 30;
+    isolation: isolate;
+    transition: top 240ms cubic-bezier(.22,.61,.36,1);
+  }
+  .marketplace-main[data-marketplace="discover"] .mobile-market-sticky-actions::before {
+    position: absolute;
+    z-index: 0;
+    inset: 0;
+    border: 1px solid rgb(255 255 255 / 74%);
+    border-radius: 10px 0 0 10px;
+    background: linear-gradient(145deg, rgb(255 255 255 / 78%), rgb(255 255 255 / 56%));
+    box-shadow: 0 8px 22px rgb(23 23 25 / 13%), inset 0 1px 0 rgb(255 255 255 / 90%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    backdrop-filter: blur(20px) saturate(180%);
+    content: "";
+    pointer-events: none;
+  }
+  .marketplace-main[data-marketplace="discover"] .mobile-market-sticky-actions.mobile-filter-open {
+    z-index: 1001;
+  }
+  .marketplace-main[data-marketplace="discover"] .mobile-market-actions .market-categories {
+    width: calc(100% + 12px);
+    height: 82px;
+    align-items: center;
+    gap: 8px;
+    margin: 0 0 0 -12px;
+    padding: 0 50px 0 12px;
+    overflow-y: hidden;
+    overscroll-behavior-x: contain;
+    scrollbar-width: none;
+    position: relative;
+  }
+  .marketplace-main[data-marketplace="discover"] .mobile-market-actions .market-categories::-webkit-scrollbar {
+    display: none;
+    width: 0;
+    height: 0;
+  }
+  .marketplace-main[data-marketplace="discover"] .mobile-market-actions .market-category {
+    flex: 0 0 max-content;
+    width: max-content;
+    min-width: 128px;
+    height: 70px;
+    min-height: 70px;
+    align-self: center;
+    grid-template-columns: 28px max-content;
+    column-gap: 6px;
+    padding: 4px 8px;
+  }
+  .marketplace-main[data-marketplace="discover"] .mobile-market-actions .category-symbol {
+    width: 28px;
+    height: 28px;
+  }
+  .marketplace-main[data-marketplace="discover"] .mobile-market-actions .market-category b {
+    overflow: visible;
+    font-size: 11.5px;
+    text-overflow: clip;
+    white-space: nowrap;
+  }
+  .marketplace-main[data-marketplace="discover"] .mobile-market-actions .market-category small {
+    font-size: 10.5px;
+    white-space: nowrap;
+  }
+  .marketplace-main[data-marketplace="discover"] .market-toolbar {
+    align-items: stretch;
+    gap: 0;
+    border-top: 0;
+  }
+  .marketplace-main[data-marketplace="discover"] .filter-controls {
+    display: none;
+  }
+  .marketplace-main[data-marketplace="discover"] .market-sort {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    width: 100%;
+  }
+  .marketplace-main[data-marketplace="discover"] #resultsSummary {
+    width: 100%;
+    text-align: left;
+  }
+  .marketplace-main[data-marketplace="discover"] .mobile-filter-toggle {
+    width: 42px;
+    height: 38px;
+    display: grid;
+    grid-column: 1;
+    grid-row: 2;
+    justify-self: stretch;
+    margin-right: 0;
+    position: relative;
+    z-index: 2;
+    place-items: center;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    color: var(--market-ink);
+    cursor: pointer;
+  }
+  .marketplace-main[data-marketplace="discover"] .mobile-filter-toggle[aria-expanded="true"] {
+    border-radius: 0 0 0 9px;
+    background: var(--market-ink);
+    color: #fff;
+  }
+  .marketplace-main[data-marketplace="discover"] .mobile-filter-toggle svg {
+    width: 18px;
+    height: 18px;
+  }
+  .marketplace-main[data-marketplace="discover"] .mobile-market-sticky-actions .sort-control {
+    display: block;
+    grid-column: 1;
+    grid-row: 1;
+    justify-self: stretch;
+    width: 42px;
+    height: 38px;
+    margin-right: 0;
+    position: relative;
+    z-index: 2;
+  }
+  .marketplace-main[data-marketplace="discover"] .sort-label,
+  .marketplace-main[data-marketplace="discover"] .sort-select-label,
+  .marketplace-main[data-marketplace="discover"] .sort-select-chevron {
+    display: none;
+  }
+  .marketplace-main[data-marketplace="discover"] .mobile-market-sticky-actions .sort-control .market-dropdown,
+  .marketplace-main[data-marketplace="discover"] .mobile-market-sticky-actions .sort-select {
+    width: 42px;
+    min-width: 42px;
+    height: 38px;
+  }
+  .marketplace-main[data-marketplace="discover"] .mobile-market-sticky-actions .sort-select {
+    justify-content: center;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+  }
+  .marketplace-main[data-marketplace="discover"] .mobile-market-sticky-actions .sort-direction-icon {
+    display: block;
+    width: 20px;
+    height: 20px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.8;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+  .marketplace-main[data-marketplace="discover"] .mobile-market-sticky-actions .sort-select[aria-expanded="true"] {
+    border-radius: 9px 0 0;
+    background: var(--market-ink);
+    color: #fff;
+  }
+  .marketplace-main[data-marketplace="discover"] .market-sort .view-toggle {
+    display: none;
+  }
+  .marketplace-main[data-marketplace="discover"] .mobile-filters-panel[hidden] {
+    display: none;
+  }
+  .marketplace-main[data-marketplace="discover"] .mobile-filters-panel:not([hidden]) {
+    display: grid;
+  }
+  .marketplace-main[data-marketplace="discover"] .mobile-filters-panel {
+    position: absolute;
+    z-index: 20;
+    top: min(92px, calc(100dvh - 650px));
+    right: 0;
+    width: min(280px, calc(100vw - 24px));
+    gap: 0;
+    margin: 0;
+    padding: 6px;
+    border: 1px solid var(--market-line);
+    border-radius: 20px;
+    background: #fff;
+    box-shadow: 0 14px 34px rgb(23 23 25 / 12%);
+  }
+  .marketplace-main[data-marketplace="discover"] .mobile-filter-selects {
+    display: grid;
+    gap: 8px;
+  }
+  .marketplace-main[data-marketplace="discover"] .mobile-filter-actions {
+    display: flex;
+    gap: 8px;
+    margin: 4px -6px -6px;
+    padding: 8px 6px 6px;
+    border-top: 1px solid var(--market-line);
+  }
+  .marketplace-main[data-marketplace="discover"] .mobile-filter-actions button {
+    flex: 1;
+    min-width: 0;
+    min-height: 38px;
+    border: 1px solid var(--market-line);
+    border-radius: 8px;
+    font: 600 12px "Plus Jakarta Sans", system-ui, sans-serif;
+    cursor: pointer;
+  }
+  .marketplace-main[data-marketplace="discover"] .mobile-filter-reset {
+    background: #fff;
+    color: var(--market-ink);
+  }
+  .marketplace-main[data-marketplace="discover"] .mobile-filter-apply {
+    border-color: #000;
+    background: #000;
+    color: #fff;
+  }
+  .marketplace-main[data-marketplace="discover"] .mobile-filter-selects label {
+    min-width: 0;
+    display: grid;
+    gap: 4px;
+  }
+  .marketplace-main[data-marketplace="discover"] .mobile-filter-selects .filter-label {
+    padding-left: 8px;
+  }
+  .marketplace-main[data-marketplace="discover"] .mobile-filter-selects label + label {
+    padding-top: 6px;
+    border-top: 1px solid var(--market-line);
+  }
+  .marketplace-main[data-marketplace="discover"] .mobile-filter-selects .market-dropdown {
+    display: none;
+  }
+  .marketplace-main[data-marketplace="discover"] .mobile-filter-selects .mobile-budget-filter .market-dropdown,
+  .marketplace-main[data-marketplace="discover"] .mobile-filter-selects .mobile-budget-filter .market-select {
+    display: block;
+    width: 100%;
+  }
+  .marketplace-main[data-marketplace="discover"] .mobile-filter-selects .mobile-budget-filter .market-select {
+    min-width: 0;
+  }
+  .marketplace-main[data-marketplace="discover"] .mobile-filter-options {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 2px;
+  }
+  .marketplace-main[data-marketplace="discover"] .mobile-filter-options button {
+    min-width: 0;
+    min-height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px;
+    width: 100%;
+    padding: 0 8px;
+    border: 0;
+    border-radius: 10px;
+    background: transparent;
+    color: #555b65;
+    font: 500 12px "Plus Jakarta Sans", system-ui, sans-serif;
+    text-align: left;
+    cursor: pointer;
+  }
+  .marketplace-main[data-marketplace="discover"] .mobile-filter-options button[aria-pressed="true"] {
+    background: #f1f2f5;
+    color: var(--market-ink);
+    font-weight: 700;
+  }
+  .marketplace-main[data-marketplace="discover"] .mobile-filter-options button > svg {
+    display: none;
+  }
+  .marketplace-main[data-marketplace="discover"] .results-heading {
+    margin: 12px 0 11px;
+  }
+  .marketplace-main[data-marketplace="discover"] .project-grid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 12px;
   }
 }

@@ -19,6 +19,19 @@ test('mobile profile information cards use a single content-sized column',()=>{
   assert.match(profileCss,/@media\s*\(orientation:\s*portrait\)\s*\{\s*\.profile-details\{\s*grid-template-columns:minmax\(0,1fr\);\s*align-items:start;\s*align-content:start;\s*gap:clamp\(12px,2\.4vw,16px\);\s*\}\s*\.profile-details>\.profile-card\{\s*height:auto;\s*min-height:0;\s*\}\s*\.profile-details>\.contact-card\{grid-column:auto\}/);
 });
 
+test('mobile account quick contact keeps only Direct Message without affecting public previews',()=>{
+  assert.match(profileCss,/@media\s*\(orientation:portrait\)\s*,\s*\(aspect-ratio:1\s*\/\s*1\)\s*\{\s*\.my-profile-page:not\(\.profile-preview-mode\)\s+\.contact-card\s+\.contact-whatsapp,\s*\.my-profile-page:not\(\.profile-preview-mode\)\s+\.contact-card\s+\.contact-instagram\{display:none\}/);
+  assert.match(profileHtml,/id="directMessageLink"/);
+});
+
+test('mobile client account profile places Quick Contact before Company Details',()=>{
+  assert.match(profileCss,/@media\s*\(orientation:portrait\)\s*,\s*\(aspect-ratio:1\s*\/\s*1\)\s*\{[\s\S]*?\.my-profile-page\.client-profile-view\s+#clientQuickContactMobile\{order:-1\}/);
+});
+
+test('mobile client Quick Contact has no card styling or heading',()=>{
+  assert.match(profileCss,/@media\s*\(orientation:portrait\)\s*,\s*\(aspect-ratio:1\s*\/\s*1\)\s*\{[\s\S]*?\.my-profile-page\.client-profile-view\s+#clientQuickContactMobile\s+\.contact-card\{\s*padding:0;\s*border:0;\s*background:none;\s*box-shadow:none;\s*\}[\s\S]*?\.my-profile-page\.client-profile-view\s+#clientQuickContactMobile\s+\.contact-card\s+\.card-heading\{display:none\}/);
+});
+
 test('mobile profile stats retain zero and unavailable-rating defaults from existing data',()=>{
   assert.match(profileHtml,/id="mobileStatViews">0<\/strong>/);
   assert.match(profileHtml,/id="mobileStatFavorites">0<\/strong>/);

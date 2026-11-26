@@ -12,6 +12,7 @@ const navBehaviorJs=fs.readFileSync(path.join(__dirname,'../assets/js/nav-behavi
 
 test('mobile project categories stay in flow while only sort and filter actions stick',()=>{
   assert.match(marketplaceJs,/actions\.append\(categories\);\s*stickyActions\.append\(sortControl, toggle, panel\)/);
+  assert.match(marketplaceCss,/\.find-projects-page \.marketplace-main\[data-marketplace="requests"\] #resultsSummary\{\s*width:100%;\s*text-align:left;/);
   const actionStyles=marketplaceCss.match(/\.mobile-market-actions\{\s*display:block;[^}]*\}/);
   const stickyStyles=marketplaceCss.match(/\.mobile-market-sticky-actions\{\s*--mobile-actions-edge-gap:14px;[^}]*\}/);
   assert.ok(actionStyles,'mobile project categories should have a non-sticky wrapper');
@@ -21,6 +22,10 @@ test('mobile project categories stay in flow while only sort and filter actions 
   assert.match(stickyStyles?.[0]||'',/margin-top:-92px;/);
   assert.match(marketplaceCss,/mobile-market-sticky-actions::before\{[^}]*border-radius:10px 0 0 10px;/);
   assert.doesNotMatch(marketplaceCss,/mobile-actions-background-bleed|mobile-market-actions::after/);
+});
+
+test('square viewports explicitly use the shared mobile navigation layout',()=>{
+  assert.match(mobileNavigationCss,/@media\s*\(aspect-ratio:\s*1\s*\/\s*1\)\s*\{\s*:root\s*\{\s*--sidebar:\s*66px;\s*--cd-sidebar:\s*66px;\s*\}[\s\S]*?body > \.sidebar,[\s\S]*?display:\s*none !important;[\s\S]*?\.mobile-bottom-nav\s*\{\s*display:\s*flex;/);
 });
 
 test('mobile client sort and filter buttons stick inside a compact dock',()=>{
