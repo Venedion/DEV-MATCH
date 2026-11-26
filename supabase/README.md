@@ -288,6 +288,13 @@ migration before deploying the matching frontend. Chat participants retain
 read access to the project metadata associated with their conversation even
 after a request is closed, so they can finish the confirmation flow.
 
+Project-agreement timeline ratings are separate from those profile reviews.
+Clients rate quality of work, communication, and meeting the deadline;
+developers rate clarity of the brief, responsiveness, and paying on time.
+Both include an overall 1–5 rating and an optional comment up to 500 characters.
+The other participant's rating is withheld until both have rated or seven days
+after the first rating.
+
 Supabase Auth continues to manage password hashing and credentials; the app
 does not store password hashes itself. Argon2id migration and recovery codes
 are not included in this implementation.
@@ -359,3 +366,33 @@ For Midtrans Sandbox, set the dashboard's Payment Notification URL to
 This is guidance only; the dashboard has not been changed. The rollback script
 removes payment-kind notification rows, so review their data impact before
 using it.
+
+## Unified agreement reviews
+
+`migrations/202611280001_agreement_rating_system.sql` replaces the two rating
+paths with `agreement_reviews`. It imports existing `project_reviews` and
+historical agreement-state ratings as `legacy` reviews without inventing
+criterion scores, and avoids duplicate imports for the same project direction.
+New reviews require both paid
+agreement payment rows and a released, completed agreement (or an eligible
+completed dispute outcome). Review eligibility and the 14-day window are
+enforced by database RPCs; reviews stay private until both participants submit
+or the window closes. A minute cron job publishes overdue reviews and sends
+the three-day reminder when `pg_cron` is available.
+
+Profiles show role-specific aggregates and criterion averages. Discover sorts
+by the Bayesian-adjusted score using a 4.0 prior with weight 5. This is a
+ranking value only; individual scores are averaged equally and displayed to
+one decimal place. Legacy reviews retain their original overall rating and
+have no fabricated criterion values. The reported-review queue is
+`devmatch-review-moderation.html`; moderator membership is stored in
+`agreement_review_moderators` and must be assigned through a privileged
+database/administrative connection, never from the browser.
+
+The migration was applied to hosted production project
+`yxwktllqbmhustmhdaqi` on 2026-11-27. The Supabase migration history confirms
+it is applied, the review tables have RLS enabled, and the minute publication
+job is active. No legacy reviews or agreement reviews were present for import
+when the migration was checked. The frontend and `payment-api` changes remain
+local; deploy them before using the rating UI, and deploy `payment-api` to
+disable its legacy JSON rating action.

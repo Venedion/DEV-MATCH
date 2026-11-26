@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Review moderation — DEV-MATCH</title>
+  <link rel="stylesheet" href="assets/css/form-controls.css?v=20261126-optional-unified-v1">
+  <link rel="stylesheet" href="assets/css/review-moderation.css?v=20261128-integrated-rating-v1">
+  <script src="assets/vendor/supabase-2.119.0.js"></script>
+  <script src="assets/js/deployment-config.js?v=20261126-env-config-v1"></script>
+  <script src="assets/js/backend.js?v=20261128-integrated-rating-v1"></script>
+</head>
+<body>
+  <main>
+    <header>
+      <a href="devmatch-home.html">DEV-MATCH</a>
+      <h1>Review moderation</h1>
+      <p>Reported published reviews. Only assigned moderators can view or action this queue.</p>
+    </header>
+    <p id="moderationStatus" role="status" aria-live="polite">Loading reports…</p>
+    <section id="moderationQueue" aria-label="Reported reviews"></section>
+  </main>
+  <script src="assets/js/review-moderation.js?v=20261128-integrated-rating-v1"></script>
+</body>
+</html>

@@ -171,6 +171,22 @@ body.developer-profile-view .contact-card .contact-whatsapp{display:none}
 .review-copy small{display:block;margin-top:3px;color:var(--profile-muted);font-size:8px}
 .review-copy p{margin-top:8px;color:#5d5f67;font-size:10px;line-height:1.65}
 .review-rating{color:#c18a19;font-size:10px;white-space:nowrap}
+.review-criteria-summary{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:0 0 8px;padding:10px;border:1px solid #ececf0;border-radius:8px;background:#fafafa}
+.review-criteria-summary div{display:grid;gap:3px}
+.review-criteria-summary dt{color:#656874;font-size:10px}
+.review-criteria-summary dd{margin:0;color:#24252a;font-size:12px;font-weight:700}
+.review-delivery-badge{display:inline-block;margin:5px 0!important;padding:3px 7px;border-radius:99px;background:#eaf6ed;color:#28633b!important;font-size:10px!important;font-weight:700}
+.review-reply{padding:7px 9px;border-left:2px solid #d5d8df;background:#f7f7f8}
+.review-rating{font-variant-numeric:tabular-nums}
+.review-actions{display:flex;flex-wrap:wrap;gap:7px;margin-top:8px}
+.review-actions>button,.review-action-form button{min-height:30px;padding:0 10px;border:1px solid #d5d7dc;border-radius:6px;background:#fff;color:#34363d;font-size:10px;font-weight:700;cursor:pointer}
+.review-action-form{display:grid;gap:6px;width:100%;margin-top:5px}
+.review-action-form[hidden]{display:none}
+.review-action-form label{display:grid;gap:4px;color:#555761;font-size:10px}
+.review-action-form textarea{min-height:55px;resize:vertical;padding:7px;border:1px solid #d5d7dc;border-radius:6px;font:inherit}
+.review-action-form small{text-align:right;color:#737681;font-size:9px}
+.review-action-form [role=alert]{margin:0;color:#b42318;font-size:10px}
+.review-action-notice{color:#28633b;font-size:10px}
 .activity-item{display:grid;grid-template-columns:32px minmax(0,1fr) auto;align-items:center;gap:10px;padding:13px 0;border-bottom:1px solid #f0f0f2}
 .activity-item:last-child{border-bottom:0}
 .activity-icon{border-radius:9px}
@@ -398,6 +414,7 @@ body.my-profile-page .sidebar nav a{line-height:normal}
   .project-metric{font-size:12px}
   .review-item{grid-template-columns:36px minmax(0,1fr);gap:10px}
   .review-rating{grid-column:2}
+  .review-criteria-summary{grid-template-columns:1fr}
   .activity-item{grid-template-columns:34px minmax(0,1fr);gap:10px}
   .activity-item time{grid-column:2}
   .profile-toast{right:12px;bottom:12px}

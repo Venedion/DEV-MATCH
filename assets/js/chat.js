@@ -14,6 +14,7 @@
     'image/webp'
   ]);
   const PROGRESS_VIDEO_TYPES = new Set(['video/mp4', 'video/quicktime', 'video/webm']);
+  const PROGRESS_VIDEO_EXTENSIONS = new Set(['.mp4', '.mov', '.webm']);
   const PROGRESS_IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
   const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, character => ({
     '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
@@ -95,7 +96,7 @@
       client: {
         status: 'System handed over',
         note: () => 'Accept the result within 7 days or report a problem.',
-        actions: ['Accept result', 'Report a problem']
+        actions: ['Review handover', 'Report a problem']
       },
       developer: {
         status: 'Waiting for client',
@@ -453,8 +454,12 @@
   }
 
   function validateProgressVideo(file) {
-    if (!PROGRESS_VIDEO_TYPES.has(file.type) || file.size < 1 || file.size > 50 * 1024 * 1024) {
-      throw new Error('Choose an MP4, MOV, or WebM video up to 50 MB.');
+    const extension = String(file.name || '').toLowerCase().match(/\.[^.]+$/)?.[0];
+    if (!PROGRESS_VIDEO_TYPES.has(file.type) || !PROGRESS_VIDEO_EXTENSIONS.has(extension)) {
+      throw new Error('This video format is not compatible. Choose MP4, MOV, or WebM.');
+    }
+    if (file.size < 1 || file.size > 50 * 1024 * 1024) {
+      throw new Error('The video must be smaller than 50 MB.');
     }
   }
 
@@ -623,7 +628,7 @@
       : isDisputed
       ? 'Payment is frozen while support reviews the reported problem.'
       : isCompleted
-      ? 'Project completed. You can rate your experience.'
+      ? 'Project completed. Open Project payments to check your review availability.'
       : isAwaitingResult
       ? isClient
         ? 'The system was handed over. Accept the result or report a problem within 7 days.'
@@ -716,10 +721,8 @@
       } else if (isRemainingPaid && isDeveloper) {
         actions.push(paymentAction('Hand over system', 'handover', true));
       } else if (isAwaitingResult && isClient) {
-        actions.push(paymentAction('Accept result', 'accept-result', true));
+        actions.push(paymentAction('Review handover', 'review-handover', true));
         actions.push(paymentAction('Report a problem', 'report-problem'));
-      } else if (isCompleted && !agreement[isClient ? 'client_rated' : 'developer_rated']) {
-        actions.push(paymentAction('Rate', 'rate', true));
       } else if (isDisputed) {
         actions.push(paymentAction('Contact support', null, true));
       }
@@ -3021,14 +3024,19 @@
         };
         progressVideoPreview.onerror = () => {
           if (progressVideoObjectUrl !== url) return;
-          progressVideoDurationSeconds = null;
-          if (progressVideoStatus) progressVideoStatus.textContent = 'The selected video could not be read.';
+          progressVideoInput.value = '';
+          clearProgressVideoPreview();
+          if (progressVideoStatus) {
+            progressVideoStatus.textContent =
+              'This video is not compatible or could not be read. Choose MP4, MOV, or WebM.';
+          }
         };
         progressVideoPreview.src = url;
         progressVideoPreview.load();
       } catch (error) {
         progressVideoInput.value = '';
-        setProgressStatus(error.message);
+        setProgressStatus();
+        if (progressVideoStatus) progressVideoStatus.textContent = error.message;
       }
     });
     progressScreenshotInput?.addEventListener('change', () => {
@@ -3160,7 +3168,8 @@
       } else if (action === 'withdraw') {
         showProposalWithdrawConfirmation(proposalId);
       } else if (action === 'payments') {
-        const proposal = getActiveConversation()?.messages
+        const conversation = getActiveConversation();
+        const proposal = conversation?.messages
           .find(message => message.proposal?.id === proposalId)?.proposal;
         if (proposal?.agreement?.id) {
           proposalDetailsDialog.close();
@@ -3168,7 +3177,8 @@
             id: proposal.agreement.id,
             conversationId: proposal.conversation_id,
             proposalId: proposal.id,
-            title: proposal.terms?.projectName
+            title: proposal.terms?.projectName,
+            clientName: conversation?.contactDisplayName || conversation?.name
           });
         }
       }
@@ -3260,7 +3270,8 @@
       const proposalProjectButton = event.target.closest('[data-proposal-progress], [data-proposal-open-project]');
       if (proposalProjectButton && chatMessagesEl.contains(proposalProjectButton)) {
         event.preventDefault();
-        const proposal = getActiveConversation()?.messages
+        const conversation = getActiveConversation();
+        const proposal = conversation?.messages
           .find(message => message.proposal?.id ===
             (proposalProjectButton.dataset.proposalProgress || proposalProjectButton.dataset.proposalOpenProject))?.proposal;
         if (proposal?.agreement?.id) {
@@ -3268,7 +3279,8 @@
             id: proposal.agreement.id,
             conversationId: proposal.conversation_id,
             proposalId: proposal.id,
-            title: proposal.terms?.projectName
+            title: proposal.terms?.projectName,
+            clientName: conversation?.contactDisplayName || conversation?.name
           });
         }
         return;
@@ -3293,14 +3305,16 @@
       if (proposalPaymentsButton && chatMessagesEl.contains(proposalPaymentsButton)) {
         event.preventDefault();
         event.stopPropagation();
-        const proposal = getActiveConversation()?.messages
+        const conversation = getActiveConversation();
+        const proposal = conversation?.messages
           .find(message => message.proposal?.id === proposalPaymentsButton.dataset.proposalPayments)?.proposal;
         if (proposal?.agreement?.id) {
           window.DEVMATCH_ROOM_PAYMENT?.openAgreement({
             id: proposal.agreement.id,
             conversationId: proposal.conversation_id,
             proposalId: proposal.id,
-            title: proposal.terms?.projectName
+            title: proposal.terms?.projectName,
+            clientName: conversation?.contactDisplayName || conversation?.name
           }, {
             action: proposalPaymentsButton.dataset.proposalPaymentAction || null
           });

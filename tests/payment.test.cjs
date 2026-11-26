@@ -52,6 +52,7 @@ async function fixture(t) {
   await db.exec(readFileSync(join(__dirname, '../supabase/migrations/202611260001_proposal_agreement_payments.sql'), 'utf8'));
   await db.exec(readFileSync(join(__dirname, '../supabase/migrations/202611260002_project_payment_timeline.sql'), 'utf8'));
   await db.exec(readFileSync(join(__dirname, '../supabase/migrations/202611260005_agreement_progress_uploads.sql'), 'utf8'));
+  await db.exec(readFileSync(join(__dirname, '../supabase/migrations/202611270001_agreement_handover_uploads.sql'), 'utf8'));
   await db.query('insert into auth.users values ($1), ($2), ($3)', [developer, client, reviewer]);
   await db.query("insert into public.projects values ($1, $2, 'portfolio', 'Project')", [projectId, developer]);
   await db.query(`insert into public.conversations
@@ -372,9 +373,30 @@ test('accepted project agreements use the proposal terms for sandbox payments an
   const remainingPaid = await handle(developer, 'snapshot');
   assert.equal(remainingPaid.room.escrow, 'REMAINING_HELD');
   assert.ok(remainingPaid.room.timeline.remainingPaidAt);
-  await apply(developer, 'handover', {notes: 'System credentials and source delivered.'});
+  const handover = {
+    notes: 'System credentials and source delivered.',
+    scope: terms.scope,
+    files: [{
+      path: `${agreementId}/${developer}/12345678-1234-4234-8234-123456789abc-company-profile-source.zip`,
+      name: 'company-profile-source.zip',
+      type: 'application/zip',
+      size: 18 * 1024 * 1024
+    }],
+    links: {
+      website: 'https://chetiya-company.example',
+      repository: 'https://github.com/example/company-profile'
+    }
+  };
+  await assert.rejects(apply(developer, 'handover', {...handover, scope: []}), {status: 400});
+  await assert.rejects(apply(developer, 'handover', {
+    ...handover, links: {...handover.links, website: 'http://example.test'}
+  }), {status: 400});
+  await apply(developer, 'handover', handover);
   const handedOver = await handle(client, 'snapshot');
   assert.equal(handedOver.room.handover.status, 'AWAITING_CLIENT');
+  assert.equal(handedOver.room.handover.files[0].name, 'company-profile-source.zip');
+  assert.deepEqual(handedOver.room.handover.scope, handover.scope);
+  assert.equal(handedOver.room.handover.links.website, handover.links.website);
   await apply(client, 'accept-result');
   const completed = await handle(developer, 'snapshot');
   assert.equal(completed.room.project, 'COMPLETED');
@@ -382,18 +404,39 @@ test('accepted project agreements use the proposal terms for sandbox payments an
   assert.deepEqual(completed.room.releases.map(release => release.kind), ['DP', 'REMAINING']);
   assert.deepEqual(completed.ledger.map(entry => entry.entry),
     ['DP_HELD', 'DP_RELEASED', 'REMAINING_HELD', 'REMAINING_RELEASED']);
-  await apply(client, 'rate', {rating: 5, text: 'Great work.'});
-  await assert.rejects(apply(client, 'rate', {rating: 4}), {status: 409});
-  await apply(developer, 'rate', {rating: 5, text: 'Great collaboration.'});
-  const rated = await handle(client, 'snapshot');
-  assert.ok(rated.room.timeline.ratings.clientAt);
-  assert.ok(rated.room.timeline.ratings.developerAt);
+  await assert.rejects(apply(client, 'rate', {}), {status: 403});
   assert.deepEqual(await handle(reviewer, 'reviews'), []);
   const agreement = await db.query('select payment_status from public.project_agreements where id=$1', [agreementId]);
   assert.equal(agreement.rows[0].payment_status, 'paid');
   const refs = await db.query('select agreement_id from public.payment_agreement_order_refs order by order_id');
   assert.equal(refs.rows.length, 2);
   assert.ok(refs.rows.every(row => row.agreement_id === agreementId));
+});
+
+test('legacy payment-state ratings remain hidden until mutual submission or the 14-day window ends', async () => {
+  const {paymentSnapshot} = await import('../supabase/functions/payment-api/state.mjs');
+  const state = {
+    room: {
+      timelineVersion: 2,
+      ratings: {
+        client: {rating: 5, at: new Date().toISOString()},
+        developer: null
+      }
+    },
+    payments: [],
+    ledger: []
+  };
+  const privateView = paymentSnapshot(state, 'developer', false);
+  assert.equal(privateView.room.ratings.client, null);
+  assert.equal(state.room.ratings.client.rating, 5);
+
+  state.room.ratings.client.at = new Date(Date.now() - 13 * 24 * 60 * 60 * 1000).toISOString();
+  const stillPrivateView = paymentSnapshot(state, 'developer', false);
+  assert.equal(stillPrivateView.room.ratings.client, null);
+
+  state.room.ratings.client.at = new Date(Date.now() - 15 * 24 * 60 * 60 * 1000).toISOString();
+  const revealedView = paymentSnapshot(state, 'developer', false);
+  assert.equal(revealedView.room.ratings.client.rating, 5);
 });
 
 test('agreement review and handover deadlines advance once and release only the matching escrow', async t => {
@@ -441,7 +484,16 @@ test('agreement review and handover deadlines advance once and release only the 
   const balanceOrder = [...orders.values()][1];
   balanceOrder.transaction_status = 'settlement';
   await service.webhook(event(balanceOrder));
-  await apply(developer, 'handover', {notes: 'Handover complete.'});
+  await apply(developer, 'handover', {
+    notes: 'Handover complete.',
+    scope: ['Deliver the system'],
+    files: [{
+      path: `${agreementId}/${developer}/12345678-1234-4234-8234-123456789abc-project-source.zip`,
+      name: 'project-source.zip',
+      type: 'application/zip',
+      size: 1024
+    }]
+  });
 
   stored = await store.state({agreementId});
   nextState = JSON.parse(JSON.stringify(stored.state));

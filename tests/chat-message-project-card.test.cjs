@@ -358,7 +358,7 @@ test('Proposal card stage preview renders all 16 role variants with inert action
     },
     'remaining-paid':{client:[],developer:['Hand over system']},
     'system-handed-over':{
-      client:['Accept result','Report a problem'],
+      client:['Review handover','Report a problem'],
       developer:[]
     },
     completed:{client:['Rate'],developer:['Rate']},
@@ -482,13 +482,15 @@ test('Proposal card stage preview renders all 16 role variants with inert action
     id:'live-agreement',escrow_status:'REMAINING_HELD',
     project_status:'AWAITING_RESULT_ACCEPTANCE',handover_status:'AWAITING_CLIENT'
   }});
-  assert.match(acceptance,/Accept result/);
+  assert.match(acceptance,/Review handover/);
+  assert.match(acceptance,/data-proposal-payment-action="review-handover"/);
   assert.match(acceptance,/Report a problem/);
 
   const completed=view.render({...proposal,agreement:{
     id:'live-agreement',project_status:'COMPLETED',client_rated:false
   }});
-  assert.match(completed,/>Rate</);
+  assert.doesNotMatch(completed,/>Rate</);
+  assert.match(completed,/Project payments<\/button>/);
 
   const disputed=view.render({...proposal,agreement:{
     id:'live-agreement',project_status:'DISPUTED',dispute_status:'NEEDS_REVIEW'
@@ -529,4 +531,97 @@ test('Client Review progress opens the illustrated review popup with both review
   assert.match(html,/<dialog id="progressReviewDialog"[\s\S]*?Review needed[\s\S]*?progressReviewContent[\s\S]*?progressReviewFooter/);
   assert.match(styles,/\.progress-review-dialog\[open\]/);
   assert.match(styles,/\.progress-review-notice/);
+});
+
+test('Client Review handover opens the submitted delivery and acceptance actions in a modal',()=>{
+  const chat=fs.readFileSync('assets/js/chat.js','utf8');
+  const payment=fs.readFileSync('assets/js/chat-payment.js','utf8');
+  const html=fs.readFileSync('devmatch-chat.html','utf8');
+  const styles=fs.readFileSync('assets/css/chat-payment.css','utf8');
+
+  assert.match(chat,/paymentAction\('Review handover', 'review-handover', true\)/);
+  assert.match(payment,/button\('review-handover', 'Review handover', true\)/);
+  assert.match(payment,/function renderHandoverReview\(state\)[\s\S]*?Delivered[\s\S]*?Scope points \(\$\{deliveredCount\} of \$\{scope\.length\} delivered\)[\s\S]*?Accepting releases/);
+  assert.match(payment,/data-handover-review-action="report-problem"[\s\S]*?data-handover-review-action="accept-result"/);
+  assert.match(payment,/initialAction === 'review-handover'[\s\S]*?openHandoverReview\(\)/);
+  assert.match(html,/<dialog id="handoverReviewDialog"[\s\S]*?Review handover[\s\S]*?handoverReviewContent[\s\S]*?handoverReviewFooter/);
+  assert.match(styles,/\.handover-review-dialog \.progress-review-title-row > span/);
+  assert.match(styles,/\.handover-review-row/);
+});
+
+test('handover review modal renders signed deliveries, notes, scope, and release amount',()=>{
+  const payment=fs.readFileSync('assets/js/chat-payment.js','utf8');
+  const start=payment.indexOf('  function renderHandoverReview(state) {');
+  const end=payment.indexOf('\n  function openHandoverReview()',start);
+  assert.notEqual(start,-1);
+  assert.notEqual(end,-1);
+  const from={textContent:''};
+  const content={innerHTML:''};
+  const footer={innerHTML:''};
+  const state={
+    room:{
+      developerName:'Treng',
+      proposal:{
+        total:5000000,dp:1625000,remaining:3375000,
+        scopeItems:['Home page','Responsive layout','Source code']
+      },
+      handover:{
+        at:'2026-12-03T09:30:00.000Z',
+        deadlineAt:'2026-12-10T00:00:00.000Z',
+        notes:'Everything is ready <to review>.',
+        files:[{name:'company-profile-source.zip',size:18*1024*1024,url:'https://storage.example/file?token=abc'}],
+        links:{website:'https://chetiya-company.example',repository:'https://github.com/example/project'},
+        scope:['Home page','Responsive layout','Source code']
+      }
+    }
+  };
+  vm.runInNewContext(`${payment.slice(start,end)}\nrenderHandoverReview(state);`,{
+    state,URL,safe:value=>String(value).replace(/[&<>"']/g,char=>({
+      '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+    }[char])),
+    handoverReviewFrom:from,handoverReviewContent:content,handoverReviewFooter:footer,
+    progressReviewDate:new Intl.DateTimeFormat('en-US',{month:'short',day:'numeric',year:'numeric'}),
+    progressReviewClock:new Intl.DateTimeFormat('en-US',{hour:'numeric',minute:'2-digit'}),
+    rupiah:{format:value=>`Rp ${Number(value).toLocaleString('id-ID')}`}
+  });
+
+  assert.match(from.textContent,/From Treng · handed over/);
+  assert.match(content.innerHTML,/company-profile-source\.zip/);
+  assert.match(content.innerHTML,/chetiya-company\.example/);
+  assert.match(content.innerHTML,/github\.com\/example\/project/);
+  assert.match(content.innerHTML,/Everything is ready &lt;to review&gt;\./);
+  assert.match(content.innerHTML,/Scope points \(3 of 3 delivered\)/);
+  assert.match(content.innerHTML,/Rp 3\.375\.000/);
+  assert.match(footer.innerHTML,/Report a problem[\s\S]*Accept result/);
+});
+
+test('progress video upload rejects unsupported file types and clears unreadable selections',()=>{
+  const chat=fs.readFileSync('assets/js/chat.js','utf8');
+  const html=fs.readFileSync('devmatch-chat.html','utf8');
+
+  assert.match(chat,/PROGRESS_VIDEO_TYPES = new Set\(\['video\/mp4', 'video\/quicktime', 'video\/webm'\]\)/);
+  assert.match(chat,/PROGRESS_VIDEO_EXTENSIONS = new Set\(\['\.mp4', '\.mov', '\.webm'\]\)/);
+  assert.match(chat,/This video format is not compatible\. Choose MP4, MOV, or WebM\./);
+  assert.match(chat,/catch \(error\) \{\s*progressVideoInput\.value = '';\s*setProgressStatus\(\);\s*if \(progressVideoStatus\) progressVideoStatus\.textContent = error\.message;/);
+  assert.match(chat,/progressVideoPreview\.onerror = \(\) => \{[\s\S]*?progressVideoInput\.value = '';\s*clearProgressVideoPreview\(\);[\s\S]*?This video is not compatible or could not be read/);
+  assert.match(html,/accept="video\/mp4,video\/quicktime,video\/webm,\.mp4,\.mov,\.webm"/);
+});
+
+test('agreement rating opens the role-specific scored modal with a 500-character comment',()=>{
+  const payment=fs.readFileSync('assets/js/chat-payment.js','utf8');
+  const html=fs.readFileSync('devmatch-chat.html','utf8');
+  const styles=fs.readFileSync('assets/css/chat-payment.css','utf8');
+
+  assert.match(payment,/button\('rate', 'Rate now', true\)/);
+  assert.match(payment,/qualityOfWork', 'Quality of work'[\s\S]*?communication', 'Communication'[\s\S]*?meetingDeadline', 'Meeting the deadline'/);
+  assert.match(payment,/clarityOfBrief', 'Clarity of the brief'[\s\S]*?responsiveness', 'Responsiveness'[\s\S]*?respectingScope', 'Respecting the agreed scope'/);
+  assert.match(payment,/submitAgreementReview\(agreementId, criteria, fields\.text \|\| ''\)/);
+  assert.match(payment,/loadAgreementReviewState\(agreementId\)/);
+  assert.match(payment,/updateOverallRating/);
+  assert.match(html,/<dialog id="agreementRatingDialog"[\s\S]*?agreementRatingForm[\s\S]*?Skip for now[\s\S]*?Submit rating/);
+  assert.match(html,/<textarea name="text" rows="3" maxlength="500"><\/textarea>/);
+  assert.match(html,/data-rating-overall-value/);
+  assert.doesNotMatch(html,/<input[^>]+name="rating"/);
+  assert.match(html,/14-day window/);
+  assert.match(styles,/\.agreement-rating-dialog\[open\]/);
 });

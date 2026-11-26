@@ -296,12 +296,30 @@ test('Invalid Supabase project metrics are rejected',async()=>{
   const {backend}=await setup({metrics:[{project_id:'project-1',views:-1,favorites:0,comments:0}]});
   await assert.rejects(backend.loadOwnedProjectMetrics(),/invalid project metrics/);
 });
-test('Profile reviews are loaded from the public review RPC',async()=>{
-  const review={id:'review-id',reviewer_name:'Client',reviewer_initials:'CL',project_title:'Website',rating:5,text:'Great work',created_at:'2026-11-17T00:00:00Z'};
+test('Profile reviews are loaded by profile role from the public review RPC',async()=>{
+  const review={id:'review-id',reviewer_name:'Client',reviewer_initials:'CL',project_title:'Website',rating:4.7,text:'Great work',created_at:'2026-11-17T00:00:00Z',source:'agreement'};
   const {backend,rpcCalls}=await setup({rpcResponses:{get_profile_reviews:{data:[review],error:null}}});
-  const loaded=await backend.loadProfileReviews('profile-id');
-  assert.equal(JSON.stringify(loaded),JSON.stringify([{id:'review-id',reviewerName:'Client',reviewerInitials:'CL',projectTitle:'Website',rating:5,text:'Great work',createdAt:'2026-11-17T00:00:00Z'}]));
+  const loaded=await backend.loadProfileReviews('profile-id','developer');
+  assert.equal(JSON.stringify(loaded),JSON.stringify([{id:'review-id',reviewerName:'Client',reviewerInitials:'CL',projectTitle:'Website',rating:4.7,text:'Great work',createdAt:'2026-11-17T00:00:00Z',criteria:{qualityOfWork:null,communication:null,meetingDeadline:null,clarityOfBrief:null,responsiveness:null,respectingScope:null},deliveryBadge:null,reply:null,source:'agreement'}]));
   assert.equal(rpcCalls[0].name,'get_profile_reviews');
+  assert.equal(JSON.stringify(rpcCalls[0].args),JSON.stringify({p_profile_id:'profile-id',p_profile_role:'developer'}));
+});
+test('Public profile and directory rating summaries preserve separate roles and Bayesian scores',async()=>{
+  const summary={review_count:'4',overall_rating:'4.5',adjusted_rating:'4.2222',quality_of_work:'4.5',communication:'4',meeting_deadline:'5',clarity_of_brief:null,responsiveness:null,respecting_scope:null};
+  const {backend,rpcCalls}=await setup({rpcResponses:{
+    get_public_rating_summary:{data:[summary],error:null},
+    get_public_review_aggregates:{data:[{...summary,user_id:'profile-id'}],error:null}
+  }});
+  const profile=await backend.loadProfileRatingSummary('profile-id','developer');
+  const directory=await backend.loadDirectoryRatingSummaries(['profile-id'],'developer');
+  assert.equal(profile.reviewCount,4);
+  assert.equal(profile.adjustedRating,4.2222);
+  assert.equal(profile.criteria.qualityOfWork,4.5);
+  assert.equal(directory.get('profile-id').reviewCount,4);
+  assert.equal(JSON.stringify(rpcCalls.map(call=>call.args)),JSON.stringify([
+    {p_user_id:'profile-id',p_profile_role:'developer'},
+    {p_user_ids:['profile-id'],p_profile_role:'developer'}
+  ]));
 });
 test('Client profile metrics use their database RPC and validate returned counts',async()=>{
   const {backend,rpcCalls}=await setup({rpcResponses:{get_client_profile_metrics:{data:[{views:'12',favorites:3}],error:null}}});

@@ -1276,7 +1276,7 @@
   function projectReviewRecord(row) {
     const rating = Number(row?.rating);
     if (!row || typeof row.id !== 'string' || !row.id
-      || !Number.isInteger(rating) || rating < 1 || rating > 5
+      || !Number.isFinite(rating) || rating < 1 || rating > 5
       || typeof row.reviewer_name !== 'string'
       || typeof row.reviewer_initials !== 'string'
       || typeof row.project_title !== 'string'
@@ -1290,18 +1290,170 @@
       projectTitle: row.project_title,
       rating,
       text: row.text,
-      createdAt: row.created_at
+      createdAt: row.created_at,
+      criteria: {
+        qualityOfWork: row.quality_of_work ?? null,
+        communication: row.communication ?? null,
+        meetingDeadline: row.meeting_deadline ?? null,
+        clarityOfBrief: row.clarity_of_brief ?? null,
+        responsiveness: row.responsiveness ?? null,
+        respectingScope: row.respecting_scope ?? null
+      },
+      deliveryBadge: row.delivery_badge || null,
+      reply: row.reply || null,
+      source: row.source || 'legacy'
     };
   }
 
-  async function loadProfileReviews(profileId) {
-    if (typeof profileId !== 'string' || !profileId) {
-      throw new TypeError('A profile ID is required.');
+  function ratingSummaryRecord(row) {
+    const count = Number(row?.review_count);
+    if (!row || !Number.isSafeInteger(count) || count < 0) {
+      throw new Error('Supabase returned an invalid rating summary.');
     }
-    const {data, error} = await client.rpc('get_profile_reviews', {p_profile_id: profileId});
+    const numeric = value => value === null || value === undefined ? null : Number(value);
+    const summary = {
+      reviewCount: count,
+      overallRating: numeric(row.overall_rating),
+      adjustedRating: numeric(row.adjusted_rating),
+      criteria: {
+        qualityOfWork: numeric(row.quality_of_work),
+        communication: numeric(row.communication),
+        meetingDeadline: numeric(row.meeting_deadline),
+        clarityOfBrief: numeric(row.clarity_of_brief),
+        responsiveness: numeric(row.responsiveness),
+        respectingScope: numeric(row.respecting_scope)
+      }
+    };
+    if (Object.values(summary.criteria).some(value => value !== null &&
+      (!Number.isFinite(value) || value < 1 || value > 5))) {
+      throw new Error('Supabase returned an invalid rating criterion average.');
+    }
+    return summary;
+  }
+
+  async function loadProfileReviews(profileId, profileRole) {
+    if (typeof profileId !== 'string' || !profileId
+      || !['client', 'developer'].includes(profileRole)) {
+      throw new TypeError('A profile ID and profile role are required.');
+    }
+    const {data, error} = await client.rpc('get_profile_reviews', {
+      p_profile_id: profileId,
+      p_profile_role: profileRole
+    });
     if (error) throw error;
     if (!Array.isArray(data)) throw new Error('Supabase returned an invalid project review list.');
     return data.map(projectReviewRecord);
+  }
+
+  async function loadProfileRatingSummary(profileId, profileRole) {
+    if (typeof profileId !== 'string' || !profileId
+      || !['client', 'developer'].includes(profileRole)) {
+      throw new TypeError('A profile ID and profile role are required.');
+    }
+    const {data, error} = await client.rpc('get_public_rating_summary', {
+      p_user_id: profileId,
+      p_profile_role: profileRole
+    });
+    if (error) throw error;
+    if (!Array.isArray(data) || data.length > 1) {
+      throw new Error('Supabase returned an invalid rating summary list.');
+    }
+    return data.length ? ratingSummaryRecord(data[0]) : {
+      reviewCount: 0,
+      overallRating: null,
+      adjustedRating: 4,
+      criteria: {
+        qualityOfWork: null,
+        communication: null,
+        meetingDeadline: null,
+        clarityOfBrief: null,
+        responsiveness: null,
+        respectingScope: null
+      }
+    };
+  }
+
+  async function loadDirectoryRatingSummaries(userIds, profileRole) {
+    if (!Array.isArray(userIds) || userIds.some(id => typeof id !== 'string' || !id)
+      || !['client', 'developer'].includes(profileRole)) {
+      throw new TypeError('A list of profile IDs and profile role are required.');
+    }
+    if (!userIds.length) return new Map();
+    const {data, error} = await client.rpc('get_public_review_aggregates', {
+      p_user_ids: [...new Set(userIds)],
+      p_profile_role: profileRole
+    });
+    if (error) throw error;
+    if (!Array.isArray(data)) throw new Error('Supabase returned an invalid directory rating list.');
+    return new Map(data.map(row => [row.user_id, ratingSummaryRecord(row)]));
+  }
+
+  async function loadAgreementReviewState(agreementId) {
+    if (typeof agreementId !== 'string' || !agreementId) {
+      throw new TypeError('An agreement ID is required.');
+    }
+    await currentAccount();
+    const {data, error} = await client.rpc('get_my_agreement_review_state', {
+      p_agreement_id: agreementId
+    });
+    if (error) throw error;
+    if (!data || typeof data.canReview !== 'boolean'
+      || typeof data.hasSubmitted !== 'boolean'
+      || typeof data.counterpartSubmitted !== 'boolean') {
+      throw new Error('Supabase returned an invalid agreement review state.');
+    }
+    return data;
+  }
+
+  async function submitAgreementReview(agreementId, criteria, comment = '') {
+    if (typeof agreementId !== 'string' || !agreementId
+      || !criteria || typeof criteria !== 'object' || Array.isArray(criteria)
+      || typeof comment !== 'string' || comment.length > 500) {
+      throw new TypeError('An agreement ID, rating criteria, and a comment up to 500 characters are required.');
+    }
+    await currentAccount();
+    const {data, error} = await client.rpc('submit_agreement_review', {
+      p_agreement_id: agreementId,
+      p_criteria: criteria,
+      p_comment: comment.trim()
+    });
+    if (error) throw error;
+    if (typeof data !== 'string' || !data) {
+      throw new Error('Supabase returned an invalid submitted agreement review.');
+    }
+    return data;
+  }
+
+  async function addAgreementReviewReply(reviewId, comment) {
+    if (typeof reviewId !== 'string' || !reviewId
+      || typeof comment !== 'string' || !comment.trim() || comment.trim().length > 500) {
+      throw new TypeError('A review ID and reply between 1 and 500 characters are required.');
+    }
+    await currentAccount();
+    const {data, error} = await client.rpc('add_agreement_review_reply', {
+      p_review_id: reviewId,
+      p_comment: comment.trim()
+    });
+    if (error) throw error;
+    if (typeof data !== 'string' || !data) {
+      throw new Error('Supabase returned an invalid review reply.');
+    }
+  }
+
+  async function reportAgreementReview(reviewId, reason) {
+    if (typeof reviewId !== 'string' || !reviewId
+      || typeof reason !== 'string' || !reason.trim() || reason.trim().length > 500) {
+      throw new TypeError('A review ID and report reason between 1 and 500 characters are required.');
+    }
+    await currentAccount();
+    const {data, error} = await client.rpc('report_agreement_review', {
+      p_review_id: reviewId,
+      p_reason: reason.trim()
+    });
+    if (error) throw error;
+    if (typeof data !== 'string' || !data) {
+      throw new Error('Supabase returned an invalid review report.');
+    }
   }
 
   async function loadProjectEngagement(conversationId) {
@@ -1606,6 +1758,12 @@
     addProjectComment,
     addProjectCommentReply,
     loadProfileReviews,
+    loadProfileRatingSummary,
+    loadDirectoryRatingSummaries,
+    loadAgreementReviewState,
+    submitAgreementReview,
+    addAgreementReviewReply,
+    reportAgreementReview,
     loadProjectEngagement,
     confirmProjectCompletion,
     loadMyProjectReview,

@@ -289,7 +289,7 @@
     }).join(''):'<p class="empty-state">You have no open requests yet. Open project requests will appear here.</p>';
   }
 
-  function renderReviews(reviews,reviewsLoadFailed){
+  function renderReviews(reviews,summary,reviewsLoadFailed,isOwnProfile=false){
     if(reviewsLoadFailed){
       setText('statRating','—');
       setText('statReviews','unable to load reviews');
@@ -297,21 +297,28 @@
       document.getElementById('reviewList').innerHTML='<p class="empty-state">Reviews could not be loaded. Check your connection and try again.</p>';
       return;
     }
-    if(!reviews.length){
-      setText('statRating','—');
-      setText('statReviews','no reviews yet');
-      renderOverviewStatistics({rating:'-'});
-      document.getElementById('reviewList').innerHTML='<p class="empty-state">Developer reviews will appear here after a completed project.</p>';
-      return;
-    }
-    const average=reviews.reduce((sum,review)=>sum+review.rating,0)/reviews.length;
-    setText('statRating',`★ ${average.toFixed(1)}`);
-    setText('statReviews',`from ${reviews.length} reviews`);
-    renderOverviewStatistics({rating:average.toFixed(1)});
-    document.getElementById('reviewList').innerHTML=reviews.slice(0,8).map(review=>{
-      const stars=Math.round(review.rating);
-      return `<article class="review-item"><span class="review-avatar">${escapeHtml(review.reviewerInitials||initials(review.reviewerName))}</span><div class="review-copy"><h3>${escapeHtml(review.reviewerName)}</h3><small>${escapeHtml(review.projectTitle||'Completed project')}</small><p>${escapeHtml(review.text)}</p></div><span class="review-rating" aria-label="${stars} out of 5 stars">${'★'.repeat(stars)}</span></article>`;
+    const count=summary.reviewCount;
+    const ratingLabel=count===0?'Belum ada rating':count<3?'New':`★ ${summary.overallRating.toFixed(1)}`;
+    setText('statRating',count<3?ratingLabel:`★ ${summary.overallRating.toFixed(1)}`);
+    setText('statReviews',count?`from ${count} reviews`:'no reviews yet');
+    renderOverviewStatistics({rating:count<3?ratingLabel:summary.overallRating.toFixed(1)});
+    const criterionRows=[
+      ['Clarity of the brief',summary.criteria.clarityOfBrief],
+      ['Responsiveness',summary.criteria.responsiveness],
+      ['Respecting the agreed scope',summary.criteria.respectingScope]
+    ].filter(([,value])=>value!==null);
+    const criteriaSummary=criterionRows.length
+      ?`<dl class="review-criteria-summary">${criterionRows.map(([label,value])=>`<div><dt>${label}</dt><dd>${Number(value).toFixed(1)}</dd></div>`).join('')}</dl>`:'';
+    const items=reviews.slice(0,8).map(review=>{
+      const details=[
+        ['Clarity of the brief',review.criteria.clarityOfBrief],
+        ['Responsiveness',review.criteria.responsiveness],
+        ['Respecting the agreed scope',review.criteria.respectingScope]
+      ].filter(([,value])=>value!==null);
+      const actions=window.DEVMATCH_PROFILE_REVIEW_ACTIONS?.render(review,isOwnProfile);
+      return `<article class="review-item"><span class="review-avatar">${escapeHtml(review.reviewerInitials||initials(review.reviewerName))}</span><div class="review-copy"><h3>${escapeHtml(review.reviewerName)}</h3><small>${escapeHtml(review.projectTitle||'Completed project')}</small>${review.text?`<p>${escapeHtml(review.text)}</p>`:''}${details.length?`<small>${details.map(([label,value])=>`${label}: ${value}`).join(' · ')}</small>`:''}${review.reply?`<p class="review-reply"><strong>Response:</strong> ${escapeHtml(review.reply)}</p>`:''}${actions||''}</div><span class="review-rating">${review.rating.toFixed(1)} / 5</span></article>`;
     }).join('');
+    document.getElementById('reviewList').innerHTML=`${criteriaSummary}${items||'<p class="empty-state">Belum ada rating.</p>'}`;
   }
 
   function activateTab(button,focus){
@@ -389,14 +396,19 @@
     renderRequests(requests||[]);
     await renderClientProfileMetrics(client.id,user);
     let reviews=[];
+    let ratingSummary={reviewCount:0,overallRating:null,criteria:{}};
     let reviewsLoadFailed=false;
     try{
-      reviews=await window.devMatchBackend.loadProfileReviews(client.id);
+      [reviews,ratingSummary]=await Promise.all([
+        window.devMatchBackend.loadProfileReviews(client.id,'client'),
+        window.devMatchBackend.loadProfileRatingSummary(client.id,'client')
+      ]);
     }catch(error){
       console.error('Unable to load public client reviews from Supabase.',error);
       reviewsLoadFailed=true;
     }
-    renderReviews(reviews,reviewsLoadFailed);
+    renderReviews(reviews,ratingSummary,reviewsLoadFailed,Boolean(user&&user.id===client.id));
+    window.DEVMATCH_PROFILE_REVIEW_ACTIONS?.connect(document.getElementById('reviewList'));
     document.getElementById('activityList').innerHTML='<p class="empty-state">New profile activity and inquiries will appear here.</p>';
     renderConnectedApps(profile);
     const contactUrl=user

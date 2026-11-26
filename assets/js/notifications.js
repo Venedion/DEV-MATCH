@@ -114,6 +114,8 @@
     if (value.includes('comment')) return {filter: 'comments', label: 'commented on', badge: '“'};
     if (value.includes('message') || value.includes('conversation')) return {filter: 'messages', label: 'sent you a message', badge: '✉'};
     if (value.includes('favorite') || value.includes('favourite') || value.includes('save')) return {filter: 'favorites', label: 'saved', badge: '♥'};
+    if (value.includes('rating_opened')) return {filter: 'ratings', label: 'opened the review window for', badge: '★'};
+    if (value.includes('rating_reminder')) return {filter: 'ratings', label: 'reminded you to review', badge: '★'};
     if (value.includes('rating') || value.includes('review')) return {filter: 'ratings', label: 'left a rating', badge: '★'};
     return {filter: 'updates', label: 'sent you an update', badge: '•'};
   };

@@ -15,7 +15,18 @@
   const progressReviewFrom = document.getElementById('progressReviewFrom');
   const progressReviewContent = document.getElementById('progressReviewContent');
   const progressReviewFooter = document.getElementById('progressReviewFooter');
+  const handoverReviewDialog = document.getElementById('handoverReviewDialog');
+  const handoverReviewFrom = document.getElementById('handoverReviewFrom');
+  const handoverReviewContent = document.getElementById('handoverReviewContent');
+  const handoverReviewFooter = document.getElementById('handoverReviewFooter');
   const checkoutDialog = document.getElementById('roomPaymentCheckoutDialog');
+  const ratingDialog = document.getElementById('agreementRatingDialog');
+  const ratingForm = document.getElementById('agreementRatingForm');
+  const ratingTitle = document.getElementById('agreementRatingTitle');
+  const ratingSubtitle = document.getElementById('agreementRatingSubtitle');
+  const ratingCriteria = document.getElementById('agreementRatingCriteria');
+  const ratingCount = document.getElementById('agreementRatingCount');
+  const ratingError = document.getElementById('agreementRatingError');
   const checkoutProject = document.getElementById('roomPaymentCheckoutProject');
   const checkoutAmountLabel = document.getElementById('roomPaymentCheckoutAmountLabel');
   const checkoutAmount = document.getElementById('roomPaymentCheckoutAmount');
@@ -40,9 +51,15 @@
   let progressReviewSnapshot;
   let progressReviewGeneration = 0;
   let progressReviewBusy = false;
+  let handoverReviewKey;
+  let handoverReviewGeneration = 0;
+  let handoverReviewBusy = false;
   let roomTitle;
+  let agreementClientName = '';
   let snapshot;
   let busy = false;
+  let handoverDialog = null;
+  let handoverSelectedFiles = [];
   let reviews = [];
   let returnedRoom;
   const loading = new Map();
@@ -60,6 +77,22 @@
   const progressReviewDate = new Intl.DateTimeFormat('en-US', {
     month: 'short', day: 'numeric', year: 'numeric'
   });
+  const handoverFileTypes = new Map([
+    ['.zip', 'application/zip'],
+    ['.7z', 'application/x-7z-compressed'],
+    ['.rar', 'application/vnd.rar'],
+    ['.tar', 'application/x-tar'],
+    ['.gz', 'application/gzip'],
+    ['.tgz', 'application/gzip'],
+    ['.pdf', 'application/pdf'],
+    ['.doc', 'application/msword'],
+    ['.docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'],
+    ['.txt', 'text/plain'],
+    ['.md', 'text/markdown']
+  ]);
+  const handoverMaxFileBytes = 50 * 1024 * 1024;
+  const handoverMaxTotalBytes = 100 * 1024 * 1024;
+  const handoverSignedUrls = new Map();
   const dateLabel = value => {
     if (!value) return '';
     const date = new Date(value);
@@ -73,6 +106,14 @@
   const safe = value => String(value).replace(/[&<>"']/g, char => ({
     '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
   })[char]);
+  const safeHandoverFileName = value =>
+    value.replace(/[^A-Za-z0-9._-]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 100) || 'handover-file';
+  const handoverFileType = file => handoverFileTypes.get(
+    String(file.name || '').toLowerCase().match(/\.[^.]+$/)?.[0]
+  ) || '';
+  const handoverSize = bytes => bytes >= 1024 * 1024
+    ? `${(bytes / (1024 * 1024)).toFixed(1)} MB`
+    : `${Math.max(1, Math.round(bytes / 1024))} KB`;
   const labels = {
     PENDING: 'Menunggu', ACCEPTED: 'Diterima', DECLINED: 'Ditolak', NOT_STARTED: 'Belum dimulai',
     IN_PROGRESS: 'Sedang dikerjakan', AWAITING_CLIENT_APPROVAL: 'Menunggu persetujuan Client',
@@ -92,6 +133,18 @@
     DISPUTE_RESOLVED: 'Dispute selesai', DISPUTE_RELEASE_PENDING: 'Payout hasil review sedang diproses'
   };
   const roleLabels = { client: 'Client', developer: 'Developer', reviewer: 'Reviewer dispute' };
+  const ratingCriteriaByRole = {
+    client: [
+      ['qualityOfWork', 'Quality of work'],
+      ['communication', 'Communication'],
+      ['meetingDeadline', 'Meeting the deadline']
+    ],
+    developer: [
+      ['clarityOfBrief', 'Clarity of the brief'],
+      ['responsiveness', 'Responsiveness'],
+      ['respectingScope', 'Respecting the agreed scope']
+    ]
+  };
 
   const button = (action, label, primary = false, disabled = false) =>
     `<button type="button" data-action="${action}" ${primary ? 'data-primary' : ''} ${disabled ? 'disabled' : ''}>${label}</button>`;
@@ -104,6 +157,184 @@
   const section = (label, body) => `<details><summary>${label}</summary>${body}</details>`;
   const links = items => items.map(link =>
     `<li><a href="${safe(link)}" target="_blank" rel="noopener noreferrer">${safe(link)}</a></li>`).join('');
+
+  function setHandoverError(message = '') {
+    if (!handoverDialog) return;
+    const error = handoverDialog.querySelector('[data-handover-error]');
+    error.textContent = message;
+    error.hidden = !message;
+  }
+
+  function renderHandoverFiles() {
+    const list = handoverDialog?.querySelector('[data-handover-file-list]');
+    if (!list) return;
+    list.innerHTML = handoverSelectedFiles.map((file, index) => `
+      <li class="handover-file-row">
+        <span><strong>${safe(file.name)}</strong><small>${handoverSize(file.size)}</small></span>
+        <button type="button" data-handover-remove-file="${index}" aria-label="Remove ${safe(file.name)}">×</button>
+      </li>`).join('');
+  }
+
+  function ensureHandoverDialog() {
+    if (handoverDialog) return handoverDialog;
+    handoverDialog = document.createElement('dialog');
+    handoverDialog.className = 'agreement-handover-dialog';
+    document.body.append(handoverDialog);
+    handoverDialog.addEventListener('change', event => {
+      if (!event.target.matches('[data-handover-files]')) return;
+      const selected = Array.from(event.target.files || []);
+      if (handoverSelectedFiles.length + selected.length > 5) {
+        setHandoverError('Choose up to 5 handover files.');
+      } else {
+        handoverSelectedFiles.push(...selected);
+        setHandoverError();
+        renderHandoverFiles();
+      }
+      event.target.value = '';
+    });
+    handoverDialog.addEventListener('input', event => {
+      if (event.target.name !== 'notes') return;
+      const counter = handoverDialog.querySelector('[data-handover-notes-count]');
+      counter.textContent = `${event.target.value.length} / 500`;
+    });
+    handoverDialog.addEventListener('click', event => {
+      const closeButton = event.target.closest('[data-handover-close]');
+      if (closeButton) {
+        if (!busy) handoverDialog.close();
+        return;
+      }
+      const removeButton = event.target.closest('[data-handover-remove-file]');
+      if (removeButton) {
+        handoverSelectedFiles.splice(Number(removeButton.dataset.handoverRemoveFile), 1);
+        setHandoverError();
+        renderHandoverFiles();
+        return;
+      }
+      if (event.target === handoverDialog && !busy) {
+        const rect = handoverDialog.getBoundingClientRect();
+        if (event.clientX < rect.left || event.clientX > rect.right ||
+            event.clientY < rect.top || event.clientY > rect.bottom) handoverDialog.close();
+      }
+    });
+    handoverDialog.addEventListener('submit', event => {
+      if (!event.target.matches('[data-handover-form]')) return;
+      event.preventDefault();
+      const form = event.target;
+      const notes = form.elements.notes.value.trim();
+      const scope = Array.from(form.querySelectorAll('[name="scope"]:checked'), input => input.value);
+      const expectedScope = snapshot?.room?.proposal?.scopeItems || [];
+      const totalSize = handoverSelectedFiles.reduce((sum, file) => sum + file.size, 0);
+      if (!handoverSelectedFiles.length) {
+        setHandoverError('Add at least one handover file.');
+        return;
+      }
+      if (handoverSelectedFiles.some(file => !handoverFileType(file) ||
+          file.size < 1 || file.size > handoverMaxFileBytes) || totalSize > handoverMaxTotalBytes) {
+        setHandoverError('Choose supported files up to 50 MB each and 100 MB total.');
+        return;
+      }
+      if (scope.length !== expectedScope.length || expectedScope.some(item => !scope.includes(item))) {
+        setHandoverError('Mark every scope point as delivered before handing over the system.');
+        return;
+      }
+      if (!notes || notes.length > 500) {
+        setHandoverError('Add handover notes of up to 500 characters.');
+        return;
+      }
+      const links = {
+        website: form.elements.website.value.trim(),
+        repository: form.elements.repository.value.trim()
+      };
+      for (const [label, value] of [['Website link', links.website], ['Repository link', links.repository]]) {
+        if (value && (!URL.canParse(value) || new URL(value).protocol !== 'https:')) {
+          setHandoverError(`${label} must use HTTPS.`);
+          return;
+        }
+      }
+      setHandoverError();
+      void perform('handover', {
+        notes,
+        scope,
+        links,
+        filesToUpload: [...handoverSelectedFiles]
+      });
+    });
+    handoverDialog.addEventListener('cancel', event => {
+      if (busy) event.preventDefault();
+    });
+    handoverDialog.addEventListener('close', () => {
+      if (!busy) handoverSelectedFiles = [];
+    });
+    return handoverDialog;
+  }
+
+  function openHandoverDialog() {
+    const room = snapshot?.room;
+    const proposal = room?.proposal;
+    if (snapshot?.role !== 'developer' || room?.project !== 'AWAITING_HANDOVER' ||
+        room?.escrow !== 'REMAINING_HELD' || !proposal) return;
+    const scopeItems = Array.isArray(proposal.scopeItems) ? proposal.scopeItems : [];
+    if (!scopeItems.length) {
+      setError('This agreement has no scope points to confirm for handover.');
+      return;
+    }
+    const payments = snapshot.payments || [];
+    const paid = payments.filter(payment => payment.status === 'PAID')
+      .reduce((sum, payment) => sum + Number(payment.amount || 0), 0);
+    const released = (room.releases || []).reduce((sum, release) => sum + Number(release.amount || 0), 0);
+    const held = Math.max(0, paid - released);
+    const node = ensureHandoverDialog();
+    handoverSelectedFiles = [];
+    node.innerHTML = `
+      <section>
+        <header class="handover-dialog-header">
+          <div><h2>Hand over system</h2>
+            <p>${safe(proposal.name || roomTitle)} · for ${safe(agreementClientName || 'Client')}</p></div>
+          <button type="button" data-handover-close aria-label="Close handover">×</button>
+        </header>
+        <form data-handover-form>
+          <div class="handover-dialog-content">
+            <section class="handover-dialog-field">
+              <p class="handover-dialog-label">Files</p>
+              <ul class="handover-file-list" data-handover-file-list></ul>
+              <label class="handover-add-files">
+                <input type="file" data-handover-files multiple
+                  accept=".zip,.7z,.rar,.tar,.gz,.tgz,.pdf,.doc,.docx,.txt,.md">
+                <span>＋ Add files</span>
+              </label>
+            </section>
+            <section class="handover-dialog-field">
+              <p class="handover-dialog-label">Links (optional)</p>
+              <label><span class="visually-hidden">Website link</span>
+                <input name="website" type="url" maxlength="2048" placeholder="https://your-website.example"></label>
+              <label><span class="visually-hidden">Repository link</span>
+                <input name="repository" type="url" maxlength="2048" placeholder="Repository link"></label>
+            </section>
+            <section class="handover-dialog-field">
+              <label class="handover-dialog-label" for="handoverNotes">Handover notes</label>
+              <textarea id="handoverNotes" name="notes" maxlength="500" required></textarea>
+              <small class="handover-notes-count" data-handover-notes-count>0 / 500</small>
+            </section>
+            <section class="handover-dialog-field">
+              <p class="handover-dialog-label">Scope points delivered</p>
+              <div class="handover-scope-list">${scopeItems.map(item => `
+                <label><input type="checkbox" name="scope" value="${safe(item)}" checked>
+                  <span>${safe(item)}</span></label>`).join('')}</div>
+            </section>
+            <p class="handover-dialog-notice">
+              ${safe(agreementClientName || 'The Client')} has 7 days to accept. After that it is accepted automatically
+              and the remaining <strong>${safe(rupiah.format(held))}</strong> is released to you.
+            </p>
+            <p class="handover-dialog-error" data-handover-error hidden></p>
+          </div>
+          <footer class="handover-dialog-footer">
+            <button type="button" data-handover-close>Cancel</button>
+            <button type="submit" data-primary>Hand over system</button>
+          </footer>
+        </form>
+      </section>`;
+    node.showModal();
+  }
 
   function setError(message = '') {
     error.textContent = message;
@@ -424,13 +655,14 @@
     const canAccept = client && handover?.status === 'AWAITING_CLIENT';
     const canReportProblem = client && room.escrow !== 'AWAITING_DP' &&
       !['COMPLETED', 'CANCELLED', 'DISPUTED', 'DISPUTE_RESOLVED'].includes(room.project) && !dispute;
-    const canRate = ['client', 'developer'].includes(role) && room.project === 'COMPLETED' && !ratings?.[role];
+    const ratingState = room.ratingState || {};
+    const canRate = ['client', 'developer'].includes(role) && ratingState.canReview === true;
     const handoverDeadline = handover?.status === 'AWAITING_CLIENT' ? dateLabel(handover.deadlineAt) : '';
     const submittedProgress = Boolean(timeline.progressSubmittedAt);
     const progressDone = Boolean(timeline.progressApprovedAt);
     const progressUpdateRequested = progressReview?.status === 'UPDATE_REQUESTED';
     const handoverDone = Boolean(timeline.resultAcceptedAt);
-    const ratingsDone = Boolean(timeline.ratings?.clientAt && timeline.ratings?.developerAt);
+    const ratingsDone = ratingState.hasSubmitted === true && ratingState.counterpartSubmitted === true;
     const agreementDate = dateLabel(timeline.agreementCreatedAt);
     const timelineStep = (index, label, at, description, status, amount = '', actionHtml = '', completed = Boolean(at)) => {
       const done = Boolean(completed);
@@ -505,21 +737,43 @@
         ? `The developer handed over the system. Accept it, or report a problem within 7 days${handoverDeadline ? ` (by ${handoverDeadline})` : ''}.`
         : 'The developer hands over the system. You can accept it, or report a problem within 7 days.';
     const handoverAction = canHandover
-      ? `<div class="agreement-step-actions">${section('Hand over system', form('handover',
-          field('Handover notes', 'Notes', true, false), 'Hand over system'))}</div>`
+      ? `<div class="agreement-step-actions">${button('handover-open', 'Hand over system', true)}</div>`
       : canAccept && !dispute
-        ? `<div class="agreement-step-actions">${button('accept-result', 'Accept result', true)}</div>`
+        ? `<div class="agreement-step-actions">${button('review-handover', 'Review handover', true)}</div>`
         : '';
-    const ratingDescription = ratingsDone ? 'Both of you rated each other after the project was completed.'
-      : 'Both of you rate each other after the project is completed.';
+    const handoverDetails = handover?.status
+      ? `<div class="agreement-handover-details">
+          ${handover.files?.length ? `<section><strong>Files</strong><ul>${handover.files.map(file =>
+            `<li>${file.url
+              ? `<a href="${safe(file.url)}" target="_blank" rel="noopener noreferrer">${safe(file.name)}</a>`
+              : safe(file.name)} <small>${handoverSize(Number(file.size) || 0)}</small></li>`
+          ).join('')}</ul></section>` : ''}
+          ${handover.links?.website || handover.links?.repository
+            ? `<section><strong>Links</strong><ul>
+                ${handover.links.website ? `<li><a href="${safe(handover.links.website)}" target="_blank" rel="noopener noreferrer">Website</a></li>` : ''}
+                ${handover.links.repository ? `<li><a href="${safe(handover.links.repository)}" target="_blank" rel="noopener noreferrer">Repository</a></li>` : ''}
+              </ul></section>` : ''}
+          ${handover.notes ? `<section><strong>Handover notes</strong><p>${safe(handover.notes)}</p></section>` : ''}
+          ${handover.scope?.length ? `<section><strong>Scope points delivered</strong><ul class="agreement-handover-scope">
+            ${handover.scope.map(item => `<li><span aria-hidden="true">✓</span>${safe(item)}</li>`).join('')}
+          </ul></section>` : ''}
+        </div>`
+      : '';
+    const ratingDescription = ratingsDone
+      ? 'Both reviews are published and visible on your profiles.'
+      : ratingState.hasSubmitted
+        ? `Your review is submitted. The other participant can review until ${dateLabel(ratingState.closesAt)}.`
+        : ratingState.counterpartSubmitted
+          ? `The other participant has submitted a review. Submit yours by ${dateLabel(ratingState.closesAt)}.`
+          : ratingState.closesAt
+            ? `Review this completed and paid agreement by ${dateLabel(ratingState.closesAt)}.`
+            : 'Reviews are available for completed and paid agreements.';
     const ratingAction = canRate
-      ? `<div class="agreement-step-actions">${section('Rate project', form('rate',
-          `<label>Rating<select name="rating" required><option value="">Select a rating</option>
-            <option value="5">5 — Excellent</option><option value="4">4 — Good</option>
-            <option value="3">3 — Average</option><option value="2">2 — Below average</option>
-            <option value="1">1 — Poor</option></select></label>${field('text', 'Review (optional)', true, false)}`,
-          'Submit rating'))}</div>`
-      : ratings?.[role] ? `<p class="agreement-inline-note">Your rating: ${safe(ratings[role].rating)} / 5</p>` : '';
+      ? `<div class="agreement-step-actions">${button('rate', 'Rate now', true)}</div>`
+      : ratingState.hasSubmitted
+        ? `<p class="agreement-inline-note">${ratingState.published
+          ? 'Your review is published.'
+          : 'Your review is submitted and cannot be edited.'}</p>` : '';
     const timelineHtml = [
       timelineStep(1, 'Agreement created', timeline.agreementCreatedAt,
         'Both of you accepted the proposal.', 'Upcoming', '',
@@ -539,10 +793,13 @@
         Number(proposal.remaining) || 0, remainingAction),
       timelineStep(6, 'Handover and acceptance', timeline.resultAcceptedAt, handoverDescription,
         timeline.resultAcceptedAt ? 'Upcoming' : handover?.status === 'AWAITING_CLIENT'
-          ? (client ? 'Waiting for you' : 'Waiting for client') : 'Upcoming', '', handoverAction),
-      timelineStep(7, 'Rating', ratingsDone ? timeline.ratings.clientAt : '',
-        ratingDescription, ratingsDone ? 'Upcoming' : room.project === 'COMPLETED'
-          ? (ratings?.[role] ? 'Waiting for other rating' : 'Waiting for you') : 'Upcoming', '', ratingAction)
+          ? (client ? 'Waiting for you' : 'Waiting for client') : 'Upcoming', '',
+        `${handoverDetails}${handoverAction}`),
+      timelineStep(7, 'Rating', ratingState.submittedAt || '',
+        ratingDescription, ratingsDone ? 'Done' : canRate
+          ? (ratingState.counterpartSubmitted ? 'Waiting for you' : 'Waiting for review')
+          : ratingState.hasSubmitted ? 'Waiting for other rating' : 'Upcoming', '', ratingAction,
+        ratingsDone)
     ].join('');
     const problemSection = dispute
       ? `<section class="agreement-summary-card agreement-problem" aria-live="polite">
@@ -607,6 +864,60 @@
           ${problemSection}
         </aside>
       </div>`;
+  }
+
+  function ratingStars(name, label) {
+    return `<div class="agreement-rating-stars" data-rating-group="${safe(name)}" role="radiogroup" aria-label="${safe(label)}">
+      ${[1, 2, 3, 4, 5].map(value => `
+        <label>
+          <input type="radio" name="${safe(name)}" value="${value}" aria-label="${value} out of 5" required>
+          <span aria-hidden="true">★</span>
+        </label>`).join('')}
+    </div>`;
+  }
+
+  function updateRatingStars(group) {
+    const selected = Number(group.querySelector('input:checked')?.value || 0);
+    group.querySelectorAll('label').forEach((label, index) => {
+      label.classList.toggle('is-selected', index < selected);
+    });
+    updateOverallRating();
+  }
+
+  function updateOverallRating() {
+    const values = Array.from(ratingCriteria.querySelectorAll('input:checked'), input => Number(input.value));
+    const average = values.length ? values.reduce((sum, value) => sum + value, 0) / values.length : null;
+    const stars = ratingForm.querySelector('[data-rating-overall-stars]');
+    const value = ratingForm.querySelector('[data-rating-overall-value]');
+    if (stars) stars.textContent = average === null
+      ? '☆☆☆☆☆' : `${'★'.repeat(Math.round(average))}${'☆'.repeat(5 - Math.round(average))}`;
+    if (value) value.textContent = average === null ? '—' : average.toFixed(1);
+  }
+
+  function openRatingDialog() {
+    const {role, room} = snapshot || {};
+    if (!room || !ratingCriteriaByRole[role] || room.ratingState?.canReview !== true) return;
+    const proposal = room.proposal || {};
+    const counterpart = role === 'client'
+      ? room.developerName || room.developer?.displayName || agreementClientName || 'Developer'
+      : room.clientName || agreementClientName || 'Client';
+    const completedAt = room.result?.acceptedAt || room.timeline?.resultAcceptedAt;
+    const completedDate = completedAt && !Number.isNaN(Date.parse(completedAt))
+      ? ` · completed ${progressReviewDate.format(new Date(completedAt))}` : '';
+    ratingTitle.textContent = `Rate ${counterpart}`;
+    ratingSubtitle.textContent = `${proposal.name || roomTitle}${completedDate}`;
+    ratingCriteria.innerHTML = ratingCriteriaByRole[role].map(([key, label]) => `
+      <div class="agreement-rating-criterion">
+        <span>${label}</span>${ratingStars(key, label)}
+      </div>`).join('');
+    ratingForm.reset();
+    ratingError.textContent = '';
+    ratingError.hidden = true;
+    ratingCount.textContent = '0';
+    ratingForm.querySelectorAll('.agreement-rating-stars').forEach(updateRatingStars);
+    updateOverallRating();
+    if (!ratingDialog.open) ratingDialog.showModal();
+    ratingForm.querySelector('.agreement-rating-criterion input')?.focus();
   }
 
   function render() {
@@ -787,6 +1098,10 @@
       window.print();
       return;
     }
+    if (action === 'review-handover') {
+      openHandoverReview();
+      return;
+    }
     if (action === 'review-progress') {
       const proposal = snapshot?.room?.proposal;
       if (!proposal?.agreementId) {
@@ -809,6 +1124,13 @@
     const dpConfirmationOpen = action === 'DP' && fields.confirmed;
     busy = true;
     content.inert = true;
+    if (action === 'handover' && handoverDialog?.open) {
+      const submitButton = handoverDialog.querySelector('[data-primary]');
+      if (submitButton) {
+        submitButton.disabled = true;
+        submitButton.textContent = 'Uploading…';
+      }
+    }
     const checkoutButtons = dpConfirmationOpen
       ? [...checkoutDialog.querySelectorAll('button')] : [];
     checkoutButtons.forEach(checkoutButton => { checkoutButton.disabled = true; });
@@ -817,8 +1139,19 @@
     let checkoutTab;
     let checkoutOpened = false;
     let updated = false;
+    let uploadedHandoverPaths = [];
+    let handoverSaved = false;
     try {
-      if (isEmbeddedDp) {
+      if (action === 'rate') {
+        const criteria = Object.fromEntries(
+          ratingCriteriaByRole[snapshot?.role]?.map(([key]) => [key, Number(fields[key])]) || []
+        );
+        const agreementId = snapshot?.room?.proposal?.agreementId;
+        if (!agreementId) throw new Error('This agreement cannot be rated.');
+        await window.devMatchBackend.submitAgreementReview(agreementId, criteria, fields.text || '');
+        snapshot.room.ratingState = await window.devMatchBackend.loadAgreementReviewState(agreementId);
+        updated = true;
+      } else if (isEmbeddedDp) {
         await createDpCheckout(JSON.parse(key).agreementId);
       } else if (isCheckout) {
         // Open during the click so the browser can authorize the new tab.
@@ -845,9 +1178,41 @@
           message.hidden = false;
         }
       } else {
-        if (action === 'rate') fields.rating = Number(fields.rating);
+        let applyFields = fields;
+        if (action === 'handover') {
+          const client = window.devMatchBackend?.client;
+          if (!client) throw new Error('Handover upload service is unavailable.');
+          const {data, error: authError} = await client.auth.getUser();
+          if (authError) throw authError;
+          if (!data.user?.id) throw new Error('Log in to upload handover files.');
+          const {filesToUpload = [], ...handoverFields} = fields;
+          const files = [];
+          for (const file of filesToUpload) {
+            const path = `${JSON.parse(key).agreementId}/${data.user.id}/${crypto.randomUUID()}-${safeHandoverFileName(file.name)}`;
+            const type = handoverFileType(file);
+            uploadedHandoverPaths.push(path);
+            const {error: uploadError} = await client.storage.from('agreement-handover').upload(path, file, {
+              cacheControl: '3600',
+              contentType: type,
+              upsert: false
+            });
+            if (uploadError) throw uploadError;
+            files.push({path, name: file.name.slice(0, 120), type, size: file.size});
+          }
+          applyFields = {...handoverFields, files};
+        }
         const state = action === 'refresh' ? await request(key, 'refresh')
-          : await request(key, 'apply', {...fields, action});
+          : await request(key, 'apply', {...applyFields, action});
+        if (action === 'handover') {
+          handoverSaved = true;
+          handoverDialog?.close();
+          handoverSelectedFiles = [];
+          try {
+            await signHandoverMedia(state);
+          } catch (cause) {
+            setError(`Handover was submitted, but its files could not be opened: ${cause.message}`);
+          }
+        }
         if (key !== roomKey) return;
         snapshot = state;
         updated = true;
@@ -855,22 +1220,54 @@
       }
     } catch (cause) {
       if (key === roomKey) {
-        if (dpConfirmationOpen) {
+        if (action === 'handover') {
+          setHandoverError(cause.message || 'The system could not be handed over. Please try again.');
+          if ([401, 403].includes(cause.status)) showAccessError(cause);
+        } else if (dpConfirmationOpen) {
           if ([401, 403].includes(cause.status)) {
             checkoutDialog.close();
             showAccessError(cause);
           } else {
             setCheckoutError(cause.message);
           }
+        } else if (action === 'rate') {
+          ratingError.textContent = cause.message || 'Unable to submit your rating. Please try again.';
+          ratingError.hidden = false;
         } else {
           showAccessError(cause);
         }
       }
     } finally {
+      if (uploadedHandoverPaths.length && !handoverSaved) {
+        const client = window.devMatchBackend?.client;
+        try {
+          if (!client) throw new Error('Handover storage service is unavailable for cleanup.');
+          const {error: cleanupError} = await client.storage.from('agreement-handover')
+            .remove(uploadedHandoverPaths);
+          if (cleanupError) throw cleanupError;
+        } catch (cleanupError) {
+          console.error('Unable to remove unsubmitted handover files.', cleanupError);
+        }
+      }
       if (!checkoutOpened && checkoutTab && !checkoutTab.closed) checkoutTab.close();
       busy = false;
       content.inert = false;
       checkoutButtons.forEach(checkoutButton => { checkoutButton.disabled = false; });
+      if (action === 'handover' && handoverDialog?.open) {
+        const submitButton = handoverDialog.querySelector('[data-primary]');
+        if (submitButton) {
+          submitButton.disabled = false;
+          submitButton.textContent = 'Hand over system';
+        }
+      }
+      if (action === 'rate') {
+        const submitButton = ratingForm.querySelector('[type="submit"]');
+        if (submitButton) {
+          submitButton.disabled = false;
+          submitButton.textContent = 'Submit rating';
+        }
+        if (updated) ratingDialog.close();
+      }
       if (updated || key !== roomKey) render();
       flushAgreementRefresh(key);
     }
@@ -901,7 +1298,11 @@
     try {
       const pending = request(key);
       loading.set(key, pending);
-      const state = await signProgressMedia(await pending);
+      const state = await signHandoverMedia(await signProgressMedia(await pending));
+      const agreementId = state.room?.proposal?.agreementId;
+      if (agreementId && ['client', 'developer'].includes(state.role)) {
+        state.room.ratingState = await window.devMatchBackend.loadAgreementReviewState(agreementId);
+      }
       if (key !== roomKey || busy) return;
       snapshot = state;
       setError();
@@ -910,11 +1311,15 @@
       if (initialAction && dialog.open) {
         if (['DP', 'REMAINING', 'accept-result', 'report-problem'].includes(initialAction)) {
           void perform(initialAction);
+        } else if (initialAction === 'handover') {
+          openHandoverDialog();
+        } else if (initialAction === 'review-handover') {
+          openHandoverReview();
+        } else if (initialAction === 'rate') {
+          openRatingDialog();
         } else {
           const targetByAction = {
-            deliver: 'form[data-action="deliver"] input[name="links"]',
-            handover: 'form[data-action="handover"] textarea[name="notes"]',
-            rate: 'form[data-action="rate"] select[name="rating"]'
+            deliver: 'form[data-action="deliver"] input[name="links"]'
           };
           const selector = targetByAction[initialAction];
           const target = selector ? content.querySelector(selector) : null;
@@ -946,6 +1351,28 @@
         .createSignedUrl(file.path, 3600);
       if (failure) throw failure;
       file.url = data.signedUrl;
+    }));
+    return state;
+  }
+
+  async function signHandoverMedia(state) {
+    const files = state.room?.handover?.files || [];
+    if (!files.length) return state;
+    const client = window.devMatchBackend?.client;
+    if (!client) throw new Error('Layanan file handover belum tersedia.');
+    await Promise.all(files.map(async file => {
+      if (!file?.path) return;
+      const cached = handoverSignedUrls.get(file.path);
+      if (cached && cached.expiresAt > Date.now() + 60_000) {
+        file.url = cached.url;
+        return;
+      }
+      const {data, error: failure} = await client.storage.from('agreement-handover')
+        .createSignedUrl(file.path, 3600, {download: file.name || true});
+      if (failure) throw failure;
+      if (!data?.signedUrl) throw new Error('Tautan file handover tidak tersedia.');
+      file.url = data.signedUrl;
+      handoverSignedUrls.set(file.path, {url: data.signedUrl, expiresAt: Date.now() + 55 * 60_000});
     }));
     return state;
   }
@@ -1008,6 +1435,121 @@
     progressReviewFooter.innerHTML = `
       <button type="button" data-review-action="request-update">Request update</button>
       <button type="button" data-review-action="approve-progress" data-primary>Approve progress</button>`;
+  }
+
+  function renderHandoverReview(state) {
+    const room = state.room;
+    const handover = room.handover;
+    const developerName = room.developerName || room.developer?.displayName || 'Developer';
+    const submittedDate = handover.at && !Number.isNaN(Date.parse(handover.at))
+      ? new Date(handover.at) : null;
+    const submittedAt = submittedDate
+      ? `${progressReviewDate.format(submittedDate)}, ${progressReviewClock.format(submittedDate)}`
+      : '';
+    const files = Array.isArray(handover.files) ? handover.files : [];
+    const links = [
+      {value: handover.links?.website, label: 'Live site'},
+      {value: handover.links?.repository, label: 'Repository'}
+    ].filter(link => link.value);
+    const scope = Array.isArray(room.proposal.scopeItems) ? room.proposal.scopeItems : [];
+    const deliveredScope = new Set(Array.isArray(handover.scope) ? handover.scope : []);
+    const deliveredCount = scope.filter(item => deliveredScope.has(item)).length;
+    const fileRows = files.map(file => {
+      const size = Number(file.size) || 0;
+      const sizeLabel = size >= 1024 * 1024
+        ? `${Number.isInteger(size / (1024 * 1024)) ? size / (1024 * 1024) : (size / (1024 * 1024)).toFixed(1)} MB`
+        : `${Math.max(1, Math.round(size / 1024))} KB`;
+      return `<li class="handover-review-row">
+        <span class="handover-review-item-copy"><strong>${safe(file.name || 'Handover file')}</strong>
+          <small>${safe(sizeLabel)}</small></span>
+        ${file.url
+          ? `<a class="handover-review-link-button" href="${safe(file.url)}" download="${safe(file.name || 'handover-file')}">Download</a>`
+          : '<span class="handover-review-unavailable">Unavailable</span>'}
+      </li>`;
+    }).join('');
+    const linkRows = links.map(link => {
+      let display = link.value;
+      try {
+        display = new URL(link.value).hostname;
+      } catch {
+        // The API validates handover links as HTTPS URLs.
+      }
+      return `<li class="handover-review-row">
+        <span class="handover-review-item-copy"><strong>${safe(display)}</strong>
+          <small>${safe(link.label)}</small></span>
+        <a class="handover-review-link-button" href="${safe(link.value)}" target="_blank" rel="noopener noreferrer">Open</a>
+      </li>`;
+    }).join('');
+    const scopeRows = scope.map(item => {
+      const isDelivered = deliveredScope.has(item);
+      return `<li class="${isDelivered ? 'is-shown' : 'is-not-shown'}">
+        <span class="progress-review-scope-mark" aria-hidden="true">${isDelivered ? '&#10003;' : ''}</span>
+        <span>${safe(item)}${isDelivered ? '' : ' · not delivered yet'}</span>
+      </li>`;
+    }).join('');
+    const deadline = handover.deadlineAt && !Number.isNaN(Date.parse(handover.deadlineAt))
+      ? progressReviewDate.format(new Date(handover.deadlineAt)) : 'the deadline';
+    const remaining = room.proposal.remaining != null && Number.isFinite(Number(room.proposal.remaining))
+      ? Number(room.proposal.remaining)
+      : Math.max(0, (Number(room.proposal.total) || 0) - (Number(room.proposal.dp) || 0));
+
+    handoverReviewFrom.textContent =
+      `From ${developerName}${submittedAt ? ` · handed over ${submittedAt}` : ''}`;
+    handoverReviewContent.innerHTML = `
+      <section>
+        <p class="progress-review-section-label">Delivered</p>
+        ${files.length || links.length
+          ? `<ul class="handover-review-deliveries">${fileRows}${linkRows}</ul>`
+          : '<p class="progress-review-note">No files or links were included.</p>'}
+      </section>
+      <section>
+        <p class="progress-review-section-label">Note from ${safe(developerName)}</p>
+        <p class="progress-review-note">${safe(handover.notes || '')}</p>
+      </section>
+      <section>
+        <p class="progress-review-section-label">Scope points (${deliveredCount} of ${scope.length} delivered)</p>
+        <ul class="progress-review-scope">${scopeRows || '<li>No scope points were listed.</li>'}</ul>
+        <p class="handover-review-hint">Check each point yourself before you accept.</p>
+      </section>
+      <p class="progress-review-notice">
+        Accepting releases <strong>${safe(rupiah.format(remaining))}</strong> to ${safe(developerName)}
+        and completes the project. If you do nothing, it is accepted automatically on ${safe(deadline)}.
+        Found a problem? Report it before then.
+      </p>`;
+    handoverReviewFooter.innerHTML = `
+      <button type="button" data-handover-review-action="report-problem">Report a problem</button>
+      <button type="button" data-handover-review-action="accept-result" data-primary>Accept result</button>`;
+  }
+
+  function openHandoverReview() {
+    if (!roomKey) return;
+    const generation = ++handoverReviewGeneration;
+    const key = roomKey;
+    handoverReviewKey = key;
+    handoverReviewBusy = false;
+    handoverReviewFrom.textContent = '';
+    handoverReviewContent.textContent = 'Loading handover…';
+    handoverReviewFooter.replaceChildren();
+    if (!handoverReviewDialog.open) handoverReviewDialog.showModal();
+    void (async () => {
+      try {
+        const state = await signHandoverMedia(await request(key));
+        if (generation !== handoverReviewGeneration || !handoverReviewDialog.open) return;
+        if (state.role !== 'client' || state.room?.handover?.status !== 'AWAITING_CLIENT' ||
+          state.room.dispute) {
+          throw new Error('This handover is no longer waiting for your review.');
+        }
+        snapshot = state;
+        if (dialog.open) render();
+        renderHandoverReview(state);
+      } catch (cause) {
+        if (generation !== handoverReviewGeneration || !handoverReviewDialog.open) return;
+        handoverReviewContent.textContent =
+          cause.message || 'Handover could not be loaded. Please try again.';
+        handoverReviewFooter.innerHTML =
+          '<button type="button" data-handover-review-close>Close</button>';
+      }
+    })();
   }
 
   function renderProgressUpdateForm() {
@@ -1198,7 +1740,7 @@
       const checkGateway = snapshot?.role === 'client' && pendingPayment &&
         Date.now() >= nextGatewayRefresh;
       if (checkGateway) nextGatewayRefresh = Date.now() + 36000;
-      const state = await request(key, checkGateway ? 'refresh' : 'snapshot');
+      const state = await signHandoverMedia(await request(key, checkGateway ? 'refresh' : 'snapshot'));
       if (key !== roomKey || busy || snapshot !== previous) return;
       if (JSON.stringify(state) !== JSON.stringify(previous)) {
         renderReceipts(state.ledger);
@@ -1274,7 +1816,9 @@
   });
   content.addEventListener('click', event => {
     const action = event.target.closest('button[data-action]')?.dataset.action;
-    if (action) perform(action);
+    if (action === 'handover-open') openHandoverDialog();
+    else if (action === 'rate') openRatingDialog();
+    else if (action) perform(action);
   });
   content.addEventListener('submit', event => {
     const action = event.target.dataset.action;
@@ -1283,6 +1827,69 @@
     const fields = Object.fromEntries(new FormData(event.target));
     if (action === 'resolve-dispute') fields.partialRefund = Number(fields.partialRefund);
     perform(action, fields);
+  });
+  ratingForm.addEventListener('input', event => {
+    if (event.target.name === 'text') ratingCount.textContent = String(event.target.value.length);
+  });
+  ratingForm.addEventListener('change', event => {
+    const group = event.target.closest('.agreement-rating-stars');
+    if (group) updateRatingStars(group);
+  });
+  ratingForm.addEventListener('submit', event => {
+    event.preventDefault();
+    if (busy) return;
+    const fields = Object.fromEntries(new FormData(ratingForm));
+    const submitButton = ratingForm.querySelector('[type="submit"]');
+    submitButton.disabled = true;
+    submitButton.textContent = 'Submitting…';
+    ratingError.textContent = '';
+    ratingError.hidden = true;
+    void perform('rate', fields);
+  });
+  ratingDialog.querySelector('[data-rating-close]').addEventListener('click', () => ratingDialog.close());
+  ratingDialog.querySelector('[data-rating-skip]').addEventListener('click', () => ratingDialog.close());
+  ratingDialog.addEventListener('click', event => {
+    if (event.target !== ratingDialog) return;
+    const rect = ratingDialog.getBoundingClientRect();
+    const outside = event.clientX < rect.left || event.clientX > rect.right ||
+      event.clientY < rect.top || event.clientY > rect.bottom;
+    if (outside) ratingDialog.close();
+  });
+  handoverReviewDialog.querySelector('[data-handover-review-close]').addEventListener('click', () => {
+    if (!handoverReviewBusy) handoverReviewDialog.close();
+  });
+  handoverReviewDialog.addEventListener('click', event => {
+    const closeButton = event.target.closest('[data-handover-review-close]');
+    if (closeButton) {
+      if (!handoverReviewBusy) handoverReviewDialog.close();
+      return;
+    }
+    const action = event.target.closest('button[data-handover-review-action]')?.dataset.handoverReviewAction;
+    if (action === 'report-problem') {
+      if (!handoverReviewBusy && handoverReviewKey === roomKey) {
+        handoverReviewDialog.close();
+        void perform('report-problem');
+      }
+    } else if (action === 'accept-result' && !handoverReviewBusy && !busy &&
+      handoverReviewKey === roomKey) {
+      handoverReviewBusy = true;
+      handoverReviewFooter.querySelectorAll('button').forEach(button => { button.disabled = true; });
+      handoverReviewDialog.close();
+      void perform('accept-result').finally(() => { handoverReviewBusy = false; });
+    }
+    if (event.target === handoverReviewDialog && !handoverReviewBusy) {
+      const rect = handoverReviewDialog.getBoundingClientRect();
+      const outside = event.clientX < rect.left || event.clientX > rect.right ||
+        event.clientY < rect.top || event.clientY > rect.bottom;
+      if (outside) handoverReviewDialog.close();
+    }
+  });
+  handoverReviewDialog.addEventListener('cancel', event => {
+    if (handoverReviewBusy) event.preventDefault();
+  });
+  handoverReviewDialog.addEventListener('close', () => {
+    handoverReviewGeneration += 1;
+    handoverReviewKey = null;
   });
   progressReviewDialog.querySelector('[data-review-close]').addEventListener('click', () => {
     if (!progressReviewBusy) progressReviewDialog.close();
@@ -1332,6 +1939,7 @@
     agreementConversationId = agreement.conversationId || null;
     agreementProposalId = agreement.proposalId || null;
     roomTitle = agreement.title || agreement.terms?.projectName || 'Project agreement';
+    agreementClientName = agreement.clientName || '';
     openPayments(operation, action);
   }
 

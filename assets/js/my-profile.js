@@ -488,25 +488,33 @@
     try{
       const user=await window.devMatchBackend.ready;
       if(!user)throw new Error('Authentication is required to load profile reviews.');
-      const reviews=await window.devMatchBackend.loadProfileReviews(user.id);
-      if(!reviews.length){
-        root.innerHTML=isDeveloper
-          ?'<p class="empty-state">Client reviews will appear here after a completed project.</p>'
-          :'<p class="empty-state">Developer reviews will appear here after a completed project.</p>';
-        setText('statRating','—');
-        setText('mobileStatRating','-');
-        setText('statReviews','no reviews yet');
-        renderProfileOverviewStatistics();
-        return;
-      }
-      root.innerHTML=reviews.slice(0,8).map(review=>{
-        const stars=Math.round(review.rating);
-        return `<article class="review-item"><span class="review-avatar">${escapeHtml(review.reviewerInitials||initials(review.reviewerName))}</span><div class="review-copy"><h3>${escapeHtml(review.reviewerName)}</h3><small>${escapeHtml(review.projectTitle||'Completed project')}</small><p>${escapeHtml(review.text)}</p></div><span class="review-rating" aria-label="${stars} out of 5 stars">${'★'.repeat(stars)}</span></article>`;
+      const profileRole=isDeveloper?'developer':'client';
+      const [reviews,summary]=await Promise.all([
+        window.devMatchBackend.loadProfileReviews(user.id,profileRole),
+        window.devMatchBackend.loadProfileRatingSummary(user.id,profileRole)
+      ]);
+      const count=summary.reviewCount;
+      const ratingLabel=count===0?'Belum ada rating':count<3?'New':`★ ${summary.overallRating.toFixed(1)}`;
+      setText('statRating',count<3?ratingLabel:`★ ${summary.overallRating.toFixed(1)}`);
+      setText('mobileStatRating',count<3?ratingLabel:summary.overallRating.toFixed(1));
+      setText('statReviews',count?`from ${count} reviews`:'no reviews yet');
+      const criterionNames=isDeveloper
+        ?[['Quality of work',summary.criteria.qualityOfWork],['Communication',summary.criteria.communication],['Meeting the deadline',summary.criteria.meetingDeadline]]
+        :[['Clarity of the brief',summary.criteria.clarityOfBrief],['Responsiveness',summary.criteria.responsiveness],['Respecting the agreed scope',summary.criteria.respectingScope]];
+      const criterionRows=criterionNames.filter(([,value])=>value!==null);
+      const criteriaHtml=criterionRows.length
+        ?`<dl class="review-criteria-summary">${criterionRows.map(([label,value])=>`<div><dt>${label}</dt><dd>${Number(value).toFixed(1)}</dd></div>`).join('')}</dl>`:'';
+      const reviewsHtml=reviews.slice(0,8).map(review=>{
+        const details=Object.entries(review.criteria).filter(([,value])=>value!==null);
+        const criterionLabels={
+          qualityOfWork:'Quality of work',communication:'Communication',meetingDeadline:'Meeting the deadline',
+          clarityOfBrief:'Clarity of the brief',responsiveness:'Responsiveness',respectingScope:'Respecting the agreed scope'
+        };
+        const actions=window.DEVMATCH_PROFILE_REVIEW_ACTIONS?.render(review,true);
+        return `<article class="review-item"><span class="review-avatar">${escapeHtml(review.reviewerInitials||initials(review.reviewerName))}</span><div class="review-copy"><h3>${escapeHtml(review.reviewerName)}</h3><small>${escapeHtml(review.projectTitle||'Completed project')}</small>${review.deliveryBadge?`<p class="review-delivery-badge">${escapeHtml(review.deliveryBadge)}</p>`:''}${review.text?`<p>${escapeHtml(review.text)}</p>`:''}${details.length?`<small>${details.map(([key,value])=>`${criterionLabels[key]}: ${value}`).join(' · ')}</small>`:''}${review.reply?`<p class="review-reply"><strong>Response:</strong> ${escapeHtml(review.reply)}</p>`:''}${actions||''}</div><span class="review-rating">${review.rating.toFixed(1)} / 5</span></article>`;
       }).join('');
-      const average=reviews.reduce((sum,item)=>sum+item.rating,0)/reviews.length;
-      setText('statRating',`★ ${average.toFixed(1)}`);
-      setText('mobileStatRating',average.toFixed(1));
-      setText('statReviews',`from ${reviews.length} reviews`);
+      root.innerHTML=`${criteriaHtml}${reviewsHtml||'<p class="empty-state">Belum ada rating.</p>'}`;
+      window.DEVMATCH_PROFILE_REVIEW_ACTIONS?.connect(root);
       renderProfileOverviewStatistics();
     }catch(error){
       console.error('Unable to load profile reviews from Supabase.',error);

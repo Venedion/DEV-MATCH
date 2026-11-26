@@ -8,8 +8,8 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="assets/css/dashboard.css?v=20261126-rebase-merge-v1">
-  <link rel="stylesheet" href="assets/css/chat.css?v=20261127-pending-proposal-status">
-  <link rel="stylesheet" href="assets/css/chat-payment.css?v=20261127-demo-guide">
+  <link rel="stylesheet" href="assets/css/chat.css?v=20261126-rebase-merged-v2">
+  <link rel="stylesheet" href="assets/css/chat-payment.css?v=20261128-integrated-rating-v1">
   <link rel="stylesheet" href="assets/css/project-detail-popup.css?v=20261126-rebase-merge-v1">
   <link rel="stylesheet" href="assets/css/client-shell.css?v=20261126-rebase-merge-v1">
   <link rel="stylesheet" href="assets/css/mode-switch-animation.css?v=20261030-client-mode-route">
@@ -18,7 +18,7 @@
   <script src="assets/js/i18n.js?v=20261125-backend-workspace"></script>
 <script src="assets/vendor/supabase-2.119.0.js"></script>
 <link rel="stylesheet" href="assets/css/form-controls.css?v=20261126-optional-unified-v1">
-<script src="assets/js/deployment-config.js?v=20261126-env-config-v1"></script><script src="assets/js/backend.js?v=20261126-username-validation-v1"></script>
+<script src="assets/js/deployment-config.js?v=20261126-env-config-v1"></script><script src="assets/js/backend.js?v=20261128-integrated-rating-v1"></script>
 <link rel="stylesheet" href="assets/css/developer-mode-icon.css?v=20261125-developer-mode-icon-v2">
   <script type="module" src="assets/js/site-motion.js?v=20261127-visible-motion"></script>
 </head>
@@ -269,6 +269,43 @@
     <p id="roomPaymentError" role="alert" hidden></p>
     <div id="roomPaymentContent" aria-live="polite"></div>
   </dialog>
+  <dialog id="agreementRatingDialog" class="agreement-rating-dialog" aria-labelledby="agreementRatingTitle">
+    <form id="agreementRatingForm" data-action="rate">
+      <header>
+        <div>
+          <h2 id="agreementRatingTitle">Rate project</h2>
+          <p id="agreementRatingSubtitle"></p>
+        </div>
+        <button type="button" data-rating-close aria-label="Close rating">×</button>
+      </header>
+      <div class="agreement-rating-content">
+        <fieldset class="agreement-rating-overall">
+          <legend>Overall rating</legend>
+          <div class="agreement-rating-overall-value" aria-live="polite">
+            <span data-rating-overall-stars aria-hidden="true">☆☆☆☆☆</span>
+            <strong><span data-rating-overall-value>—</span> / 5</strong>
+          </div>
+        </fieldset>
+        <section class="agreement-rating-criteria">
+          <h3>Rate each part</h3>
+          <div id="agreementRatingCriteria"></div>
+        </section>
+        <label class="agreement-rating-comment">
+          <span>Comment (optional)</span>
+          <textarea name="text" rows="3" maxlength="500"></textarea>
+          <small><span id="agreementRatingCount">0</span> / 500</small>
+        </label>
+        <p class="agreement-rating-notice">
+          Overall rating is calculated from your three criteria. Reviews are published when both participants submit or after the 14-day window. You cannot edit a submitted review.
+        </p>
+        <p id="agreementRatingError" class="agreement-rating-error" role="alert" hidden></p>
+      </div>
+      <footer>
+        <button type="button" data-rating-skip>Skip for now</button>
+        <button type="submit" data-primary>Submit rating</button>
+      </footer>
+    </form>
+  </dialog>
   <dialog id="roomPaymentCheckoutDialog" class="room-payment-checkout-dialog" aria-labelledby="roomPaymentCheckoutTitle">
     <section class="room-payment-checkout-card">
       <header>
@@ -376,8 +413,26 @@
       <footer id="progressReviewFooter"></footer>
     </section>
   </dialog>
+  <dialog id="handoverReviewDialog" class="progress-review-dialog handover-review-dialog" aria-labelledby="handoverReviewTitle">
+    <section>
+      <header>
+        <div>
+          <div class="progress-review-title-row">
+            <h2 id="handoverReviewTitle">Review handover</h2>
+            <span>Review needed</span>
+          </div>
+          <p id="handoverReviewFrom"></p>
+        </div>
+        <button type="button" data-handover-review-close aria-label="Close handover review">×</button>
+      </header>
+      <div id="handoverReviewContent" class="progress-review-content handover-review-content" aria-live="polite">
+        Loading handover…
+      </div>
+      <footer id="handoverReviewFooter"></footer>
+    </section>
+  </dialog>
   <div id="proposalDetailsPrintContent" class="proposal-details-print-content"></div>
-  <script src="assets/js/chat-payment.js?v=20261126-snap-embed"></script>
+  <script src="assets/js/chat-payment.js?v=20261128-integrated-rating-v1"></script>
   <dialog class="chat-proposal-dialog" id="proposeProjectDialog" aria-labelledby="proposeProjectTitle">
     <form class="chat-proposal-form" id="proposeProjectForm">
       <header class="chat-proposal-header">
@@ -540,7 +595,7 @@
     </section>
   </dialog>
 
-  <script src="assets/js/chat.js?v=20261127-message-filter-trim-v1"></script>
+  <script src="assets/js/chat.js?v=20261127-handover-review-v1"></script>
   <script src="assets/js/project-detail-popup.js?v=20261126-rebase-merge-v1"></script>
   <script src="assets/js/nav-behavior.js?v=20261126-rebase-merge-v1"></script>
 </body>

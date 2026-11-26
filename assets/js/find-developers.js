@@ -20,7 +20,7 @@
   let selectedGender = 'all';
   let selectedStatus = 'all';
   let mobileDeveloperFilterDraft = null;
-  let currentSort = 'projects';
+  let currentSort = 'rating';
   let currentPage = 1;
   let directoryLoaded = false;
   let favoriteIds = loadFavorites();
@@ -134,7 +134,9 @@
       return true;
     }).sort((a, b) => currentSort === 'projects'
       ? b.projectsCount - a.projectsCount || a.name.localeCompare(b.name)
-      : a.name.localeCompare(b.name));
+      : currentSort === 'rating'
+        ? b.adjustedRating - a.adjustedRating || b.ratingCount - a.ratingCount || a.name.localeCompare(b.name)
+        : a.name.localeCompare(b.name));
   }
 
   function getDeveloperFilterValues() {
@@ -268,6 +270,9 @@
             </div>
 
             <p class="dev-bio">${escapeHtml(dev.bio)}</p>
+            <p class="dev-rating-badge">${dev.ratingCount === 0 ? 'Belum ada rating'
+              : dev.ratingCount < 3 ? 'New'
+                : `★ ${dev.overallRating.toFixed(1)} · ${dev.ratingCount} reviews`}</p>
 
             <div class="dev-skills-row">
               ${dev.skills.map(skill => `<span class="dev-skill-pill">${escapeHtml(skill)}</span>`).join('')}
@@ -317,6 +322,8 @@
     if (sortLabel) {
       if (currentSort === 'projects') {
         sortLabel.textContent = 'Sorted by most projects';
+      } else if (currentSort === 'rating') {
+        sortLabel.textContent = 'Sorted by adjusted rating';
       } else {
         sortLabel.textContent = 'Sorted by name';
       }
@@ -694,6 +701,9 @@
       }
       const {data: people, count: totalDevelopers, error} = result;
       if (error) throw error;
+      const ratingSummaries = await window.devMatchBackend.loadDirectoryRatingSummaries(
+        (people || []).map(person => person.id), 'developer'
+      );
       developerTabCount.textContent = totalDevelopers === null ? '0' : String(totalDevelopers);
       DEVELOPERS_DATA = (people || []).map(person => {
         const profile=person.profile_data || {};
@@ -709,6 +719,9 @@
           location:String(profile.city || 'Location not provided'),city:String(profile.city || ''),status:availability || 'Availability not provided',statusType,
           specialization,gender:'',bio:String(profile.bio || 'No biography provided.'),skills,
           projectsCount:Number(person.published_portfolio_count)||0,
+          ratingCount:ratingSummaries.get(person.id)?.reviewCount||0,
+          overallRating:ratingSummaries.get(person.id)?.overallRating||null,
+          adjustedRating:ratingSummaries.get(person.id)?.adjustedRating??4,
           views:engagementMetricsAvailable?String(viewsCount):'Not available',
           viewsCount:engagementMetricsAvailable?viewsCount:0,
           favoritesCount:engagementMetricsAvailable?favoritesCount:'Not available',

@@ -21,7 +21,7 @@
   let selectedLocation = {country: 'all', regions: []};
   let locationFilterDraft = {country: 'all', regions: []};
   let hasOpenRequestsOnly = false;
-  let sortOrder = 'az';
+  let sortOrder = 'rating';
   let favoriteIds = getSavedFavorites();
   let mobileFilterDraft = null;
   const mobileClientsFilterBreakpoint = window.matchMedia('(orientation: portrait)');
@@ -42,6 +42,7 @@
   const btnToggleOpenRequests = document.getElementById('btnToggleOpenRequests');
   const sortNewestBtn = document.getElementById('sortNewestBtn');
   const sortOldestBtn = document.getElementById('sortOldestBtn');
+  const sortRatingBtn = document.getElementById('sortRatingBtn');
   const mobileClientsActions = document.querySelector('.mobile-clients-actions');
   const mobileClientsSortControl = document.querySelector('.mobile-clients-sort-control');
   const mobileClientsSortToggle = document.getElementById('mobileClientsSortToggle');
@@ -395,6 +396,7 @@
   function syncClientSortControls() {
     sortNewestBtn?.classList.toggle('active', sortOrder === 'az');
     sortOldestBtn?.classList.toggle('active', sortOrder === 'za');
+    sortRatingBtn?.classList.toggle('active', sortOrder === 'rating');
     mobileClientsSortMenu?.querySelectorAll('[data-sort-value]').forEach(option => {
       option.setAttribute('aria-checked', String(option.dataset.sortValue === sortOrder));
     });
@@ -639,6 +641,9 @@
       if (sortOrder === 'requests') {
         return b.openRequestsCount - a.openRequestsCount || a.name.localeCompare(b.name);
       }
+      if (sortOrder === 'rating') {
+        return b.adjustedRating - a.adjustedRating || b.ratingCount - a.ratingCount || a.name.localeCompare(b.name);
+      }
       const byName=a.name.localeCompare(b.name);
       return sortOrder==='za'?-byName:byName;
     });
@@ -678,6 +683,9 @@
             </div>
 
             <div class="client-card-meta">
+              <p class="client-rating-badge">${client.ratingCount === 0 ? 'Belum ada rating'
+                : client.ratingCount < 3 ? 'New'
+                  : `★ ${client.overallRating.toFixed(1)} · ${client.ratingCount} reviews`}</p>
               <div class="meta-row">
                 <span class="meta-item">
                   <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
@@ -1033,6 +1041,7 @@
         setClientSortOrder('za');
       });
     }
+    sortRatingBtn?.addEventListener('click', () => setClientSortOrder('rating'));
 
     // Delegate Card Actions (Favorite, View Requests)
     if (clientsGrid) {
@@ -1174,6 +1183,9 @@
       ]);
       if (peopleError) throw peopleError;
       if (projectsError) throw projectsError;
+      const ratingSummaries = await window.devMatchBackend.loadDirectoryRatingSummaries(
+        (people || []).map(person => person.id), 'client'
+      );
       if (clientCount === null || projectRequestCount === null) {
         throw new Error('The client or project request count was not returned by Supabase.');
       }
@@ -1187,6 +1199,9 @@
           business:String(profile.companyName || name),category,businessType:category||'Business type not provided',type:'Client',
           country:String(profile.country || ''),profileCity:String(profile.city || ''),
           openRequestsCount:Number(person.open_request_count)||0,location:String(profile.city || 'Location not provided'),activeText:'Profile listed',
+          ratingCount:ratingSummaries.get(person.id)?.reviewCount||0,
+          overallRating:ratingSummaries.get(person.id)?.overallRating||null,
+          adjustedRating:ratingSummaries.get(person.id)?.adjustedRating??4,
           orderIndex:index};
       });
       status.hidden = true;

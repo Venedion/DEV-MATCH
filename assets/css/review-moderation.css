@@ -1,0 +1,18 @@
+:root{font-family:"Plus Jakarta Sans",system-ui,-apple-system,"Segoe UI",sans-serif;color:#202124;background:#f5f6f8}
+*{box-sizing:border-box}
+body{margin:0}
+main{width:min(920px,calc(100% - 32px));margin:40px auto}
+header{margin-bottom:24px;padding-bottom:18px;border-bottom:1px solid #dfe1e5}
+header>a{color:#202124;font-size:12px;font-weight:800;letter-spacing:.08em;text-decoration:none}
+h1{margin:22px 0 6px;font-size:clamp(24px,4vw,34px)}
+header p,#moderationStatus{color:#666a73;font-size:13px;line-height:1.55}
+#moderationQueue{display:grid;gap:14px}
+.moderation-report{padding:18px;border:1px solid #e1e3e7;border-radius:12px;background:#fff;box-shadow:0 3px 14px #1f29330a}
+.moderation-report h2{margin:0;font-size:16px}
+.moderation-report p{white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.55}
+.moderation-report-meta{color:#6b6f78;font-size:12px}
+.moderation-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
+.moderation-actions button{min-height:36px;padding:0 13px;border:1px solid #c9cbd1;border-radius:7px;background:#fff;color:#292b30;font:inherit;font-size:12px;font-weight:700;cursor:pointer}
+.moderation-actions button[data-action=remove]{border-color:#a33434;color:#9c2626}
+.moderation-actions button:disabled{opacity:.55;cursor:wait}
+@media(max-width:520px) and (orientation:portrait){main{margin:24px auto}.moderation-report{padding:14px}}

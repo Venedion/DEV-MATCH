@@ -5,15 +5,28 @@ export const emptyState = () => ({room: null, payments: [], ledger: [], events: 
 export const terminal = status => ['PAID', 'EXPIRED', 'CANCELLED'].includes(status);
 const clientActions = new Set([
   'accept', 'decline', 'revision', 'approve', 'approve-progress', 'request-progress-update', 'accept-result',
-  'rate', 'cancel', 'dispute'
+  'cancel', 'dispute'
 ]);
 const developerActions = new Set([
-  'propose', 'progress', 'deliver', 'handover', 'rate', 'verify-payout',
+  'propose', 'progress', 'deliver', 'handover', 'verify-payout',
   'complete-payout', 'dispute'
 ]);
 const DAY_MS = 24 * 60 * 60 * 1000;
 const progressFileTypes = new Set([
   'image/jpeg', 'image/png', 'image/webp', 'video/mp4', 'video/quicktime', 'video/webm'
+]);
+const handoverFileTypes = new Map([
+  ['.zip', new Set(['application/zip', 'application/x-zip-compressed'])],
+  ['.7z', new Set(['application/x-7z-compressed'])],
+  ['.rar', new Set(['application/vnd.rar', 'application/x-rar-compressed'])],
+  ['.tar', new Set(['application/x-tar'])],
+  ['.gz', new Set(['application/gzip', 'application/x-gzip'])],
+  ['.tgz', new Set(['application/gzip', 'application/x-gzip'])],
+  ['.pdf', new Set(['application/pdf'])],
+  ['.doc', new Set(['application/msword'])],
+  ['.docx', new Set(['application/vnd.openxmlformats-officedocument.wordprocessingml.document'])],
+  ['.txt', new Set(['text/plain'])],
+  ['.md', new Set(['text/markdown', 'text/plain'])]
 ]);
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -78,8 +91,30 @@ export function agreementPaymentState(agreement) {
 }
 
 export function paymentSnapshot(state, role, checkoutConfigured) {
+  let room = state.room;
+  if (room?.timelineVersion === 2 && room.ratings) {
+    const clientRatedAt = Date.parse(room.ratings.client?.at || '');
+    const developerRatedAt = Date.parse(room.ratings.developer?.at || '');
+    const bothRated = Number.isFinite(clientRatedAt) && Number.isFinite(developerRatedAt);
+    const firstRatingAt = Math.min(
+      Number.isFinite(clientRatedAt) ? clientRatedAt : Infinity,
+      Number.isFinite(developerRatedAt) ? developerRatedAt : Infinity
+    );
+    const ratingsVisible = bothRated ||
+      (Number.isFinite(firstRatingAt) && Date.now() - firstRatingAt >= 14 * DAY_MS);
+    if (!ratingsVisible) {
+      const visibleRatings = {...room.ratings};
+      if (role === 'client') visibleRatings.developer = null;
+      else if (role === 'developer') visibleRatings.client = null;
+      else {
+        visibleRatings.client = null;
+        visibleRatings.developer = null;
+      }
+      room = {...room, ratings: visibleRatings};
+    }
+  }
   return {
-    role, checkoutConfigured, room: state.room, ledger: state.ledger,
+    role, checkoutConfigured, room, ledger: state.ledger,
     payments: state.payments.map(({order_id, kind, amount, status, paid_at}) =>
       ({order_id, kind, amount, status, paid_at}))
   };
@@ -117,6 +152,33 @@ function progressFile(file, agreementId, actorId, type, maximumBytes) {
     result.durationSeconds = Math.ceil(file.durationSeconds);
   }
   return result;
+}
+
+function handoverFile(file, agreementId, actorId) {
+  requireCondition(file && typeof file === 'object' && !Array.isArray(file), 'File handover tidak valid.', 400);
+  const prefix = `${agreementId}/${actorId}/`;
+  const name = text(file.name, 'Nama file', 120);
+  const storedName = typeof file.path === 'string' && file.path.startsWith(prefix)
+    ? file.path.slice(prefix.length) : '';
+  requireCondition(/^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}-[A-Za-z0-9._-]{1,120}$/i.test(storedName),
+    'Lokasi file handover tidak valid.', 400);
+  const extension = name.toLowerCase().match(/\.[^.]+$/)?.[0];
+  const supportedTypes = handoverFileTypes.get(extension);
+  requireCondition(supportedTypes?.has(file.type),
+    'Format file handover tidak didukung.', 400);
+  requireCondition(Number.isSafeInteger(file.size) && file.size > 0 && file.size <= 50 * 1024 * 1024,
+    'Ukuran file handover maksimal 50 MB.', 400);
+  return {path: file.path, name, type: file.type, size: file.size};
+}
+
+function handoverLink(value, label) {
+  if (value === undefined || value === null || value === '') return '';
+  requireCondition(typeof value === 'string' && value.trim().length <= 2048,
+    `${label} tidak valid.`, 400);
+  const link = value.trim();
+  requireCondition(URL.canParse(link) && new URL(link).protocol === 'https:',
+    `${label} harus menggunakan HTTPS.`, 400);
+  return link;
 }
 
 function record(state, entry, amount, orderId = null) {
@@ -243,13 +305,11 @@ export function applyAction(state, role, {action, ...body}, actorId = null) {
   const isAgreement = stagedAgreement(room);
   if (isAgreement) ensureAgreementTimeline(room);
   const disputed = room.dispute?.status === 'NEEDS_REVIEW';
-  const canRateCompletedAgreement = isAgreement && action === 'rate' &&
-    ['client', 'developer'].includes(role);
   const alreadyAutoAccepted = isAgreement && action === 'accept-result' &&
     room.handover?.status === 'AUTO_ACCEPTED';
   requireCondition((disputed ? action === 'resolve-dispute' : action !== 'resolve-dispute') &&
     (!['COMPLETED', 'CANCELLED'].includes(room.project) ||
-      canRateCompletedAgreement || alreadyAutoAccepted),
+      alreadyAutoAccepted),
   'Proyek sudah ditutup atau sedang dalam dispute.');
   const accepted = room.proposal.status === 'ACCEPTED';
   const reviewing = room.project === 'AWAITING_CLIENT_APPROVAL' && !room.delivery?.approvedAt;
@@ -352,12 +412,34 @@ export function applyAction(state, role, {action, ...body}, actorId = null) {
         room.project === 'AWAITING_HANDOVER' && room.escrow === 'REMAINING_HELD',
       'Handover tersedia setelah pembayaran sisa terverifikasi.');
       {
+        const scopeItems = room.proposal.scopeItems || [];
+        const scope = body.scope;
+        const files = body.files || [];
+        requireCondition(scopeItems.length > 0 && Array.isArray(scope) && scope.length === scopeItems.length &&
+          new Set(scope).size === scope.length &&
+          scope.every(item => typeof item === 'string' && scopeItems.includes(item)),
+        'Tandai semua scope point agreement sebagai sudah diserahkan.', 400);
+        requireCondition(Array.isArray(files) && files.length > 0 && files.length <= 5,
+          'Unggah 1 sampai 5 file serah terima.', 400);
+        const checkedFiles = files.map(file => handoverFile(file, room.proposal.agreementId, actorId));
+        requireCondition(checkedFiles.reduce((sum, file) => sum + file.size, 0) <= 100 * 1024 * 1024,
+          'Total ukuran file serah terima maksimal 100 MB.', 400);
+        const links = body.links ?? {};
+        requireCondition(typeof links === 'object' && !Array.isArray(links),
+          'Tautan handover tidak valid.', 400);
+        const checkedLinks = {
+          website: handoverLink(links.website, 'Tautan website'),
+          repository: handoverLink(links.repository, 'Tautan repository')
+        };
         const handedOverAt = now();
         room.handover = {
           status: 'AWAITING_CLIENT',
           at: handedOverAt,
           deadlineAt: new Date(Date.parse(handedOverAt) + 7 * DAY_MS).toISOString(),
-          notes: typeof body.notes === 'string' ? body.notes.trim().slice(0, 2000) : ''
+          notes: text(body.notes, 'Catatan serah terima', 500),
+          files: checkedFiles,
+          links: checkedLinks,
+          scope
         };
         room.timeline.handoverAt = handedOverAt;
         room.project = 'AWAITING_RESULT_ACCEPTANCE';
@@ -368,20 +450,6 @@ export function applyAction(state, role, {action, ...body}, actorId = null) {
       requireCondition(isAgreement && role === 'client' &&
         room.handover?.status === 'AWAITING_CLIENT', 'Handover belum menunggu penerimaan Client.');
       requireCondition(acceptResult(state, now()), 'Hasil proyek tidak dapat diterima.');
-      break;
-    case 'rate':
-      requireCondition(isAgreement && ['client', 'developer'].includes(role) &&
-        room.project === 'COMPLETED', 'Rating tersedia setelah proyek selesai.');
-      requireCondition(Number.isInteger(body.rating) && body.rating >= 1 && body.rating <= 5,
-        'Pilih rating dari 1 sampai 5.', 400);
-      room.ratings ||= {client: null, developer: null};
-      requireCondition(!room.ratings[role], 'Rating sudah dikirim.');
-      room.ratings[role] = {
-        rating: body.rating,
-        text: typeof body.text === 'string' ? body.text.trim().slice(0, 1000) : '',
-        at: now()
-      };
-      room.timeline.ratings[role === 'client' ? 'clientAt' : 'developerAt'] = room.ratings[role].at;
       break;
     case 'revision':
       requireCondition(reviewing, 'Final delivery sudah disetujui atau belum tersedia.');
@@ -440,6 +508,8 @@ export function applyAction(state, role, {action, ...body}, actorId = null) {
     case 'resolve-dispute':
       resolveDispute(state, body);
       break;
+    default:
+      requireCondition(false, 'Aksi tidak dikenali.', 400);
   }
 }
 
