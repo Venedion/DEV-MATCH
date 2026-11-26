@@ -1,4 +1,4 @@
-import {PaymentError, matchingAmount, requireCondition} from './midtrans.mjs';
+import {PaymentError, matchingAmount, requireCondition, snapCheckoutMinutes} from './midtrans.mjs';
 import {agreementPaymentState, applyAction, checkoutOrder, emptyState, paymentSnapshot, reconcile, terminal} from './state.mjs';
 
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -64,6 +64,7 @@ export function paymentService(store, gateway) {
       saved.checkoutUrl = checkout.redirectUrl;
       saved.snapToken = checkout.token;
       saved.snapCreatedAt = Date.now();
+      saved.snapExpiresAt = saved.snapCreatedAt + snapCheckoutMinutes * 60_000;
       delete saved.claim;
     });
     const updated = await load();

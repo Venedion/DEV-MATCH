@@ -1,4 +1,4 @@
-import {matchingAmount, requireCondition, snapPageHours} from './midtrans.mjs';
+import {matchingAmount, requireCondition} from './midtrans.mjs';
 
 const now = () => new Date().toISOString();
 export const emptyState = () => ({room: null, payments: [], ledger: [], events: []});
@@ -538,7 +538,9 @@ export function reconcile(state, orderId, verified, event, time = Date.now()) {
   requireCondition(order, 'Order ID tidak ditemukan.', 404);
   if (!verified) {
     requireCondition(!event, 'Status transaksi belum tersedia di Midtrans.', 502);
-    if (order.status === 'PENDING' && order.snapCreatedAt && order.snapCreatedAt + snapPageHours * 3600000 <= time) {
+    // Orders created before the 10-minute limit still use their original 24-hour session.
+    const expiresAt = order.snapExpiresAt ?? (order.snapCreatedAt ? order.snapCreatedAt + 24 * 3_600_000 : Infinity);
+    if (order.status === 'PENDING' && expiresAt <= time) {
       order.status = 'EXPIRED';
     }
     return;

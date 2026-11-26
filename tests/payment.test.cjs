@@ -98,7 +98,11 @@ async function fixture(t) {
     request: async (url, options) => {
       assert.equal(options.headers.Authorization, 'Basic ' + Buffer.from(key + ':').toString('base64'));
       if (options.method === 'POST') {
-        const {transaction_details, callbacks} = JSON.parse(options.body);
+        const {transaction_details, callbacks, expiry, page_expiry} = JSON.parse(options.body);
+        assert.deepEqual(page_expiry, {duration: 10, unit: 'minute'});
+        assert.equal(expiry.duration, 10);
+        assert.equal(expiry.unit, 'minute');
+        assert.match(expiry.start_time, /^\d{4}-\d\d-\d\d \d\d:\d\d:\d\d \+0700$/);
         const {order_id, gross_amount} = transaction_details;
         const finish = new URL(callbacks.finish);
         assert.equal(finish.origin, 'https://devm4tch.vercel.app');
@@ -169,17 +173,24 @@ test('Expired Snap sessions can be retried while a pending payment keeps its ord
   await apply(client, 'accept');
   const first = await handle(client, 'checkout', {kind: 'DP'});
   const ref = {conversationId, projectId};
-  const legacy = await store.state(ref);
-  delete legacy.state.payments[0].snapToken;
-  assert.ok(await store.save(ref, legacy.version, legacy.state));
-  assert.equal((await handle(client, 'checkout', {kind: 'DP'})).token, first.token);
-
   const expired = await store.state(ref);
-  expired.state.payments[0].snapCreatedAt = Date.now() - 25 * 60 * 60 * 1000;
+  const firstOrder = expired.state.payments[0];
+  assert.equal(firstOrder.snapExpiresAt - firstOrder.snapCreatedAt, 10 * 60_000);
+  firstOrder.snapCreatedAt = Date.now() - 11 * 60_000;
+  firstOrder.snapExpiresAt = firstOrder.snapCreatedAt + 10 * 60_000;
   assert.ok(await store.save(ref, expired.version, expired.state));
   const second = await handle(client, 'checkout', {kind: 'DP'});
   assert.notEqual(second.token, first.token);
   assert.equal((await handle(client, 'snapshot')).payments[0].status, 'EXPIRED');
+
+  const legacy = await store.state(ref);
+  const legacyOrder = legacy.state.payments[1];
+  legacyOrder.snapCreatedAt = Date.now() - 11 * 60_000;
+  delete legacyOrder.snapExpiresAt;
+  delete legacyOrder.snapToken;
+  assert.ok(await store.save(ref, legacy.version, legacy.state));
+  assert.equal((await handle(client, 'checkout', {kind: 'DP'})).token, second.token);
+
   orders.get(second.token).transaction_status = 'pending';
   assert.equal((await handle(client, 'checkout', {kind: 'DP'})).token, second.token);
 

@@ -59,6 +59,8 @@ test('Client DP Demo payment uses the existing Midtrans Sandbox checkout',()=>{
   assert.match(payment,/request\(key, 'checkout', \{kind: action\}\)/);
   assert.doesNotMatch(payment,/request\(key, 'demo-payment'/);
   assert.match(html,/Midtrans Sandbox is for testing; no real money moves/);
+  assert.match(html,/New checkouts expire in 10 minutes/);
+  assert.match(html,/roomPaymentSnapDialog[\s\S]*?Panduan pembayaran demo[\s\S]*?https:\/\/simulator\.sandbox\.midtrans\.com\/bca\/va\/index[\s\S]*?<div id="roomPaymentSnap"/);
 });
 
 test('Snap embeds in the agreement and refreshes the backend status after closing',()=>{

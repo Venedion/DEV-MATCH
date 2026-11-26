@@ -1,7 +1,7 @@
 import {createHash, timingSafeEqual} from 'node:crypto';
 import {Buffer} from 'node:buffer';
 
-export const snapPageHours = 24;
+export const snapCheckoutMinutes = 10;
 export const sandboxHost = 'https://app.sandbox.midtrans.com';
 
 export class PaymentError extends Error {
@@ -57,10 +57,14 @@ export function sandboxGateway({serverKey, clientKey, signatureSecret = serverKe
       finish.searchParams.set('payment', 'return');
       if (projectId) finish.searchParams.set('paymentProject', projectId);
       if (agreementId) finish.searchParams.set('paymentAgreement', agreementId);
+      const startTime = new Date(Date.now() + 7 * 60 * 60 * 1000).toISOString()
+        .slice(0, 19).replace('T', ' ') + ' +0700';
+      const expiry = {duration: snapCheckoutMinutes, unit: 'minute'};
       const result = await call(`${sandboxHost}/snap/v1/transactions`, {
         transaction_details: {order_id: order.order_id, gross_amount: order.amount},
         credit_card: {secure: true},
-        page_expiry: {duration: snapPageHours, unit: 'hour'},
+        page_expiry: expiry,
+        expiry: {...expiry, start_time: startTime},
         callbacks: {finish: finish.href}
       });
       const redirect = URL.canParse(result.redirect_url) && new URL(result.redirect_url);

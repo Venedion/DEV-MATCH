@@ -1336,3 +1336,14 @@
   cursor: pointer;
 }
 #roomPaymentSnap { min-height: 560px; }
+.room-payment-demo-guide {
+  padding: 10px 16px;
+  border-bottom: 1px solid #eee;
+  font-size: 14px;
+  line-height: 1.5;
+}
+.room-payment-demo-guide summary { font-weight: 600; cursor: pointer; }
+.room-payment-demo-guide h3 { margin: 12px 0 4px; font-size: 14px; }
+.room-payment-demo-guide ol { margin: 4px 0; padding-inline-start: 20px; }
+.room-payment-demo-guide p { margin: 6px 0; }
+.room-payment-demo-guide a { color: #1454a0; text-decoration: underline; }
