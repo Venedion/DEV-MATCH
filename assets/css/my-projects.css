@@ -113,6 +113,7 @@
 .editor-breadcrumb button{display:inline-flex;align-items:center;gap:5px;padding:0;border:0;background:none;color:inherit;font:inherit;cursor:pointer}
 .editor-breadcrumb button svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 .editor-breadcrumb button:hover{color:var(--ink)}
+@media (min-width:821px) and (orientation:landscape){.preview-mode-actions>[data-exit-preview]::before{content:"<";color:currentColor;font:inherit}}
 .editor-heading{display:flex;align-items:center;justify-content:space-between;gap:20px;margin-bottom:22px}
 .editor-heading h1{font-size:29px;line-height:1.2;letter-spacing:-.05em}
 .editor-heading p{margin-top:5px;color:var(--muted);font-size:15px}

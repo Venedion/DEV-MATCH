@@ -1,6 +1,7 @@
 .public-profile-breadcrumb{display:flex;align-items:center;gap:8px;margin:-12px 0 15px;color:var(--profile-muted);font-size:12px}
 .public-profile-breadcrumb a:hover{text-decoration:underline}
 .public-profile-breadcrumb b{overflow:hidden;color:var(--profile-ink);text-overflow:ellipsis;white-space:nowrap}
+@media (min-width:821px) and (orientation:landscape){.public-profile-breadcrumb>a::before{content:"<";margin-right:4px;color:currentColor;font:inherit}}
 .profile-identity-card{overflow:hidden}
 .profile-identity-card .profile-cover{height:112px}
 .profile-identity-card .identity-body{padding-bottom:14px}

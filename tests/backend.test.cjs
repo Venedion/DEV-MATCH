@@ -374,12 +374,13 @@ test('Private birth dates can be loaded for settings without entering browser ca
   assert.deepEqual(Object.keys(privateFields),['birthday']);
   assert.equal(Object.hasOwn(JSON.parse(values['devmatch-profile-dev']),'birthday'),false);
 });
-test('Previously cached payout and tax values are scrubbed from local and session storage',async()=>{
+test('Private cached data is scrubbed while the setup draft keeps its birthday',async()=>{
   const {values,sessionValues}=await setup({legacySensitiveCache:true});
-  for(const cache of [values['devmatch-profile-dev'],sessionValues['devmatch-profile-draft']]){
-    const profile=JSON.parse(cache);
-    for(const field of ['accountNumber','npwp','birthday'])assert.equal(Object.hasOwn(profile,field),false);
-  }
+  const cachedProfile=JSON.parse(values['devmatch-profile-dev']);
+  for(const field of ['bankName','accountNumber','accountHolder','npwp','birthday'])assert.equal(Object.hasOwn(cachedProfile,field),false);
+  const draft=JSON.parse(sessionValues['devmatch-profile-draft']);
+  for(const field of ['accountNumber','npwp'])assert.equal(Object.hasOwn(draft,field),false);
+  assert.equal(draft.birthday,'1990-01-02');
 });
 test('Ordinary profile saves preserve private fields unless explicitly updated',async()=>{
   const {backend,updates,row}=await setup();

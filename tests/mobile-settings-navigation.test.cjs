@@ -36,6 +36,6 @@ test('mobile settings detail page slides in from the right and respects reduced 
   assert.match(settingsCss,/html\.mobile-settings-route body > main\.settings-page,[\s\S]*?display: none !important/);
   assert.match(settingsCss,/@media\s*\(orientation:\s*portrait\)\s*and\s*\(prefers-reduced-motion:\s*reduce\)\s*\{[\s\S]*?\.mobile-settings-detail-page \{\s*transition: none/);
   assert.match(settingsHtml,/mobile-settings-route/);
-  assert.match(settingsHtml,/settings\.css\?v=20261125-responsive-orientation-v1/);
-  assert.match(settingsHtml,/settings\.js\?v=20261126-username-validation-v1/);
+  assert.match(settingsHtml,/settings\.css\?v=20261126-flags-optional-v2/);
+  assert.match(settingsHtml,/settings\.js\?v=20261126-flags-optional-v1/);
 });

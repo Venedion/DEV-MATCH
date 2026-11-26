@@ -1,0 +1,43 @@
+const {test}=require('node:test');
+const assert=require('node:assert/strict');
+const fs=require('node:fs');
+const path=require('node:path');
+
+const root=path.join(__dirname,'..');
+const profileHtml=fs.readFileSync(path.join(root,'devmatch-profile.html'),'utf8');
+const profileJs=fs.readFileSync(path.join(root,'assets/js/profile.js'),'utf8');
+const profileCss=fs.readFileSync(path.join(root,'assets/css/profile.css'),'utf8');
+const i18nJs=fs.readFileSync(path.join(root,'assets/js/i18n.js'),'utf8');
+
+test('client profile setup removes the project-details step and maps contact to step three',()=>{
+  assert.match(profileJs,/const totalSteps=isDeveloper\?4:3/);
+  assert.match(profileJs,/\.\.\.\(isDeveloper\?\[\{/);
+  assert.match(profileJs,/steps\[2\]\.hidden=!isDeveloper/);
+  assert.match(profileCss,/\.steps li\[hidden\]\{display:none\}/);
+  assert.match(profileJs,/Math\.min\(requestedStep,totalSteps\)-1/);
+  assert.match(profileJs,/title:isDeveloper\?'What do you specialize in\?':'Tell us about yourself'/);
+  assert.match(profileJs,/Let developers know who you are and what industry you work in through a short introduction\./);
+  assert.match(profileJs,/stepTwoLabel'\)\.textContent=isDeveloper\?'Specialization':'About you'/);
+  assert.match(profileJs,/stepTwoHint'\)\.textContent=isDeveloper\?'Role, status, experience':'Industry & Personal bio'/);
+  assert.match(profileJs,/\$\{isDeveloper\?`<div class="field"><label class="field-label" for="website">Website or portfolio/);
+  assert.match(profileJs,/if\(isDeveloper\)profile\.website=read\('website'\)/);
+  assert.match(profileJs,/profileContact\.splitWhatsappNumber\(draft\.phone,'',profile\.country\)/);
+  assert.match(profileJs,/profileContact\.combineWhatsappNumber\(profile\.whatsappDialCode,read\('whatsappNumber'\)\)/);
+  assert.match(profileJs,/profileContact\.normalizeLocalNumber\(target\.value,document\.getElementById\('whatsappDialCode'\)\?\.value\)/);
+  assert.match(profileJs,/for="instagram">Instagram <small class="form-optional">Optional<\/small><\/label>/);
+  assert.ok(profileJs.includes('maxlength="31" pattern="@?[A-Za-z0-9._]{1,30}"'));
+  assert.match(profileJs,/placeholder="@username"/);
+  assert.ok(profileJs.includes('>${flag} +${dialCode}</option>'));
+  assert.match(profileHtml,/profile-contact\.js[\s\S]*?profile\.js/);
+  assert.match(i18nJs,/'About you': 'Tentang Anda'/);
+  assert.match(i18nJs,/'Industry & Personal bio': 'Industri & Bio pribadi'/);
+  assert.match(i18nJs,/'Let developers know who you are and what industry you work in through a short introduction\.'/);
+  assert.doesNotMatch(profileJs,/Project details|Preferred skills or technology/);
+  assert.match(profileJs,/progressLabel'\)\.textContent='Step '\+\(step\+1\)\+' of '\+content\.length/);
+  assert.match(profileJs,/progressBar'\)\.style\.width=\(\(step\+1\)\/content\.length\*100\)\+'%'/);
+  assert.match(profileJs,/step===content\.length-1\?'Finish profile':'Continue'/);
+  assert.match(profileCss,/@media\(orientation:portrait\)\{\.steps\.client-setup-steps ol\{grid-template-columns:repeat\(3,minmax\(0,1fr\)\)\}\}/);
+  assert.match(profileHtml,/profile\.js\?v=20261126-flags-optional-v2/);
+  assert.match(profileHtml,/profile\.css\?v=20261126-flags-optional-v3/);
+  assert.match(profileCss,/\.form-card #whatsappDialCode-trigger\{gap:8px;padding:0 10px\}/);
+});

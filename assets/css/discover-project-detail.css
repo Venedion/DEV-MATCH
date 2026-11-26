@@ -43,6 +43,7 @@
 .discover-detail-breadcrumb a{color:#4d515a}
 .discover-detail-breadcrumb a:hover{text-decoration:underline}
 .discover-detail-breadcrumb span:last-child{overflow:hidden;color:#171719;font-weight:600;text-overflow:ellipsis;white-space:nowrap}
+@media (min-width:821px) and (orientation:landscape){.discover-detail-breadcrumb>a::before,.discover-detail-error>a::before{content:"<";margin-right:4px;color:currentColor;font:inherit}}
 .discover-detail-layout{display:grid;grid-template-columns:minmax(0,1.65fr) minmax(250px,.82fr);align-items:start;gap:18px}
 .discover-detail-main-column,.discover-detail-aside{display:grid;min-width:0;gap:14px}
 .discover-detail-aside{position:sticky;top:76px}

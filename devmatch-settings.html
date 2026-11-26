@@ -13,16 +13,16 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="assets/css/dashboard.css?v=20261126-rebase-merge-v1">
-  <link rel="stylesheet" href="assets/css/settings.css?v=20261125-responsive-orientation-v1">
+  <link rel="stylesheet" href="assets/css/settings.css?v=20261126-flags-optional-v2">
   <link rel="stylesheet" href="assets/css/custom-select.css?v=20261123-no-ring-select-v1">
   <link rel="stylesheet" href="assets/css/client-shell.css?v=20261125-responsive-orientation-v1">
   <link rel="stylesheet" href="assets/css/mode-switch-animation.css?v=20261030-client-mode-route">
   <link rel="stylesheet" href="assets/css/mobile-navigation.css?v=20261126-scrollbar-hidden-v1">
   <script src="assets/js/mode-switch-state.js?v=20261030-client-mode-indicator"></script>
-  <script src="assets/js/i18n.js?v=20261119-experience-delete-undo"></script>
+  <script src="assets/js/i18n.js?v=20261126-flags-optional-v1"></script>
 <script src="assets/vendor/supabase-2.119.0.js"></script>
 <script src="assets/js/backend.js?v=20261126-username-validation-v1"></script>
-<link rel="stylesheet" href="assets/css/form-controls.css?v=20261126-placeholder-unified-v1">
+<link rel="stylesheet" href="assets/css/form-controls.css?v=20261126-optional-unified-v1">
 <link rel="stylesheet" href="assets/css/developer-mode-icon.css?v=20261125-developer-mode-icon-v2">
 </head>
 <body class="page-scroll-shell">
@@ -175,8 +175,16 @@
 
               <div class="settings-field">
                 <label class="settings-label" for="settingsWhatsapp">WhatsApp Number</label>
-                <input class="settings-input" id="settingsWhatsapp" type="tel" placeholder="6281234567890">
+                <div class="settings-whatsapp-fields">
+                  <select class="settings-select" id="settingsWhatsappDialCode" aria-label="WhatsApp country dialing code">
+                    <option value="62" title="Indonesia (+62)">🇮🇩 +62</option>
+                    <option value="60" title="Malaysia (+60)">🇲🇾 +60</option>
+                    <option value="65" title="Singapore (+65)">🇸🇬 +65</option>
+                  </select>
+                  <input class="settings-input" id="settingsWhatsapp" type="tel" inputmode="numeric" autocomplete="tel-national" pattern="[1-9][0-9]*" maxlength="15" placeholder="81234567890" aria-describedby="settingsWhatsappHint">
+                </div>
                 <span class="settings-hint">Clients can contact you directly via one-tap WhatsApp.</span>
+                <span class="settings-hint" id="settingsWhatsappHint">Enter your number without leading 0.</span>
               </div>
 
               <div class="settings-field">
@@ -195,14 +203,14 @@
                 <span class="settings-hint" id="settingsBirthdayHint">Private. Only your age range is shown publicly.</span>
               </div>
 
-              <div class="settings-field">
+              <div class="settings-field" id="settingsWebsiteField">
                 <label class="settings-label" for="settingsWebsite">Website or portfolio</label>
                 <input class="settings-input" id="settingsWebsite" type="url" maxlength="300" placeholder="https://example.com">
               </div>
 
               <div class="settings-field">
                 <label class="settings-label" for="settingsInstagram">Instagram</label>
-                <input class="settings-input" id="settingsInstagram" type="url" maxlength="300" placeholder="https://instagram.com/username">
+                <input class="settings-input" id="settingsInstagram" type="text" autocapitalize="none" autocomplete="off" maxlength="31" pattern="@?[A-Za-z0-9._]{1,30}" placeholder="@username">
               </div>
 
               <div class="settings-field span-2">
@@ -527,12 +535,7 @@
                 </div>
 
                 <div class="settings-field span-2">
-                  <label class="settings-label" for="settingsProject">Project Brief</label>
-                  <textarea class="settings-textarea" id="settingsProject" maxlength="700" placeholder="Describe the features, audience, and goals for your project"></textarea>
-                </div>
-
-                <div class="settings-field span-2">
-                  <label class="settings-label" for="settingsNpwp">NPWP / Tax ID (Optional)</label>
+                  <label class="settings-label" for="settingsNpwp"><span>NPWP / Tax ID</span><small class="form-optional">Optional</small></label>
                   <input class="settings-input" id="settingsNpwp" type="text" placeholder="Enter your tax ID">
                   <span class="settings-hint">Used for commercial invoice issuance and withholding tax receipts.</span>
                 </div>
@@ -893,8 +896,9 @@
   </a>
 
   <script src="assets/js/client-profile-options.js?v=20261123-client-profile-options-v1"></script>
+  <script src="assets/js/profile-contact.js?v=20261126-flags-optional-v1"></script>
   <script src="assets/js/username-validation.js?v=20261126-username-validation-v1"></script>
-  <script src="assets/js/settings.js?v=20261126-username-validation-v1"></script>
+  <script src="assets/js/settings.js?v=20261126-flags-optional-v1"></script>
   <script src="assets/js/custom-select.js?v=20261028-custom-dropdowns-v3"></script>
   <script src="assets/js/nav-behavior.js?v=20261125-responsive-orientation-v1"></script>
 <script src="assets/js/presence.js?v=20261119-global"></script>

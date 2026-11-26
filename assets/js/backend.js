@@ -578,7 +578,7 @@
     privateProfileFields.forEach(field => delete cachedData[field]);
     return cachedData;
   }
-  function sanitizeStoredProfile(storage, key) {
+  function sanitizeStoredProfile(storage, key, {preserveBirthday = false} = {}) {
     const stored = storage.getItem(key);
     if (!stored) return;
     try {
@@ -587,8 +587,12 @@
         storage.removeItem(key);
         return;
       }
-      if (privateProfileFields.some(field => Object.hasOwn(profile, field))) {
-        storage.setItem(key, JSON.stringify(profileDataForCache(profile)));
+      const fieldsToRemove = preserveBirthday
+        ? privateProfileFields.filter(field => field !== 'birthday')
+        : privateProfileFields;
+      if (fieldsToRemove.some(field => Object.hasOwn(profile, field))) {
+        fieldsToRemove.forEach(field => delete profile[field]);
+        storage.setItem(key, JSON.stringify(profile));
       }
     } catch {
       storage.removeItem(key);
@@ -596,7 +600,7 @@
   }
   Object.keys(localStorage).filter(key => key.startsWith('devmatch-profile-'))
     .forEach(key => sanitizeStoredProfile(localStorage, key));
-  sanitizeStoredProfile(sessionStorage, 'devmatch-profile-draft');
+  sanitizeStoredProfile(sessionStorage, 'devmatch-profile-draft', {preserveBirthday: true});
   function cache(row, user) {
     const profile = {...profileDataForCache(row.profile_data), username: row.username || '', displayName: row.display_name,
       usernameChangedAt: row.username_changed_at || '', phone: row.phone || '', email: user.email,

@@ -7,6 +7,7 @@
 .profile-public-banner{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:15px;padding:12px 15px;border:1px solid var(--profile-line);border-radius:11px;background:#fff;color:#5d5f67;font-size:11px}
 .profile-public-banner a{color:var(--profile-ink);font-weight:700}
 .profile-public-banner a:hover{text-decoration:underline}
+@media (min-width:821px) and (orientation:landscape){.profile-public-banner>#returnFromPreview::before{content:"<";margin-right:4px;color:currentColor;font:inherit}}
 .profile-public-banner[hidden]{display:none}
 .edit-profile-button,.button{min-height:38px;display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:0 13px;border:1px solid var(--profile-line);border-radius:9px;background:#fff;color:var(--profile-ink);font-size:12px;font-weight:700;cursor:pointer;transition:background .15s,border-color .15s,transform .15s}
 .edit-profile-button svg,.button svg{width:15px;height:15px}
@@ -100,14 +101,18 @@
 .app-status.connected{background:#ededf0;color:#111}
 .contact-card{background:linear-gradient(145deg,#fff,#fafafa)}
 .contact-card>p{margin:-5px 0 12px;color:var(--profile-muted);font-size:10px;line-height:1.5}
-.contact-whatsapp,.contact-message{min-height:39px;display:flex;align-items:center;justify-content:center;gap:8px;border-radius:9px;font-size:11px;font-weight:700}
+.contact-whatsapp,.contact-message,.contact-instagram{min-height:39px;display:flex;align-items:center;justify-content:center;gap:8px;border-radius:9px;font-size:11px;font-weight:700}
 .contact-whatsapp{background:#25d366;color:#fff}
 .contact-whatsapp:hover{background:#1ebd59}
 .contact-whatsapp>span{font-size:15px}
 .contact-whatsapp.disabled{background:#e8e8eb;color:#73757d;pointer-events:none}
-.contact-message{margin-top:7px;border:1px solid var(--profile-line);background:#fff}
+.contact-message,.contact-instagram{margin-top:7px;border:1px solid var(--profile-line);background:#fff}
 .contact-message:hover{background:#f6f6f7}
 .contact-message svg{width:15px;height:15px}
+.contact-instagram{color:#c13584}
+.contact-instagram:hover{background:#fff5fa}
+.contact-instagram[hidden]{display:none}
+.contact-instagram svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.8}
 .profile-showcase{min-width:0}
 .profile-stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:13px}
 .profile-stat{min-height:93px;padding:13px 14px}
@@ -260,10 +265,11 @@ body{font-size:16px;line-height:1.55}
 .connected-app-info b{font-size:13px}
 .app-status{padding:5px 9px;font-size:12px}
 .contact-card>p{margin:-6px 0 15px;color:#5f626b;font-size:13px;line-height:1.6}
-.contact-whatsapp,.contact-message{min-height:44px;gap:9px;font-size:14px}
+.contact-whatsapp,.contact-message,.contact-instagram{min-height:44px;gap:9px;font-size:14px}
 .contact-whatsapp>span{font-size:17px}
-.contact-message{margin-top:9px}
+.contact-message,.contact-instagram{margin-top:9px}
 .contact-message svg{width:17px;height:17px}
+.contact-instagram svg{width:18px;height:18px}
 .profile-stats{gap:11px;margin-bottom:15px}
 .profile-stat{min-height:106px;padding:15px}
 .profile-stat>span{color:#6b7280;font-size:12px;font-weight:600;line-height:1.45}

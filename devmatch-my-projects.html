@@ -8,14 +8,14 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="assets/css/dashboard.css?v=20261126-rebase-merge-v1">
-  <link rel="stylesheet" href="assets/css/my-projects.css?v=20261126-rebase-merge-v1">
+  <link rel="stylesheet" href="assets/css/my-projects.css?v=20261127-desktop-back-navigation-v1">
   <link rel="stylesheet" href="assets/css/mode-switch-animation.css?v=20261030-active-indicator">
   <link rel="stylesheet" href="assets/css/mobile-navigation.css?v=20261126-scrollbar-hidden-v1">
   <link rel="stylesheet" href="assets/css/arrow-motion.css?v=20261118-arrow-motion-global-v2">
   <script src="assets/js/i18n.js?v=20261117-supabase-workspace"></script>
 <script src="assets/vendor/supabase-2.119.0.js"></script>
 <script src="assets/js/backend.js?v=20261126-username-validation-v1"></script>
-<link rel="stylesheet" href="assets/css/form-controls.css?v=20261126-placeholder-unified-v1">
+<link rel="stylesheet" href="assets/css/form-controls.css?v=20261126-optional-unified-v1">
 <link rel="stylesheet" href="assets/css/developer-mode-icon.css?v=20261125-developer-mode-icon-v2">
 </head>
 <body class="page-scroll-shell">
@@ -61,7 +61,7 @@
             <header class="editor-card-heading"><span>1</span><div><h2>Basic information</h2><p>Name your project and describe what clients get.</p></div></header>
             <label class="editor-field">Project name<input id="projectTitle" name="title" required maxlength="40" placeholder="e.g. Restaurant Website Development" aria-describedby="titleCount titleError"><small><span id="titleCount">0</span> / 40 characters</small><small class="validation-message" id="titleError" role="alert" hidden></small></label>
             <label class="editor-field">Project description<textarea id="projectDescription" name="description" required maxlength="200" rows="4" placeholder="Describe what you built, the problem it solves, and what the client receives." aria-describedby="descriptionCount descriptionError"></textarea><small><span id="descriptionCount">0</span> / 200 characters</small><small class="validation-message" id="descriptionError" role="alert" hidden></small></label>
-            <label class="editor-field">Project link <span class="optional-label">Optional</span><input name="link" type="url" placeholder="https://your-project.example" aria-describedby="linkHint linkError"><small id="linkHint">Live demo, Figma prototype or repository</small><small class="validation-message" id="linkError" role="alert" hidden></small></label>
+            <label class="editor-field">Project link <small class="form-optional">Optional</small><input name="link" type="url" placeholder="https://your-project.example" aria-describedby="linkHint linkError"><small id="linkHint">Live demo, Figma prototype or repository</small><small class="validation-message" id="linkError" role="alert" hidden></small></label>
           </section>
           <section class="editor-card">
             <header class="editor-card-heading"><span>2</span><div><h2>Media</h2><p>Screenshots and a demo video help clients trust your work.</p></div></header>

@@ -14,6 +14,19 @@ textarea::placeholder {
   opacity: 1 !important;
 }
 
+.form-optional,
+.settings-label .form-optional,
+.editor-field .form-optional,
+.chat-proposal-section-heading .form-optional {
+  margin-left: 5px;
+  color: #858a94;
+  font-size: 11px;
+  font-style: normal;
+  font-weight: 500;
+  line-height: 1.35;
+  white-space: nowrap;
+}
+
 input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="button"]):not([type="submit"]):not([type="reset"]):not([type="image"]):not([type="hidden"]):not([type="color"]):focus,
 textarea:focus,
 select:focus {

@@ -2,7 +2,9 @@ const params=new URLSearchParams(window.location.search);
 const role=params.get('role')==='client'?'client':'dev';
 const isDeveloper=role==='dev';
 const clientProfileOptions=window.DEVMATCH_CLIENT_PROFILE_OPTIONS;
+const profileContact=window.DEVMATCH_PROFILE_CONTACT;
 const requestedStep=Number(params.get('step'));
+const totalSteps=isDeveloper?4:3;
 const draftKey='devmatch-profile-draft';
 const storedDraft=JSON.parse(sessionStorage.getItem(draftKey)||'{}');
 const cachedWorkspace=JSON.parse(localStorage.getItem('devmatch-profile-'+role)||'{}');
@@ -26,10 +28,14 @@ const profile={
   industry:'',
   project:'',
   whatsapp:'',
+  whatsappDialCode:'',
+  whatsappCustomized:false,
   website:'',
   instagram:''
 };
-let step=canResumeLaterStep&&Number.isInteger(requestedStep)&&requestedStep>=1&&requestedStep<=4?requestedStep-1:0;
+let step=canResumeLaterStep&&Number.isInteger(requestedStep)&&requestedStep>=1&&requestedStep<=4
+  ?Math.min(requestedStep,totalSteps)-1
+  :0;
 let basicInfoValidationAttempted=false;
 let nextExperienceId=0;
 let locationRegionsByCountry={Indonesia:[],Malaysia:[],Singapore:[]};
@@ -57,8 +63,10 @@ const content=[
       <div class="field"><label class="field-label" for="birthdayTrigger">Birthday <span class="required-mark" aria-hidden="true">*</span></label><div class="birthday-picker" id="birthdayPicker"><input id="birthday" name="birthday" type="hidden" value="${escapeHtml(profile.birthday)}"><button class="control birthday-trigger" id="birthdayTrigger" type="button" aria-haspopup="dialog" aria-expanded="false" aria-controls="birthdayCalendar" aria-describedby="birthdayError"><span id="birthdayValue">${formatBirthday(profile.birthday)||'Select your birthday'}</span><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/></svg></button><div class="birthday-calendar" id="birthdayCalendar" role="dialog" aria-label="Choose your birthday" hidden><div class="calendar-wheels" id="birthdayWheels"><div class="calendar-wheel" role="listbox" aria-label="Birth day" data-calendar-wheel="day" tabindex="0"></div><div class="calendar-wheel" role="listbox" aria-label="Birth month" data-calendar-wheel="month" tabindex="0"></div><div class="calendar-wheel" role="listbox" aria-label="Birth year" data-calendar-wheel="year" tabindex="0"></div><div class="calendar-wheel-selection" aria-hidden="true"></div></div><footer class="calendar-footer"><button type="button" data-calendar-clear>Clear</button><button type="button" data-calendar-save>Save</button></footer></div></div><p class="field-error" id="birthdayError" hidden>Please select your birthday.</p><p class="field-hint">Only your age range is shown publicly.</p></div>`
   },
   {
-    title:isDeveloper?'What do you specialize in?':'What kind of work do you need?',
-    intro:isDeveloper?'Help clients quickly understand your services and availability.':'Tell developers a little about the project you want to build.',
+    title:isDeveloper?'What do you specialize in?':'Tell us about yourself',
+    intro:isDeveloper
+      ?'Help clients quickly understand your services and availability.'
+      :'Let developers know who you are and what industry you work in through a short introduction.',
     fields:()=>isDeveloper?`
       <div class="field">
         <span class="field-label">Specialization <span class="optional-hint">Select all that apply</span></span>
@@ -90,30 +98,46 @@ const content=[
       <div class="field"><label class="field-label" for="industry">Business or Industry</label><select class="control" id="industry" name="industry"><option value=""${profile.industry?'':' selected'}>Choose an industry</option>${profile.industry&&!industryOptions.includes(profile.industry)?`<option value="${escapeHtml(profile.industry)}" selected>${escapeHtml(profile.industry)}</option>`:''}${industryOptions.map(value=>`<option value="${escapeHtml(value)}"${profile.industry===value?' selected':''}>${escapeHtml(value)}</option>`).join('')}</select></div>
       <div class="field"><label class="field-label" for="project">What are you looking to build?</label><textarea class="control" id="project" maxlength="500" placeholder="A short description of your idea">${escapeHtml(profile.project)}</textarea></div>`
   },
-  {
-    title:isDeveloper?'Showcase your skills & bio':'Tell developers about your project',
-    intro:isDeveloper?'Add a few skills and a short introduction to your work.':'Add a short project brief to help developers understand your needs.',
-    fields:()=>isDeveloper?`
+  ...(isDeveloper?[{
+    title:'Showcase your skills & bio',
+    intro:'Add a few skills and a short introduction to your work.',
+    fields:()=>`
       <div class="field"><label class="field-label" for="skills">Skills</label><input class="control" id="skills" maxlength="160" placeholder="React, Figma, Node.js" value="${escapeHtml(profile.skills)}"></div>
       <div class="field"><label class="field-label" for="bio">Bio</label><textarea class="control" id="bio" maxlength="500" placeholder="What do you build, and what kind of projects do you enjoy?">${escapeHtml(profile.bio)}</textarea><p class="field-hint">A short introduction to your work and experience.</p></div>
       <div class="field experience-section">
-        <div class="section-heading"><span class="field-label">Experience <span class="optional-hint">Optional</span></span><button class="add-experience" type="button" data-add-experience>+ Add experience</button></div>
+        <div class="section-heading"><span class="field-label">Experience <small class="form-optional">Optional</small></span><button class="add-experience" type="button" data-add-experience>+ Add experience</button></div>
         <p class="experience-hint">Add a role, then attach a supporting file or a link.</p>
         <div class="experience-list">${renderExperienceEntries()}</div>
         <p class="upload-note">Supporting files are stored privately and are only available to you.</p>
-      </div>`:`
-      <div class="field"><label class="field-label" for="project">Project details</label><textarea class="control" id="project" maxlength="700" placeholder="Describe the features, audience, and goals for your project">${escapeHtml(profile.project)}</textarea></div>
-      <div class="field"><label class="field-label" for="skills">Preferred skills or technology (optional)</label><input class="control" id="skills" maxlength="160" placeholder="e.g. Website, React, online payments" value="${escapeHtml(profile.skills)}"></div>`
-  },
+      </div>`
+  }]:[]),
   {
     title:'Add contact & links',
     intro:'Add optional ways for people to contact you or view your work.',
-    fields:()=>`
-      <div class="field"><label class="field-label" for="whatsapp">WhatsApp number <span class="optional-hint">Optional</span></label><input class="control" id="whatsapp" type="tel" inputmode="numeric" autocomplete="tel" pattern="[0-9]*" maxlength="20" placeholder="6281234567890" value="${escapeHtml(profile.whatsapp)}"><p class="field-hint">Enter digits only. Leave blank if you prefer not to share your number.</p></div>
-      <div class="field"><label class="field-label" for="website">Website or portfolio (optional)</label><input class="control" id="website" type="url" placeholder="https://example.com" value="${escapeHtml(profile.website)}"></div>
-      <div class="field"><label class="field-label" for="instagram">Instagram (optional)</label><input class="control" id="instagram" type="url" placeholder="https://instagram.com/username" value="${escapeHtml(profile.instagram)}"></div>`
+    fields:()=>{
+      const whatsapp=profileContact.splitWhatsappNumber(profile.whatsapp,profile.whatsappDialCode,profile.country);
+      return `
+      <div class="field">
+        <span class="field-label">WhatsApp number <small class="form-optional">Optional</small></span>
+        <div class="whatsapp-fields">
+          <select class="control" id="whatsappDialCode" aria-label="WhatsApp country dialing code">${profileContact.dialCodes.map(({country,dialCode,flag})=>`<option value="${dialCode}" title="${country} (+${dialCode})"${whatsapp.dialCode===dialCode?' selected':''}>${flag} +${dialCode}</option>`).join('')}</select>
+          <input class="control" id="whatsappNumber" type="tel" inputmode="numeric" autocomplete="tel-national" pattern="[1-9][0-9]*" maxlength="15" placeholder="81234567890" aria-describedby="whatsappHint" value="${escapeHtml(whatsapp.number)}">
+        </div>
+        <p class="field-hint" id="whatsappHint">Enter your number without leading 0. Your registration number is prefilled, but you can edit it.</p>
+      </div>
+      ${isDeveloper?`<div class="field"><label class="field-label" for="website">Website or portfolio <small class="form-optional">Optional</small></label><input class="control" id="website" type="url" placeholder="https://example.com" value="${escapeHtml(profile.website)}"></div>`:''}
+      <div class="field"><label class="field-label" for="instagram">Instagram <small class="form-optional">Optional</small></label><input class="control" id="instagram" type="text" autocapitalize="none" autocomplete="off" maxlength="31" pattern="@?[A-Za-z0-9._]{1,30}" placeholder="@username" aria-describedby="instagramError" value="${escapeHtml(profileContact.normalizeInstagramUsername(profile.instagram))}"><p class="field-error" id="instagramError" hidden>Enter an Instagram username without a link.</p></div>`;
+    }
   }
 ];
+steps[2].hidden=!isDeveloper;
+const visibleSteps=steps.filter(item=>!item.hidden);
+visibleSteps.forEach((item,index)=>{
+  item.querySelector('.number').textContent=String(index+1);
+});
+document.querySelector('.steps').classList.toggle('client-setup-steps',!isDeveloper);
+document.getElementById('progressLabel').textContent=`Step ${step+1} of ${content.length}`;
+document.getElementById('progressBar').style.width=`${((step+1)/content.length)*100}%`;
 
 function escapeHtml(value){
   return String(value).replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
@@ -470,8 +494,8 @@ function renderExperienceEntries(){
         <div><label class="field-label" for="experience-company-${entry.id}">Company</label><input class="control" id="experience-company-${entry.id}" data-experience-field="company" maxlength="80" placeholder="Company name" value="${escapeHtml(entry.company||'')}"></div>
       </div>
       <div class="field"><label class="field-label" for="experience-period-${entry.id}">Period</label><input class="control" id="experience-period-${entry.id}" data-experience-field="period" maxlength="60" placeholder="e.g. 2022 – Present" value="${escapeHtml(entry.period||'')}"></div>
-      <div class="field"><label class="field-label" for="experience-link-${entry.id}">Experience link (optional)</label><input class="control" id="experience-link-${entry.id}" data-experience-field="link" type="url" placeholder="https://example.com" value="${escapeHtml(entry.link||'')}"></div>
-      <div class="field"><label class="field-label" for="experience-file-${entry.id}">Upload supporting files (optional)</label><input class="control file-control" id="experience-file-${entry.id}" data-experience-file type="file" accept=".pdf,.doc,.docx,.png,.jpg,.jpeg" multiple><p class="field-hint" data-file-name>${escapeHtml((entry.files||[]).join(', ')||'PDF, DOC, DOCX, JPG, or PNG')}</p></div>
+      <div class="field"><label class="field-label" for="experience-link-${entry.id}">Experience link <small class="form-optional">Optional</small></label><input class="control" id="experience-link-${entry.id}" data-experience-field="link" type="url" placeholder="https://example.com" value="${escapeHtml(entry.link||'')}"></div>
+      <div class="field"><label class="field-label" for="experience-file-${entry.id}">Upload supporting files <small class="form-optional">Optional</small></label><input class="control file-control" id="experience-file-${entry.id}" data-experience-file type="file" accept=".pdf,.doc,.docx,.png,.jpg,.jpeg" multiple><p class="field-hint" data-file-name>${escapeHtml((entry.files||[]).join(', ')||'PDF, DOC, DOCX, JPG, or PNG')}</p></div>
     </fieldset>`).join('');
 }
 
@@ -506,20 +530,21 @@ function render(){
   document.getElementById('formTitle').textContent=current.title;
   document.getElementById('formIntro').textContent=current.intro;
   document.getElementById('stepPill').textContent='Step '+(step+1);
-  document.getElementById('progressLabel').textContent='Step '+(step+1)+' of 4';
-  document.getElementById('progressBar').style.width=((step+1)*25)+'%';
-  document.getElementById('continueLabel').textContent=step===3?'Finish profile':'Continue';
-  document.getElementById('skipButton').textContent=step===3?'Finish later':'Skip for now';
+  document.getElementById('progressLabel').textContent='Step '+(step+1)+' of '+content.length;
+  document.getElementById('progressBar').style.width=((step+1)/content.length*100)+'%';
+  document.getElementById('continueLabel').textContent=step===content.length-1?'Finish profile':'Continue';
+  document.getElementById('skipButton').textContent=step===content.length-1?'Finish later':'Skip for now';
   document.getElementById('skipButton').hidden=step===0;
   document.getElementById('backButton').hidden=step===0;
-  document.getElementById('stepTwoLabel').textContent=isDeveloper?'Specialization':'Project needs';
-  document.getElementById('stepTwoHint').textContent=isDeveloper?'Role, status, experience':'Industry and project type';
-  document.getElementById('stepThreeLabel').textContent=isDeveloper?'Skills & bio':'Project details';
-  document.getElementById('stepThreeHint').textContent=isDeveloper?'What you’re great at':'Share your project brief';
+  document.getElementById('stepTwoLabel').textContent=isDeveloper?'Specialization':'About you';
+  document.getElementById('stepTwoHint').textContent=isDeveloper?'Role, status, experience':'Industry & Personal bio';
+  document.getElementById('stepThreeLabel').textContent=isDeveloper?'Skills & bio':'Contact & links';
+  document.getElementById('stepThreeHint').textContent=isDeveloper?'What you’re great at':'WhatsApp and socials';
   fields.innerHTML=current.fields();
-  steps.forEach((item,index)=>{
+  steps.forEach(item=>{
+    const index=visibleSteps.indexOf(item);
     item.classList.toggle('active',index===step);
-    item.classList.toggle('done',index<step);
+    item.classList.toggle('done',index>=0&&index<step);
   });
   error.textContent='';
   const country=document.getElementById('country');
@@ -537,17 +562,18 @@ function saveCurrentFields(){
     if(!isLocationPickerCountry(profile.country))profile.city=read('city');
     profile.birthday=read('birthday');
   }else if(step===1){
-    profile.experience=read('experience');
-    profile.industry=read('industry');
+    if(isDeveloper)profile.experience=read('experience');
+    else profile.industry=read('industry');
     profile.project=read('project');
-  }else if(step===2){
+  }else if(isDeveloper&&step===2){
     profile.skills=read('skills');
     profile.bio=read('bio');
     profile.project=read('project')||profile.project;
   }else{
-    profile.whatsapp=read('whatsapp').replace(/\D/g,'');
-    profile.website=read('website');
-    profile.instagram=read('instagram');
+    profile.whatsappDialCode=profileContact.normalizeDialCode(read('whatsappDialCode'))||profileContact.dialCodeForCountry(profile.country);
+    profile.whatsapp=profileContact.combineWhatsappNumber(profile.whatsappDialCode,read('whatsappNumber'));
+    if(isDeveloper)profile.website=read('website');
+    profile.instagram=profileContact.normalizeInstagramUsername(read('instagram'));
   }
   sessionStorage.setItem(draftKey,JSON.stringify({...draft,...profile,role}));
   updatePreview();
@@ -562,6 +588,18 @@ function validateOtherSpecialty(showError){
   if(showError)input.dataset.validationAttempted='true';
   input.setAttribute('aria-invalid',String(!isValid));
   errorMessage.hidden=isValid||!showError;
+  return isValid;
+}
+function validateInstagramField({focus=true}={}){
+  const input=document.getElementById('instagram');
+  if(!input)return true;
+  const username=profileContact.normalizeInstagramUsername(input.value);
+  const isValid=!username||profileContact.isValidInstagramUsername(username);
+  const errorMessage=document.getElementById('instagramError');
+  input.dataset.validationAttempted='true';
+  input.setAttribute('aria-invalid',String(!isValid));
+  errorMessage.hidden=isValid;
+  if(!isValid&&focus)input.focus();
   return isValid;
 }
 function validateBasicInfo({focus=true}={}){
@@ -618,14 +656,16 @@ document.getElementById('stepFields').addEventListener('input',event=>{
     if(basicInfoValidationAttempted)validateBasicInfo({focus:false});
     return;
   }
-  if(target.id==='whatsapp'){
-    const digits=target.value.replace(/\D/g,'');
+  if(target.id==='whatsappNumber'){
+    const digits=profileContact.normalizeLocalNumber(target.value,document.getElementById('whatsappDialCode')?.value);
     if(target.value!==digits){
-      const position=target.selectionStart;
-      const removedBeforeCursor=target.value.slice(0,position).replace(/\d/g,'').length;
+      const position=Math.min(target.selectionStart||0,digits.length);
       target.value=digits;
-      target.setSelectionRange(Math.max(0,position-removedBeforeCursor),Math.max(0,position-removedBeforeCursor));
+      target.setSelectionRange(position,position);
     }
+    profile.whatsappCustomized=true;
+    profile.whatsappDialCode=profileContact.normalizeDialCode(document.getElementById('whatsappDialCode')?.value)||profileContact.dialCodeForCountry(profile.country);
+    profile.whatsapp=profileContact.combineWhatsappNumber(profile.whatsappDialCode,digits);
   }
   const entryElement=target.closest('[data-experience-id]');
   if(entryElement&&target.dataset.experienceField){
@@ -637,6 +677,7 @@ document.getElementById('stepFields').addEventListener('input',event=>{
   if(target.id&&Object.prototype.hasOwnProperty.call(profile,target.id))profile[target.id]=target.value;
   saveProfileDraft();
   if(target.id==='specialtyOther'&&target.dataset.validationAttempted)validateOtherSpecialty(true);
+  if(target.id==='instagram'&&target.dataset.validationAttempted)validateInstagramField({focus:false});
   if(target.id==='displayName'||target.id==='city'||target.id==='country'||target.id==='specialtyOther')updatePreview();
   if(step===0&&basicInfoValidationAttempted)validateBasicInfo({focus:false});
 });
@@ -645,6 +686,7 @@ document.getElementById('stepFields').addEventListener('change',event=>{
   if(target.id==='country'){
     profile.country=target.value;
     profile.city='';
+    if(!profile.whatsapp&&!profile.whatsappCustomized)profile.whatsappDialCode=profileContact.dialCodeForCountry(profile.country);
     saveProfileDraft();
     closeLocationPicker({restoreValue:false});
     const locationField=document.getElementById('locationField');
@@ -654,6 +696,13 @@ document.getElementById('stepFields').addEventListener('change',event=>{
     return;
   }
   if(target.id==='city'&&isLocationPickerCountry(profile.country))return;
+  if(target.id==='whatsappDialCode'){
+    profile.whatsappDialCode=profileContact.normalizeDialCode(target.value)||'62';
+    profile.whatsapp=profileContact.combineWhatsappNumber(profile.whatsappDialCode,document.getElementById('whatsappNumber')?.value);
+    profile.whatsappCustomized=true;
+    saveProfileDraft();
+    return;
+  }
   const entryElement=target.closest('[data-experience-id]');
   if(entryElement&&target.matches('[data-experience-file]')){
     const entry=profile.experiences.find(item=>item.id===entryElement.dataset.experienceId);
@@ -926,6 +975,7 @@ form.addEventListener('submit',event=>{
     document.getElementById('specialtyOther').focus();
     return;
   }
+  if(step===content.length-1&&!validateInstagramField())return;
   if(step<content.length-1){
     step++;
     render();
@@ -941,6 +991,7 @@ document.getElementById('skipButton').addEventListener('click',()=>{
     document.getElementById('specialtyOther').focus();
     return;
   }
+  if(step===content.length-1&&!validateInstagramField())return;
   if(step<content.length-1){
     step++;
     render();
@@ -958,10 +1009,19 @@ else{
   Object.keys(profile).forEach(key=>{
     if(key==='specialty'&&Array.isArray(draft[key]))profile[key]=draft[key];
     else if(key==='experiences'&&Array.isArray(draft[key]))profile[key]=draft[key];
-    else if(typeof draft[key]==='string')profile[key]=draft[key];
+    else if(typeof draft[key]==='string'||typeof draft[key]==='boolean')profile[key]=draft[key];
   });
   if(typeof draft.instagram!=='string'&&typeof draft.social==='string')profile.instagram=draft.social;
-  profile.whatsapp=profile.whatsapp.replace(/\D/g,'');
+  if(!profile.whatsapp&&!profile.whatsappCustomized&&typeof draft.phone==='string'&&draft.phone.trim()){
+    const registrationNumber=profileContact.splitWhatsappNumber(draft.phone,'',profile.country);
+    profile.whatsappDialCode=registrationNumber.dialCode;
+    profile.whatsapp=profileContact.combineWhatsappNumber(registrationNumber.dialCode,registrationNumber.number);
+  }else{
+    const savedNumber=profileContact.splitWhatsappNumber(profile.whatsapp,profile.whatsappDialCode,profile.country);
+    profile.whatsappDialCode=savedNumber.dialCode;
+    profile.whatsapp=profileContact.combineWhatsappNumber(savedNumber.dialCode,savedNumber.number);
+  }
+  profile.instagram=profileContact.normalizeInstagramUsername(profile.instagram);
   profile.experiences=profile.experiences
     .filter(entry=>entry&&typeof entry==='object'&&!Array.isArray(entry))
     .map((entry,index)=>({...entry,id:String(index+1),files:Array.isArray(entry.files)?entry.files.map(String):[]}));

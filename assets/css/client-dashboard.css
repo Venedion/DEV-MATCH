@@ -337,6 +337,7 @@ nav a[href^="devmatch-favorites.html"] #favoriteCount{display:none!important}
 .request-breadcrumb{display:flex;align-items:center;gap:8px;margin-bottom:9px;color:#858892;font-size:12px}
 .request-breadcrumb button{padding:0;border:0;background:none;color:inherit;font:inherit;cursor:pointer}
 .request-breadcrumb button:hover{color:var(--cd-ink)}
+@media (min-width:821px) and (orientation:landscape){.request-breadcrumb button::before,.request-detail-breadcrumb button::before{content:"<";margin-right:4px;color:currentColor;font:inherit}}
 .request-page-heading{display:flex;align-items:center;justify-content:space-between;gap:18px;margin-bottom:19px}
 .request-page-heading h1{font-size:28px;font-weight:800;line-height:1.2;letter-spacing:-.035em}
 .request-page-heading p{margin-top:6px;color:var(--cd-muted);font-size:15px}

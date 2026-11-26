@@ -3,6 +3,7 @@
 .find-detail-breadcrumb a{color:#555862}
 .find-detail-breadcrumb a:hover{text-decoration:underline}
 .find-detail-breadcrumb span:last-child{overflow:hidden;color:#171719;font-weight:700;text-overflow:ellipsis;white-space:nowrap}
+@media (min-width:821px) and (orientation:landscape){.find-detail-breadcrumb>a::before,.find-detail-error>a::before{content:"<";margin-right:4px;color:currentColor;font:inherit}}
 .find-detail-layout{display:grid;grid-template-columns:minmax(0,1.65fr) minmax(240px,.85fr);align-items:start;gap:16px}
 .find-detail-main-column,.find-detail-aside{display:grid;min-width:0;gap:14px}
 .find-detail-aside{position:sticky;top:76px}

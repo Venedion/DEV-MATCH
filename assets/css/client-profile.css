@@ -7,6 +7,7 @@
 .client-profile-unavailable h1{font-size:20px;font-weight:800}
 .client-profile-unavailable p{margin:8px 0 16px;color:#626873;font-size:13px}
 .client-profile-unavailable a{font-size:12px;font-weight:700;text-underline-offset:3px}
+@media (min-width:821px) and (orientation:landscape){.client-profile-unavailable>a::before,.client-profile-breadcrumb>a::before{content:"<";margin-right:4px;color:currentColor;font:inherit}}
 .client-profile-page-heading{margin-bottom:14px}
 .client-profile-page-heading h1{font-size:24px}
 .client-profile-breadcrumb{display:flex;align-items:center;gap:8px;margin:-10px 0 15px;color:#777982;font-size:12px}

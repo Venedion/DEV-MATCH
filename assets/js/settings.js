@@ -36,23 +36,26 @@
   const params = new URLSearchParams(window.location.search);
   const role = params.get('role') === 'client' ? 'client' : 'dev';
   const isDeveloper = role === 'dev';
+  const profileContact = window.DEVMATCH_PROFILE_CONTACT;
   const storageKey = isDeveloper ? 'devmatch-profile-dev' : 'devmatch-profile-client';
   let privateProfileFieldsLoaded = false;
 
   function configureRoleSpecificSettings() {
     document.getElementById('developerSpecificFields').hidden = !isDeveloper;
     document.getElementById('clientSpecificFields').hidden = isDeveloper;
-    document.getElementById('roleTabLabel').textContent = isDeveloper ? 'Rates & Payouts' : 'Company & Project';
-    document.getElementById('roleHeaderTitle').textContent = isDeveloper ? 'Developer Rates & Payout Settings' : 'Client Company & Project Settings';
+    document.getElementById('settingsWebsiteField').hidden = !isDeveloper;
+    document.getElementById('roleTabLabel').textContent = isDeveloper ? 'Rates & Payouts' : 'Company & Billing';
+    document.getElementById('roleHeaderTitle').textContent = isDeveloper ? 'Developer Rates & Payout Settings' : 'Client Company & Billing Settings';
     document.getElementById('roleHeaderDesc').textContent = isDeveloper
       ? 'Configure your baseline pricing, accepted engagements, and bank payout details.'
-      : 'Manage the business information and project requirements shown to developers.';
+      : 'Manage your business profile and billing information.';
     document.getElementById('settingsSkillsHeading').textContent = isDeveloper ? 'Skills & Tech Stacks' : 'Preferred Skills & Technology';
     document.getElementById('settingsSkillsDescription').textContent = isDeveloper
       ? 'Update the skills shown on your public profile.'
       : 'Update the skills or technologies you prefer for your project.';
     document.getElementById('editProfileSkills').setAttribute('aria-label', isDeveloper ? 'Edit Skills & Tech Stacks' : 'Edit Preferred Skills & Technology');
     document.getElementById('settingsSpecialtyCard').hidden = !isDeveloper;
+    document.getElementById('settingsSkillsCard').hidden = !isDeveloper;
     document.getElementById('settingsExperienceCard').hidden = !isDeveloper;
   }
 
@@ -249,8 +252,8 @@
           <label class="settings-field"><span class="settings-label"><span>Job title</span><span class="settings-required-mark" aria-hidden="true">*</span></span><input class="settings-input" data-experience-field="title" aria-describedby="settingsExperience-${entry.id}-title-error" maxlength="80" placeholder="e.g. Frontend Developer" value="${escapeHtml(entry.title)}"${entry.editing ? '' : ' disabled'} required><span class="settings-field-error" id="settingsExperience-${entry.id}-title-error" data-experience-error="title" role="alert" hidden></span></label>
           <label class="settings-field"><span class="settings-label"><span>Company</span><span class="settings-required-mark" aria-hidden="true">*</span></span><input class="settings-input" data-experience-field="company" aria-describedby="settingsExperience-${entry.id}-company-error" maxlength="80" placeholder="Company name" value="${escapeHtml(entry.company)}"${entry.editing ? '' : ' disabled'} required><span class="settings-field-error" id="settingsExperience-${entry.id}-company-error" data-experience-error="company" role="alert" hidden></span></label>
           <div class="settings-field"><span class="settings-label"><span>Period</span><span class="settings-required-mark" aria-hidden="true">*</span></span><div class="settings-experience-period-control"><div class="settings-experience-year-field"><input class="settings-input" data-experience-year="startYear" aria-label="Start year" aria-describedby="settingsExperience-${entry.id}-startYear-error" inputmode="numeric" pattern="[0-9]{4}" placeholder="YYYY" value="${escapeHtml(entry.startYear)}"${entry.editing ? '' : ' disabled'} required><span class="settings-field-error" id="settingsExperience-${entry.id}-startYear-error" data-experience-error="startYear" role="alert" hidden></span></div><span class="settings-experience-period-separator" aria-hidden="true">–</span><div class="settings-experience-year-field"><input class="settings-input" data-experience-year="endYear" aria-label="End year" aria-describedby="settingsExperience-${entry.id}-endYear-error" inputmode="numeric" pattern="[0-9]{4}" placeholder="YYYY" value="${escapeHtml(entry.endYear)}"${entry.editing ? '' : ' disabled'} required></div><span class="settings-field-error settings-experience-period-error" id="settingsExperience-${entry.id}-endYear-error" data-experience-error="endYear" role="alert" hidden></span></div></div>
-          <label class="settings-field"><span class="settings-label"><span>Portfolio link</span><small>(Optional)</small></span><input class="settings-input" data-experience-field="link" type="url" placeholder="${entry.editing ? 'https://example.com' : (entry.link ? '' : '-')}" value="${escapeHtml(entry.link)}"${entry.editing ? '' : ' disabled'}></label>
-          <div class="settings-field span-2"><span class="settings-label"><span>Upload supporting files</span><small>(Optional)</small></span><div class="settings-experience-file-picker${entry.editing ? '' : ' is-disabled'}"><button class="settings-experience-file-action" type="button" data-choose-experience-file aria-describedby="settingsExperience-${entry.id}-file-size settingsExperience-${entry.id}-file-error"${entry.editing ? '' : ' disabled'}>Choose file</button><span class="settings-experience-file-name" data-experience-file-name title="${escapeHtml(selectedFileNames)}">${escapeHtml(selectedFileNames)}</span><input class="settings-experience-file-input" data-experience-file type="file" aria-label="Upload supporting files" accept=".pdf,.doc,.docx,.png,.jpg,.jpeg"${entry.editing ? '' : ' disabled'}></div><span class="settings-hint" id="settingsExperience-${entry.id}-file-size">Maximum file size: 5 MB.</span><span class="settings-field-error" id="settingsExperience-${entry.id}-file-error" data-experience-file-error role="alert" hidden></span>${entry.filePaths.map((_, fileIndex) => {
+          <label class="settings-field"><span class="settings-label"><span>Portfolio link</span><small class="form-optional">Optional</small></span><input class="settings-input" data-experience-field="link" type="url" placeholder="${entry.editing ? 'https://example.com' : (entry.link ? '' : '-')}" value="${escapeHtml(entry.link)}"${entry.editing ? '' : ' disabled'}></label>
+          <div class="settings-field span-2"><span class="settings-label"><span>Upload supporting files</span><small class="form-optional">Optional</small></span><div class="settings-experience-file-picker${entry.editing ? '' : ' is-disabled'}"><button class="settings-experience-file-action" type="button" data-choose-experience-file aria-describedby="settingsExperience-${entry.id}-file-size settingsExperience-${entry.id}-file-error"${entry.editing ? '' : ' disabled'}>Choose file</button><span class="settings-experience-file-name" data-experience-file-name title="${escapeHtml(selectedFileNames)}">${escapeHtml(selectedFileNames)}</span><input class="settings-experience-file-input" data-experience-file type="file" aria-label="Upload supporting files" accept=".pdf,.doc,.docx,.png,.jpg,.jpeg"${entry.editing ? '' : ' disabled'}></div><span class="settings-hint" id="settingsExperience-${entry.id}-file-size">Maximum file size: 5 MB.</span><span class="settings-field-error" id="settingsExperience-${entry.id}-file-error" data-experience-file-error role="alert" hidden></span>${entry.filePaths.map((_, fileIndex) => {
             const fileName = escapeHtml(entry.files[fileIndex] || `file ${fileIndex + 1}`);
             return `<div class="settings-experience-file-row"><button class="settings-hint settings-experience-file-download" type="button" data-download-experience-file="${entry.id}" data-file-index="${fileIndex}" aria-label="Download ${fileName}" title="Download ${fileName}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 19v2h14v-2"/></svg><span class="settings-experience-file-row-name">${fileName}</span></button>${entry.editing ? `<button class="settings-experience-file-remove" type="button" data-remove-experience-file="${entry.id}" data-file-index="${fileIndex}" aria-label="Remove supporting file" title="Remove supporting file"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18"/><path d="M8 6V4h8v2m3 0-.9 14H5.9L5 6"/><path d="M10 11v5m4-5v5"/></svg></button>` : ''}</div>`;
           }).join('')}</div>
@@ -820,7 +823,7 @@
       setSpecialtiesEditing(true);
       document.getElementById('settingsSpecialtyCard')?.scrollIntoView({ block: 'start' });
       editSpecialtiesButton?.focus();
-    } else if (target === 'skills') {
+    } else if (target === 'skills' && isDeveloper) {
       setSkillsEditing(true);
       document.getElementById('settingsSkillsCard')?.scrollIntoView({ block: 'start' });
       skillInput?.focus();
@@ -847,7 +850,7 @@
       ? 'Your existing age range is preserved. Birthday was not retained from earlier setup; enter it to update your age range.'
       : 'Private. Only your age range is shown publicly.';
     setVal('settingsWebsite', profileData.website || '');
-    setVal('settingsInstagram', profileData.instagram || '');
+    setVal('settingsInstagram', profileContact.normalizeInstagramUsername(profileData.instagram || ''));
     profileData.country = settingsLocationCountries.includes(profileData.country)
       ? profileData.country
       : 'Indonesia';
@@ -859,7 +862,14 @@
     settingsLocationInitialValue = {country: profileData.country, city: profileData.city};
     renderSettingsLocationControls();
     setVal('settingsBio', profileData.bio || '');
-    setVal('settingsWhatsapp', profileData.whatsapp || '');
+    const whatsappParts = profileContact.splitWhatsappNumber(
+      profileData.whatsapp || '',
+      profileData.whatsappDialCode,
+      profileData.country
+    );
+    setVal('settingsWhatsappDialCode', whatsappParts.dialCode);
+    document.getElementById('settingsWhatsappDialCode').dispatchEvent(new Event('change', {bubbles: true}));
+    setVal('settingsWhatsapp', whatsappParts.number);
     const industrySelect = document.getElementById('settingsIndustry');
     const industries = window.DEVMATCH_CLIENT_PROFILE_OPTIONS.businessTypes;
     const industry = String(profileData.industry || '');
@@ -908,7 +918,6 @@
     } else {
       setVal('settingsCompanyName', profileData.companyName || '');
       setVal('settingsIndustry', profileData.industry || '');
-      setVal('settingsProject', profileData.project || '');
       setVal('settingsNpwp', profileData.npwp || '');
     }
 
@@ -1109,6 +1118,18 @@
   // Account Form Submission
   const accountForm = document.getElementById('accountForm');
   if (accountForm) {
+    const settingsWhatsappInput = document.getElementById('settingsWhatsapp');
+    const settingsInstagramInput = document.getElementById('settingsInstagram');
+    settingsWhatsappInput.addEventListener('input', () => {
+      settingsWhatsappInput.value = profileContact.normalizeLocalNumber(
+        settingsWhatsappInput.value,
+        document.getElementById('settingsWhatsappDialCode').value
+      );
+    });
+    settingsInstagramInput.addEventListener('input', () => settingsInstagramInput.setCustomValidity(''));
+    settingsInstagramInput.addEventListener('blur', () => {
+      settingsInstagramInput.value = profileContact.normalizeInstagramUsername(settingsInstagramInput.value);
+    });
     accountForm.addEventListener('submit', async function(e) {
       e.preventDefault();
       if (!privateProfileFieldsLoaded) {
@@ -1116,6 +1137,13 @@
         return;
       }
       if (!validateSettingsLocation()) return;
+      const instagramUsername = profileContact.normalizeInstagramUsername(settingsInstagramInput.value);
+      if (instagramUsername && !profileContact.isValidInstagramUsername(instagramUsername)) {
+        settingsInstagramInput.setCustomValidity('Enter an Instagram username without a link.');
+        settingsInstagramInput.reportValidity();
+        return;
+      }
+      settingsInstagramInput.setCustomValidity('');
       profileData.displayName = document.getElementById('settingsDisplayName').value.trim();
       profileData.email = document.getElementById('settingsEmail').value.trim();
       profileData.gender = document.getElementById('settingsGender').value;
@@ -1124,9 +1152,16 @@
       profileData.country = settingsCountrySelect.value;
       profileData.city = settingsCityInput.value.trim();
       profileData.bio = document.getElementById('settingsBio').value.trim();
-      profileData.whatsapp = document.getElementById('settingsWhatsapp').value.trim().replace(/\D/g, '');
-      profileData.website = document.getElementById('settingsWebsite').value.trim();
-      profileData.instagram = document.getElementById('settingsInstagram').value.trim();
+      profileData.whatsappDialCode = profileContact.normalizeDialCode(
+        document.getElementById('settingsWhatsappDialCode').value
+      );
+      profileData.whatsapp = profileContact.combineWhatsappNumber(
+        profileData.whatsappDialCode,
+        settingsWhatsappInput.value
+      );
+      profileData.whatsappCustomized = true;
+      if (isDeveloper) profileData.website = document.getElementById('settingsWebsite').value.trim();
+      profileData.instagram = instagramUsername;
 
       try {
         await persistProfile(profileData, {includePrivateFields: true});
@@ -1823,7 +1858,6 @@
       } else {
         profileData.companyName = document.getElementById('settingsCompanyName').value.trim();
         profileData.industry = document.getElementById('settingsIndustry').value.trim();
-        profileData.project = document.getElementById('settingsProject').value.trim();
         profileData.npwp = document.getElementById('settingsNpwp').value.trim();
       }
 
@@ -1851,12 +1885,8 @@
   };
 
   function formatWhatsapp(value) {
-    const digits = String(value).replace(/\D/g, '');
-    if (!digits) return '';
-    if (!digits.startsWith('62')) return value;
-    const localNumber = digits.slice(2);
-    const formatted = localNumber.replace(/^(\d{3})(\d{4})(\d+)$/, '$1-$2-$3');
-    return `+62 ${formatted}`;
+    const parts = profileContact.splitWhatsappNumber(value, '', '');
+    return parts.number ? `+${parts.dialCode} ${parts.number}` : '';
   }
 
   function renderAppConnection(app, connected) {
@@ -2188,7 +2218,15 @@
       type: 'tel',
       placeholder: '+62 812-3456-7890',
       getValue: profile => profile.whatsapp || '',
-      save: value => ({ whatsapp: value.replace(/\D/g, ''), whatsappConnected: true }),
+      save: value => {
+        const parts = profileContact.splitWhatsappNumber(value, profileData.whatsappDialCode, profileData.country);
+        return {
+          whatsappDialCode: parts.dialCode,
+          whatsapp: profileContact.combineWhatsappNumber(parts.dialCode, parts.number),
+          whatsappCustomized: true,
+          whatsappConnected: true
+        };
+      },
       validate: value => {
         const digits = value.replace(/\D/g, '');
         return digits.length >= 8 && digits.length <= 15
@@ -2279,7 +2317,14 @@
       renderAppConnection(editingApp, true);
       if (editingApp === 'WhatsApp') {
         const whatsappField = document.getElementById('settingsWhatsapp');
-        if (whatsappField) whatsappField.value = profileData.whatsapp;
+        const whatsappDialCode = document.getElementById('settingsWhatsappDialCode');
+        const parts = profileContact.splitWhatsappNumber(
+          profileData.whatsapp,
+          profileData.whatsappDialCode,
+          profileData.country
+        );
+        if (whatsappField) whatsappField.value = parts.number;
+        if (whatsappDialCode) whatsappDialCode.value = parts.dialCode;
       }
       appEditDialog.close();
       showToast(`${editingApp} account details updated.`);

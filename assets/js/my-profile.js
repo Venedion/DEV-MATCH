@@ -7,6 +7,7 @@
   const profileKey=`devmatch-profile-${role}`;
   const savedProfile=readStorage(profileKey,{});
   const profile=savedProfile&&typeof savedProfile==='object'&&!Array.isArray(savedProfile)?savedProfile:{};
+  const profileContact=window.DEVMATCH_PROFILE_CONTACT;
   const isPreview=params.get('preview')==='1';
   const initials=name=>String(name||'').trim().split(/\s+/).filter(Boolean).slice(0,2).map(part=>part[0]).join('').toUpperCase()||(isDeveloper?'DM':'CL');
   const escapeHtml=value=>String(value??'').replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
@@ -203,6 +204,10 @@
     setLink('directMessageLink',chatUrl);
     setLink('whatsappLink',profile.whatsapp?`https://wa.me/${String(profile.whatsapp).replace(/\D/g,'')}`:'#');
     document.getElementById('whatsappLink').classList.toggle('disabled',!String(profile.whatsapp||'').replace(/\D/g,''));
+    const instagramUrl=profileContact.instagramUrl(profile.instagram||'');
+    const instagramLink=document.getElementById('instagramLink');
+    instagramLink.hidden=isDeveloper||!instagramUrl;
+    if(instagramUrl)setLink('instagramLink',instagramUrl);
     if(isPreview){
       document.getElementById('profileNavLink').hidden=true;
       document.querySelector('.side-add').hidden=true;

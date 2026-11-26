@@ -193,8 +193,24 @@
   gap: 6px;
 }
 
+.settings-field[hidden] {
+  display: none;
+}
+
 .settings-field.span-2 {
   grid-column: span 2;
+}
+
+.settings-whatsapp-fields {
+  display: grid;
+  grid-template-columns: 92px minmax(0, 1fr);
+  gap: 8px;
+}
+
+.settings-whatsapp-fields #settingsWhatsappDialCode {
+  width: 92px;
+  padding: 0 5px;
+  text-align: center;
 }
 
 .settings-label {

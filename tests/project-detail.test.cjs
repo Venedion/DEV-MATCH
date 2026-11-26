@@ -450,7 +450,7 @@ test('requested comment sections follow the reference card and typography styles
   assert.match(clientHtml,/id="requestDetailCommentCount" class="comment-system-count"/);
   assert.match(clientStyles,/#requestDetailComments\.comment-system\{padding:24px;border:1px solid #e5e5e8;border-radius:16px/);
   assert.match(clientStyles,/\.request-detail-comments\.comment-system \.comment-system-actions\{display:grid;grid-template-columns:max-content minmax\(0,1fr\);align-items:baseline/);
-  assert.match(findHtml,/find-project-detail\.css\?v=20261125-responsive-orientation-v1/);
+  assert.match(findHtml,/find-project-detail\.css\?v=20261127-desktop-back-navigation-v1/);
   assert.match(findStyles,/\.find-project-detail-page\.is-modal-detail \.find-detail-card\.find-comments\.comment-system\{padding:24px;border:1px solid #e5e5e8;border-radius:16px/);
   assert.match(findStyles,/@media\(max-width:\s*600px\)\s*and\s*\(orientation:\s*portrait\)\s*\{\s*\.find-project-detail-page\.is-modal-detail \.find-detail-card\.find-comments\.comment-system\{padding:18px\}/);
   assert.match(clientProfileSource,/devmatch-find-project-detail\.html\?request=/);
