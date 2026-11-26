@@ -50,6 +50,10 @@ nav .wrap{display:flex;align-items:center;gap:28px;height:72px}
 .paths{display:grid;grid-template-columns:1fr 1fr;gap:28px;margin-top:52px;text-align:left}
 .path{background:var(--card);border:1px solid var(--line);border-radius:24px;padding:26px;display:flex;flex-direction:column;gap:14px;transition:box-shadow .2s,border-color .2s}
 @media(hover:hover){.path:hover{border-color:var(--ink);box-shadow:0 12px 40px rgba(0,0,0,.12)}}
+@media (hover:hover) and (pointer:fine) and (prefers-reduced-motion:no-preference) {
+  .path { transition: transform .25s ease-out, box-shadow .2s, border-color .2s; }
+  .path:is(:hover,:focus-within) { transform: translateY(-5px); }
+}
 .path .top{display:flex;justify-content:space-between;align-items:flex-start}
 .ico{width:44px;height:44px;border-radius:12px;background:var(--btn);color:var(--btn-ink);display:grid;place-items:center}
 .ico svg{width:20px;height:20px}
