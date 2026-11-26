@@ -8,6 +8,7 @@ const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
 const store = supabaseUrl && serviceKey ? supabasePaymentStore(supabaseUrl, serviceKey) : null;
 const gateway = sandboxGateway({
   serverKey: Deno.env.get('MIDTRANS_SERVER_KEY'),
+  clientKey: Deno.env.get('MIDTRANS_CLIENT_KEY'),
   signatureSecret: Deno.env.get('MIDTRANS_SIGNATURE_SECRET') || undefined,
   returnOrigin: Deno.env.get('PAYMENT_RETURN_ORIGIN') || 'https://devm4tch.vercel.app'
 });

@@ -94,7 +94,7 @@ async function fixture(t) {
   const {paymentService} = await import('../supabase/functions/payment-api/service.mjs');
   const key = 'SB-Mid-server-fixture';
   const orders = new Map();
-  const gateway = sandboxGateway({serverKey: key, returnOrigin: 'https://devm4tch.vercel.app',
+  const gateway = sandboxGateway({serverKey: key, clientKey: 'SB-Mid-client-fixture', returnOrigin: 'https://devm4tch.vercel.app',
     request: async (url, options) => {
       assert.equal(options.headers.Authorization, 'Basic ' + Buffer.from(key + ':').toString('base64'));
       if (options.method === 'POST') {
@@ -111,7 +111,7 @@ async function fixture(t) {
         }
         assert.ok(!orders.has(order_id), 'order must be created once');
         orders.set(order_id, {order_id, gross_amount: gross_amount + '.00'});
-        return Response.json({redirect_url: 'https://app.sandbox.midtrans.com/snap/v3/redirection/' + order_id});
+        return Response.json({token: order_id, redirect_url: 'https://app.sandbox.midtrans.com/snap/v3/redirection/' + order_id});
       }
       const id = new URL(url).pathname.split('/')[2];
       const order = orders.get(id);
@@ -163,7 +163,36 @@ test('a project reference on a grouped chat shares one payment room across both 
   assert.equal((await db.query('select conversation_id from public.payment_rooms')).rows[0].conversation_id, conversationId);
 });
 
-test('Hosted checkout verifies authoritative status and records ledger once on concurrent webhook delivery', async t => {
+test('Expired Snap sessions can be retried while a pending payment keeps its order', async t => {
+  const {handle, apply, store, orders} = await fixture(t);
+  await apply(developer, 'propose', proposal);
+  await apply(client, 'accept');
+  const first = await handle(client, 'checkout', {kind: 'DP'});
+  const ref = {conversationId, projectId};
+  const legacy = await store.state(ref);
+  delete legacy.state.payments[0].snapToken;
+  assert.ok(await store.save(ref, legacy.version, legacy.state));
+  assert.equal((await handle(client, 'checkout', {kind: 'DP'})).token, first.token);
+
+  const expired = await store.state(ref);
+  expired.state.payments[0].snapCreatedAt = Date.now() - 25 * 60 * 60 * 1000;
+  assert.ok(await store.save(ref, expired.version, expired.state));
+  const second = await handle(client, 'checkout', {kind: 'DP'});
+  assert.notEqual(second.token, first.token);
+  assert.equal((await handle(client, 'snapshot')).payments[0].status, 'EXPIRED');
+  orders.get(second.token).transaction_status = 'pending';
+  assert.equal((await handle(client, 'checkout', {kind: 'DP'})).token, second.token);
+
+  orders.get(second.token).transaction_status = 'expire';
+  const refreshed = await handle(client, 'refresh');
+  assert.deepEqual(refreshed.payments.map(order => order.status), ['EXPIRED', 'EXPIRED']);
+  const retry = await handle(client, 'checkout', {kind: 'DP'});
+  assert.equal(orders.size, 3);
+  assert.notEqual(retry.token, second.token);
+  assert.equal(orders.get(retry.token).gross_amount, orders.get(first.token).gross_amount);
+});
+
+test('Snap checkout verifies authoritative status and records ledger once on concurrent webhook delivery', async t => {
   const {handle, apply, service, orders, event} = await fixture(t);
   await apply(developer, 'propose', proposal);
   await apply(client, 'accept');
@@ -171,8 +200,11 @@ test('Hosted checkout verifies authoritative status and records ledger once on c
   const checkouts = await Promise.allSettled([handle(client, 'checkout', {kind: 'DP', amount: 1}), handle(client, 'checkout', {kind: 'DP'})]);
   assert.ok(checkouts.some(result => result.status === 'fulfilled'));
   assert.equal(orders.size, 1);
-  assert.match((await handle(client, 'checkout', {kind: 'DP'})).redirectUrl, /app\.sandbox\.midtrans\.com/);
+  const checkout = await handle(client, 'checkout', {kind: 'DP'});
   const [dp] = orders.values();
+  assert.match(checkout.redirectUrl, /app\.sandbox\.midtrans\.com/);
+  assert.equal(checkout.token, dp.order_id);
+  assert.equal(checkout.clientKey, 'SB-Mid-client-fixture');
   assert.equal(dp.gross_amount, '25001.00');
   await assert.rejects(service.webhook({...event(dp), signature_key: '0'.repeat(128)}), {status: 401});
   Object.assign(dp, {transaction_status: 'pending'});
@@ -185,6 +217,7 @@ test('Hosted checkout verifies authoritative status and records ledger once on c
   assert.equal(downPayment.room.project, 'IN_PROGRESS');
   assert.deepEqual(downPayment.ledger.map(entry => entry.entry), ['DP_HELD']);
   assert.equal(downPayment.payments[0].checkoutUrl, undefined);
+  assert.equal(downPayment.payments[0].snapToken, undefined);
 
   await handle(client, 'checkout', {kind: 'REMAINING'});
   const balance = [...orders.values()][1];

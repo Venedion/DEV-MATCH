@@ -61,14 +61,16 @@ test('Client DP Demo payment uses the existing Midtrans Sandbox checkout',()=>{
   assert.match(html,/Midtrans Sandbox is for testing; no real money moves/);
 });
 
-test('Snap checkout keeps the agreement tab open, including when pop-ups are blocked',()=>{
+test('Snap embeds in the agreement and refreshes the backend status after closing',()=>{
   const payment=fs.readFileSync('assets/js/chat-payment.js','utf8');
-  assert.match(payment,/window\.open\('about:blank', '_blank'\)[\s\S]*?await request\(key, 'checkout'/);
-  assert.match(payment,/checkoutTab\.opener = null/);
-  assert.match(payment,/checkoutTab\.location\.replace\(target\.href\)/);
-  assert.match(payment,/link\.href = target\.href;\s*link\.target = '_blank';\s*link\.rel = 'noopener noreferrer'/);
-  assert.match(payment,/if \(!checkoutOpened && checkoutTab && !checkoutTab\.closed\) checkoutTab\.close\(\)/);
-  assert.doesNotMatch(payment,/(?<!checkoutTab\.)location\.(assign|replace)\(target\.href\)/);
+  const html=fs.readFileSync('devmatch-chat.html','utf8');
+  assert.match(html,/<dialog id="roomPaymentSnapDialog"[\s\S]*?<div id="roomPaymentSnap"/);
+  assert.match(payment,/snapDialog\.showModal\(\);\s*snap\.embed\(checkout\.token/);
+  assert.match(payment,/snapDialog\.addEventListener\('close',[\s\S]*?void perform\('refresh'\)/);
+  assert.match(payment,/onSuccess: close,\s*onPending: refresh,\s*onError: refresh/);
+  assert.match(payment,/request\(key, checkGateway \? 'refresh' : 'snapshot'\)/);
+  assert.match(payment,/expiredDp \? 'Retry DP' : 'Pay DP'/);
+  assert.doesNotMatch(payment,/window\.open\('about:blank'|location\.assign\(target\.href\)/);
 });
 
 test('Agreement actions reuse the proposal details popup and print its proposal terms',()=>{

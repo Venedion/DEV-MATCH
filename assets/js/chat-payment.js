@@ -20,6 +20,11 @@
   const checkoutAmountLabel = document.getElementById('roomPaymentCheckoutAmountLabel');
   const checkoutAmount = document.getElementById('roomPaymentCheckoutAmount');
   const checkoutError = document.getElementById('roomPaymentCheckoutError');
+  const snapDialog = document.getElementById('roomPaymentSnapDialog');
+  const snapContainer = document.getElementById('roomPaymentSnap');
+  let snapScript;
+  let snapRoomKey;
+  let nextGatewayRefresh = 0;
   let roomKey;
   let chatRoomKey;
   let agreementConversationId;
@@ -102,6 +107,30 @@
     checkoutError.hidden = !message;
   }
 
+  function loadSnap(clientKey) {
+    if (!/^(?:SB-)?Mid-client-[\w-]+$/.test(clientKey || '')) {
+      throw new Error('Midtrans Sandbox Client Key belum dikonfigurasi.');
+    }
+    if (!snapScript) {
+      const script = document.createElement('script');
+      script.src = 'https://app.sandbox.midtrans.com/snap/snap.js';
+      script.dataset.clientKey = clientKey;
+      snapScript = new Promise((resolve, reject) => {
+        script.onload = () => {
+          if (typeof window.snap?.embed === 'function') resolve(window.snap);
+          else reject(new Error('Checkout Midtrans tidak dapat dimuat.'));
+        };
+        script.onerror = () => reject(new Error('Checkout Midtrans tidak dapat dimuat.'));
+        document.head.append(script);
+      }).catch(cause => {
+        script.remove();
+        snapScript = undefined;
+        throw cause;
+      });
+    }
+    return snapScript;
+  }
+
   function showCheckoutConfirmation() {
     const proposal = snapshot?.room?.proposal;
     if (!proposal || snapshot.role !== 'client') {
@@ -142,9 +171,10 @@
     const latest = payments.findLast(payment => payment.kind === kind);
     const paymentLabel = latest ? labels[latest.status] : 'Belum dibayar';
     const canPay = latest?.status !== 'PAID';
+    const actionLabel = latest?.status === 'EXPIRED' ? `Bayar ulang ${label}`
+      : latest && latest.status !== 'CANCELLED' ? 'Buka Snap' : `Bayar ${label}`;
     return `<dt>${label}</dt><dd>${rupiah.format(amount)} · ${paymentLabel}
-      ${canPay ? `<div class="payment-actions">${button(kind, latest &&
-        !['EXPIRED', 'CANCELLED'].includes(latest.status) ? 'Buka Snap' : `Bayar ${label}`, true, !checkoutConfigured)}</div>` : ''}
+      ${canPay ? `<div class="payment-actions">${button(kind, actionLabel, true, !checkoutConfigured)}</div>` : ''}
     </dd>`;
   }
 
@@ -263,12 +293,16 @@
         ? client ? 'Pay after watching the video. The payment is held until you receive and accept the system.'
           : 'Waiting for the client to pay after reviewing the final video.'
         : 'You pay after watching the video. The payment is held until you receive and accept the system.';
+    const expiredDp = payments.findLast(payment => payment.kind === 'DP')?.status === 'EXPIRED';
+    const expiredRemaining = payments.findLast(payment => payment.kind === 'REMAINING')?.status === 'EXPIRED';
     const remainingAction = canPayRemaining && checkoutConfigured
-      ? `<div class="agreement-step-actions">${button('REMAINING', `Pay remaining · ${rupiah.format(remaining)}`, true)}</div>`
+      ? `${expiredRemaining ? '<p class="agreement-inline-note">Checkout expired.</p>' : ''}
+        <div class="agreement-step-actions">${button('REMAINING', `${expiredRemaining ? 'Retry remaining payment' : 'Pay remaining'} · ${rupiah.format(remaining)}`, true)}</div>`
       : room.project === 'AWAITING_REMAINING_PAYMENT' && client && !checkoutConfigured
         ? '<p class="agreement-inline-note">Payment checkout is not configured.</p>' : '';
     const dpAction = canPayDp
-      ? `<div class="agreement-step-actions">${button('DP', `Pay DP · ${rupiah.format(Number(proposal.dp) || 0)}`, true)}</div>`
+      ? `${expiredDp ? '<p class="agreement-inline-note">Checkout expired.</p>' : ''}
+        <div class="agreement-step-actions">${button('DP', `${expiredDp ? 'Retry DP' : 'Pay DP'} · ${rupiah.format(Number(proposal.dp) || 0)}`, true)}</div>`
       : awaitingDp ? '<p class="agreement-inline-note">Payment checkout is not configured.</p>' : '';
     const handoverDescription = handoverDone
       ? 'The result has been accepted.'
@@ -384,6 +418,17 @@
     if (!snapshot) return;
     const { role, room, payments, ledger, checkoutConfigured } = snapshot;
     renderReceipts(ledger);
+    if (room?.proposal?.agreementId) {
+      window.dispatchEvent(new CustomEvent('devmatch:agreement-payment-status', {
+        detail: {
+          agreementId: room.proposal.agreementId,
+          projectStatus: room.project,
+          escrowStatus: room.escrow,
+          dpStatus: payments.findLast(payment => payment.kind === 'DP')?.status ?? null,
+          remainingStatus: payments.findLast(payment => payment.kind === 'REMAINING')?.status ?? null
+        }
+      }));
+    }
     if (!dialog.open || busy) return;
     identity.hidden = !role;
     roleLabel.textContent = roleLabels[role] || '';
@@ -572,34 +617,36 @@
     checkoutButtons.forEach(checkoutButton => { checkoutButton.disabled = true; });
     setError();
     if (dpConfirmationOpen) setCheckoutError();
-    let checkoutTab;
-    let checkoutOpened = false;
     let updated = false;
     try {
       if (isCheckout) {
-        // Open during the click so the browser can authorize the new tab.
-        checkoutTab = window.open('about:blank', '_blank');
-        if (checkoutTab) checkoutTab.opener = null;
         const checkout = await request(key, 'checkout', {kind: action});
         if (key !== roomKey) return;
-        const target = new URL(checkout.redirectUrl);
-        if (target.origin !== 'https://app.sandbox.midtrans.com' || !target.pathname.startsWith('/snap/')) {
-          throw new Error('Tautan checkout Sandbox tidak valid.');
+        if (!checkout.token) throw new Error('Token checkout Midtrans tidak tersedia.');
+        const snap = await loadSnap(checkout.clientKey);
+        if (key !== roomKey) return;
+        const close = () => {
+          if (snapRoomKey === key && snapDialog.open) snapDialog.close();
+        };
+        const refresh = () => {
+          if (key === roomKey && snapRoomKey === key) void perform('refresh');
+        };
+        snapRoomKey = key;
+        try {
+          snapDialog.showModal();
+          snap.embed(checkout.token, {
+            embedId: snapContainer.id,
+            uiMode: 'qr',
+            onSuccess: close,
+            onPending: refresh,
+            onError: refresh,
+            onClose: close
+          });
+        } catch (cause) {
+          close();
+          throw cause;
         }
-        if (checkoutTab && !checkoutTab.closed) {
-          checkoutTab.location.replace(target.href);
-          checkoutOpened = true;
-          if (dpConfirmationOpen) checkoutDialog.close();
-        } else {
-          const link = document.createElement('a');
-          link.href = target.href;
-          link.target = '_blank';
-          link.rel = 'noopener noreferrer';
-          link.textContent = 'Open Midtrans Sandbox in a new tab';
-          const message = dpConfirmationOpen ? checkoutError : error;
-          message.replaceChildren(link);
-          message.hidden = false;
-        }
+        if (dpConfirmationOpen) checkoutDialog.close();
       } else {
           if (action === 'rate') fields.rating = Number(fields.rating);
         const state = action === 'refresh' ? await request(key, 'refresh')
@@ -623,7 +670,6 @@
         }
       }
     } finally {
-      if (!checkoutOpened && checkoutTab && !checkoutTab.closed) checkoutTab.close();
       busy = false;
       content.inert = false;
       checkoutButtons.forEach(checkoutButton => { checkoutButton.disabled = false; });
@@ -631,6 +677,15 @@
       flushAgreementRefresh(key);
     }
   }
+
+  snapDialog.querySelector('button').addEventListener('click', () => snapDialog.close());
+  snapDialog.addEventListener('close', () => {
+    const key = snapRoomKey;
+    snapRoomKey = undefined;
+    window.snap?.hide();
+    snapContainer.replaceChildren();
+    if (key && key === roomKey) void perform('refresh');
+  });
 
   checkoutDialog.querySelector('[data-checkout-close]').addEventListener('click', () => checkoutDialog.close());
   checkoutDialog.querySelector('[data-checkout-cancel]').addEventListener('click', () => checkoutDialog.close());
@@ -945,7 +1000,10 @@
     const key = roomKey;
     const previous = snapshot;
     try {
-      const state = await request(key);
+      const checkGateway = snapshot?.role === 'client' && (pendingPayment || snapRoomKey === key) &&
+        Date.now() >= nextGatewayRefresh;
+      if (checkGateway) nextGatewayRefresh = Date.now() + 36000;
+      const state = await request(key, checkGateway ? 'refresh' : 'snapshot');
       if (key !== roomKey || busy || snapshot !== previous) return;
       if (JSON.stringify(state) !== JSON.stringify(previous)) {
         renderReceipts(state.ledger);
@@ -1073,13 +1131,13 @@
     progressReviewSnapshot = null;
   });
 
-  function openAgreement(agreement, {action = null} = {}) {
+  function openAgreement(agreement, {action = null, operation = 'snapshot'} = {}) {
     if (!agreement?.id) return;
     roomKey = JSON.stringify({agreementId: agreement.id});
     agreementConversationId = agreement.conversationId || null;
     agreementProposalId = agreement.proposalId || null;
     roomTitle = agreement.title || agreement.terms?.projectName || 'Project agreement';
-    openPayments('snapshot', action);
+    openPayments(operation, action);
   }
 
   window.DEVMATCH_ROOM_PAYMENT = {
@@ -1107,7 +1165,7 @@
           conversationId: proposal?.conversation_id || conversation.id,
           proposalId: proposal?.id,
           title: proposal?.terms?.projectName
-        }, 'refresh');
+        }, {operation: 'refresh'});
         return;
       }
       const matchedReturn = returnProject && conversation && (

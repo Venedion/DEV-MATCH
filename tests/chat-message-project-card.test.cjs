@@ -208,12 +208,15 @@ test('Chat composer sends a proposal and renders role-specific proposal cards',(
   assert.match(chat,/function openProposalDetails\(proposal, \{showDialog = true\} = \{\}\)/);
   assert.match(chat,/data-proposal-payments/);
   assert.match(chat,/>Project payments<\/button>/);
-  assert.match(chat,/Pay DP · \$\{formatProposalAmount\(terms\.dpAmount\)\}/);
+  assert.match(chat,/isDpExpired \? 'Retry DP' : 'Pay DP'\} · \$\{formatProposalAmount\(terms\.dpAmount\)\}/);
+  assert.match(chat,/isRemainingExpired \? 'Retry remaining payment' : 'Pay remaining'/);
+  assert.match(chat,/devmatch:agreement-payment-status[\s\S]*?renderMessagesThread\(\)/);
+  assert.match(api,/dp_payment_status: payments\.findLast\(payment => payment\.kind === 'DP'\)/);
   assert.match(chat,/data-proposal-payment-action="\$\{action\}"/);
   assert.match(chat,/proposalPaymentsButton && chatMessagesEl\.contains\(proposalPaymentsButton\)\)\s*\{\s*event\.preventDefault\(\);\s*event\.stopPropagation\(\);/);
   assert.match(chat,/openAgreement\(\{/);
   assert.match(chat,/dataset\.proposalPaymentAction \|\| null/);
-  assert.match(payment,/function openAgreement\(agreement, \{action = null\} = \{\}\)/);
+  assert.match(payment,/function openAgreement\(agreement, \{action = null, operation = 'snapshot'\} = \{\}\)/);
   assert.match(payment,/if \(initialAction && dialog\.open\)/);
   const paymentScript=fs.readFileSync('assets/js/chat-payment.js','utf8');
   assert.match(paymentScript,/function isAgreementContext\(\)[\s\S]*?JSON\.parse\(roomKey\)\?\.agreementId/);

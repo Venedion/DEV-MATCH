@@ -26,8 +26,16 @@ export function paymentService(store, gateway) {
     await mutate(ref, load, state => reconcile(state, orderId, verified, event, time));
   }
 
-  async function makeCheckout(ref, load, kind) {
+  function checkoutDetails(order) {
+    // Hosted checkout records created before Snap Embed keep the token in the redirect path.
+    const token = order.snapToken ||
+      new URL(order.checkoutUrl).pathname.match(/^\/snap\/v\d+\/redirection\/([\w-]+)\/?$/)?.[1];
+    return {redirectUrl: order.checkoutUrl, token, clientKey: gateway.clientKey};
+  }
+
+  async function makeCheckout(ref, load, kind, priorOrder) {
     requireCondition(gateway.configured, 'Midtrans Sandbox belum dikonfigurasi.', 503);
+    if (priorOrder?.checkoutUrl) await sync(ref, load, priorOrder.order_id);
     const claim = crypto.randomUUID();
     const {result: {order}} = await mutate(ref, load, (state, role) => {
       const result = checkoutOrder(state, role, kind);
@@ -37,11 +45,11 @@ export function paymentService(store, gateway) {
       result.order.claim = {id: claim, until: Date.now() + 20000};
       return result;
     });
-    if (order.checkoutUrl) return {redirectUrl: order.checkoutUrl};
+    if (order.checkoutUrl) return checkoutDetails(order);
 
-    let redirectUrl;
+    let checkout;
     try {
-      redirectUrl = await gateway.create(order, ref.conversationId, 'client', ref.projectId, ref.agreementId);
+      checkout = await gateway.create(order, ref.conversationId, 'client', ref.projectId, ref.agreementId);
     } catch (error) {
       await mutate(ref, () => store.state(ref), state => {
         const saved = state.payments.find(payment => payment.order_id === order.order_id);
@@ -53,7 +61,8 @@ export function paymentService(store, gateway) {
     await mutate(ref, () => store.state(ref), state => {
       const saved = state.payments.find(payment => payment.order_id === order.order_id);
       requireCondition(saved?.claim?.id === claim, 'Checkout sudah berubah. Perbarui status pembayaran.');
-      saved.checkoutUrl = redirectUrl;
+      saved.checkoutUrl = checkout.redirectUrl;
+      saved.snapToken = checkout.token;
       saved.snapCreatedAt = Date.now();
       delete saved.claim;
     });
@@ -61,7 +70,7 @@ export function paymentService(store, gateway) {
     const saved = updated.state?.payments.find(payment => payment.order_id === order.order_id);
     requireCondition(!updated.state?.room?.dispute && saved && !terminal(saved.status),
       'Pembayaran sudah berakhir atau dibekukan karena dispute.');
-    return {redirectUrl};
+    return checkoutDetails(saved);
   }
 
   function withPaymentState(ref, result) {
@@ -114,7 +123,9 @@ export function paymentService(store, gateway) {
       }
       if (operation === 'checkout') {
         requireCondition(result.role === 'client', 'Pembayaran tersedia untuk Client.', 403);
-        return makeCheckout(ref, load, body.kind);
+        const priorOrder = result.state.payments.find(payment =>
+          payment.kind === body.kind && !terminal(payment.status));
+        return makeCheckout(ref, load, body.kind, priorOrder);
       }
       if (operation === 'apply') {
         const result = await mutate(ref, load, (state, role) => applyAction(state, role, body, user));

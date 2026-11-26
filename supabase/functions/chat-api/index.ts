@@ -440,6 +440,7 @@ async function attachMessageProjectContexts(
 function exposeProposal(row, agreement = null, paymentState = null) {
   const paymentRoom = paymentState?.room || null;
   const ratings = paymentRoom?.ratings || {};
+  const payments = Array.isArray(paymentState?.payments) ? paymentState.payments : [];
   return {
     id: row.id,
     conversation_id: row.conversation_id,
@@ -461,6 +462,8 @@ function exposeProposal(row, agreement = null, paymentState = null) {
     agreement: agreement ? {
       id: agreement.id,
       payment_status: agreement.payment_status,
+      dp_payment_status: payments.findLast(payment => payment.kind === 'DP')?.status ?? null,
+      remaining_payment_status: payments.findLast(payment => payment.kind === 'REMAINING')?.status ?? null,
       escrow_status: paymentRoom?.escrow || 'AWAITING_DP',
       project_status: paymentRoom?.project || 'NOT_STARTED',
       progress_review_status: paymentRoom?.progressReview?.status || null,

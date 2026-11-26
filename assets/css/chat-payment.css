@@ -1301,3 +1301,38 @@
     padding-left: 17px;
   }
 }
+.room-payment-snap-dialog {
+  width: min(480px, 100vw);
+  max-width: 100vw;
+  max-height: 100dvh;
+  padding: 0;
+  overflow: auto;
+  border: 1px solid #e5e5e5;
+  border-radius: 16px;
+  background: #fff;
+  color: #18181b;
+}
+.room-payment-snap-dialog::backdrop { background: rgb(0 0 0 / 55%); }
+.room-payment-snap-dialog > header {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 16px;
+  border-bottom: 1px solid #eee;
+  background: #fff;
+}
+.room-payment-snap-dialog h2 { margin: 0; font-size: 16px; }
+.room-payment-snap-dialog button {
+  width: 36px;
+  height: 36px;
+  border: 0;
+  border-radius: 8px;
+  background: #f4f4f5;
+  color: inherit;
+  font-size: 24px;
+  cursor: pointer;
+}
+#roomPaymentSnap { min-height: 560px; }

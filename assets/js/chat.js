@@ -568,6 +568,7 @@
     const escrowStatus = agreement.escrow_status || 'AWAITING_DP';
     const isAwaitingDp = !isPreview && isAccepted && projectStatus === 'NOT_STARTED' &&
       escrowStatus === 'AWAITING_DP';
+    const isDpExpired = isAwaitingDp && agreement.dp_payment_status === 'EXPIRED';
     const isDpPaid = !isPreview && isAccepted && escrowStatus === 'DP_HELD';
     const isProgressPending = !isPreview && reviewStatus === 'PENDING';
     const isProgressUpdateRequested = !isPreview && reviewStatus === 'UPDATE_REQUESTED';
@@ -583,6 +584,8 @@
     const isRemainingPaid = !isPreview && (
       projectStatus === 'AWAITING_HANDOVER' || escrowStatus === 'REMAINING_HELD'
     );
+    const isRemainingExpired = isFinalProofShared && !isRemainingPaid &&
+      agreement.remaining_payment_status === 'EXPIRED';
     const isAwaitingResult = !isPreview && (
       projectStatus === 'AWAITING_RESULT_ACCEPTANCE' || agreement.handover_status === 'AWAITING_CLIENT'
     );
@@ -594,10 +597,12 @@
       : isCompleted ? 'Completed'
       : isAwaitingResult ? 'System handed over'
       : isRemainingPaid ? 'Remaining paid'
+      : isRemainingExpired ? 'Payment expired'
       : isFinalProofShared ? 'Final video shared'
       : isProgressPending ? (isClient ? 'Progress submitted' : 'Waiting for review')
       : isProgressUpdateRequested ? 'Update requested'
       : isProgressApproved ? 'Progress approved'
+      : isDpExpired ? 'DP checkout expired'
       : isAwaitingDp ? 'Awaiting DP'
       : isAwaitingProgress ? (isDeveloper ? 'DP paid' : 'Waiting for progress')
       : isAccepted ? 'Accepted'
@@ -662,15 +667,16 @@
       : [];
     if (!isPreview && isAccepted && agreement.id) {
       if (isAwaitingDp && isClient) {
-        actions.push(paymentAction(`Pay DP · ${formatProposalAmount(terms.dpAmount)}`, 'DP', true));
+        actions.push(paymentAction(`${isDpExpired ? 'Retry DP' : 'Pay DP'} · ${formatProposalAmount(terms.dpAmount)}`, 'DP', true));
       } else if (isDpPaid && isDeveloper && !isProgressPending) {
         actions.push(`<button class="chat-proposal-card-primary" type="button" data-proposal-progress="${cardId}">Upload progress</button>`);
       } else if (isProgressPending && isClient) {
         actions.push(`<button class="chat-proposal-card-primary" type="button" data-proposal-review-progress="${cardId}">Review progress</button>`);
       } else if (isProgressApproved && isDeveloper) {
         actions.push(paymentAction('Submit final video', 'deliver', true));
-      } else if (isFinalProofShared && isClient) {
-        actions.push(paymentAction(`Pay remaining · ${formatProposalAmount(Number(terms.totalPrice) - Number(terms.dpAmount))}`, 'REMAINING', true));
+      } else if (isFinalProofShared && isClient && !isRemainingPaid && !isAwaitingResult && !isCompleted && !isDisputed) {
+        const label = isRemainingExpired ? 'Retry remaining payment' : 'Pay remaining';
+        actions.push(paymentAction(`${label} · ${formatProposalAmount(Number(terms.totalPrice) - Number(terms.dpAmount))}`, 'REMAINING', true));
       } else if (isRemainingPaid && isDeveloper) {
         actions.push(paymentAction('Hand over system', 'handover', true));
       } else if (isAwaitingResult && isClient) {
@@ -1730,6 +1736,22 @@
     if (pendingConversationDraft && activeConvId === null) return pendingConversationDraft;
     return conversations.find(conversation => conversation.id === activeConvId) || null;
   }
+
+  window.addEventListener('devmatch:agreement-payment-status', ({detail}) => {
+    const agreement = getActiveConversation()?.messages?.find(message =>
+      message.proposal?.agreement?.id === detail.agreementId)?.proposal.agreement;
+    if (!agreement || (agreement.dp_payment_status === detail.dpStatus &&
+      agreement.remaining_payment_status === detail.remainingStatus &&
+      agreement.project_status === detail.projectStatus &&
+      agreement.escrow_status === detail.escrowStatus)) return;
+    Object.assign(agreement, {
+      dp_payment_status: detail.dpStatus,
+      remaining_payment_status: detail.remainingStatus,
+      project_status: detail.projectStatus,
+      escrow_status: detail.escrowStatus
+    });
+    renderMessagesThread();
+  });
 
   function updateConversationQuery(conversationId, preserveReview = false) {
     const url = new URL(window.location.href);

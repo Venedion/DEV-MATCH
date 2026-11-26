@@ -19,7 +19,7 @@ export function matchingAmount(value, integer) {
   return typeof value === 'string' && /^(0|[1-9]\d*)(\.0{1,2})?$/.test(value) && Number(value) === integer;
 }
 
-export function sandboxGateway({serverKey, signatureSecret = serverKey, returnOrigin, request = fetch}) {
+export function sandboxGateway({serverKey, clientKey, signatureSecret = serverKey, returnOrigin, request = fetch}) {
   const configured = Boolean(serverKey?.startsWith('SB-Mid-server-'));
 
   async function call(url, payload) {
@@ -49,6 +49,7 @@ export function sandboxGateway({serverKey, signatureSecret = serverKey, returnOr
 
   return {
     configured,
+    clientKey: /^(?:SB-)?Mid-client-[\w-]+$/.test(clientKey || '') ? clientKey : undefined,
     async create(order, conversationId, role, projectId, agreementId) {
       const finish = new URL('/devmatch-chat.html', returnOrigin);
       finish.searchParams.set('conversation', conversationId);
@@ -65,7 +66,9 @@ export function sandboxGateway({serverKey, signatureSecret = serverKey, returnOr
       const redirect = URL.canParse(result.redirect_url) && new URL(result.redirect_url);
       requireCondition(redirect && redirect.origin === sandboxHost && redirect.pathname.startsWith('/snap/'),
         'Midtrans tidak mengembalikan checkout Sandbox yang valid.', 502);
-      return redirect.href;
+      requireCondition(typeof result.token === 'string' && /^[\w-]+$/.test(result.token),
+        'Midtrans tidak mengembalikan token Snap yang valid.', 502);
+      return {redirectUrl: redirect.href, token: result.token};
     },
     status(orderId) {
       return call(`https://api.sandbox.midtrans.com/v2/${encodeURIComponent(orderId)}/status`);
