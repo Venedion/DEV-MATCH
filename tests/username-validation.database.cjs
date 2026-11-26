@@ -9,7 +9,7 @@ const B='22222222-2222-4222-8222-222222222222';
 const C='33333333-3333-4333-8333-333333333333';
 const D='44444444-4444-4444-8444-444444444444';
 const migration=fs.readFileSync(
-  path.join(__dirname,'../supabase/migrations/202611260002_username_validation.sql'),
+  path.join(__dirname,'../supabase/migrations/202611260006_username_validation.sql'),
   'utf8'
 );
 

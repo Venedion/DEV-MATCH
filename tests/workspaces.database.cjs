@@ -29,6 +29,7 @@ const C = '33333333-3333-4333-8333-333333333333';
   const dir = path.join(__dirname, '../supabase/migrations');
   let isolationMigration; let activityMigration; let separationMigration;
   let commentAuthorMigration;
+  let retirePhoneVerificationMigration;
   const paymentMigrations = [];
   const laterMigrations = [];
   for (const file of fs.readdirSync(dir).filter(f => f.endsWith('.sql')).sort()) {
@@ -42,7 +43,11 @@ const C = '33333333-3333-4333-8333-333333333333';
     if (file.includes('chat_presence_and_receipts')) {activityMigration=fs.readFileSync(path.join(dir,file),'utf8');continue;}
     if (file.includes('workspace_data_isolation')) { isolationMigration=fs.readFileSync(path.join(dir,file),'utf8'); continue; }
     if (file.includes('separate_chat_workspace_threads')) { separationMigration=fs.readFileSync(path.join(dir,file),'utf8'); continue; }
-    if (file === '202611260001_proposal_agreement_payments.sql' || file === '202611260002_username_validation.sql') {
+    if (file === '20261121083235_retire_phone_verification.sql') {
+      retirePhoneVerificationMigration=fs.readFileSync(path.join(dir,file),'utf8');
+      continue;
+    }
+    if (file.startsWith('20261126')) {
       laterMigrations.push(fs.readFileSync(path.join(dir,file),'utf8'));
       continue;
     }
@@ -254,6 +259,13 @@ const C = '33333333-3333-4333-8333-333333333333';
   const unverifiedProfile = await scalar(`select phone_verified_at,verified_phone from public.profiles where id='${B}'`);
   assert.equal(unverifiedProfile.phone_verified_at, null);
   assert.equal(unverifiedProfile.verified_phone, null);
+  await db.exec('reset role');
+  await db.exec(retirePhoneVerificationMigration);
+  await db.exec('set role service_role');
+  await assert.rejects(db.query('select public.reserve_whatsapp_otp($1,$2,$3,$4)',[A,whatsappChallenge,whatsappPhone,whatsappDigest]),/permission denied/);
+  await asUser(A);
+  await assert.rejects(db.query('select public.is_whatsapp_phone_verified()'),/permission denied/);
+  assert.equal((await scalar('select verified_phone from public.profiles')).verified_phone,whatsappPhone);
   await db.exec(`reset role;
     insert into public.project_views(project_id,viewer_id,viewed_on) values('portfolio-a','${C}',current_date);
     insert into public.favorites(user_id,workspace_role,item_type,item_id)

@@ -296,7 +296,7 @@ Local callback origin is http://localhost:3000. Set Site URL and allowed redirec
 URLs for the real deployment, including /devmatch-reset-password.html. Supabase
 may fall back to Site URL, so index.html waits for Auth before routing callbacks.
 
-Apply `migrations/202611260002_username_validation.sql` after the existing
+Apply `migrations/202611260006_username_validation.sql` after the existing
 migrations and deploy the updated frontend to enable normalized, case-insensitive
 usernames, live availability checks, and server-enforced seven-day username
 changes. Existing usernames are lowercased during migration; their initial

@@ -806,7 +806,7 @@
   color: #fff;
 }
 
-@media (max-width: 480px) {
+@media (max-width: 480px) and (orientation: portrait) {
   .room-payment-checkout-card {
     padding: 1rem;
   }
@@ -1246,7 +1246,7 @@
   font-size: 10px;
 }
 
-@media (max-width: 520px) {
+@media (max-width: 520px) and (orientation: portrait) {
   .progress-review-dialog {
     width: calc(100vw - 8px);
     height: calc(100dvh - 8px);

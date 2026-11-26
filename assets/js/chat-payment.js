@@ -185,7 +185,8 @@
     const remaining = Math.max(0, total - paid);
     const canReviewProgress = client && progressReview?.status === 'PENDING';
     const awaitingProgress = developer && room.project === 'IN_PROGRESS' && !timeline.progressSubmittedAt;
-    const canPayDp = client && room.project === 'NOT_STARTED' && checkoutConfigured;
+    const awaitingDp = client && room.project === 'NOT_STARTED';
+    const canPayDp = awaitingDp && checkoutConfigured;
     const canSubmitFinal = developer && room.project === 'IN_PROGRESS' && progressReview?.approvedAt && !delivery;
     const canPayRemaining = client && room.project === 'AWAITING_REMAINING_PAYMENT' &&
       room.escrow === 'DP_RELEASED' && checkoutConfigured;
@@ -268,7 +269,7 @@
         ? '<p class="agreement-inline-note">Payment checkout is not configured.</p>' : '';
     const dpAction = canPayDp
       ? `<div class="agreement-step-actions">${button('DP', `Pay DP · ${rupiah.format(Number(proposal.dp) || 0)}`, true)}</div>`
-      : '';
+      : awaitingDp ? '<p class="agreement-inline-note">Payment checkout is not configured.</p>' : '';
     const handoverDescription = handoverDone
       ? 'The result has been accepted.'
       : handover?.status === 'AWAITING_CLIENT'
