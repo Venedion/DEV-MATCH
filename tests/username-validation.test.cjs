@@ -54,10 +54,16 @@ test('registration and profile settings show the username policy and load shared
   assert.ok(settingsHtml.includes(policy));
   assert.match(authHtml,/username-validation\.js\?v=/);
   assert.match(settingsHtml,/username-validation\.js\?v=/);
-  assert.match(settingsHtml,/id="saveUsername" type="button"/);
+  assert.match(settingsHtml,/id="settingsUsername"[^>]*aria-describedby="settingsUsernamePolicy settingsUsernameError settingsUsernameStatus"/);
+  assert.doesNotMatch(settingsHtml,/id="saveUsername"|Update username/);
+  assert.match(settingsHtml,/<button class="settings-btn primary" type="submit" disabled>Save Profile Changes<\/button>/);
   assert.doesNotMatch(settingsHtml,/id="settingsUsername"[^>]*readonly/);
 });
 
-test('settings enables username saving after the availability check succeeds',()=>{
-  assert.match(settingsJs,/settingsUsernameStatus\.textContent = 'Username is available\.';\s*saveUsernameButton\.disabled = false;/);
+test('settings checks username availability and saves username with profile changes',()=>{
+  assert.match(settingsJs,/settingsUsernameStatus\.textContent = 'Username is available\.';\s*return true;/);
+  assert.match(settingsJs,/async function validateUsernameBeforeSave\(\)/);
+  assert.match(settingsJs,/if \(!await validateUsernameBeforeSave\(\)\) return/);
+  assert.match(settingsJs,/usernameUpdate = await window\.devMatchBackend\.changeUsername\(username\)/);
+  assert.match(settingsJs,/await persistProfile\(updatedProfile, \{includePrivateFields: true\}\)/);
 });

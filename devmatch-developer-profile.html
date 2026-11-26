@@ -23,6 +23,7 @@
 <link rel="stylesheet" href="assets/css/form-controls.css?v=20261126-placeholder-unified-v1">
 <script src="assets/js/backend.js?v=20261126-username-validation-v1"></script>
 <link rel="stylesheet" href="assets/css/developer-mode-icon.css?v=20261125-developer-mode-icon-v2">
+<link rel="stylesheet" href="assets/css/profile-overview.css?v=20261126-profile-overview-v11">
 </head>
 <body class="client-shell-page page-scroll-shell">
   <header class="topbar">
@@ -58,12 +59,18 @@
     <p id="profileStatus" role="status" aria-live="polite">Loading developer profile…</p>
     <header class="profile-page-heading"><div><p class="eyebrow">Developers</p><h1>Developer Profile</h1></div></header>
     <nav class="public-profile-breadcrumb" aria-label="Breadcrumb"><a href="devmatch-find-developers.html">Developers</a><span>›</span><b id="breadcrumbName">Developer</b></nav>
-    <section class="profile-identity-card" hidden>
-      <div class="profile-cover"><span class="cover-code" aria-hidden="true"><span class="developer-mode-icon" aria-hidden="true"></span></span><span class="cover-orbit cover-orbit-one"></span><span class="cover-orbit cover-orbit-two"></span></div>
+    <section class="profile-identity-card profile-overview" data-profile-overview hidden>
+      <div class="profile-cover"><span class="cover-code" aria-hidden="true"><span class="cover-role-icon cover-role-icon-developer"><span class="developer-mode-icon"></span></span><svg class="cover-role-icon cover-role-icon-client" viewBox="0 0 24 24"><rect x="3" y="7" width="18" height="14" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></span><span class="cover-orbit cover-orbit-one"></span><span class="cover-orbit cover-orbit-two"></span></div>
       <div class="identity-body">
-        <div class="identity-avatar" id="developerInitials">DM</div>
+        <div class="identity-avatar" id="developerInitials" data-profile-overview-avatar>DM</div>
         <div class="identity-main">
-          <div class="identity-title-row"><div><h2 id="developerName">Developer</h2><span class="availability-badge"><i></i><span>Open for hiring</span></span></div>
+          <div class="identity-title-row"><div class="identity-name-block"><h2 id="developerName" data-profile-overview-name>Developer</h2><span class="availability-badge" data-profile-overview-status hidden><i></i><span></span></span><span class="mobile-identity-handle" data-profile-overview-username hidden></span>
+            <div class="mobile-profile-stats" role="group" aria-label="Profile statistics">
+              <span class="mobile-profile-stat" data-profile-overview-stat="views" role="group" aria-label="Profile Views"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.6-6 10-6 10 6 10 6-3.6 6-10 6-10-6-10-6Z"/><circle cx="12" cy="12" r="2.5"/></svg><strong data-profile-overview-stat-value>0</strong></span>
+              <span class="mobile-profile-stat" data-profile-overview-stat="favorites" role="group" aria-label="Favorites"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.8 8.7c0 5.2-8.8 10.1-8.8 10.1S3.2 13.9 3.2 8.7A4.7 4.7 0 0 1 12 6.4a4.7 4.7 0 0 1 8.8 2.3Z"/></svg><strong data-profile-overview-stat-value>0</strong></span>
+              <span class="mobile-profile-stat" data-profile-overview-stat="rating" role="group" aria-label="Rating"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.5 14.9 8.3 21.3 9.2 16.65 13.75 17.75 20.2 12 17.15 6.25 20.2 7.35 13.75 2.7 9.2 9.1 8.3 12 2.5Z"/></svg><strong data-profile-overview-stat-value>-</strong></span>
+            </div>
+          </div>
             <div class="profile-actions">
               <button class="button button-secondary" id="copyProfileLink" type="button" aria-label="Copy profile link">Share Profile</button>
               <button class="button button-secondary" id="favoriteDeveloper" type="button" aria-pressed="false">♡ <span>Favorite</span></button>
@@ -73,6 +80,10 @@
           <p class="identity-bio" id="developerAbout"></p>
           <div class="identity-meta"><span id="developerHandle"></span><span id="developerLocation"></span><span id="developerRole"></span><span id="developerJoined"></span></div>
         </div>
+      </div>
+      <div class="mobile-profile-details">
+        <div class="mobile-profile-location" data-profile-overview-location hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 10c0 5-8 12-8 12S4 15 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="2.5"/></svg><span data-profile-overview-location-value></span></div>
+        <p class="mobile-profile-bio" data-profile-overview-bio></p>
       </div>
     </section>
     <div class="profile-columns" hidden>
@@ -133,7 +144,8 @@
   <script src="assets/js/profile-specialties.js?v=20261119-profile-specialization"></script>
   <script src="assets/js/favorite-feedback.js?v=20261125-responsive-orientation-v1"></script>
   <script src="assets/js/custom-select.js?v=20261028-custom-dropdowns-v3"></script>
-  <script src="assets/js/developer-profile.js?v=20261123-comment-count-visible-v1"></script>
+  <script src="assets/js/profile-overview.js?v=20261126-profile-overview-v1"></script>
+  <script src="assets/js/developer-profile.js?v=20261126-profile-overview-v1"></script>
   <script src="assets/js/nav-behavior.js?v=20261125-responsive-orientation-v1"></script>
 <script src="assets/js/presence.js?v=20261119-global"></script>
 </body>

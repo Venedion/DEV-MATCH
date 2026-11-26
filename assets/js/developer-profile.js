@@ -10,6 +10,7 @@
   const favoriteRemoveMessage=document.getElementById('favoriteRemoveMessage');
   const escapeHtml=value=>String(value??'').replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
   const initials=name=>(String(name||'').match(/\b\p{L}/gu)||[]).slice(0,2).join('').toUpperCase()||'DM';
+  const compactOverviewCount=value=>value===null?'Unavailable':new Intl.NumberFormat('en-US',{notation:'compact',maximumFractionDigits:1}).format(value).replace('K','k');
   function safeExternalUrl(value){
     if(typeof value!=='string'||!value.trim())return null;
     try{
@@ -343,8 +344,10 @@
     projects=(rows||[]).map(projectRecord);
     const profile=person.profile_data||{};
     const name=String(person.display_name||'DEV-MATCH member');
-    profileDeveloperIdentity={name,handle:person.username?`@${String(person.username).replace(/^@/,'')}`:'',initials:initials(name)};
-    const location=[profile.city,profile.country].map(value=>String(value||'').trim()).filter(Boolean).join(', ')||'Location not provided';
+    const username=String(person.username||profile.username||'').replace(/^@/,'');
+    profileDeveloperIdentity={name,handle:username?`@${username}`:'',initials:initials(name)};
+    const overviewLocation=[profile.city,profile.country].map(value=>String(value||'').trim()).filter(Boolean).join(', ');
+    const location=overviewLocation||'Location not provided';
     const specialtyValues=Array.isArray(profile.specialty)?profile.specialty:typeof profile.specialty==='string'?[profile.specialty]:[];
     const selectedSpecialties=specialtyValues.map(value=>String(value).trim()).filter(Boolean);
     const customSpecialty=typeof profile.specialtyOther==='string'?profile.specialtyOther.trim():'';
@@ -356,15 +359,11 @@
     const experiences=profileExperiences(profile);
     document.title=`${name} — DEV-MATCH`;
     document.getElementById('breadcrumbName').textContent=name;
-    document.getElementById('developerName').textContent=name;
-    document.getElementById('developerInitials').textContent=initials(name);
-    setAvatar('developerInitials',profile.avatar,initials(name));
-    document.getElementById('developerHandle').textContent=person.username?`@${String(person.username).replace(/^@/,'')}`:'';
+    document.getElementById('developerHandle').textContent=username?`@${username}`:'';
     document.getElementById('developerLocation').textContent=location;
     document.getElementById('developerRole').textContent=specialties.join(', ')||'Developer';
-    document.querySelector('.availability-badge span').textContent=String(profile.availability||'Availability not provided');
     document.getElementById('developerJoined').textContent='';
-    document.getElementById('developerAbout').textContent=String(profile.bio||'No biography provided.');
+    document.getElementById('developerAbout').textContent=String(profile.bio||'No bio added yet.');
     document.getElementById('developerAboutCard').textContent=String(profile.bio||'No biography provided.');
     document.getElementById('developerExperience').textContent=experiences.length?`${experiences.length} ${experiences.length===1?'role':'roles'}`:'Not provided';
     document.getElementById('developerLocationCard').textContent=location;
@@ -388,6 +387,21 @@
       ?profileReviews.reduce((sum,review)=>sum+review.rating,0)/profileReviews.length
       :null;
     document.getElementById('statRating').textContent=profileRating===null?'—':`★ ${profileRating.toFixed(1)}`;
+    window.DEVMATCH_PROFILE_OVERVIEW.render(identity,{
+      role:'developer',
+      name,
+      username,
+      avatar:profile.avatar,
+      initials:initials(name),
+      availability:String(profile.availability||''),
+      location:overviewLocation,
+      bio:String(profile.bio||'').trim()||'No bio added yet.',
+      statistics:{
+        views:compactOverviewCount(profileViews),
+        favorites:compactOverviewCount(projectFavorites),
+        rating:profileRating===null?'-':profileRating.toFixed(1)
+      }
+    });
     document.getElementById('statReviewCount').textContent=reviewsLoadFailed
       ?'unable to load reviews'
       :profileReviews.length?`from ${profileReviews.length} reviews`:'no reviews yet';

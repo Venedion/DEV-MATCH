@@ -9,7 +9,11 @@ const settingsHtml=fs.readFileSync(path.join(root,'devmatch-settings.html'),'utf
 const settingsJs=fs.readFileSync(path.join(root,'assets/js/settings.js'),'utf8');
 const profileJs=fs.readFileSync(path.join(root,'assets/js/profile.js'),'utf8');
 
-test('Profile & Account uses the setup country list and grouped location picker',()=>{
+test('Preferences & Region contains the setup country list and grouped location picker',()=>{
+  const accountForm=settingsHtml.match(/<form class="settings-card" id="accountForm">([\s\S]*?)<\/form>/)?.[1]||'';
+  const preferencesForm=settingsHtml.match(/<form class="settings-card" id="preferencesForm">([\s\S]*?)<\/form>/)?.[1]||'';
+  assert.doesNotMatch(accountForm,/settingsCountry|settingsCity/);
+  assert.match(preferencesForm,/settingsCountry[\s\S]*settingsCity/);
   assert.match(settingsHtml,/<select class="settings-select" id="settingsCountry">[\s\S]*?<option value="Indonesia">Indonesia<\/option>[\s\S]*?<option value="Malaysia">Malaysia<\/option>[\s\S]*?<option value="Singapore">Singapore<\/option>/);
   assert.match(settingsHtml,/id="settingsCity"[^>]*role="combobox"/);
   assert.match(settingsHtml,/id="settingsLocationOptions" role="listbox"/);
@@ -18,6 +22,7 @@ test('Profile & Account uses the setup country list and grouped location picker'
   assert.match(settingsJs,/Indonesia: indonesiaData\.provinces,\s*Malaysia: internationalData\.countries\.Malaysia,\s*Singapore: internationalData\.countries\.Singapore/);
   assert.match(settingsJs,/settingsLocationGroup\.cities\.map\(city => \(\{type: 'city'/);
   assert.match(settingsJs,/if \(option\) \{\s*event\.stopPropagation\(\);\s*selectSettingsLocationOption\(option\)/);
+  assert.match(settingsJs,/if \(!validateSettingsLocation\(\)\) return;[\s\S]*?await savePreferences\(preferencesForm, \{\s*country: settingsCountrySelect\.value,\s*city: settingsCityInput\.value\.trim\(\)/);
 });
 
 test('location selection keeps the setup country-specific hierarchy and saves country with city',()=>{
@@ -25,7 +30,7 @@ test('location selection keeps the setup country-specific hierarchy and saves co
   assert.match(settingsJs,/if \(country === 'Singapore'\) return \{parent: 'Region', parentPlural: 'regions', child: 'Area', childPlural: 'areas'\}/);
   assert.match(profileJs,/if\(country==='Malaysia'\)return \{parent:'State',parentPlural:'states',child:'City',childPlural:'cities'\}/);
   assert.match(profileJs,/if\(country==='Singapore'\)return \{parent:'Region',parentPlural:'regions',child:'Area',childPlural:'areas'\}/);
-  assert.match(settingsJs,/profileData\.country = settingsCountrySelect\.value;\s*profileData\.city = settingsCityInput\.value\.trim\(\)/);
+  assert.match(settingsJs,/await savePreferences\(preferencesForm, \{\s*country: settingsCountrySelect\.value,\s*city: settingsCityInput\.value\.trim\(\)/);
   assert.match(settingsJs,/settingsLocationDataReady\s*&&\s*country === profileData\.country\s*&&\s*city === profileData\.city/);
   assert.match(settingsJs,/function settingsLocationArticle\(value\)/);
   assert.match(settingsJs,/then \$\{settingsLocationArticle\(labels\.child\)\}/);
@@ -34,8 +39,10 @@ test('location selection keeps the setup country-specific hierarchy and saves co
   assert.match(settingsHtml,/settings-location-picker/);
 });
 
-test('Profile & Account moves WhatsApp Number into the account phone slot',()=>{
-  assert.match(settingsHtml,/id="settingsEmail"[\s\S]*?id="settingsWhatsapp"[\s\S]*?id="settingsCountry"/);
+test('Profile & Account keeps WhatsApp Number while regional fields live in Preferences',()=>{
+  const accountForm=settingsHtml.match(/<form class="settings-card" id="accountForm">([\s\S]*?)<\/form>/)?.[1]||'';
+  assert.match(accountForm,/id="settingsEmail"[\s\S]*?id="settingsWhatsapp"/);
+  assert.match(settingsHtml,/id="preferencesForm"[\s\S]*?id="settingsCountry"[\s\S]*?id="settingsCity"/);
   assert.doesNotMatch(settingsHtml,/id="settingsPhone"|phoneVerificationStatus|startWhatsAppVerification|openWhatsAppVerification|checkWhatsAppVerification|phone-verification\.js/);
 });
 

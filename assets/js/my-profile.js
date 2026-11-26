@@ -58,6 +58,7 @@
     })
     :[];
   const projects=isDeveloper?loadDeveloperProjects():loadClientRequests();
+  const profileOverview=document.querySelector('[data-profile-overview]');
   const toast=document.getElementById('profileToast');
   let toastTimer;
 
@@ -267,28 +268,27 @@
   function renderIdentity(){
     const availability=profile.availability||'';
     const avatar=initials(displayName);
-    setText('profileName',displayName);
-    setAvatar('profileAvatar',profile.avatar,avatar);
     setAvatar('userAvatar',profile.avatar,avatar);
     setText('topUserName',username||displayName);
     setText('identityHandle',username?`@${username}`:'');
     document.getElementById('identityHandle').hidden=!username;
-    setText('mobileIdentityHandle',username?`@${username}`:'');
-    document.getElementById('mobileIdentityHandle').hidden=!username;
     const location=[city,country].filter(Boolean).join(', ');
     setText('identityLocationText',location);
-    setText('mobileIdentityLocation',location);
     document.getElementById('identityLocation').hidden=!location;
-    document.querySelector('.mobile-profile-location').hidden=!location;
     setText('identitySpecialty',isDeveloper?title:profile.industry||'');
     const joined=formatJoined();
     setText('identityJoined',joined?`Joined ${joined}`:'');
     document.getElementById('identityJoined').hidden=!joined;
-    const availabilityBadge=document.getElementById('availabilityBadge');
-    availabilityBadge.querySelector('span').textContent=availability;
-    availabilityBadge.hidden=!availability;
-    availabilityBadge.classList.toggle('busy',availability.toLowerCase().includes('busy'));
-    availabilityBadge.classList.toggle('unavailable',/not available|closed/i.test(availability));
+    window.DEVMATCH_PROFILE_OVERVIEW.render(profileOverview,{
+      role:isDeveloper?'developer':'client',
+      name:displayName,
+      username,
+      avatar:profile.avatar,
+      initials:avatar,
+      availability,
+      location,
+      bio:bio||'No bio added yet.'
+    });
   }
 
   function setAvatar(id,imageUrl,fallback){
@@ -421,6 +421,7 @@
         setText('statRating','—');
         setText('mobileStatRating','-');
         setText('statReviews','no reviews yet');
+        renderProfileOverviewStatistics();
         return;
       }
       root.innerHTML=reviews.slice(0,8).map(review=>{
@@ -431,13 +432,25 @@
       setText('statRating',`★ ${average.toFixed(1)}`);
       setText('mobileStatRating',average.toFixed(1));
       setText('statReviews',`from ${reviews.length} reviews`);
+      renderProfileOverviewStatistics();
     }catch(error){
       console.error('Unable to load profile reviews from Supabase.',error);
       root.innerHTML='<p class="empty-state">Reviews could not be loaded. Check your connection and try again.</p>';
       setText('statRating','—');
       setText('mobileStatRating','-');
       setText('statReviews','unable to load reviews');
+      renderProfileOverviewStatistics();
     }
+  }
+
+  function renderProfileOverviewStatistics(){
+    window.DEVMATCH_PROFILE_OVERVIEW.render(profileOverview,{
+      statistics:{
+        views:document.getElementById('mobileStatViews').textContent.trim()||'0',
+        favorites:document.getElementById('mobileStatFavorites').textContent.trim()||'0',
+        rating:document.getElementById('mobileStatRating').textContent.trim()||'-'
+      }
+    });
   }
 
   function renderActivity(){
@@ -472,6 +485,7 @@
     }
     setText('mobileStatFavorites',document.getElementById('statSaves').textContent.trim()||'0');
     setText('mobileStatViews',document.getElementById('statViews').textContent.trim()||'0');
+    renderProfileOverviewStatistics();
   }
 
   function showToast(message,isError){

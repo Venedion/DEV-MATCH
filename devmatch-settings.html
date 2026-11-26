@@ -13,7 +13,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="assets/css/dashboard.css?v=20261126-rebase-merge-v1">
-  <link rel="stylesheet" href="assets/css/settings.css?v=20261126-flags-optional-v2">
+  <link rel="stylesheet" href="assets/css/settings.css?v=20261126-settings-birthday-calendar-v1">
   <link rel="stylesheet" href="assets/css/custom-select.css?v=20261123-no-ring-select-v1">
   <link rel="stylesheet" href="assets/css/client-shell.css?v=20261125-responsive-orientation-v1">
   <link rel="stylesheet" href="assets/css/mode-switch-animation.css?v=20261030-client-mode-route">
@@ -161,7 +161,6 @@
                 <span class="settings-hint" id="settingsUsernamePolicy">You can change your username once every 7 days. Use 3–20 characters, including letters, numbers, periods (.) and underscores (_).</span>
                 <span class="settings-field-error" id="settingsUsernameError" role="alert" hidden></span>
                 <span class="settings-hint" id="settingsUsernameStatus" role="status" aria-live="polite"></span>
-                <button class="settings-btn" id="saveUsername" type="button" disabled>Update username</button>
               </div>
 
               <div class="settings-field">
@@ -198,44 +197,32 @@
               </div>
 
               <div class="settings-field">
-                <label class="settings-label" for="settingsBirthday">Birthday</label>
-                <input class="settings-input" id="settingsBirthday" type="date">
+                <label class="settings-label" for="settingsBirthdayTrigger">Birthday</label>
+                <div class="settings-birthday-picker" id="settingsBirthdayPicker">
+                  <input id="settingsBirthday" name="birthday" type="hidden" data-track-hidden>
+                  <button class="settings-input settings-birthday-trigger" id="settingsBirthdayTrigger" type="button" aria-label="Birthday" aria-haspopup="dialog" aria-expanded="false" aria-controls="settingsBirthdayCalendar" aria-describedby="settingsBirthdayHint">
+                    <span id="settingsBirthdayValue">Select your birthday</span>
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/></svg>
+                  </button>
+                  <div class="settings-birthday-calendar" id="settingsBirthdayCalendar" role="dialog" aria-label="Choose your birthday" hidden>
+                    <div class="calendar-wheels">
+                      <div class="calendar-wheel" role="listbox" aria-label="Birth day" data-calendar-wheel="day" tabindex="0"></div>
+                      <div class="calendar-wheel" role="listbox" aria-label="Birth month" data-calendar-wheel="month" tabindex="0"></div>
+                      <div class="calendar-wheel" role="listbox" aria-label="Birth year" data-calendar-wheel="year" tabindex="0"></div>
+                      <div class="calendar-wheel-selection" aria-hidden="true"></div>
+                    </div>
+                    <footer class="calendar-footer">
+                      <button type="button" data-calendar-clear>Clear</button>
+                      <button type="button" data-calendar-save>Save</button>
+                    </footer>
+                  </div>
+                </div>
                 <span class="settings-hint" id="settingsBirthdayHint">Private. Only your age range is shown publicly.</span>
               </div>
 
               <div class="settings-field" id="settingsWebsiteField">
                 <label class="settings-label" for="settingsWebsite">Website or portfolio</label>
                 <input class="settings-input" id="settingsWebsite" type="url" maxlength="300" placeholder="https://example.com">
-              </div>
-
-              <div class="settings-field">
-                <label class="settings-label" for="settingsInstagram">Instagram</label>
-                <input class="settings-input" id="settingsInstagram" type="text" autocapitalize="none" autocomplete="off" maxlength="31" pattern="@?[A-Za-z0-9._]{1,30}" placeholder="@username">
-              </div>
-
-              <div class="settings-field span-2">
-                <div class="settings-location-grid">
-                  <div class="settings-field">
-                    <label class="settings-label" for="settingsCountry">Country</label>
-                    <select class="settings-select" id="settingsCountry">
-                      <option value="Indonesia">Indonesia</option>
-                      <option value="Malaysia">Malaysia</option>
-                      <option value="Singapore">Singapore</option>
-                    </select>
-                  </div>
-                  <div class="settings-field">
-                    <label class="settings-label" id="settingsLocationLabel" for="settingsCity">Province, City</label>
-                    <div class="settings-location-picker" id="settingsLocationPicker">
-                      <input class="settings-input" id="settingsCity" type="text" autocomplete="off" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="settingsLocationOptions" aria-describedby="settingsLocationHint settingsLocationError" placeholder="Search a province or city">
-                      <button class="settings-location-toggle" type="button" aria-label="Open location options" aria-expanded="false" aria-controls="settingsLocationOptions">
-                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m7 10 5 5 5-5"/></svg>
-                      </button>
-                      <div class="settings-location-options" id="settingsLocationOptions" role="listbox" aria-label="Location options" hidden></div>
-                    </div>
-                    <span class="settings-hint" id="settingsLocationHint" role="status">Search and select a province, then a city.</span>
-                    <span class="settings-field-error" id="settingsLocationError" role="alert" hidden>Please select a valid location from the options.</span>
-                  </div>
-                </div>
               </div>
 
               <div class="settings-field span-2">
@@ -246,7 +233,7 @@
             </div>
 
             <footer class="settings-card-footer">
-              <button class="settings-btn primary" type="submit">Save Profile Changes</button>
+              <button class="settings-btn primary" type="submit" disabled>Save Profile Changes</button>
             </footer>
           </form>
         </section>
@@ -272,7 +259,7 @@
                 </div>
                 <footer class="settings-card-footer settings-specialty-footer" id="settingsSpecialtyActions" hidden>
                   <span class="settings-hint">Select all that apply.</span>
-                  <button class="settings-btn primary" id="saveProfileSpecialties" type="button">Save Specialization</button>
+                  <button class="settings-btn primary" id="saveProfileSpecialties" type="button" disabled>Save Specialization</button>
                 </footer>
               </section>
             </section>
@@ -293,7 +280,7 @@
                 </div>
                 <footer class="settings-card-footer settings-skill-footer" id="settingsSkillsActions" hidden>
                   <span class="settings-hint" id="settingsSkillsHint" hidden>Type a skill and press Enter to add it. Select × to remove a skill.</span>
-                  <button class="settings-btn primary" id="saveProfileSkills" type="button">Save Skills &amp; Tech Stacks</button>
+                  <button class="settings-btn primary" id="saveProfileSkills" type="button" disabled>Save Skills &amp; Tech Stacks</button>
                 </footer>
               </section>
             </section>
@@ -312,6 +299,28 @@
                 <span class="settings-hint">Add your job title, company, period and optional supporting files.</span>
                 <span class="settings-hint">Supporting files are uploaded securely and linked to this experience.</span>
               </section>
+            </section>
+
+            <section class="settings-card settings-profile-detail-card" id="settingsClientBusinessCard" aria-labelledby="settingsClientBusinessHeading" hidden>
+              <header class="settings-card-header">
+                <h2 id="settingsClientBusinessHeading">Business &amp; Industry</h2>
+                <p>Update the business information shown on your client profile.</p>
+              </header>
+              <div class="settings-form-grid">
+                <div class="settings-field">
+                  <label class="settings-label" for="settingsCompanyName">Company / Business Name</label>
+                  <input class="settings-input" id="settingsCompanyName" type="text" maxlength="120" placeholder="Enter your company or business name">
+                </div>
+                <div class="settings-field">
+                  <label class="settings-label" for="settingsIndustry">Business or Industry</label>
+                  <select class="settings-select" id="settingsIndustry">
+                    <option value="">Choose an industry</option>
+                  </select>
+                </div>
+              </div>
+              <footer class="settings-card-footer">
+                <button class="settings-btn primary" id="saveClientBusinessDetails" type="button" disabled>Save Business &amp; Industry</button>
+              </footer>
             </section>
           </form>
         </section>
@@ -357,7 +366,7 @@
             </div>
 
             <footer class="settings-card-footer">
-              <button class="settings-btn primary" type="submit">Update Password</button>
+              <button class="settings-btn primary" type="submit" disabled>Update Password</button>
             </footer>
           </form>
 
@@ -522,18 +531,6 @@
             <!-- Client Fields Section (Toggled via JS if role=client) -->
             <div id="clientSpecificFields" hidden>
               <div class="settings-form-grid">
-                <div class="settings-field">
-                  <label class="settings-label" for="settingsCompanyName">Company / Business Name</label>
-                  <input class="settings-input" id="settingsCompanyName" type="text" placeholder="Enter your company or business name">
-                </div>
-
-                <div class="settings-field">
-                  <label class="settings-label" for="settingsIndustry">Industry Sector</label>
-                  <select class="settings-select" id="settingsIndustry">
-                    <option value="">Choose an industry</option>
-                  </select>
-                </div>
-
                 <div class="settings-field span-2">
                   <label class="settings-label" for="settingsNpwp"><span>NPWP / Tax ID</span><small class="form-optional">Optional</small></label>
                   <input class="settings-input" id="settingsNpwp" type="text" placeholder="Enter your tax ID">
@@ -543,7 +540,7 @@
             </div>
 
             <footer class="settings-card-footer">
-              <button class="settings-btn primary" type="submit">Save Role Settings</button>
+              <button class="settings-btn primary" type="submit" disabled>Save Role Settings</button>
             </footer>
           </form>
         </section>
@@ -652,7 +649,7 @@
             </div>
 
             <footer class="settings-card-footer">
-              <button class="settings-btn primary" type="submit">Save Preferences</button>
+              <button class="settings-btn primary" type="submit" disabled>Save Preferences</button>
             </footer>
           </form>
         </section>
@@ -699,7 +696,7 @@
             </div>
 
             <footer class="settings-card-footer">
-              <button class="settings-btn primary" type="submit">Update Privacy Settings</button>
+              <button class="settings-btn primary" type="submit" disabled>Update Privacy Settings</button>
             </footer>
           </form>
         </section>
@@ -713,6 +710,23 @@
             </header>
 
             <div class="settings-apps-list">
+              <!-- Instagram -->
+              <div class="settings-app-card">
+                <div class="settings-app-info">
+                  <div class="settings-app-icon" style="color:#c13584;">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="18" cy="6" r="1" fill="currentColor" stroke="none"/></svg>
+                  </div>
+                  <div class="settings-app-copy">
+                    <b>Instagram</b>
+                    <small data-app-detail="Instagram" data-disconnected-text="Add an Instagram username to your profile"></small>
+                  </div>
+                </div>
+                <div class="settings-app-actions">
+                  <button class="settings-btn settings-app-edit" type="button" data-app-edit="Instagram" aria-label="Edit connected Instagram username" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 5 4 4M4 20l-.8-4L15 4.2a2.8 2.8 0 0 1 4 4L7.2 20Z"/></svg>Edit</button>
+                  <button class="settings-btn" type="button" data-app-toggle="Instagram" data-connected="false">Connect</button>
+                </div>
+              </div>
+
               <!-- WhatsApp -->
               <div class="settings-app-card">
                 <div class="settings-app-info">
@@ -796,7 +810,7 @@
             </label>
             <footer class="app-edit-actions">
               <button class="settings-btn" id="cancelAppEdit" type="button">Cancel</button>
-              <button class="settings-btn primary" type="submit">Save changes</button>
+              <button class="settings-btn primary" type="submit" disabled>Save changes</button>
             </footer>
           </form>
         </dialog>
@@ -837,6 +851,26 @@
 
             <div class="settings-form-grid">
               <div class="settings-field">
+                <label class="settings-label" for="settingsCountry">Country</label>
+                <select class="settings-select" id="settingsCountry">
+                  <option value="Indonesia">Indonesia</option>
+                  <option value="Malaysia">Malaysia</option>
+                  <option value="Singapore">Singapore</option>
+                </select>
+              </div>
+              <div class="settings-field">
+                <label class="settings-label" id="settingsLocationLabel" for="settingsCity">Province, City</label>
+                <div class="settings-location-picker" id="settingsLocationPicker">
+                  <input class="settings-input" id="settingsCity" type="text" autocomplete="off" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="settingsLocationOptions" aria-describedby="settingsLocationHint settingsLocationError" placeholder="Search a province or city">
+                  <button class="settings-location-toggle" type="button" aria-label="Open location options" aria-expanded="false" aria-controls="settingsLocationOptions">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m7 10 5 5 5-5"/></svg>
+                  </button>
+                  <div class="settings-location-options" id="settingsLocationOptions" role="listbox" aria-label="Location options" hidden></div>
+                </div>
+                <span class="settings-hint" id="settingsLocationHint" role="status">Search and select a province, then a city.</span>
+                <span class="settings-field-error" id="settingsLocationError" role="alert" hidden>Please select a valid location from the options.</span>
+              </div>
+              <div class="settings-field">
                 <label class="settings-label" for="settingLanguage">Interface Language</label>
                 <select class="settings-select" id="settingLanguage">
                   <option value="en" selected>English (US)</option>
@@ -873,7 +907,7 @@
             </div>
 
             <footer class="settings-card-footer">
-              <button class="settings-btn primary" type="submit">Save Regional Preferences</button>
+              <button class="settings-btn primary" type="submit" disabled>Save Regional Preferences</button>
             </footer>
           </form>
         </section>
@@ -898,7 +932,7 @@
   <script src="assets/js/client-profile-options.js?v=20261123-client-profile-options-v1"></script>
   <script src="assets/js/profile-contact.js?v=20261126-flags-optional-v1"></script>
   <script src="assets/js/username-validation.js?v=20261126-username-validation-v1"></script>
-  <script src="assets/js/settings.js?v=20261126-flags-optional-v1"></script>
+  <script src="assets/js/settings.js?v=20261126-settings-birthday-calendar-v1"></script>
   <script src="assets/js/custom-select.js?v=20261028-custom-dropdowns-v3"></script>
   <script src="assets/js/nav-behavior.js?v=20261125-responsive-orientation-v1"></script>
 <script src="assets/js/presence.js?v=20261119-global"></script>

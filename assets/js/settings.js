@@ -8,6 +8,7 @@
     field: [
       '#accountForm input:not([type="hidden"]):not([type="file"])',
       '#accountForm select', '#accountForm textarea',
+      '#preferencesForm input:not([type="hidden"]):not([type="file"])',
       '#profileDetailsForm input:not([type="hidden"]):not([type="file"])',
       '#profileDetailsForm select', '#profileDetailsForm textarea',
       '#roleSpecificForm input:not([type="hidden"]):not([type="file"])',
@@ -31,6 +32,51 @@
     '"': '&quot;',
     "'": '&#39;'
   }[char]));
+
+  const saveButtonTrackers = [];
+  function createSaveButtonTracker(button, getValue, eventTargets = []) {
+    if (!button) return null;
+    let savedValue = null;
+    const snapshot = () => JSON.stringify(getValue());
+    const update = () => {
+      button.disabled = savedValue === null || snapshot() === savedValue;
+    };
+    const markSaved = () => {
+      savedValue = snapshot();
+      update();
+    };
+    eventTargets.filter(Boolean).forEach(target => {
+      target.addEventListener('input', update);
+      target.addEventListener('change', update);
+    });
+    button.disabled = true;
+    const tracker = {button, update, markSaved};
+    saveButtonTrackers.push(tracker);
+    return tracker;
+  }
+
+  function trackFormSaveButton(form) {
+    if (!form) return null;
+    const button = form.querySelector('button[type="submit"]');
+    const controls = [...form.querySelectorAll('input, select, textarea')]
+      .filter(field => (field.type !== 'hidden' || field.hasAttribute('data-track-hidden')) && field.type !== 'file');
+    const tracker = createSaveButtonTracker(button, () => controls.map(field => ({
+      id: field.id || field.name,
+      value: field.type === 'checkbox' || field.type === 'radio'
+        ? field.checked
+        : field.type === 'file'
+          ? [...(field.files || [])].map(file => [file.name, file.size, file.lastModified])
+          : field.value
+    })), [form]);
+    if (tracker) {
+      form.addEventListener('submit', event => {
+        if (!button.disabled) return;
+        event.preventDefault();
+        event.stopImmediatePropagation();
+      }, true);
+    }
+    return tracker;
+  }
 
   // Determine active role (dev or client)
   const params = new URLSearchParams(window.location.search);
@@ -57,6 +103,7 @@
     document.getElementById('settingsSpecialtyCard').hidden = !isDeveloper;
     document.getElementById('settingsSkillsCard').hidden = !isDeveloper;
     document.getElementById('settingsExperienceCard').hidden = !isDeveloper;
+    document.getElementById('settingsClientBusinessCard').hidden = isDeveloper;
   }
 
   configureRoleSpecificSettings();
@@ -79,13 +126,23 @@
   }
 
   let profileData = getProfile();
+  function gmailAddress(value) {
+    const email = String(value || '').trim();
+    return /^[A-Z0-9._%+-]+@gmail\.com$/i.test(email) ? email : '';
+  }
+
   function applyConnectionDefaults(profile) {
+    const whatsappNumber = String(profile.whatsapp || '').replace(/\D/g, '');
+    const instagramUsername = String(profile.instagram || '').trim();
+    const gmail = gmailAddress(profile.email);
     const connectionDefaults = {
-      whatsappConnected: Boolean(String(profile.whatsapp || '').replace(/\D/g, '')),
       githubConnected: Boolean(profile.githubUsername || profile.github || profile.githubUrl),
-      googleConnected: false,
       linkedinConnected: Boolean(profile.linkedinUrl || profile.linkedin)
     };
+    profile.whatsappConnected = Boolean(whatsappNumber) || profile.whatsappConnected === true;
+    profile.googleConnected = Boolean(gmail) || profile.googleConnected === true;
+    profile.instagramConnected = Boolean(instagramUsername) || profile.instagramConnected === true;
+    if (gmail) profile.googleEmail = gmail;
     Object.entries(connectionDefaults).forEach(([field, defaultValue]) => {
       if (typeof profile[field] !== 'boolean') profile[field] = defaultValue;
     });
@@ -147,9 +204,232 @@
     return '45+';
   }
 
-  function localDateValue(date = new Date()) {
+  const settingsBirthdayInput = document.getElementById('settingsBirthday');
+  const settingsBirthdayTrigger = document.getElementById('settingsBirthdayTrigger');
+  const settingsBirthdayValue = document.getElementById('settingsBirthdayValue');
+  const settingsBirthdayCalendar = document.getElementById('settingsBirthdayCalendar');
+  const settingsBirthdayPicker = document.getElementById('settingsBirthdayPicker');
+  let settingsBirthdayWheelDate = new Date();
+  let settingsBirthdayScrollTimer = null;
+  let settingsBirthdayPendingWheel = null;
+
+  function parseSettingsBirthday(value) {
+    const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value || '');
+    return match ? new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3])) : null;
+  }
+
+  function formatSettingsBirthday(value) {
+    const date = parseSettingsBirthday(value);
+    return date
+      ? `${String(date.getDate()).padStart(2, '0')}/${String(date.getMonth() + 1).padStart(2, '0')}/${date.getFullYear()}`
+      : 'Select your birthday';
+  }
+
+  function settingsBirthdayDateValue(date) {
     return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
   }
+
+  function renderSettingsBirthdayWheel(type, values) {
+    const wheel = settingsBirthdayCalendar.querySelector(`[data-calendar-wheel="${type}"]`);
+    if (!wheel) return false;
+    const existing = [...wheel.querySelectorAll('[data-calendar-wheel-option]')].map(option => option.dataset.value);
+    if (existing.length === values.length && existing.every((value, index) => value === String(values[index]))) return false;
+    const label = value => type === 'day'
+      ? String(value).padStart(2, '0')
+      : type === 'month'
+        ? new Date(2000, value, 1).toLocaleDateString('en-US', {month: 'long'})
+        : String(value);
+    wheel.innerHTML = values.map(value => `<button class="calendar-wheel-option" type="button" role="option" tabindex="-1" data-calendar-wheel-option="${type}" data-value="${value}" aria-selected="false">${label(value)}</button>`).join('');
+    return true;
+  }
+
+  function centerSettingsBirthdayWheel(type, value) {
+    const wheel = settingsBirthdayCalendar.querySelector(`[data-calendar-wheel="${type}"]`);
+    const option = wheel?.querySelector(`[data-calendar-wheel-option="${type}"][data-value="${value}"]`);
+    if (wheel && option) {
+      wheel.scrollTop = option.offsetTop + option.offsetHeight / 2 - wheel.clientHeight / 2;
+    }
+  }
+
+  function renderSettingsBirthdayCalendar({center = false} = {}) {
+    const today = new Date();
+    const year = settingsBirthdayWheelDate.getFullYear();
+    const month = settingsBirthdayWheelDate.getMonth();
+    const day = settingsBirthdayWheelDate.getDate();
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const maxDay = year === today.getFullYear() && month === today.getMonth() ? today.getDate() : daysInMonth;
+    const months = Array.from({length: year === today.getFullYear() ? today.getMonth() + 1 : 12}, (_, index) => index);
+    const days = Array.from({length: maxDay}, (_, index) => index + 1);
+    const maxBirthYear = today.getFullYear() - 18;
+    const years = Array.from({length: maxBirthYear - 1900 + 1}, (_, index) => maxBirthYear - index);
+    [['day', days, day], ['month', months, month], ['year', years, year]].forEach(([type, values, selected]) => {
+      const changed = renderSettingsBirthdayWheel(type, values);
+      const wheel = settingsBirthdayCalendar.querySelector(`[data-calendar-wheel="${type}"]`);
+      wheel?.querySelectorAll('[data-calendar-wheel-option]').forEach(option => {
+        option.setAttribute('aria-selected', String(Number(option.dataset.value) === selected));
+      });
+      if (center || changed) centerSettingsBirthdayWheel(type, selected);
+    });
+  }
+
+  function selectSettingsBirthdayWheelOption(option) {
+    const type = option.dataset.calendarWheelOption;
+    const value = Number(option.dataset.value);
+    let year = settingsBirthdayWheelDate.getFullYear();
+    let month = settingsBirthdayWheelDate.getMonth();
+    let day = settingsBirthdayWheelDate.getDate();
+    if (type === 'day') day = value;
+    else if (type === 'month') month = value;
+    else if (type === 'year') year = value;
+    else return;
+    const today = new Date();
+    if (year === today.getFullYear()) month = Math.min(month, today.getMonth());
+    day = Math.min(day, new Date(year, month + 1, 0).getDate());
+    if (year === today.getFullYear() && month === today.getMonth()) day = Math.min(day, today.getDate());
+    const nextDate = new Date(year, month, day);
+    if (nextDate.getTime() === settingsBirthdayWheelDate.getTime()) return;
+    settingsBirthdayWheelDate = nextDate;
+    renderSettingsBirthdayCalendar();
+    centerSettingsBirthdayWheel(type, type === 'day' ? day : type === 'month' ? month : year);
+  }
+
+  function centeredSettingsBirthdayWheelOption(wheel) {
+    const center = wheel.getBoundingClientRect().top + wheel.clientHeight / 2;
+    return [...wheel.querySelectorAll('[data-calendar-wheel-option]')].reduce((closest, option) => {
+      const optionCenter = option.getBoundingClientRect().top + option.offsetHeight / 2;
+      const closestCenter = closest.getBoundingClientRect().top + closest.offsetHeight / 2;
+      return Math.abs(optionCenter - center) < Math.abs(closestCenter - center) ? option : closest;
+    });
+  }
+
+  function flushSettingsBirthdayWheelScroll() {
+    clearTimeout(settingsBirthdayScrollTimer);
+    settingsBirthdayScrollTimer = null;
+    const wheel = settingsBirthdayPendingWheel;
+    settingsBirthdayPendingWheel = null;
+    if (wheel && !settingsBirthdayCalendar.hidden) {
+      const nearest = centeredSettingsBirthdayWheelOption(wheel);
+      if (nearest) selectSettingsBirthdayWheelOption(nearest);
+    }
+  }
+
+  function closeSettingsBirthdayCalendar() {
+    settingsBirthdayCalendar.hidden = true;
+    settingsBirthdayPicker.classList.remove('open');
+    settingsBirthdayPicker.classList.remove('opens-up');
+    clearTimeout(settingsBirthdayScrollTimer);
+    settingsBirthdayScrollTimer = null;
+    settingsBirthdayPendingWheel = null;
+  }
+
+  function openSettingsBirthdayCalendar() {
+    const today = new Date();
+    const selected = parseSettingsBirthday(settingsBirthdayInput.value);
+    const maxBirthYear = today.getFullYear() - 18;
+    const initial = selected || new Date(maxBirthYear, today.getMonth(), today.getDate());
+    const year = Math.min(initial.getFullYear(), maxBirthYear);
+    const day = Math.min(initial.getDate(), new Date(year, initial.getMonth() + 1, 0).getDate());
+    settingsBirthdayWheelDate = new Date(year, initial.getMonth(), day);
+    renderSettingsBirthdayCalendar({center: true});
+    settingsBirthdayCalendar.hidden = false;
+    settingsBirthdayCalendar.style.visibility = 'hidden';
+    const spaceBelow = window.innerHeight - settingsBirthdayTrigger.getBoundingClientRect().bottom;
+    const opensUp = spaceBelow < settingsBirthdayCalendar.getBoundingClientRect().height + 8;
+    settingsBirthdayPicker.classList.add('open');
+    settingsBirthdayPicker.classList.toggle('opens-up', opensUp);
+    settingsBirthdayCalendar.style.removeProperty('visibility');
+    settingsBirthdayTrigger.setAttribute('aria-expanded', 'true');
+  }
+
+  function setSettingsBirthday(value) {
+    settingsBirthdayInput.value = value;
+    settingsBirthdayValue.textContent = formatSettingsBirthday(value);
+    settingsBirthdayInput.dispatchEvent(new Event('input', {bubbles: true}));
+  }
+
+  settingsBirthdayTrigger.addEventListener('click', () => {
+    if (settingsBirthdayCalendar.hidden) openSettingsBirthdayCalendar();
+    else {
+      closeSettingsBirthdayCalendar();
+      settingsBirthdayTrigger.setAttribute('aria-expanded', 'false');
+    }
+  });
+  settingsBirthdayCalendar.addEventListener('click', event => {
+    const option = event.target.closest('[data-calendar-wheel-option]');
+    if (option) {
+      selectSettingsBirthdayWheelOption(option);
+      option.closest('[data-calendar-wheel]')?.focus();
+      return;
+    }
+    if (event.target.closest('[data-calendar-clear]')) {
+      setSettingsBirthday('');
+      closeSettingsBirthdayCalendar();
+      settingsBirthdayTrigger.setAttribute('aria-expanded', 'false');
+      settingsBirthdayTrigger.focus();
+    } else if (event.target.closest('[data-calendar-save]')) {
+      flushSettingsBirthdayWheelScroll();
+      setSettingsBirthday(settingsBirthdayDateValue(settingsBirthdayWheelDate));
+      closeSettingsBirthdayCalendar();
+      settingsBirthdayTrigger.setAttribute('aria-expanded', 'false');
+      settingsBirthdayTrigger.focus();
+    }
+  });
+  settingsBirthdayCalendar.addEventListener('scroll', event => {
+    const wheel = event.target.closest?.('[data-calendar-wheel]');
+    if (!wheel || settingsBirthdayCalendar.hidden) return;
+    settingsBirthdayPendingWheel = wheel;
+    clearTimeout(settingsBirthdayScrollTimer);
+    settingsBirthdayScrollTimer = setTimeout(flushSettingsBirthdayWheelScroll, 100);
+  }, true);
+  settingsBirthdayCalendar.addEventListener('wheel', event => {
+    const wheel = event.target.closest?.('[data-calendar-wheel]');
+    if (!wheel || event.ctrlKey || !event.deltaY || settingsBirthdayCalendar.hidden) return;
+    event.preventDefault();
+    const options = [...wheel.querySelectorAll('[data-calendar-wheel-option]')];
+    const selectedIndex = options.findIndex(option => option.getAttribute('aria-selected') === 'true');
+    const nextIndex = Math.max(0, Math.min(options.length - 1, selectedIndex + Math.sign(event.deltaY)));
+    if (nextIndex !== selectedIndex) selectSettingsBirthdayWheelOption(options[nextIndex]);
+  }, {passive: false});
+  settingsBirthdayCalendar.addEventListener('keydown', event => {
+    const wheel = event.target.closest?.('[data-calendar-wheel]');
+    if (!wheel) return;
+    if (event.key === 'Escape') {
+      closeSettingsBirthdayCalendar();
+      settingsBirthdayTrigger.setAttribute('aria-expanded', 'false');
+      settingsBirthdayTrigger.focus();
+      return;
+    }
+    const wheelTypes = ['day', 'month', 'year'];
+    if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
+      const nextIndex = wheelTypes.indexOf(wheel.dataset.calendarWheel) + (event.key === 'ArrowRight' ? 1 : -1);
+      if (nextIndex >= 0 && nextIndex < wheelTypes.length) {
+        event.preventDefault();
+        settingsBirthdayCalendar.querySelector(`[data-calendar-wheel="${wheelTypes[nextIndex]}"]`)?.focus();
+      }
+      return;
+    }
+    const options = [...wheel.querySelectorAll('[data-calendar-wheel-option]')];
+    const selectedIndex = options.findIndex(option => option.getAttribute('aria-selected') === 'true');
+    let nextIndex;
+    if (event.key === 'ArrowDown') nextIndex = Math.min(selectedIndex + 1, options.length - 1);
+    else if (event.key === 'ArrowUp') nextIndex = Math.max(selectedIndex - 1, 0);
+    else if (event.key === 'Home') nextIndex = 0;
+    else if (event.key === 'End') nextIndex = options.length - 1;
+    else if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      document.activeElement?.click();
+      return;
+    } else return;
+    event.preventDefault();
+    selectSettingsBirthdayWheelOption(options[nextIndex]);
+    wheel.focus();
+  });
+  document.addEventListener('click', event => {
+    if (!settingsBirthdayPicker.contains(event.target) && !settingsBirthdayCalendar.hidden) {
+      closeSettingsBirthdayCalendar();
+      settingsBirthdayTrigger.setAttribute('aria-expanded', 'false');
+    }
+  });
 
   function normalizeSpecialties(value) {
     const specialties = Array.isArray(value) ? value : typeof value === 'string' ? value.split(/[,\n]/) : [];
@@ -180,6 +460,7 @@
     otherInput.value = specialtyOtherDraft;
     otherInput.removeAttribute('aria-invalid');
     otherError.hidden = true;
+    profileSpecialtySaveTracker?.update();
   }
 
   function setSpecialtiesEditing(editing) {
@@ -190,6 +471,7 @@
     editSpecialtiesButton.querySelector('span').textContent = editing ? 'Cancel' : 'Edit';
     editSpecialtiesButton.querySelector('svg').hidden = editing;
     renderSpecialties();
+    profileSpecialtySaveTracker?.update();
   }
 
   function renderSkillTags() {
@@ -200,6 +482,7 @@
     if (!profileSkills.length && !isEditingSkills) {
       skillTags.innerHTML = '<span class="settings-skill-empty">No skills added yet.</span>';
     }
+    profileSkillsSaveTracker?.update();
   }
 
   function setSkillsEditing(editing) {
@@ -211,6 +494,7 @@
     editSkillsButton.querySelector('span').textContent = editing ? 'Cancel' : 'Edit';
     editSkillsButton.querySelector('svg').hidden = editing;
     renderSkillTags();
+    profileSkillsSaveTracker?.update();
     if (editing) skillInput.focus();
   }
 
@@ -219,7 +503,26 @@
     if (!skill || profileSkills.some(existing => existing.toLowerCase() === skill.toLowerCase())) return;
     profileSkills.push(skill);
     renderSkillTags();
+    profileSkillsSaveTracker?.update();
   }
+
+  function getSkillsDraft() {
+    const pending = skillInput.value.trim().replace(/,+$/, '').trim();
+    return pending && !profileSkills.some(skill => skill.toLowerCase() === pending.toLowerCase())
+      ? [...profileSkills, pending]
+      : [...profileSkills];
+  }
+
+  const profileSpecialtySaveTracker = createSaveButtonTracker(
+    document.getElementById('saveProfileSpecialties'),
+    () => ({specialties: specialtyDraft, other: specialtyOtherDraft}),
+    [specialtyGrid, document.getElementById('settingsSpecialtyOther')]
+  );
+  const profileSkillsSaveTracker = createSaveButtonTracker(
+    document.getElementById('saveProfileSkills'),
+    getSkillsDraft,
+    [skillInput]
+  );
 
   function parseExperiencePeriod(period) {
     const value = String(period || '').trim();
@@ -233,6 +536,25 @@
     if (/^(present|sekarang)$/i.test(value)) return { startYear: '', endYear: 'Present' };
     const year = value.match(/\b\d{4}\b/);
     return { startYear: year ? year[0] : '', endYear: '' };
+  }
+
+  function experienceSaveSnapshot(entry) {
+    return JSON.stringify({
+      title: entry.title,
+      company: entry.company,
+      startYear: entry.startYear,
+      endYear: entry.endYear,
+      link: entry.link,
+      files: entry.files,
+      filePaths: entry.filePaths,
+      pendingFiles: entry.pendingFiles.map(file => [file.name, file.size, file.lastModified]),
+      removedFilePaths: entry.removedFilePaths
+    });
+  }
+
+  function updateExperienceSaveButton(entry) {
+    const button = experienceEntries.querySelector(`[data-save-experience="${entry.id}"]`);
+    if (button) button.disabled = experienceSaveSnapshot(entry) === entry.saveBaseline;
   }
 
   function renderExperienceEntries() {
@@ -258,7 +580,7 @@
             return `<div class="settings-experience-file-row"><button class="settings-hint settings-experience-file-download" type="button" data-download-experience-file="${entry.id}" data-file-index="${fileIndex}" aria-label="Download ${fileName}" title="Download ${fileName}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 19v2h14v-2"/></svg><span class="settings-experience-file-row-name">${fileName}</span></button>${entry.editing ? `<button class="settings-experience-file-remove" type="button" data-remove-experience-file="${entry.id}" data-file-index="${fileIndex}" aria-label="Remove supporting file" title="Remove supporting file"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18"/><path d="M8 6V4h8v2m3 0-.9 14H5.9L5 6"/><path d="M10 11v5m4-5v5"/></svg></button>` : ''}</div>`;
           }).join('')}</div>
         </div>
-        ${entry.editing ? `<footer class="settings-card-footer settings-experience-entry-footer"><button class="settings-experience-cancel" type="button" data-cancel-experience="${entry.id}">Cancel</button><button class="settings-btn primary" type="button" data-save-experience="${entry.id}">Save</button></footer>` : ''}
+        ${entry.editing ? `<footer class="settings-card-footer settings-experience-entry-footer"><button class="settings-experience-cancel" type="button" data-cancel-experience="${entry.id}">Cancel</button><button class="settings-btn primary" type="button" data-save-experience="${entry.id}"${experienceSaveSnapshot(entry) === entry.saveBaseline ? ' disabled' : ''}>Save</button></footer>` : ''}
       </fieldset>`
     }).join('');
   }
@@ -589,7 +911,7 @@
     if (event.key === 'Tab') {
       event.preventDefault();
       closeSettingsLocationPicker();
-      (event.shiftKey ? settingsCityInput : document.getElementById('settingsBio'))?.focus();
+      (event.shiftKey ? settingsCityInput : document.getElementById('settingLanguage'))?.focus();
       return;
     }
     if (event.key === 'Escape') {
@@ -845,12 +1167,11 @@
     setVal('settingsEmail', profileData.email || '');
     setVal('settingsGender', profileData.gender || '');
     setVal('settingsBirthday', profileData.birthday || '');
-    document.getElementById('settingsBirthday').max = localDateValue();
+    settingsBirthdayValue.textContent = formatSettingsBirthday(settingsBirthdayInput.value);
     document.getElementById('settingsBirthdayHint').textContent = !profileData.birthday && profileData.ageRange
       ? 'Your existing age range is preserved. Birthday was not retained from earlier setup; enter it to update your age range.'
       : 'Private. Only your age range is shown publicly.';
     setVal('settingsWebsite', profileData.website || '');
-    setVal('settingsInstagram', profileContact.normalizeInstagramUsername(profileData.instagram || ''));
     profileData.country = settingsLocationCountries.includes(profileData.country)
       ? profileData.country
       : 'Indonesia';
@@ -870,11 +1191,18 @@
     setVal('settingsWhatsappDialCode', whatsappParts.dialCode);
     document.getElementById('settingsWhatsappDialCode').dispatchEvent(new Event('change', {bubbles: true}));
     setVal('settingsWhatsapp', whatsappParts.number);
+    renderAppConnection('WhatsApp', profileData.whatsappConnected);
+    renderAppConnection('Google', profileData.googleConnected);
+    renderAppConnection('Instagram', profileData.instagramConnected);
     const industrySelect = document.getElementById('settingsIndustry');
     const industries = window.DEVMATCH_CLIENT_PROFILE_OPTIONS.businessTypes;
     const industry = String(profileData.industry || '');
-    industrySelect.innerHTML = `<option value="">Choose an industry</option>${industries.map(item => `<option value="${escapeHtml(item)}">${escapeHtml(item)}</option>`).join('')}${industry && !industries.includes(industry) ? `<option value="${escapeHtml(industry)}">${escapeHtml(industry)}</option>` : ''}`;
+    const customIndustryOption = industry && !industries.includes(industry)
+      ? `<option value="${escapeHtml(industry)}">${escapeHtml(industry)}</option>`
+      : '';
+    industrySelect.innerHTML = `<option value="">Choose an industry</option>${customIndustryOption}${industries.map(item => `<option value="${escapeHtml(item)}">${escapeHtml(item)}</option>`).join('')}`;
     industrySelect.value = industry;
+    industrySelect.dispatchEvent(new Event('change', {bubbles: true}));
     profileSkills = normalizeSkills(profileData.skills, []);
     renderSkillTags();
     profileSpecialties = normalizeSpecialties(profileData.specialty);
@@ -917,10 +1245,10 @@
       setVal('settingsAccountHolder', profileData.accountHolder || '');
     } else {
       setVal('settingsCompanyName', profileData.companyName || '');
-      setVal('settingsIndustry', profileData.industry || '');
       setVal('settingsNpwp', profileData.npwp || '');
     }
 
+    saveButtonTrackers.forEach(tracker => tracker.markSaved());
     updateAvatarPreview();
   }
 
@@ -998,7 +1326,6 @@
   const settingsUsernameInput = document.getElementById('settingsUsername');
   const settingsUsernameError = document.getElementById('settingsUsernameError');
   const settingsUsernameStatus = document.getElementById('settingsUsernameStatus');
-  const saveUsernameButton = document.getElementById('saveUsername');
   let savedUsername = window.DEVMATCH_USERNAME.normalize(profileData.username || '');
   let usernameValidationTimer;
   let usernameValidationRequest = 0;
@@ -1026,20 +1353,17 @@
 
     if (username === savedUsername) {
       setUsernameError('');
-      saveUsernameButton.disabled = true;
       return;
     }
 
     const validation = window.DEVMATCH_USERNAME.validate(username);
     if (!validation.valid) {
       setUsernameError(validation.message);
-      saveUsernameButton.disabled = true;
       return;
     }
 
     if (usernameChangeIsRestricted()) {
       setUsernameError(window.DEVMATCH_USERNAME.messages.cooldown);
-      saveUsernameButton.disabled = true;
       return;
     }
 
@@ -1047,7 +1371,6 @@
       && window.DEVMATCH_USERNAME.validate(raw).message === window.DEVMATCH_USERNAME.messages.lowercase;
     setUsernameError(uppercaseNotice ? window.DEVMATCH_USERNAME.messages.lowercase : '');
     settingsUsernameStatus.textContent = 'Checking username availability…';
-    saveUsernameButton.disabled = true;
 
     usernameValidationTimer = setTimeout(async () => {
       try {
@@ -1056,59 +1379,70 @@
         if (!available) {
           setUsernameError(window.DEVMATCH_USERNAME.messages.taken);
           settingsUsernameStatus.textContent = '';
-          saveUsernameButton.disabled = true;
           return;
         }
         setUsernameError('');
         settingsUsernameStatus.textContent = 'Username is available.';
-        saveUsernameButton.disabled = false;
       } catch (error) {
         if (requestId !== usernameValidationRequest) return;
         console.error('Unable to check username availability.', error);
         setUsernameError('Unable to check username right now. Please try again.');
         settingsUsernameStatus.textContent = '';
-        saveUsernameButton.disabled = true;
       }
     }, 400);
   }
 
   settingsUsernameInput.addEventListener('input', validateSettingsUsername);
-  saveUsernameButton.addEventListener('click', async () => {
+  async function validateUsernameBeforeSave() {
     const username = window.DEVMATCH_USERNAME.normalize(settingsUsernameInput.value);
+    settingsUsernameInput.value = username;
+    if (username === savedUsername) {
+      setUsernameError('');
+      settingsUsernameStatus.textContent = '';
+      return true;
+    }
+
     const validation = window.DEVMATCH_USERNAME.validate(username);
     if (!validation.valid) {
       setUsernameError(validation.message);
-      return;
+      settingsUsernameInput.focus();
+      return false;
     }
-    if (username === savedUsername) return;
     if (usernameChangeIsRestricted()) {
       setUsernameError(window.DEVMATCH_USERNAME.messages.cooldown);
-      saveUsernameButton.disabled = true;
-      return;
+      settingsUsernameInput.focus();
+      return false;
     }
 
-    saveUsernameButton.disabled = true;
+    clearTimeout(usernameValidationTimer);
+    const requestId = ++usernameValidationRequest;
     setUsernameError('');
-    settingsUsernameStatus.textContent = 'Updating username…';
+    settingsUsernameStatus.textContent = 'Checking username availability…';
     try {
-      const updated = await window.devMatchBackend.changeUsername(username);
-      savedUsername = updated.username;
-      profileData.username = updated.username;
-      profileData.usernameChangedAt = updated.usernameChangedAt;
-      settingsUsernameInput.value = updated.username;
-      const topUserName = document.getElementById('topUserName');
-      if (topUserName) topUserName.textContent = updated.username;
-      settingsUsernameStatus.textContent = 'Username updated successfully.';
-      showToast('Username updated successfully!');
+      const available = await window.DEVMATCH_USERNAME.isAvailable(username);
+      if (requestId !== usernameValidationRequest
+        || window.DEVMATCH_USERNAME.normalize(settingsUsernameInput.value) !== username) {
+        return false;
+      }
+      if (!available) {
+        setUsernameError(window.DEVMATCH_USERNAME.messages.taken);
+        settingsUsernameStatus.textContent = '';
+        settingsUsernameInput.focus();
+        return false;
+      }
+      settingsUsernameStatus.textContent = 'Username is available.';
+      return true;
     } catch (error) {
-      console.error('Unable to update username.', error);
+      if (requestId !== usernameValidationRequest) return false;
+      console.error('Unable to check username availability.', error);
       setUsernameError(Object.values(window.DEVMATCH_USERNAME.messages).includes(error.message)
         ? error.message
-        : 'Unable to update username. Please try again.');
+        : 'Unable to check username right now. Please try again.');
       settingsUsernameStatus.textContent = '';
-      saveUsernameButton.disabled = false;
+      settingsUsernameInput.focus();
+      return false;
     }
-  });
+  }
   const emailInput = document.getElementById('settingsEmail');
   if (emailInput) {
     emailInput.readOnly = true;
@@ -1118,17 +1452,13 @@
   // Account Form Submission
   const accountForm = document.getElementById('accountForm');
   if (accountForm) {
+    const accountSaveTracker = trackFormSaveButton(accountForm);
     const settingsWhatsappInput = document.getElementById('settingsWhatsapp');
-    const settingsInstagramInput = document.getElementById('settingsInstagram');
     settingsWhatsappInput.addEventListener('input', () => {
       settingsWhatsappInput.value = profileContact.normalizeLocalNumber(
         settingsWhatsappInput.value,
         document.getElementById('settingsWhatsappDialCode').value
       );
-    });
-    settingsInstagramInput.addEventListener('input', () => settingsInstagramInput.setCustomValidity(''));
-    settingsInstagramInput.addEventListener('blur', () => {
-      settingsInstagramInput.value = profileContact.normalizeInstagramUsername(settingsInstagramInput.value);
     });
     accountForm.addEventListener('submit', async function(e) {
       e.preventDefault();
@@ -1136,42 +1466,77 @@
         showToast('Cannot save profile details until private data loads successfully. Reload the page and try again.');
         return;
       }
-      if (!validateSettingsLocation()) return;
-      const instagramUsername = profileContact.normalizeInstagramUsername(settingsInstagramInput.value);
-      if (instagramUsername && !profileContact.isValidInstagramUsername(instagramUsername)) {
-        settingsInstagramInput.setCustomValidity('Enter an Instagram username without a link.');
-        settingsInstagramInput.reportValidity();
-        return;
-      }
-      settingsInstagramInput.setCustomValidity('');
-      profileData.displayName = document.getElementById('settingsDisplayName').value.trim();
-      profileData.email = document.getElementById('settingsEmail').value.trim();
-      profileData.gender = document.getElementById('settingsGender').value;
-      profileData.birthday = document.getElementById('settingsBirthday').value;
-      if (profileData.birthday) profileData.ageRange = getAgeRangeFromBirthday(profileData.birthday);
-      profileData.country = settingsCountrySelect.value;
-      profileData.city = settingsCityInput.value.trim();
-      profileData.bio = document.getElementById('settingsBio').value.trim();
-      profileData.whatsappDialCode = profileContact.normalizeDialCode(
+      if (!await validateUsernameBeforeSave()) return;
+
+      const email = document.getElementById('settingsEmail').value.trim();
+      const updatedProfile = {
+        ...profileData,
+        displayName: document.getElementById('settingsDisplayName').value.trim(),
+        email,
+        gender: document.getElementById('settingsGender').value,
+        birthday: document.getElementById('settingsBirthday').value,
+        bio: document.getElementById('settingsBio').value.trim(),
+        whatsappDialCode: profileContact.normalizeDialCode(
         document.getElementById('settingsWhatsappDialCode').value
-      );
-      profileData.whatsapp = profileContact.combineWhatsappNumber(
-        profileData.whatsappDialCode,
+        )
+      };
+      if (updatedProfile.birthday) updatedProfile.ageRange = getAgeRangeFromBirthday(updatedProfile.birthday);
+      updatedProfile.whatsapp = profileContact.combineWhatsappNumber(
+        updatedProfile.whatsappDialCode,
         settingsWhatsappInput.value
       );
-      profileData.whatsappCustomized = true;
-      if (isDeveloper) profileData.website = document.getElementById('settingsWebsite').value.trim();
-      profileData.instagram = instagramUsername;
+      updatedProfile.whatsappCustomized = true;
+      updatedProfile.whatsappConnected = Boolean(updatedProfile.whatsapp);
+      updatedProfile.instagramConnected = Boolean(String(updatedProfile.instagram || '').trim());
+      const gmail = gmailAddress(email);
+      if (gmail) {
+        updatedProfile.googleConnected = true;
+        updatedProfile.googleEmail = gmail;
+      }
+      if (isDeveloper) updatedProfile.website = document.getElementById('settingsWebsite').value.trim();
+
+      let usernameUpdate = null;
+      const username = window.DEVMATCH_USERNAME.normalize(settingsUsernameInput.value);
 
       try {
-        await persistProfile(profileData, {includePrivateFields: true});
-        settingsLocationInitialValue = {country: profileData.country, city: profileData.city};
+        if (username !== savedUsername) {
+          settingsUsernameStatus.textContent = 'Updating username…';
+          usernameUpdate = await window.devMatchBackend.changeUsername(username);
+          updatedProfile.username = usernameUpdate.username;
+          updatedProfile.usernameChangedAt = usernameUpdate.usernameChangedAt;
+        }
+        await persistProfile(updatedProfile, {includePrivateFields: true});
+        profileData = updatedProfile;
+        savedUsername = window.DEVMATCH_USERNAME.normalize(profileData.username || '');
+        settingsUsernameInput.value = savedUsername;
+        setUsernameError('');
+        settingsUsernameStatus.textContent = usernameUpdate ? 'Username updated successfully.' : '';
+        accountSaveTracker.markSaved();
         showToast('Profile and account details saved successfully!');
         updateAvatarPreview();
-        renderAppConnection('WhatsApp', profileData.whatsappConnected ?? Boolean(profileData.whatsapp));
-        renderAppConnection('Google', profileData.googleConnected ?? true);
-      } catch (err) {
-        showToast('Error saving profile changes');
+        renderAppConnection('WhatsApp', profileData.whatsappConnected);
+        renderAppConnection('Google', profileData.googleConnected);
+        renderAppConnection('Instagram', profileData.instagramConnected);
+      } catch (error) {
+        console.error('Unable to save profile and account changes.', error);
+        if (usernameUpdate) {
+          profileData = {
+            ...profileData,
+            username: usernameUpdate.username,
+            usernameChangedAt: usernameUpdate.usernameChangedAt
+          };
+          savedUsername = window.DEVMATCH_USERNAME.normalize(usernameUpdate.username);
+          settingsUsernameInput.value = savedUsername;
+          settingsUsernameStatus.textContent = 'Username updated, but the other profile changes could not be saved.';
+          updateAvatarPreview();
+          showToast('Username updated, but other profile changes could not be saved.');
+        } else if (username !== savedUsername) {
+          setUsernameError('Unable to update username. Please try again.');
+          settingsUsernameStatus.textContent = '';
+          showToast('Unable to update username. Please try again.');
+        } else {
+          showToast('Unable to save profile changes. Please try again.');
+        }
       }
     });
   }
@@ -1179,6 +1544,31 @@
   const profileDetailsForm = document.getElementById('profileDetailsForm');
   if (profileDetailsForm) {
     profileDetailsForm.addEventListener('submit', event => event.preventDefault());
+
+    const clientBusinessSaveTracker = createSaveButtonTracker(
+      document.getElementById('saveClientBusinessDetails'),
+      () => ({
+        companyName: document.getElementById('settingsCompanyName').value,
+        industry: document.getElementById('settingsIndustry').value
+      }),
+      [profileDetailsForm]
+    );
+    document.getElementById('saveClientBusinessDetails').addEventListener('click', async () => {
+      const updatedProfile = {
+        ...profileData,
+        companyName: document.getElementById('settingsCompanyName').value.trim(),
+        industry: document.getElementById('settingsIndustry').value
+      };
+      try {
+        await persistProfile(updatedProfile);
+        profileData = updatedProfile;
+        clientBusinessSaveTracker.markSaved();
+        showToast('Business & industry details saved.');
+      } catch (error) {
+        console.error('Unable to save client business details.', error);
+        showToast('Unable to save business & industry details. Please try again.');
+      }
+    });
 
     editSkillsButton.addEventListener('click', () => {
       if (isEditingSkills) {
@@ -1204,6 +1594,7 @@
         : [...specialtyDraft, specialty];
       if (selected && specialty.toLowerCase() === 'other') specialtyOtherDraft = '';
       renderSpecialties();
+      profileSpecialtySaveTracker.update();
       [...specialtyGrid.querySelectorAll('[data-profile-specialty]')]
         .find(item => item.dataset.profileSpecialty === specialty)
         ?.focus();
@@ -1216,6 +1607,7 @@
         event.target.setAttribute('aria-invalid', String(!isValid));
         document.getElementById('settingsSpecialtyOtherError').hidden = isValid;
       }
+      profileSpecialtySaveTracker.update();
     });
 
     document.getElementById('saveProfileSpecialties').addEventListener('click', async () => {
@@ -1235,6 +1627,7 @@
         await persistProfile(profileData);
         profileSpecialties = [...specialtyDraft];
         profileSpecialtyOther = profileData.specialtyOther;
+        profileSpecialtySaveTracker.markSaved();
         setSpecialtiesEditing(false);
         showToast('Specialization saved successfully!');
       } catch (error) {
@@ -1246,9 +1639,11 @@
     document.getElementById('saveProfileSkills').addEventListener('click', async () => {
       addProfileSkill(skillInput.value);
       skillInput.value = '';
+      profileSkillsSaveTracker.update();
       try {
         profileData.skills = [...profileSkills];
         await persistProfile(profileData);
+        profileSkillsSaveTracker.markSaved();
         setSkillsEditing(false);
         showToast('Skills & Tech Stacks saved successfully!');
       } catch (error) {
@@ -1412,6 +1807,7 @@
         event.preventDefault();
         addProfileSkill(skillInput.value);
         skillInput.value = '';
+        profileSkillsSaveTracker.update();
       } else if (event.key === 'Backspace' && !skillInput.value && profileSkills.length) {
         profileSkills.pop();
         renderSkillTags();
@@ -1423,11 +1819,14 @@
       if (!button || !isEditingSkills) return;
       profileSkills.splice(Number(button.dataset.removeSkill), 1);
       renderSkillTags();
+      profileSkillsSaveTracker.update();
       skillInput.focus();
     });
 
     function addProfileExperience() {
-      experienceDraft.push({ id: String(++nextExperienceId), persistedIndex: null, title: '', company: '', startYear: '', endYear: 'Present', link: '', files: [], filePaths: [], removedFilePaths: [], pendingFiles: [], editing: true });
+      const entry = { id: String(++nextExperienceId), persistedIndex: null, title: '', company: '', startYear: '', endYear: 'Present', link: '', files: [], filePaths: [], removedFilePaths: [], pendingFiles: [], editing: true };
+      entry.saveBaseline = experienceSaveSnapshot(entry);
+      experienceDraft.push(entry);
       renderExperienceEntries();
       const lastEntry = experienceEntries.lastElementChild;
       lastEntry.scrollIntoView({ behavior: 'smooth', block: 'end' });
@@ -1710,6 +2109,7 @@
         closeExperienceEditors(entryId);
         const entry = experienceDraft.find(item => item.id === entryId);
         if (!entry) return;
+        entry.saveBaseline = experienceSaveSnapshot(entry);
         entry.editing = true;
         renderExperienceEntries();
         experienceEntries.querySelector(`[data-experience-id="${entry.id}"] [data-experience-field="title"]`).focus();
@@ -1718,6 +2118,7 @@
 
       const saveButton = event.target.closest('[data-save-experience]');
       if (saveButton) {
+        if (saveButton.disabled) return;
         const entry = experienceDraft.find(item => item.id === saveButton.dataset.saveExperience);
         if (entry) saveExperience(entry);
         return;
@@ -1750,6 +2151,7 @@
         const year = yearInput.value.replace(/\D/g, '').slice(0, 4);
         if (yearInput.value !== year) yearInput.value = year;
         entry[yearInput.dataset.experienceYear] = year;
+        updateExperienceSaveButton(entry);
         if (entry.showValidationErrors) validateExperienceEntry(entry);
         return;
       }
@@ -1758,6 +2160,7 @@
       if (!input) return;
       const entry = experienceDraft.find(item => item.id === input.closest('[data-experience-id]').dataset.experienceId);
       if (entry) entry[input.dataset.experienceField] = input.value;
+      if (entry) updateExperienceSaveButton(entry);
       if (entry?.showValidationErrors) validateExperienceEntry(entry);
     });
 
@@ -1768,6 +2171,7 @@
       if (!entry) return;
       yearInput.value = 'Present';
       entry.endYear = 'Present';
+      updateExperienceSaveButton(entry);
       if (entry.showValidationErrors) validateExperienceEntry(entry);
     });
 
@@ -1810,12 +2214,14 @@
       }
       fileNames.textContent = names.join(', ') || 'No file chosen';
       fileNames.title = fileNames.textContent;
+      updateExperienceSaveButton(entry);
     });
   }
 
   // Role Specific Form Submission (Dev rates/payouts OR Client company/billing)
   const roleForm = document.getElementById('roleSpecificForm');
   if (roleForm) {
+    const roleSaveTracker = trackFormSaveButton(roleForm);
     if (isDeveloper) {
       ['settingsHourlyRate', 'settingsMinProject'].forEach(id => {
         const input = document.getElementById(id);
@@ -1856,13 +2262,12 @@
         profileData.accountNumber = document.getElementById('settingsBankAccount').value.trim();
         profileData.accountHolder = document.getElementById('settingsAccountHolder').value.trim();
       } else {
-        profileData.companyName = document.getElementById('settingsCompanyName').value.trim();
-        profileData.industry = document.getElementById('settingsIndustry').value.trim();
         profileData.npwp = document.getElementById('settingsNpwp').value.trim();
       }
 
       try {
         await persistProfile(profileData, {includePrivateFields: true});
+        roleSaveTracker.markSaved();
         showToast(isDeveloper ? 'Developer rates & payout settings updated!' : 'Company & billing details saved!');
       } catch (err) {
         showToast('Error saving settings');
@@ -1874,13 +2279,18 @@
     WhatsApp: 'whatsappConnected',
     GitHub: 'githubConnected',
     Google: 'googleConnected',
+    Instagram: 'instagramConnected',
     LinkedIn: 'linkedinConnected'
   };
 
   const appDetailText = {
     WhatsApp: profile => formatWhatsapp(profile.whatsapp || ''),
     GitHub: profile => profile.githubUsername || 'GitHub account connected',
-    Google: profile => profile.googleEmail || profile.email || 'Google account connected',
+    Google: profile => profile.googleEmail || gmailAddress(profile.email) || 'Google account connected',
+    Instagram: profile => {
+      const username = profileContact.normalizeInstagramUsername(profile.instagram || '');
+      return username ? `@${username}` : 'Instagram profile connected';
+    },
     LinkedIn: profile => profile.linkedinUrl || 'LinkedIn profile connected'
   };
 
@@ -1917,6 +2327,7 @@
   // Password Change Simulation
   const passwordForm = document.getElementById('passwordForm');
   if (passwordForm) {
+    const passwordSaveTracker = trackFormSaveButton(passwordForm);
     const newPasswordInput = document.getElementById('newPassword');
     const passwordMeter = document.getElementById('newPasswordMeter');
     const passwordStrengthText = document.getElementById('newPasswordStrengthText');
@@ -2036,9 +2447,10 @@
         if(error.code==='invalid_credentials'||error.code==='invalid_login_credentials')passwordForm.dispatchEvent(new Event('passwordchange:rejected'));
         else showToast(error.message||'Unable to update password. Please try again.');
         return;
-      }finally{if(button)button.disabled=false;}
+      }finally{passwordSaveTracker.update();}
       showToast('Password updated successfully!');
       passwordForm.reset();
+      passwordSaveTracker.markSaved();
       updatePasswordStrength('');
       passwordFields.forEach(field => {
         field.error.hidden = true;
@@ -2066,17 +2478,26 @@
   });
 
   // Notification Preferences Form
-  async function savePreferences(form){
-    const values=Object.fromEntries([...form.querySelectorAll('input,select,textarea')].map((field,index)=>[field.id||String(index),field.type==='checkbox'?field.checked:field.value]));
-    const updated={...profileData,preferences:{...profileData.preferences,[form.id]:values}};
+  async function savePreferences(form, profileUpdates = {}){
+    const values=Object.fromEntries([...form.querySelectorAll('input,select,textarea')]
+      .filter(field => !['settingsCountry', 'settingsCity'].includes(field.id))
+      .map((field,index)=>[field.id||String(index),field.type==='checkbox'?field.checked:field.value]));
+    const updated={...profileData,...profileUpdates,preferences:{...profileData.preferences,[form.id]:values}};
     await persistProfile(updated);profileData=updated;
   }
   const notifForm = document.getElementById('notificationsForm');
   if (notifForm) {
+    const notificationSaveTracker = trackFormSaveButton(notifForm);
     notifForm.addEventListener('submit', async function(e) {
       e.preventDefault();
-      try{await savePreferences(notifForm);showToast('Notification preferences saved.');}
-      catch(error){showToast('Unable to save notification preferences. Please try again.');}
+      try {
+        await savePreferences(notifForm);
+        notificationSaveTracker.markSaved();
+        showToast('Notification preferences saved.');
+      } catch(error) {
+        console.error('Unable to save notification preferences.', error);
+        showToast('Unable to save notification preferences. Please try again.');
+      }
     });
   }
 
@@ -2097,8 +2518,10 @@
   }
 
   if (preferencesForm) {
+    const preferencesSaveTracker = trackFormSaveButton(preferencesForm);
     preferencesForm.addEventListener('submit', async function(e) {
       e.preventDefault();
+      if (!validateSettingsLocation()) return;
       if (interfaceLanguageSelect && window.devMatchI18n) {
         try {
           window.devMatchI18n.setLanguage(interfaceLanguageSelect.value);
@@ -2108,7 +2531,15 @@
           return;
         }
       }
-      try{await savePreferences(preferencesForm);showToast('Platform preferences saved.');}
+      try{
+        await savePreferences(preferencesForm, {
+          country: settingsCountrySelect.value,
+          city: settingsCityInput.value.trim()
+        });
+        settingsLocationInitialValue = {country: profileData.country, city: profileData.city};
+        preferencesSaveTracker.markSaved();
+        showToast('Platform preferences saved.');
+      }
       catch(error){showToast('Unable to save preferences. Please try again.');}
     });
   }
@@ -2143,6 +2574,11 @@
       const app = this.dataset.appToggle;
       const field = appConnectionFields[app];
       const isConnected = this.dataset.connected === 'true';
+
+      if (!isConnected && app === 'Instagram') {
+        document.querySelector('[data-app-edit="Instagram"]')?.click();
+        return;
+      }
 
       if (isConnected) {
         pendingDisconnect = { button: this, field, app };
@@ -2208,6 +2644,7 @@
   const appEditDescription = document.getElementById('appEditDescription');
   const appEditLabel = document.getElementById('appEditLabel');
   const appEditValue = document.getElementById('appEditValue');
+  const appEditSaveTracker = trackFormSaveButton(appEditForm);
   appEditValue.addEventListener('input', () => appEditValue.setCustomValidity(''));
   let editingApp = '';
   const appEditConfig = {
@@ -2243,6 +2680,25 @@
       getValue: profile => profile.googleEmail || profile.email || '',
       save: value => ({ googleEmail: value.trim(), googleConnected: true }),
       validate: () => ''
+    },
+    Instagram: {
+      title: 'Edit Instagram account',
+      description: 'Update the Instagram username shown on your profile.',
+      label: 'Instagram username',
+      type: 'text',
+      placeholder: '@username',
+      required: false,
+      getValue: profile => profile.instagram || '',
+      save: value => {
+        const username = profileContact.normalizeInstagramUsername(value);
+        return {instagram: username, instagramConnected: Boolean(username)};
+      },
+      validate: value => {
+        const username = profileContact.normalizeInstagramUsername(value);
+        return !username || profileContact.isValidInstagramUsername(username)
+          ? ''
+          : 'Enter a valid Instagram username.';
+      }
     },
     GitHub: {
       title: 'Edit GitHub account',
@@ -2286,9 +2742,11 @@
       appEditDescription.textContent = config.description;
       appEditLabel.textContent = config.label;
       appEditValue.type = config.type;
+      appEditValue.required = config.required !== false;
       appEditValue.placeholder = config.placeholder;
       appEditValue.value = config.getValue(profileData);
       appEditValue.setCustomValidity('');
+      appEditSaveTracker.markSaved();
       appEditDialog.showModal();
       appEditValue.focus();
     });
@@ -2314,7 +2772,8 @@
       }
 
       profileData = updatedProfile;
-      renderAppConnection(editingApp, true);
+      appEditSaveTracker.markSaved();
+      renderAppConnection(editingApp, Boolean(profileData[appConnectionFields[editingApp]]));
       if (editingApp === 'WhatsApp') {
         const whatsappField = document.getElementById('settingsWhatsapp');
         const whatsappDialCode = document.getElementById('settingsWhatsappDialCode');

@@ -25,27 +25,8 @@
     if(element)element.textContent=value;
   }
 
-  function setAvatar(imageUrl,fallback){
-    const element=document.getElementById('profileAvatar');
-    let validImage=typeof imageUrl==='string'&&/^data:image\/(?:jpeg|png);base64,/.test(imageUrl);
-    if(typeof imageUrl==='string'&&imageUrl.startsWith('https://')){
-      try{
-        const url=new URL(imageUrl);
-        validImage=url.origin==='https://yxwktllqbmhustmhdaqi.supabase.co'
-          &&url.pathname.startsWith('/storage/v1/object/public/project-media/');
-      }catch(error){
-        validImage=false;
-      }
-    }
-    if(!validImage){
-      element.textContent=fallback;
-      return;
-    }
-    const image=document.createElement('img');
-    image.src=imageUrl;
-    image.alt='';
-    image.setAttribute('aria-hidden','true');
-    element.replaceChildren(image);
+  function renderOverviewStatistics(statistics){
+    window.DEVMATCH_PROFILE_OVERVIEW.render(profileRoot.querySelector('[data-profile-overview]'),{statistics});
   }
 
   function normalizeList(value){
@@ -58,21 +39,24 @@
     const availability=String(profile.availability||'');
     const location=[profile.city,profile.country].filter(Boolean).join(', ');
     const username=String(client.username||profile.username||'').replace(/^@/,'');
-    setText('profileName',name);
     setText('clientProfileBreadcrumbName',name);
-    setAvatar(profile.avatar,initials(name));
     setText('identityBio',String(profile.bio||'').trim()||'No bio added yet.');
-    const badge=document.getElementById('availabilityBadge');
-    badge.querySelector('span').textContent=availability;
-    badge.hidden=!availability;
-    badge.classList.toggle('busy',availability.toLowerCase().includes('busy'));
-    badge.classList.toggle('unavailable',/not available|closed/i.test(availability));
     setText('identityHandle',username?`@${username}`:'');
     document.getElementById('identityHandle').hidden=!username;
     setText('identityLocation',location);
     document.getElementById('identityLocation').hidden=!location;
     setText('identitySpecialty',String(profile.industry||''));
     document.getElementById('identitySpecialty').hidden=!profile.industry;
+    window.DEVMATCH_PROFILE_OVERVIEW.render(profileRoot.querySelector('[data-profile-overview]'),{
+      role:'client',
+      name,
+      username,
+      avatar:profile.avatar,
+      initials:initials(name),
+      availability,
+      location,
+      bio:String(profile.bio||'').trim()||'No bio added yet.'
+    });
     document.title=`${name} — Client Profile | DEV-MATCH`;
   }
 
@@ -110,6 +94,10 @@
     },0);
     setText('statSaves',formatCompact(saves));
     setText('statViews',formatCompact(views));
+    renderOverviewStatistics({
+      views:document.getElementById('statViews').textContent.trim(),
+      favorites:document.getElementById('statSaves').textContent.trim()
+    });
     document.getElementById('projectGrid').innerHTML=requests.length?requests.map(row=>{
       const data=row.data&&typeof row.data==='object'?row.data:{};
       const title=String(row.title||'Untitled request');
@@ -125,18 +113,21 @@
     if(reviewsLoadFailed){
       setText('statRating','—');
       setText('statReviews','unable to load reviews');
+      renderOverviewStatistics({rating:'-'});
       document.getElementById('reviewList').innerHTML='<p class="empty-state">Reviews could not be loaded. Check your connection and try again.</p>';
       return;
     }
     if(!reviews.length){
       setText('statRating','—');
       setText('statReviews','no reviews yet');
+      renderOverviewStatistics({rating:'-'});
       document.getElementById('reviewList').innerHTML='<p class="empty-state">Developer reviews will appear here after a completed project.</p>';
       return;
     }
     const average=reviews.reduce((sum,review)=>sum+review.rating,0)/reviews.length;
     setText('statRating',`★ ${average.toFixed(1)}`);
     setText('statReviews',`from ${reviews.length} reviews`);
+    renderOverviewStatistics({rating:average.toFixed(1)});
     document.getElementById('reviewList').innerHTML=reviews.slice(0,8).map(review=>{
       const stars=Math.round(review.rating);
       return `<article class="review-item"><span class="review-avatar">${escapeHtml(review.reviewerInitials||initials(review.reviewerName))}</span><div class="review-copy"><h3>${escapeHtml(review.reviewerName)}</h3><small>${escapeHtml(review.projectTitle||'Completed project')}</small><p>${escapeHtml(review.text)}</p></div><span class="review-rating" aria-label="${stars} out of 5 stars">${'★'.repeat(stars)}</span></article>`;
