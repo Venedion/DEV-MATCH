@@ -11,6 +11,10 @@
   const roleLabel = document.getElementById('roomPaymentRole');
   const title = document.getElementById('roomPaymentTitle');
   const subtitle = document.getElementById('roomPaymentSubtitle');
+  const progressReviewDialog = document.getElementById('progressReviewDialog');
+  const progressReviewFrom = document.getElementById('progressReviewFrom');
+  const progressReviewContent = document.getElementById('progressReviewContent');
+  const progressReviewFooter = document.getElementById('progressReviewFooter');
   const checkoutDialog = document.getElementById('roomPaymentCheckoutDialog');
   const checkoutProject = document.getElementById('roomPaymentCheckoutProject');
   const checkoutAmountLabel = document.getElementById('roomPaymentCheckoutAmountLabel');
@@ -20,6 +24,12 @@
   let chatRoomKey;
   let agreementConversationId;
   let agreementProposalId;
+  let progressReviewKey;
+  let progressReviewProposal;
+  let progressReviewDeveloperName;
+  let progressReviewSnapshot;
+  let progressReviewGeneration = 0;
+  let progressReviewBusy = false;
   let roomTitle;
   let snapshot;
   let busy = false;
@@ -33,6 +43,10 @@
   const rupiah = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 });
   const formatTime = new Intl.DateTimeFormat('id-ID', { dateStyle: 'medium', timeStyle: 'short' });
   const formatDate = new Intl.DateTimeFormat('en-US', { dateStyle: 'medium' });
+  const progressReviewClock = new Intl.DateTimeFormat('en-US', {hour: 'numeric', minute: '2-digit'});
+  const progressReviewDate = new Intl.DateTimeFormat('en-US', {
+    month: 'short', day: 'numeric', year: 'numeric'
+  });
   const dateLabel = value => {
     if (!value) return '';
     const date = new Date(value);
@@ -169,7 +183,6 @@
       .reduce((sum, entry) => sum + Number(entry.amount || 0), 0);
     const held = Math.max(0, paid - released - refunded);
     const remaining = Math.max(0, total - paid);
-    const progressItem = room.progress?.[room.progress.length - 1];
     const canReviewProgress = client && progressReview?.status === 'PENDING';
     const awaitingProgress = developer && room.project === 'IN_PROGRESS' && !timeline.progressSubmittedAt;
     const canPayDp = client && room.project === 'NOT_STARTED' && checkoutConfigured;
@@ -181,10 +194,10 @@
     const canReportProblem = client && room.escrow !== 'AWAITING_DP' &&
       !['COMPLETED', 'CANCELLED', 'DISPUTED', 'DISPUTE_RESOLVED'].includes(room.project) && !dispute;
     const canRate = ['client', 'developer'].includes(role) && room.project === 'COMPLETED' && !ratings?.[role];
-    const progressDeadline = progressReview?.status === 'PENDING' ? dateLabel(progressReview.deadlineAt) : '';
     const handoverDeadline = handover?.status === 'AWAITING_CLIENT' ? dateLabel(handover.deadlineAt) : '';
     const submittedProgress = Boolean(timeline.progressSubmittedAt);
     const progressDone = Boolean(timeline.progressApprovedAt);
+    const progressUpdateRequested = progressReview?.status === 'UPDATE_REQUESTED';
     const dpPaid = Boolean(timeline.dpPaidAt) ||
       payments.some(payment => payment.kind === 'DP' && payment.status === 'PAID') ||
       room.releases?.some(release => release.kind === 'DP');
@@ -212,20 +225,24 @@
       ? progressReview?.autoApproved
         ? 'Progress was approved automatically after 5 days. The DP has been released to the developer.'
         : 'Progress approved. The DP has been released to the developer.'
+      : progressUpdateRequested
+        ? client
+          ? 'You requested an update. The DP remains held while the Developer resubmits progress.'
+          : `The Client requested an update: ${safe(progressReview.requestReason || 'Please review the progress submission.')}`
       : submittedProgress
         ? client
           ? 'The developer submitted progress for your review. You have 5 days to approve it; after which it is approved automatically.'
           : 'Progress has been submitted and is waiting for the client to review it.'
         : 'The developer uploads progress for the client to review. The DP is released after approval.';
     const progressStatus = progressDone || !dpPaid ? 'Upcoming'
+      : progressUpdateRequested ? 'Waiting for developer'
       : submittedProgress ? (client ? 'Waiting for you' : 'Waiting for client')
         : 'Waiting for developer';
     const progressAction = canReviewProgress
-      ? `<div class="agreement-step-actions">${progressItem
-          ? `<p><strong>${safe(progressItem.title)}</strong> · ${safe(progressItem.notes)}</p>
-              ${progressItem.links?.length ? `<ul class="payment-list">${links(progressItem.links)}</ul>` : ''}`
-          : ''}
-          <p>Review by ${safe(progressDeadline || 'the 5-day deadline')}.</p>${button('approve-progress', 'Approve progress', true)}</div>`
+      ? `<div class="agreement-step-actions">
+          <p>Review the submitted progress before approving the DP release.</p>
+          ${button('review-progress', 'Review progress', true)}
+        </div>`
       : awaitingProgress
         ? `<div class="agreement-step-actions">${section('Upload progress', form('progress',
             field('title', 'Title') + field('notes', 'Notes', true) +
@@ -529,6 +546,21 @@
       window.print();
       return;
     }
+    if (action === 'review-progress') {
+      const proposal = snapshot?.room?.proposal;
+      if (!proposal?.agreementId) {
+        setError('Progress review is not available for this agreement.');
+        return;
+      }
+      openProgressReview({
+        id: proposal.agreementId,
+        conversationId: agreementConversationId,
+        proposalId: agreementProposalId,
+        title: proposal.name,
+        developerName: snapshot.room.developerName || snapshot.room.developer?.displayName
+      });
+      return;
+    }
     const key = roomKey;
     busy = true;
     content.inert = true;
@@ -598,7 +630,7 @@
     try {
       const pending = request(key);
       loading.set(key, pending);
-      const state = await pending;
+      const state = await signProgressMedia(await pending);
       if (key !== roomKey || busy) return;
       snapshot = state;
       setError();
@@ -612,6 +644,181 @@
       loading.delete(key);
       flushAgreementRefresh(key);
     }
+  }
+
+  async function signProgressMedia(state) {
+    const progress = state.room?.progress || [];
+    const files = progress.flatMap(item => [
+      item.video,
+      ...(Array.isArray(item.screenshots) ? item.screenshots : [])
+    ].filter(file => file?.path));
+    if (!files.length) return state;
+    const client = window.devMatchBackend?.client;
+    if (!client) throw new Error('Layanan file progress belum tersedia.');
+    await Promise.all(files.map(async file => {
+      const {data, error: failure} = await client.storage.from('agreement-progress')
+        .createSignedUrl(file.path, 3600);
+      if (failure) throw failure;
+      file.url = data.signedUrl;
+    }));
+    return state;
+  }
+
+  function renderProgressReview(state) {
+    const room = state.room;
+    const progress = room.progress?.[room.progress.length - 1];
+    const review = room.progressReview;
+    if (!progress || review?.status !== 'PENDING') {
+      throw new Error('Progress is no longer waiting for review.');
+    }
+    const developerName = progressReviewDeveloperName ||
+      room.developerName || room.developer?.displayName || 'Developer';
+    const submittedDate = progress.at && !Number.isNaN(Date.parse(progress.at))
+      ? new Date(progress.at) : null;
+    const submittedAt = submittedDate
+      ? `${progressReviewDate.format(submittedDate)}, ${progressReviewClock.format(submittedDate)}`
+      : '';
+    const scope = Array.isArray(room.proposal.scopeItems) ? room.proposal.scopeItems : [];
+    const shown = new Set(Array.isArray(progress.scope) ? progress.scope : []);
+    const scopeItems = scope.map(item => {
+      const isShown = shown.has(item);
+      return `<li class="${isShown ? 'is-shown' : 'is-not-shown'}">
+        <span class="progress-review-scope-mark" aria-hidden="true">${isShown ? '&#10003;' : ''}</span>
+        <span>${safe(item)}${isShown ? '' : ' · not shown yet'}</span>
+      </li>`;
+    }).join('');
+    const video = progress.video?.url
+      ? `<video class="progress-review-video" src="${safe(progress.video.url)}" controls playsinline preload="metadata" aria-label="Submitted progress video"></video>`
+      : progress.links?.length
+        ? `<a class="progress-review-video-link" href="${safe(progress.links[0])}" target="_blank" rel="noopener noreferrer">Open submitted progress</a>`
+        : '<div class="progress-review-video-link">No progress video was attached</div>';
+    const screenshots = (progress.screenshots || []).filter(file => file.url);
+    const screenshotHtml = screenshots.length
+      ? `<section><p class="progress-review-section-label">Screenshots</p>
+          <div class="progress-review-screenshots">${screenshots.map(file =>
+            `<a href="${safe(file.url)}" target="_blank" rel="noopener noreferrer">
+              <img src="${safe(file.url)}" alt="${safe(file.name)}" loading="lazy">
+            </a>`).join('')}</div>
+        </section>`
+      : '';
+    const deadline = review.deadlineAt && !Number.isNaN(Date.parse(review.deadlineAt))
+      ? progressReviewDate.format(new Date(review.deadlineAt)) : 'the deadline';
+    progressReviewFrom.textContent = `From ${developerName}${submittedAt ? ` · submitted ${submittedAt}` : ''}`;
+    progressReviewContent.innerHTML = `
+      ${video}
+      <section>
+        <p class="progress-review-section-label">Note from ${safe(developerName)}</p>
+        <p class="progress-review-note">${safe(progress.notes || '')}</p>
+      </section>
+      <section>
+        <p class="progress-review-section-label">Scope points shown (${shown.size} of ${scope.length})</p>
+        <ul class="progress-review-scope">${scopeItems}</ul>
+      </section>
+      ${screenshotHtml}
+      <p class="progress-review-notice">
+        Approving releases the DP of <strong>${safe(rupiah.format(Number(room.proposal.dp) || 0))}</strong>
+        to ${safe(developerName)}. If you do nothing, it is approved automatically on ${safe(deadline)}.
+      </p>`;
+    progressReviewFooter.innerHTML = `
+      <button type="button" data-review-action="request-update">Request update</button>
+      <button type="button" data-review-action="approve-progress" data-primary>Approve progress</button>`;
+  }
+
+  function renderProgressUpdateForm() {
+    progressReviewContent.innerHTML = `
+      <div class="progress-review-request-form">
+        <label for="progressReviewUpdateReason">What needs to be updated?</label>
+        <textarea id="progressReviewUpdateReason" maxlength="500" rows="4" required></textarea>
+        <p id="progressReviewActionError" class="progress-review-request-error" role="alert" hidden></p>
+      </div>`;
+    progressReviewFooter.innerHTML = `
+      <button type="button" data-review-action="cancel-request">Back</button>
+      <button type="button" data-review-action="send-request" data-primary>Send request</button>`;
+    progressReviewContent.querySelector('textarea')?.focus();
+  }
+
+  function showProgressReviewError(message) {
+    let error = document.getElementById('progressReviewActionError');
+    if (!error) {
+      error = document.createElement('p');
+      error.id = 'progressReviewActionError';
+      error.className = 'progress-review-request-error';
+      error.setAttribute('role', 'alert');
+      progressReviewContent.append(error);
+    }
+    error.textContent = message;
+    error.hidden = false;
+  }
+
+  async function submitProgressReviewAction(action, fields = {}) {
+    if (progressReviewBusy || !progressReviewKey) return;
+    const key = progressReviewKey;
+    progressReviewBusy = true;
+    progressReviewFooter.querySelectorAll('button').forEach(button => { button.disabled = true; });
+    try {
+      const state = await request(key, 'apply', {action, ...fields});
+      if (key !== progressReviewKey) return;
+      progressReviewSnapshot = state;
+      if (progressReviewProposal?.agreement) {
+        progressReviewProposal.agreement.progress_review_status =
+          state.room.progressReview?.status || null;
+        progressReviewProposal.agreement.escrow_status = state.room.escrow;
+      }
+      if (key === roomKey) {
+        snapshot = state;
+        if (dialog.open) render();
+      }
+      window.dispatchEvent(new Event('devmatch:progress-review-updated'));
+      progressReviewDialog.close();
+    } catch (cause) {
+      if (key === progressReviewKey) showProgressReviewError(
+        cause.message || 'The progress review could not be submitted. Please try again.'
+      );
+    } finally {
+      progressReviewBusy = false;
+      if (progressReviewDialog.open) {
+        progressReviewFooter.querySelectorAll('button').forEach(button => { button.disabled = false; });
+      }
+    }
+  }
+
+  function openProgressReview(agreement, proposal = null) {
+    if (!agreement?.id) return;
+    progressReviewGeneration += 1;
+    const generation = progressReviewGeneration;
+    const key = JSON.stringify({agreementId: agreement.id});
+    progressReviewKey = key;
+    progressReviewProposal = proposal || agreement.proposal || null;
+    progressReviewDeveloperName = agreement.developerName ||
+      progressReviewProposal?.developerName || 'Developer';
+    progressReviewSnapshot = null;
+    progressReviewBusy = false;
+    progressReviewFrom.textContent = '';
+    progressReviewContent.textContent = 'Loading progress…';
+    progressReviewFooter.replaceChildren();
+    if (!progressReviewDialog.open) progressReviewDialog.showModal();
+    void (async () => {
+      try {
+        const state = await signProgressMedia(await request(key));
+        if (generation !== progressReviewGeneration || !progressReviewDialog.open) return;
+        if (state.role !== 'client') throw new Error('Only the Client can review progress.');
+        progressReviewSnapshot = state;
+        renderProgressReview(state);
+      } catch (cause) {
+        if (generation !== progressReviewGeneration || !progressReviewDialog.open) return;
+        progressReviewContent.textContent =
+          cause.message || 'Progress could not be loaded. Please try again.';
+        progressReviewFooter.innerHTML = '<button type="button" data-review-close>Close</button>';
+      }
+    })();
+  }
+
+  async function submitAgreementProgress(agreementId, payload) {
+    if (!agreementId) throw new Error('Agreement progress tidak valid.');
+    const key = JSON.stringify({agreementId});
+    const state = await request(key, 'apply', {action: 'progress', ...payload});
+    if (key === roomKey && dialog.open) void loadRoom(key);
+    return state;
   }
 
   function refreshAgreementRoom(key) {
@@ -787,6 +994,47 @@
     if (action === 'resolve-dispute') fields.partialRefund = Number(fields.partialRefund);
     perform(action, fields);
   });
+  progressReviewDialog.querySelector('[data-review-close]').addEventListener('click', () => {
+    if (!progressReviewBusy) progressReviewDialog.close();
+  });
+  progressReviewDialog.addEventListener('click', event => {
+    const closeButton = event.target.closest('[data-review-close]');
+    if (closeButton) {
+      if (!progressReviewBusy) progressReviewDialog.close();
+      return;
+    }
+    const action = event.target.closest('button[data-review-action]')?.dataset.reviewAction;
+    if (action === 'request-update') {
+      renderProgressUpdateForm();
+    } else if (action === 'cancel-request') {
+      if (progressReviewSnapshot) renderProgressReview(progressReviewSnapshot);
+    } else if (action === 'send-request') {
+      const reason = progressReviewContent.querySelector('#progressReviewUpdateReason')?.value.trim();
+      if (!reason) {
+        showProgressReviewError('Tell the Developer what needs to be updated.');
+        return;
+      }
+      void submitProgressReviewAction('request-progress-update', {reason});
+    } else if (action === 'approve-progress') {
+      void submitProgressReviewAction('approve-progress');
+    }
+    if (event.target === progressReviewDialog && !progressReviewBusy) {
+      const rect = progressReviewDialog.getBoundingClientRect();
+      const outside = event.clientX < rect.left || event.clientX > rect.right ||
+        event.clientY < rect.top || event.clientY > rect.bottom;
+      if (outside) progressReviewDialog.close();
+    }
+  });
+  progressReviewDialog.addEventListener('cancel', event => {
+    if (progressReviewBusy) event.preventDefault();
+  });
+  progressReviewDialog.addEventListener('close', () => {
+    progressReviewGeneration += 1;
+    progressReviewKey = null;
+    progressReviewProposal = null;
+    progressReviewDeveloperName = null;
+    progressReviewSnapshot = null;
+  });
 
   function openAgreement(agreement, operation = 'snapshot') {
     if (!agreement?.id) return;
@@ -799,6 +1047,8 @@
 
   window.DEVMATCH_ROOM_PAYMENT = {
     openAgreement,
+    openProgressReview,
+    submitProgress: submitAgreementProgress,
     setRoom(conversation) {
       const params = new URL(location.href);
       const returning = params.searchParams.get('payment') === 'return';

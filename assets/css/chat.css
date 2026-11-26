@@ -3189,6 +3189,225 @@ button.chat-attachment-card:hover {
   color: #b42318;
 }
 
+.proposal-progress-dialog {
+  width: min(560px, calc(100vw - 28px));
+  max-width: none;
+  max-height: min(92dvh, 880px);
+  margin: auto;
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid #e3e4e7;
+  border-radius: 17px;
+  background: #fff;
+  color: #17191f;
+  box-shadow: 0 20px 60px rgba(20, 23, 31, .2);
+}
+
+.proposal-progress-dialog[open] {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.proposal-progress-dialog::backdrop {
+  background: rgba(18, 22, 30, .48);
+  backdrop-filter: blur(2px);
+}
+
+.proposal-progress-dialog form {
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.proposal-progress-dialog header,
+.proposal-progress-dialog footer {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 17px 22px;
+}
+
+.proposal-progress-dialog header {
+  border-bottom: 1px solid #eceef0;
+}
+
+.proposal-progress-dialog header h2,
+.proposal-progress-dialog header p {
+  margin: 0;
+}
+
+.proposal-progress-dialog header h2 {
+  font-size: 19px;
+  line-height: 1.3;
+}
+
+.proposal-progress-dialog header p {
+  margin-top: 4px;
+  color: #656b76;
+  font-size: 12px;
+}
+
+.proposal-progress-dialog header button {
+  width: 32px;
+  height: 32px;
+  flex: none;
+  border: 0;
+  border-radius: 9px;
+  background: #f3f4f6;
+  color: #555b66;
+  font: inherit;
+  font-size: 22px;
+  cursor: pointer;
+}
+
+.proposal-progress-body {
+  min-height: 0;
+  display: grid;
+  gap: 16px;
+  padding: 19px 22px;
+  overflow-y: auto;
+}
+
+.proposal-progress-field {
+  min-width: 0;
+  display: grid;
+  gap: 7px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  color: #252831;
+  font-size: 13px;
+}
+
+.proposal-progress-field strong,
+.proposal-progress-field legend {
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.proposal-progress-field strong span,
+.proposal-progress-field small,
+.proposal-progress-hint {
+  color: #777d89;
+  font-size: 12px;
+  font-weight: 400;
+}
+
+.proposal-progress-field input[type="file"],
+.proposal-progress-field textarea {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  border: 1px solid #dfe1e5;
+  border-radius: 9px;
+  background: #fff;
+  color: #252831;
+  font: inherit;
+  font-size: 13px;
+}
+
+.proposal-progress-field input[type="file"] {
+  padding: 9px 10px;
+}
+
+.proposal-progress-field textarea {
+  min-height: 82px;
+  padding: 10px 11px;
+  resize: vertical;
+}
+
+.proposal-progress-field input:focus,
+.proposal-progress-field textarea:focus {
+  outline: 0;
+  border-color: #7d8491;
+  box-shadow: 0 0 0 3px rgba(99, 108, 124, .1);
+}
+
+.proposal-progress-scope {
+  display: grid;
+  gap: 8px;
+}
+
+.proposal-progress-scope label {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  color: #414651;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.proposal-progress-scope input {
+  flex: none;
+  margin: 2px 0 0;
+  accent-color: #17191f;
+}
+
+#proposalProgressVideoPreview {
+  width: 100%;
+  max-height: 260px;
+  border-radius: 10px;
+  background: #111;
+}
+
+#proposalProgressVideoStatus {
+  margin: 0;
+}
+
+#proposalProgressVideoStatus:empty,
+#proposalProgressScreenshotList:empty {
+  display: none;
+}
+
+.proposal-progress-files {
+  display: grid;
+  gap: 5px;
+  margin: -8px 0 0;
+  padding-left: 18px;
+  color: #555b66;
+  font-size: 12px;
+}
+
+.proposal-progress-status {
+  margin: 0;
+  color: #b42318;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.proposal-progress-dialog footer {
+  justify-content: flex-end;
+  border-top: 1px solid #eceef0;
+}
+
+.proposal-progress-dialog footer button {
+  min-height: 42px;
+  padding: 0 16px;
+  border: 1px solid #d4d7dd;
+  border-radius: 9px;
+  background: #fff;
+  color: #343840;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.proposal-progress-dialog footer button.is-primary {
+  border-color: #111;
+  background: #111;
+  color: #fff;
+}
+
+.proposal-progress-dialog footer button:disabled {
+  opacity: .55;
+  cursor: wait;
+}
+
 @media (max-width: 560px) and (orientation: portrait) {
   .chat-proposal-details-dialog {
     width: calc(100vw - 24px);
@@ -3247,6 +3466,22 @@ button.chat-attachment-card:hover {
 
   .chat-proposal-withdraw-actions button {
     width: 100%;
+  }
+
+  .proposal-progress-dialog {
+    width: calc(100vw - 24px);
+    max-height: calc(100dvh - 24px);
+  }
+
+  .proposal-progress-dialog header,
+  .proposal-progress-dialog footer {
+    padding-right: 17px;
+    padding-left: 17px;
+  }
+
+  .proposal-progress-body {
+    gap: 14px;
+    padding: 17px;
   }
 
   .chat-proposal-header,

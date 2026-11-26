@@ -4,7 +4,7 @@ const now = () => new Date().toISOString();
 export const emptyState = () => ({room: null, payments: [], ledger: [], events: []});
 export const terminal = status => ['PAID', 'EXPIRED', 'CANCELLED'].includes(status);
 const clientActions = new Set([
-  'accept', 'decline', 'revision', 'approve', 'approve-progress', 'accept-result',
+  'accept', 'decline', 'revision', 'approve', 'approve-progress', 'request-progress-update', 'accept-result',
   'rate', 'cancel', 'dispute'
 ]);
 const developerActions = new Set([
@@ -12,6 +12,10 @@ const developerActions = new Set([
   'complete-payout', 'dispute'
 ]);
 const DAY_MS = 24 * 60 * 60 * 1000;
+const progressFileTypes = new Set([
+  'image/jpeg', 'image/png', 'image/webp', 'video/mp4', 'video/quicktime', 'video/webm'
+]);
+const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export function agreementPaymentState(agreement) {
   const terms = agreement?.terms?.terms;
@@ -94,6 +98,27 @@ function deliveryLinks(value) {
   return links;
 }
 
+function progressFile(file, agreementId, actorId, type, maximumBytes) {
+  requireCondition(file && typeof file === 'object' && !Array.isArray(file), 'File progress tidak valid.', 400);
+  const prefix = `${agreementId}/${actorId}/`;
+  const name = text(file.name, 'Nama file', 120);
+  requireCondition(typeof file.path === 'string' && file.path.startsWith(prefix) &&
+    /^[A-Za-z0-9._-]{1,180}$/.test(file.path.slice(prefix.length)),
+  'Lokasi file progress tidak valid.', 400);
+  requireCondition(progressFileTypes.has(file.type) && (type === 'video'
+    ? file.type.startsWith('video/') : file.type.startsWith('image/')),
+  'Format file progress tidak didukung.', 400);
+  requireCondition(Number.isSafeInteger(file.size) && file.size > 0 && file.size <= maximumBytes,
+    'Ukuran file progress tidak valid.', 400);
+  const result = {path: file.path, name, type: file.type, size: file.size};
+  if (type === 'video') {
+    requireCondition(Number.isFinite(file.durationSeconds) && file.durationSeconds > 0 &&
+      file.durationSeconds <= 300, 'Durasi video maksimal 5 menit.', 400);
+    result.durationSeconds = Math.ceil(file.durationSeconds);
+  }
+  return result;
+}
+
 function record(state, entry, amount, orderId = null) {
   if (!state.ledger.some(row => row.entry === entry)) {
     state.ledger.push({entry, amount, order_id: orderId, recorded_at: now()});
@@ -116,7 +141,9 @@ function ensureAgreementTimeline(room) {
   const timeline = room.timeline;
   timeline.agreementCreatedAt ||= room.proposal.createdAt || null;
   timeline.dpPaidAt ||= null;
-  timeline.progressSubmittedAt ||= room.progress?.[0]?.at || null;
+  if (!Object.hasOwn(timeline, 'progressSubmittedAt')) {
+    timeline.progressSubmittedAt = room.progress?.[0]?.at || null;
+  }
   timeline.progressApprovedAt ||= null;
   timeline.dpReleasedAt ||= null;
   timeline.finalProofSharedAt ||= room.delivery?.at || null;
@@ -191,7 +218,7 @@ export function processDueTransitions(state, time = Date.now()) {
   return changed;
 }
 
-export function applyAction(state, role, {action, ...body}) {
+export function applyAction(state, role, {action, ...body}, actorId = null) {
   const permitted = role === 'reviewer' ? action === 'resolve-dispute'
     : (role === 'client' ? clientActions : developerActions).has(action);
   requireCondition(permitted, 'Aksi tidak tersedia untuk peran akun ini.', 403);
@@ -238,12 +265,45 @@ export function applyAction(state, role, {action, ...body}) {
       if (isAgreement) {
         requireCondition(room.progressReview?.status !== 'PENDING',
           'Progress sebelumnya masih menunggu review Client.');
+        requireCondition(!room.timeline.progressSubmittedAt && room.escrow === 'DP_HELD',
+          'Progress tahap ini sudah dikirim.');
       }
       requireCondition(room.progress.length < 200, 'Batas pembaruan progress tercapai.');
       {
         const submittedAt = now();
-        room.progress.push({title: text(body.title, 'Judul progress', 120), notes: text(body.notes, 'Catatan progress'),
-          links: body.links ? deliveryLinks(body.links) : [], at: submittedAt});
+        let progress;
+        if (body.video !== undefined) {
+          requireCondition(isAgreement && uuidPattern.test(actorId || ''),
+            'Upload file hanya tersedia untuk agreement.', 400);
+          const video = progressFile(body.video, room.proposal.agreementId, actorId, 'video', 50 * 1024 * 1024);
+          const screenshots = body.screenshots || [];
+          requireCondition(Array.isArray(screenshots) && screenshots.length <= 5,
+            'Maksimal 5 screenshot dapat diunggah.', 400);
+          const scopeItems = room.proposal.scopeItems || [];
+          const scope = body.scope;
+          requireCondition(Array.isArray(scope) && scope.length > 0 &&
+            scope.length <= scopeItems.length && new Set(scope).size === scope.length &&
+            scope.every(item => typeof item === 'string' && scopeItems.includes(item)),
+          'Pilih setidaknya satu scope point yang ada di agreement.', 400);
+          progress = {
+            title: video.name,
+            notes: text(body.notes, 'Catatan progress', 500),
+            scope,
+            video,
+            screenshots: screenshots.map(file =>
+              progressFile(file, room.proposal.agreementId, actorId, 'image', 5 * 1024 * 1024)),
+            links: body.links ? deliveryLinks(body.links) : [],
+            at: submittedAt
+          };
+        } else {
+          progress = {
+            title: text(body.title, 'Judul progress', 120),
+            notes: text(body.notes, 'Catatan progress'),
+            links: body.links ? deliveryLinks(body.links) : [],
+            at: submittedAt
+          };
+        }
+        room.progress.push(progress);
         if (isAgreement && !room.timeline.progressSubmittedAt) {
           room.progressReview = {
             status: 'PENDING',
@@ -262,6 +322,18 @@ export function applyAction(state, role, {action, ...body}) {
       requireCondition(isAgreement && role === 'client' &&
         room.progressReview?.status === 'PENDING', 'Progress belum menunggu persetujuan.');
       requireCondition(approveProgress(state, now()), 'Progress tidak dapat disetujui.');
+      break;
+    case 'request-progress-update':
+      requireCondition(isAgreement && role === 'client' &&
+        room.progressReview?.status === 'PENDING', 'Progress belum menunggu review Client.');
+      room.progressReview = {
+        ...room.progressReview,
+        status: 'UPDATE_REQUESTED',
+        requestReason: text(body.reason, 'Alasan permintaan update', 500),
+        requestedAt: now()
+      };
+      room.timeline.progressSubmittedAt = null;
+      room.project = 'IN_PROGRESS';
       break;
     case 'deliver':
       requireCondition(['IN_PROGRESS', 'REVISION'].includes(room.project), 'Proyek belum siap untuk final delivery.');

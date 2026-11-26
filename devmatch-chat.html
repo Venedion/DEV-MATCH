@@ -8,8 +8,8 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="assets/css/dashboard.css?v=20261126-rebase-merge-v1">
-  <link rel="stylesheet" href="assets/css/chat.css?v=20261126-proposal-approval-confirm-v1">
-  <link rel="stylesheet" href="assets/css/chat-payment.css?v=20261126-project-timeline-v20">
+  <link rel="stylesheet" href="assets/css/chat.css?v=20261126-progress-upload-v1">
+  <link rel="stylesheet" href="assets/css/chat-payment.css?v=20261126-progress-review-v1">
   <link rel="stylesheet" href="assets/css/project-detail-popup.css?v=20261126-rebase-merge-v1">
   <link rel="stylesheet" href="assets/css/client-shell.css?v=20261126-rebase-merge-v1">
   <link rel="stylesheet" href="assets/css/mode-switch-animation.css?v=20261030-client-mode-route">
@@ -304,8 +304,67 @@
       </footer>
     </section>
   </dialog>
+  <dialog id="proposalProgressDialog" class="proposal-progress-dialog" aria-labelledby="proposalProgressTitle">
+    <form id="proposalProgressForm">
+      <header>
+        <div>
+          <h2 id="proposalProgressTitle">Upload progress</h2>
+          <p id="proposalProgressProject"></p>
+        </div>
+        <button type="button" data-progress-close aria-label="Close upload progress">×</button>
+      </header>
+      <div class="proposal-progress-body">
+        <label class="proposal-progress-field">
+          <strong>Progress video</strong>
+          <input id="proposalProgressVideo" type="file" accept="video/mp4,video/quicktime,video/webm,.mp4,.mov,.webm" required>
+          <small>MP4, MOV, or WebM · up to 50 MB · maximum 5 minutes</small>
+        </label>
+        <video id="proposalProgressVideoPreview" controls playsinline hidden></video>
+        <p id="proposalProgressVideoStatus" class="proposal-progress-hint" role="status"></p>
+        <label class="proposal-progress-field">
+          <strong>Notes</strong>
+          <textarea id="proposalProgressNotes" maxlength="500" rows="3" required></textarea>
+          <small><span id="proposalProgressNotesCount">0</span> / 500</small>
+        </label>
+        <fieldset class="proposal-progress-field">
+          <legend>Scope points shown</legend>
+          <div id="proposalProgressScope" class="proposal-progress-scope"></div>
+          <small>Select at least one point.</small>
+        </fieldset>
+        <label class="proposal-progress-field">
+          <strong>Screenshots <span>(optional)</span></strong>
+          <input id="proposalProgressScreenshots" type="file" accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp" multiple>
+          <small>JPG, PNG, or WebP · up to 5 images · 5 MB each</small>
+        </label>
+        <ul id="proposalProgressScreenshotList" class="proposal-progress-files" aria-live="polite"></ul>
+        <p id="proposalProgressStatus" class="proposal-progress-status" role="status" aria-live="polite" hidden></p>
+      </div>
+      <footer>
+        <button type="button" data-progress-close>Cancel</button>
+        <button type="submit" class="is-primary">Submit progress</button>
+      </footer>
+    </form>
+  </dialog>
+  <dialog id="progressReviewDialog" class="progress-review-dialog" aria-labelledby="progressReviewTitle">
+    <section>
+      <header>
+        <div>
+          <div class="progress-review-title-row">
+            <h2 id="progressReviewTitle">Review progress</h2>
+            <span>Review needed</span>
+          </div>
+          <p id="progressReviewFrom"></p>
+        </div>
+        <button type="button" data-review-close aria-label="Close progress review">×</button>
+      </header>
+      <div id="progressReviewContent" class="progress-review-content" aria-live="polite">
+        Loading progress…
+      </div>
+      <footer id="progressReviewFooter"></footer>
+    </section>
+  </dialog>
   <div id="proposalDetailsPrintContent" class="proposal-details-print-content"></div>
-  <script src="assets/js/chat-payment.js?v=20261126-project-timeline-v15"></script>
+  <script src="assets/js/chat-payment.js?v=20261126-progress-review-v1"></script>
   <dialog class="chat-proposal-dialog" id="proposeProjectDialog" aria-labelledby="proposeProjectTitle">
     <form class="chat-proposal-form" id="proposeProjectForm">
       <header class="chat-proposal-header">
@@ -468,7 +527,7 @@
     </section>
   </dialog>
 
-  <script src="assets/js/chat.js?v=20261126-proposal-approval-confirm-v2"></script>
+  <script src="assets/js/chat.js?v=20261126-progress-upload-v1"></script>
   <script src="assets/js/project-detail-popup.js?v=20261126-rebase-merge-v1"></script>
   <script src="assets/js/nav-behavior.js?v=20261126-rebase-merge-v1"></script>
 </body>

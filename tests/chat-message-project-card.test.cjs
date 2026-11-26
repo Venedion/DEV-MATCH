@@ -248,7 +248,8 @@ test('Chat composer sends a proposal and renders role-specific proposal cards',(
   assert.match(api,/function attachProposalDetails\(/);
   assert.match(api,/payment_agreement_rooms/);
   assert.match(api,/escrow_status: escrowStatus/);
-  assert.match(api,/paymentRoom\.state\?\.room\?\.escrow/);
+  assert.match(api,/paymentRoom\?\.escrow/);
+  assert.match(api,/progressReview\?\.status \|\| null/);
   assert.match(api,/totalPrice < 40000 \|\| totalPrice > 1000000000/);
   assert.match(migration,/create table public\.project_proposals/);
   assert.match(migration,/create table public\.project_agreements/);
@@ -382,4 +383,53 @@ test('Proposal card stage preview renders all 16 role variants with inert action
     }
   }
   assert.equal((view.renderGallery().match(/<article class="chat-project-proposal-card"/g)||[]).length,16);
+  const liveProposal = {
+    ...proposal,
+    agreement: {id:'live-agreement',escrow_status:'DP_HELD',progress_review_status:null}
+  };
+  assert.match(view.render(liveProposal),/data-proposal-progress="preview-proposal"/);
+  liveProposal.agreement.progress_review_status='PENDING';
+  const submittedCard=view.render(liveProposal);
+  assert.doesNotMatch(submittedCard,/data-proposal-progress=/);
+  assert.match(submittedCard,/Progress submitted/);
+});
+
+test('Developer progress card opens the agreement upload dialog and submits private evidence',()=>{
+  const chat=fs.readFileSync('assets/js/chat.js','utf8');
+  const payment=fs.readFileSync('assets/js/chat-payment.js','utf8');
+  const api=fs.readFileSync('supabase/functions/chat-api/index.ts','utf8');
+  const service=fs.readFileSync('supabase/functions/payment-api/service.mjs','utf8');
+  const html=fs.readFileSync('devmatch-chat.html','utf8');
+  const styles=fs.readFileSync('assets/css/chat.css','utf8');
+
+  assert.match(chat,/data-proposal-progress="\$\{escapeHtml\(proposal\.id\)\}"/);
+  assert.match(chat,/progressButton && chatMessagesEl\.contains\(progressButton\)[\s\S]*?openProposalProgress\(proposal\)/);
+  assert.match(chat,/uploadProgressFile\(file, agreementId, userId, uploadedPaths\)[\s\S]*?agreement-progress/);
+  assert.match(chat,/submitProgress\(progressProposal\.agreement\.id,[\s\S]*?screenshots: screenshotFiles[\s\S]*?scope,[\s\S]*?notes/);
+  assert.match(chat,/remove\(uploadedPaths\)/);
+  assert.match(payment,/submitProgress: submitAgreementProgress/);
+  assert.match(api,/progress_review_status: progressReviewStatus/);
+  assert.match(service,/applyAction\(state, role, body, user\)/);
+  assert.match(html,/<dialog id="proposalProgressDialog"[\s\S]*?id="proposalProgressVideo"[\s\S]*?id="proposalProgressNotes"[\s\S]*?id="proposalProgressScope"[\s\S]*?id="proposalProgressScreenshots"[\s\S]*?Submit progress/);
+  assert.match(styles,/\.proposal-progress-dialog\[open\]/);
+  assert.match(styles,/\.proposal-progress-scope/);
+});
+
+test('Client Review progress opens the illustrated review popup with both review actions',()=>{
+  const chat=fs.readFileSync('assets/js/chat.js','utf8');
+  const payment=fs.readFileSync('assets/js/chat-payment.js','utf8');
+  const state=fs.readFileSync('supabase/functions/payment-api/state.mjs','utf8');
+  const html=fs.readFileSync('devmatch-chat.html','utf8');
+  const styles=fs.readFileSync('assets/css/chat-payment.css','utf8');
+
+  assert.match(chat,/data-proposal-review-progress="\$\{escapeHtml\(proposal\.id\)\}"/);
+  assert.match(chat,/openProgressReview\(\{[\s\S]*?\}, proposal\)/);
+  assert.match(payment,/function renderProgressReview\(state\)[\s\S]*?Scope points shown \(\$\{shown\.size\} of \$\{scope\.length\}\)[\s\S]*?Approving releases the DP/);
+  assert.match(payment,/data-review-action="request-update"[\s\S]*?data-review-action="approve-progress"/);
+  assert.match(payment,/submitProgressReviewAction\('request-progress-update', \{reason\}\)/);
+  assert.match(payment,/submitProgressReviewAction\('approve-progress'\)/);
+  assert.match(state,/case 'request-progress-update'[\s\S]*?status: 'UPDATE_REQUESTED'[\s\S]*?room\.timeline\.progressSubmittedAt = null/);
+  assert.match(html,/<dialog id="progressReviewDialog"[\s\S]*?Review needed[\s\S]*?progressReviewContent[\s\S]*?progressReviewFooter/);
+  assert.match(styles,/\.progress-review-dialog\[open\]/);
+  assert.match(styles,/\.progress-review-notice/);
 });

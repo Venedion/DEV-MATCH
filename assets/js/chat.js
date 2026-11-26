@@ -13,6 +13,8 @@
     'image/png',
     'image/webp'
   ]);
+  const PROGRESS_VIDEO_TYPES = new Set(['video/mp4', 'video/quicktime', 'video/webm']);
+  const PROGRESS_IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
   const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, character => ({
     '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
   }[character]));
@@ -146,6 +148,8 @@
   const proposalDialogEl = document.getElementById('proposeProjectDialog');
   const proposalFormEl = document.getElementById('proposeProjectForm');
   const proposalScopeListEl = document.getElementById('proposeProjectScopeList');
+  const progressDialogEl = document.getElementById('proposalProgressDialog');
+  const progressFormEl = document.getElementById('proposalProgressForm');
   const searchInputEl = document.getElementById('chatSearchInput');
   const filterBtns = document.querySelectorAll('.chat-filter-btn');
   const chatViewportEl = document.getElementById('chatViewport');
@@ -218,6 +222,9 @@
   let selectedAttachment = null;
   let projectDetailsPromise = null;
   let proposalContextId = null;
+  let progressProposal = null;
+  let progressVideoObjectUrl = null;
+  let progressVideoDurationSeconds = null;
   let proposalScopeItems = [];
   let proposalDownPayment = 25;
   let proposalRevisionCount = 2;
@@ -391,6 +398,155 @@
       : date.toLocaleDateString('en-US', {year: 'numeric', month: 'short', day: 'numeric'});
   }
 
+  function setProgressStatus(message = '') {
+    const status = document.getElementById('proposalProgressStatus');
+    if (!status) return;
+    status.textContent = message;
+    status.hidden = !message;
+  }
+
+  function clearProgressVideoPreview() {
+    const preview = document.getElementById('proposalProgressVideoPreview');
+    if (progressVideoObjectUrl) URL.revokeObjectURL(progressVideoObjectUrl);
+    progressVideoObjectUrl = null;
+    progressVideoDurationSeconds = null;
+    if (preview) {
+      preview.pause();
+      preview.removeAttribute('src');
+      preview.load();
+      preview.hidden = true;
+    }
+  }
+
+  function openProposalProgress(proposal) {
+    if (!proposal?.agreement?.id || !progressDialogEl || !progressFormEl) return;
+    progressProposal = proposal;
+    progressFormEl.reset();
+    clearProgressVideoPreview();
+    setProgressStatus();
+    const videoStatus = document.getElementById('proposalProgressVideoStatus');
+    const project = document.getElementById('proposalProgressProject');
+    const notesCount = document.getElementById('proposalProgressNotesCount');
+    const scope = document.getElementById('proposalProgressScope');
+    const screenshots = document.getElementById('proposalProgressScreenshotList');
+    if (videoStatus) videoStatus.textContent = '';
+    if (project) project.textContent = proposal.terms?.projectName || 'Project agreement';
+    if (notesCount) notesCount.textContent = '0';
+    screenshots?.replaceChildren();
+    scope?.replaceChildren();
+    [...new Set(Array.isArray(proposal.terms?.scope) ? proposal.terms.scope : [])].forEach((item, index) => {
+      const label = document.createElement('label');
+      const checkbox = document.createElement('input');
+      checkbox.type = 'checkbox';
+      checkbox.name = 'progressScope';
+      checkbox.value = item;
+      checkbox.id = `proposalProgressScope${index}`;
+      const text = document.createElement('span');
+      text.textContent = item;
+      label.append(checkbox, text);
+      scope?.append(label);
+    });
+    if (!progressDialogEl.open) progressDialogEl.showModal();
+  }
+
+  function validateProgressVideo(file) {
+    if (!PROGRESS_VIDEO_TYPES.has(file.type) || file.size < 1 || file.size > 50 * 1024 * 1024) {
+      throw new Error('Choose an MP4, MOV, or WebM video up to 50 MB.');
+    }
+  }
+
+  function validateProgressScreenshots(files) {
+    if (files.length > 5 || files.some(file =>
+      !PROGRESS_IMAGE_TYPES.has(file.type) || file.size < 1 || file.size > 5 * 1024 * 1024)) {
+      throw new Error('Choose up to 5 JPG, PNG, or WebP screenshots, each up to 5 MB.');
+    }
+  }
+
+  function safeProgressFileName(name) {
+    return name.replace(/[^A-Za-z0-9._-]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 100) || 'progress-file';
+  }
+
+  async function uploadProgressFile(file, agreementId, userId, uploadedPaths) {
+    const path = `${agreementId}/${userId}/${crypto.randomUUID()}-${safeProgressFileName(file.name)}`;
+    uploadedPaths.push(path);
+    const {error} = await client.storage.from('agreement-progress').upload(path, file, {
+      cacheControl: '3600',
+      contentType: file.type,
+      upsert: false
+    });
+    if (error) throw error;
+    return {path, name: file.name.slice(0, 120), type: file.type, size: file.size};
+  }
+
+  async function submitProposalProgress(event) {
+    event.preventDefault();
+    const videoInput = document.getElementById('proposalProgressVideo');
+    const screenshotInput = document.getElementById('proposalProgressScreenshots');
+    const notesInput = document.getElementById('proposalProgressNotes');
+    const submitButton = progressFormEl.querySelector('[type="submit"]');
+    const video = videoInput.files?.[0];
+    const screenshots = Array.from(screenshotInput.files || []);
+    const scope = [...progressFormEl.querySelectorAll('input[name="progressScope"]:checked')]
+      .map(input => input.value);
+    const notes = notesInput.value.trim();
+    const durationSeconds = progressVideoDurationSeconds;
+    const uploadedPaths = [];
+    let submitted = false;
+    const closeButtons = progressDialogEl.querySelectorAll('[data-progress-close]');
+    try {
+      if (!progressProposal?.agreement?.id) throw new Error('Project agreement is unavailable.');
+      if (!video) throw new Error('Choose a progress video.');
+      validateProgressVideo(video);
+      validateProgressScreenshots(screenshots);
+      if (!Number.isFinite(durationSeconds) || durationSeconds <= 0 || durationSeconds > 300) {
+        throw new Error('The video must be no longer than 5 minutes.');
+      }
+      if (!notes || notes.length > 500) throw new Error('Add notes of up to 500 characters.');
+      if (!scope.length) throw new Error('Select at least one scope point.');
+      if (new Set(scope).size !== scope.length) throw new Error('Remove duplicate scope points.');
+      if (typeof window.DEVMATCH_ROOM_PAYMENT?.submitProgress !== 'function') {
+        throw new Error('Progress submission service is unavailable. Please try again.');
+      }
+      submitButton.disabled = true;
+      submitButton.textContent = 'Uploading…';
+      closeButtons.forEach(button => { button.disabled = true; });
+      const user = await backend.ready;
+      if (!user?.id) throw new Error('Log in to upload progress.');
+      const videoFile = await uploadProgressFile(video, progressProposal.agreement.id, user.id, uploadedPaths);
+      const screenshotFiles = [];
+      for (const file of screenshots) {
+        const uploaded = await uploadProgressFile(file, progressProposal.agreement.id, user.id, uploadedPaths);
+        screenshotFiles.push(uploaded);
+      }
+      await window.DEVMATCH_ROOM_PAYMENT.submitProgress(progressProposal.agreement.id, {
+        video: {...videoFile, durationSeconds},
+        screenshots: screenshotFiles,
+        scope,
+        notes
+      });
+      submitted = true;
+      progressProposal.agreement.progress_review_status = 'PENDING';
+      progressDialogEl.close();
+      renderMessagesThread();
+    } catch (error) {
+      if (!submitted && uploadedPaths.length) {
+        try {
+          const {error: cleanupError} = await client.storage.from('agreement-progress').remove(uploadedPaths);
+          if (cleanupError) throw cleanupError;
+        } catch (cleanupError) {
+          console.error('Unable to remove unsubmitted progress files.', cleanupError);
+        }
+      }
+      setProgressStatus(error.message || 'Progress could not be submitted. Please try again.');
+    } finally {
+      if (submitButton) {
+        submitButton.disabled = false;
+        submitButton.textContent = 'Submit progress';
+      }
+      closeButtons.forEach(button => { button.disabled = false; });
+    }
+  }
+
   function renderProjectProposalCard(proposal, preview = null) {
     if (!proposal?.terms) return '';
     const terms = proposal.terms;
@@ -404,9 +560,14 @@
     const isPending = proposal.status === 'pending';
     const isAccepted = proposal.status === 'accepted';
     const isDpPaid = !isPreview && isAccepted && proposal.agreement?.escrow_status === 'DP_HELD';
+    const isProgressPending = !isPreview && proposal.agreement?.progress_review_status === 'PENDING';
+    const isProgressUpdateRequested = !isPreview &&
+      proposal.agreement?.progress_review_status === 'UPDATE_REQUESTED';
     const isAwaitingDp = !isPreview && isAccepted && currentProfile?.account_role === 'dev' &&
       (!proposal.agreement?.escrow_status || proposal.agreement.escrow_status === 'AWAITING_DP');
-    const status = stageView?.status || (isAwaitingDp ? 'Awaiting DP'
+    const status = stageView?.status || (isProgressPending ? 'Progress submitted'
+      : isProgressUpdateRequested ? 'Update requested'
+      : isAwaitingDp ? 'Awaiting DP'
       : isDpPaid ? (currentProfile?.account_role === 'dev' ? 'DP paid' : 'Waiting for progress')
       : isAccepted ? 'Accepted' : proposal.status === 'withdrawn' ? 'Withdrawn' : 'Pending approval');
     const conversation = getActiveConversation();
@@ -414,6 +575,14 @@
       (currentProfile?.account_role === 'client' ? 'the Developer' : 'the Client'));
     const statusNote = stageView
       ? stageView.note(contactName)
+      : isProgressPending
+      ? currentProfile?.account_role === 'dev'
+        ? `Progress submitted. Waiting for ${escapeHtml(conversation?.contactDisplayName || conversation?.name || 'the Client')} to review it.`
+        : 'The Developer submitted progress for your review.'
+      : isProgressUpdateRequested
+      ? currentProfile?.account_role === 'dev'
+        ? 'The Client requested an update. Submit progress again when it is ready.'
+        : 'You requested an update. The DP remains held while the Developer resubmits progress.'
       : isAwaitingDp
       ? `Waiting for ${escapeHtml(getActiveConversation()?.contactDisplayName || getActiveConversation()?.name || 'the client')} to pay the DP. You can start once it is received.`
       : isDpPaid
@@ -434,14 +603,16 @@
         return `<button class="${index === 0 ? 'chat-proposal-card-primary' : ''}" type="button">${escapeHtml(actionLabel)}</button>`;
       })
       : [
-        isDpPaid && currentProfile?.account_role === 'dev'
-          ? '<button class="chat-proposal-card-primary" type="button">Upload progress</button>'
+        isDpPaid && !isProgressPending && currentProfile?.account_role === 'dev'
+          ? `<button class="chat-proposal-card-primary" type="button" data-proposal-progress="${escapeHtml(proposal.id)}">Upload progress</button>`
           : '',
         isPending && !isCreator
           ? `<button class="chat-proposal-card-primary" type="button" data-proposal-accept="${escapeHtml(proposal.id)}">Accept proposal</button>`
           : '',
         isAccepted && proposal.agreement?.id
-          ? `<button class="chat-proposal-card-primary" type="button" data-proposal-payments="${escapeHtml(proposal.id)}">Open project</button>`
+          ? isProgressPending && currentProfile?.account_role === 'client'
+            ? `<button class="chat-proposal-card-primary" type="button" data-proposal-review-progress="${escapeHtml(proposal.id)}">Review progress</button>`
+            : `<button class="chat-proposal-card-primary" type="button" data-proposal-payments="${escapeHtml(proposal.id)}">Open project</button>`
           : '',
         isPending && !isCreator
           ? `<button type="button" data-proposal-ask-changes="${escapeHtml(proposal.id)}">Ask for changes</button>`
@@ -453,7 +624,7 @@
       ].filter(Boolean);
     const hasPrimaryAction = isPreview
       ? actions.length > 0
-      : (isDpPaid && currentProfile?.account_role === 'dev') ||
+      : (isDpPaid && !isProgressPending && currentProfile?.account_role === 'dev') ||
         (isPending && !isCreator) || (isAccepted && Boolean(proposal.agreement?.id));
     const rows = [
       ['DP', `${Number(terms.dpPercent) || 0}%`, terms.dpAmount],
@@ -2550,6 +2721,7 @@
   }
 
   function bindControls() {
+    window.addEventListener('devmatch:progress-review-updated', () => renderMessagesThread());
     filterBtns.forEach(button => {
       button.addEventListener('click', () => {
         filterBtns.forEach(item => item.classList.remove('active'));
@@ -2609,6 +2781,88 @@
       openProposalForm();
     });
     proposalFormEl?.addEventListener('submit', event => void submitProjectProposal(event));
+    const progressVideoInput = document.getElementById('proposalProgressVideo');
+    const progressVideoPreview = document.getElementById('proposalProgressVideoPreview');
+    const progressScreenshotInput = document.getElementById('proposalProgressScreenshots');
+    const progressScreenshotList = document.getElementById('proposalProgressScreenshotList');
+    const progressVideoStatus = document.getElementById('proposalProgressVideoStatus');
+    const progressNotes = document.getElementById('proposalProgressNotes');
+    const progressNotesCount = document.getElementById('proposalProgressNotesCount');
+    progressFormEl?.addEventListener('submit', event => void submitProposalProgress(event));
+    progressVideoInput?.addEventListener('change', () => {
+      clearProgressVideoPreview();
+      setProgressStatus();
+      if (progressVideoStatus) progressVideoStatus.textContent = '';
+      const file = progressVideoInput.files?.[0];
+      if (!file) return;
+      try {
+        validateProgressVideo(file);
+        const url = URL.createObjectURL(file);
+        progressVideoObjectUrl = url;
+        progressVideoPreview.hidden = false;
+        if (progressVideoStatus) progressVideoStatus.textContent = 'Checking video duration…';
+        progressVideoPreview.onloadedmetadata = () => {
+          if (progressVideoObjectUrl !== url) return;
+          const duration = Number(progressVideoPreview.duration);
+          if (!Number.isFinite(duration) || duration <= 0 || duration > 300) {
+            progressVideoDurationSeconds = null;
+            if (progressVideoStatus) progressVideoStatus.textContent = 'Video duration must be 5 minutes or less.';
+            return;
+          }
+          progressVideoDurationSeconds = duration;
+          if (progressVideoStatus) {
+            const totalSeconds = Math.ceil(duration);
+            const minutes = Math.floor(totalSeconds / 60);
+            const seconds = (totalSeconds % 60).toString().padStart(2, '0');
+            progressVideoStatus.textContent = `Video duration: ${minutes}:${seconds}`;
+          }
+        };
+        progressVideoPreview.onerror = () => {
+          if (progressVideoObjectUrl !== url) return;
+          progressVideoDurationSeconds = null;
+          if (progressVideoStatus) progressVideoStatus.textContent = 'The selected video could not be read.';
+        };
+        progressVideoPreview.src = url;
+        progressVideoPreview.load();
+      } catch (error) {
+        progressVideoInput.value = '';
+        setProgressStatus(error.message);
+      }
+    });
+    progressScreenshotInput?.addEventListener('change', () => {
+      progressScreenshotList?.replaceChildren();
+      setProgressStatus();
+      const files = Array.from(progressScreenshotInput.files || []);
+      try {
+        validateProgressScreenshots(files);
+        files.forEach(file => {
+          const item = document.createElement('li');
+          item.textContent = `${file.name} · ${formatFileSize(file.size)}`;
+          progressScreenshotList?.append(item);
+        });
+      } catch (error) {
+        progressScreenshotInput.value = '';
+        setProgressStatus(error.message);
+      }
+    });
+    progressNotes?.addEventListener('input', () => {
+      if (progressNotesCount) progressNotesCount.textContent = String(progressNotes.value.length);
+    });
+    progressDialogEl?.querySelectorAll('[data-progress-close]').forEach(button => {
+      button.addEventListener('click', () => progressDialogEl.close());
+    });
+    progressDialogEl?.addEventListener('click', event => {
+      if (event.target === progressDialogEl &&
+          !progressFormEl?.querySelector('[type="submit"]')?.disabled) progressDialogEl.close();
+    });
+    progressDialogEl?.addEventListener('cancel', event => {
+      if (progressFormEl?.querySelector('[type="submit"]')?.disabled) event.preventDefault();
+    });
+    progressDialogEl?.addEventListener('close', () => {
+      clearProgressVideoPreview();
+      progressProposal = null;
+      setProgressStatus();
+    });
     proposalDialogEl?.querySelectorAll('[data-close-propose-project]').forEach(button => {
       button.addEventListener('click', () => proposalDialogEl.close());
     });
@@ -2799,6 +3053,30 @@
         const proposal = getActiveConversation()?.messages
           .find(message => message.proposal?.id === viewProposalButton.dataset.proposalView)?.proposal;
         if (proposal) openProposalDetails(proposal);
+        return;
+      }
+      const progressButton = event.target.closest('[data-proposal-progress]');
+      if (progressButton && chatMessagesEl.contains(progressButton)) {
+        event.preventDefault();
+        const proposal = getActiveConversation()?.messages
+          .find(message => message.proposal?.id === progressButton.dataset.proposalProgress)?.proposal;
+        if (proposal) openProposalProgress(proposal);
+        return;
+      }
+      const progressReviewButton = event.target.closest('[data-proposal-review-progress]');
+      if (progressReviewButton && chatMessagesEl.contains(progressReviewButton)) {
+        event.preventDefault();
+        const proposal = getActiveConversation()?.messages
+          .find(message => message.proposal?.id === progressReviewButton.dataset.proposalReviewProgress)?.proposal;
+        if (proposal?.agreement?.id) {
+          window.DEVMATCH_ROOM_PAYMENT?.openProgressReview({
+            id: proposal.agreement.id,
+            conversationId: proposal.conversation_id,
+            proposalId: proposal.id,
+            title: proposal.terms?.projectName,
+            developerName: getActiveConversation()?.contactDisplayName || getActiveConversation()?.name
+          }, proposal);
+        }
         return;
       }
       const proposalPaymentsButton = event.target.closest('[data-proposal-payments]');

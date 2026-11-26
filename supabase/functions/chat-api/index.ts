@@ -437,7 +437,7 @@ async function attachMessageProjectContexts(
   });
 }
 
-function exposeProposal(row, agreement = null, escrowStatus = null) {
+function exposeProposal(row, agreement = null, escrowStatus = null, progressReviewStatus = null) {
   return {
     id: row.id,
     conversation_id: row.conversation_id,
@@ -460,6 +460,7 @@ function exposeProposal(row, agreement = null, escrowStatus = null) {
       id: agreement.id,
       payment_status: agreement.payment_status,
       escrow_status: escrowStatus,
+      progress_review_status: progressReviewStatus,
       created_at: agreement.created_at
     } : null
   };
@@ -488,18 +489,20 @@ async function getProposalDetailsByIds(supabaseUrl, serviceRoleKey, proposalIds)
       agreement_id: `in.(${agreementIds.join(',')})`
     })
     : [];
-  const escrowByAgreement = new Map(paymentRooms.map(paymentRoom => [
+  const stateByAgreement = new Map(paymentRooms.map(paymentRoom => [
     paymentRoom.agreement_id,
-    paymentRoom.state?.room?.escrow || 'AWAITING_DP'
+    paymentRoom.state?.room || null
   ]));
-  return new Map(proposals.map(proposal => [
-    proposal.id,
-    exposeProposal(
+  return new Map(proposals.map(proposal => {
+    const agreement = agreementsByProposal.get(proposal.id);
+    const paymentRoom = stateByAgreement.get(agreement?.id);
+    return [proposal.id, exposeProposal(
       proposal,
-      agreementsByProposal.get(proposal.id),
-      escrowByAgreement.get(agreementsByProposal.get(proposal.id)?.id) || 'AWAITING_DP'
-    )
-  ]));
+      agreement,
+      paymentRoom?.escrow || 'AWAITING_DP',
+      paymentRoom?.progressReview?.status || null
+    )];
+  }));
 }
 
 async function attachProposalDetails(messages, rows, supabaseUrl, serviceRoleKey) {

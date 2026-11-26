@@ -24,7 +24,17 @@ async function fixture(t) {
   await db.exec(`
     create role anon; create role authenticated; create role service_role bypassrls;
     create schema auth;
+    create schema storage;
     create table auth.users (id uuid primary key);
+    create function auth.uid() returns uuid language sql stable
+      as $$ select nullif(current_setting('request.jwt.claim.sub', true), '')::uuid $$;
+    create table storage.buckets (
+      id text primary key, name text not null, public boolean not null,
+      file_size_limit bigint, allowed_mime_types text[]
+    );
+    create table storage.objects (bucket_id text not null, name text not null);
+    create function storage.foldername(text) returns text[] language sql immutable
+      as $$ select array['agreement', 'user']::text[] $$;
     create table public.projects (id text primary key, owner_id uuid not null, project_kind text not null, title text not null);
     create table public.conversations (id uuid primary key, project_id text, participant_a_id uuid not null,
       participant_b_id uuid not null, participant_a_role text not null, participant_b_role text not null,
@@ -41,6 +51,7 @@ async function fixture(t) {
   await db.exec(readFileSync(join(__dirname, '../supabase/migrations/20261125140000_payment_room_chat_context.sql'), 'utf8'));
   await db.exec(readFileSync(join(__dirname, '../supabase/migrations/202611260001_proposal_agreement_payments.sql'), 'utf8'));
   await db.exec(readFileSync(join(__dirname, '../supabase/migrations/202611260002_project_payment_timeline.sql'), 'utf8'));
+  await db.exec(readFileSync(join(__dirname, '../supabase/migrations/202611260005_agreement_progress_uploads.sql'), 'utf8'));
   await db.query('insert into auth.users values ($1), ($2), ($3)', [developer, client, reviewer]);
   await db.query("insert into public.projects values ($1, $2, 'portfolio', 'Project')", [projectId, developer]);
   await db.query(`insert into public.conversations
@@ -225,10 +236,65 @@ test('accepted project agreements use the proposal terms for sandbox payments an
   const dpPaid = await handle(developer, 'snapshot');
   assert.equal(dpPaid.room.project, 'IN_PROGRESS');
   assert.equal(dpPaid.room.timeline.dpPaidAt, dpPaid.payments[0].paid_at);
-  await apply(developer, 'progress', {title: 'First milestone', notes: 'Initial work is ready for review.'});
+  const progressVideo = {
+    path: `${agreementId}/${developer}/video.mp4`,
+    name: 'progress.mp4',
+    type: 'video/mp4',
+    size: 1024,
+    durationSeconds: 90
+  };
+  const progressScreenshot = {
+    path: `${agreementId}/${developer}/screen.png`,
+    name: 'screen.png',
+    type: 'image/png',
+    size: 512
+  };
+  await assert.rejects(apply(developer, 'progress', {
+    video: {...progressVideo, path: `${agreementId}/${client}/video.mp4`},
+    notes: 'Initial work is ready for review.',
+    scope: [terms.scope[0]]
+  }), {status: 400});
+  await assert.rejects(apply(developer, 'progress', {
+    video: {...progressVideo, durationSeconds: 301},
+    notes: 'Initial work is ready for review.',
+    scope: [terms.scope[0]]
+  }), {status: 400});
+  await apply(developer, 'progress', {
+    video: progressVideo,
+    screenshots: [progressScreenshot],
+    notes: 'Initial work is ready for review.',
+    scope: [terms.scope[0]]
+  });
   const progressSubmitted = await handle(client, 'snapshot');
   assert.equal(progressSubmitted.room.project, 'AWAITING_PROGRESS_REVIEW');
   assert.equal(progressSubmitted.room.progressReview.status, 'PENDING');
+  assert.equal(progressSubmitted.room.progress[0].video.path, progressVideo.path);
+  assert.deepEqual(progressSubmitted.room.progress[0].scope, [terms.scope[0]]);
+  assert.equal(progressSubmitted.room.progress[0].screenshots[0].name, progressScreenshot.name);
+  await assert.rejects(apply(developer, 'progress', {
+    title: 'Second milestone',
+    notes: 'This stage has already been submitted.'
+  }), {status: 409});
+  const requestedUpdate = await apply(client, 'request-progress-update', {
+    reason: 'Please include the source code section in the walkthrough.'
+  });
+  assert.equal(requestedUpdate.room.progressReview.status, 'UPDATE_REQUESTED');
+  assert.equal(requestedUpdate.room.progressReview.requestReason,
+    'Please include the source code section in the walkthrough.');
+  assert.equal(requestedUpdate.room.project, 'IN_PROGRESS');
+  assert.equal(requestedUpdate.room.escrow, 'DP_HELD');
+  assert.equal(requestedUpdate.room.timeline.progressSubmittedAt, null);
+  await assert.rejects(apply(client, 'request-progress-update', {reason: 'Another update.'}), {status: 409});
+  await apply(developer, 'progress', {
+    video: {...progressVideo, path: `${agreementId}/${developer}/progress-updated.mp4`},
+    notes: 'Added the requested source code section.',
+    scope: [terms.scope[0], terms.scope[1]]
+  });
+  const progressResubmitted = await handle(client, 'snapshot');
+  assert.equal(progressResubmitted.room.project, 'AWAITING_PROGRESS_REVIEW');
+  assert.equal(progressResubmitted.room.progressReview.status, 'PENDING');
+  assert.equal(progressResubmitted.room.progress.length, 2);
+  assert.deepEqual(progressResubmitted.room.progress[1].scope, terms.scope);
   await assert.rejects(handle(client, 'checkout', {kind: 'REMAINING'}), {status: 409});
   await apply(client, 'approve-progress');
   const progressApproved = await handle(developer, 'snapshot');

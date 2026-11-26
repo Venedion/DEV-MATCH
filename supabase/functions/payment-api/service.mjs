@@ -117,7 +117,7 @@ export function paymentService(store, gateway) {
         return makeCheckout(ref, load, body.kind);
       }
       if (operation === 'apply') {
-        const result = await mutate(ref, load, (state, role) => applyAction(state, role, body));
+        const result = await mutate(ref, load, (state, role) => applyAction(state, role, body, user));
         return paymentSnapshot(result.state, result.role, gateway.configured);
       }
       requireCondition(['snapshot', 'refresh'].includes(operation), 'Aksi pembayaran tidak valid.', 400);
