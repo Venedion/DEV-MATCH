@@ -58,8 +58,17 @@ test('Client DP Demo payment uses the existing Midtrans Sandbox checkout',()=>{
   assert.match(payment,/checkoutDialog\.querySelector\('\[data-demo-payment\]'\)\.addEventListener\('click', \(\) =>\s*perform\('DP', \{confirmed: true\}\)\)/);
   assert.match(payment,/request\(key, 'checkout', \{kind: action\}\)/);
   assert.doesNotMatch(payment,/request\(key, 'demo-payment'/);
-  assert.match(payment,/location\.assign\(target\.href\)/);
   assert.match(html,/Midtrans Sandbox is for testing; no real money moves/);
+});
+
+test('Snap checkout keeps the agreement tab open, including when pop-ups are blocked',()=>{
+  const payment=fs.readFileSync('assets/js/chat-payment.js','utf8');
+  assert.match(payment,/window\.open\('about:blank', '_blank'\)[\s\S]*?await request\(key, 'checkout'/);
+  assert.match(payment,/checkoutTab\.opener = null/);
+  assert.match(payment,/checkoutTab\.location\.replace\(target\.href\)/);
+  assert.match(payment,/link\.href = target\.href;\s*link\.target = '_blank';\s*link\.rel = 'noopener noreferrer'/);
+  assert.match(payment,/if \(!checkoutOpened && checkoutTab && !checkoutTab\.closed\) checkoutTab\.close\(\)/);
+  assert.doesNotMatch(payment,/(?<!checkoutTab\.)location\.(assign|replace)\(target\.href\)/);
 });
 
 test('Agreement actions reuse the proposal details popup and print its proposal terms',()=>{

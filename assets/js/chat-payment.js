@@ -563,23 +563,43 @@
       return;
     }
     const key = roomKey;
+    const isCheckout = action === 'DP' || action === 'REMAINING';
+    const dpConfirmationOpen = action === 'DP' && fields.confirmed;
     busy = true;
     content.inert = true;
-    const checkoutButtons = action === 'DP' && fields.confirmed
+    const checkoutButtons = dpConfirmationOpen
       ? [...checkoutDialog.querySelectorAll('button')] : [];
     checkoutButtons.forEach(checkoutButton => { checkoutButton.disabled = true; });
     setError();
+    if (dpConfirmationOpen) setCheckoutError();
+    let checkoutTab;
+    let checkoutOpened = false;
     let updated = false;
     try {
-      if (['DP', 'REMAINING'].includes(action)) {
+      if (isCheckout) {
+        // Open during the click so the browser can authorize the new tab.
+        checkoutTab = window.open('about:blank', '_blank');
+        if (checkoutTab) checkoutTab.opener = null;
         const checkout = await request(key, 'checkout', {kind: action});
         if (key !== roomKey) return;
         const target = new URL(checkout.redirectUrl);
         if (target.origin !== 'https://app.sandbox.midtrans.com' || !target.pathname.startsWith('/snap/')) {
           throw new Error('Tautan checkout Sandbox tidak valid.');
         }
-        if (action === 'DP') checkoutDialog.close();
-        location.assign(target.href);
+        if (checkoutTab && !checkoutTab.closed) {
+          checkoutTab.location.replace(target.href);
+          checkoutOpened = true;
+          if (dpConfirmationOpen) checkoutDialog.close();
+        } else {
+          const link = document.createElement('a');
+          link.href = target.href;
+          link.target = '_blank';
+          link.rel = 'noopener noreferrer';
+          link.textContent = 'Open Midtrans Sandbox in a new tab';
+          const message = dpConfirmationOpen ? checkoutError : error;
+          message.replaceChildren(link);
+          message.hidden = false;
+        }
       } else {
           if (action === 'rate') fields.rating = Number(fields.rating);
         const state = action === 'refresh' ? await request(key, 'refresh')
@@ -591,7 +611,7 @@
       }
     } catch (cause) {
       if (key === roomKey) {
-        if (action === 'DP' && fields.confirmed) {
+        if (dpConfirmationOpen) {
           if ([401, 403].includes(cause.status)) {
             checkoutDialog.close();
             showAccessError(cause);
@@ -603,6 +623,7 @@
         }
       }
     } finally {
+      if (!checkoutOpened && checkoutTab && !checkoutTab.closed) checkoutTab.close();
       busy = false;
       content.inert = false;
       checkoutButtons.forEach(checkoutButton => { checkoutButton.disabled = false; });
