@@ -31,7 +31,7 @@ test('location selection keeps the setup country-specific hierarchy and saves co
   assert.match(profileJs,/if\(country==='Malaysia'\)return \{parent:'State',parentPlural:'states',child:'City',childPlural:'cities'\}/);
   assert.match(profileJs,/if\(country==='Singapore'\)return \{parent:'Region',parentPlural:'regions',child:'Area',childPlural:'areas'\}/);
   assert.match(settingsJs,/await savePreferences\(preferencesForm, \{\s*country: settingsCountrySelect\.value,\s*city: settingsCityInput\.value\.trim\(\)/);
-  assert.match(settingsJs,/settingsLocationDataReady\s*&&\s*country === profileData\.country\s*&&\s*city === profileData\.city/);
+  assert.match(settingsJs,/const knownLocation = settingsLocationDataReady[\s\S]*?settingsLocationRegions\[country\][\s\S]*?group\.cities\.some\(item => `\$\{group\.name\}, \$\{item\.name\}` === city\)/);
   assert.match(settingsJs,/function settingsLocationArticle\(value\)/);
   assert.match(settingsJs,/then \$\{settingsLocationArticle\(labels\.child\)\}/);
   assert.match(profileJs,/function locationArticle\(value\)/);

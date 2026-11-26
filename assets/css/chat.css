@@ -576,8 +576,9 @@ body.chat-body {
 }
 
 .chat-action-btn.whatsapp-btn svg {
-  stroke: none;
-  fill: #fff;
+  color: #fff;
+  stroke: currentColor;
+  fill: none;
   width: 15px;
   height: 15px;
 }

@@ -59,8 +59,11 @@
     :[];
   const projects=isDeveloper?loadDeveloperProjects():loadClientRequests();
   const profileOverview=document.querySelector('[data-profile-overview]');
+  const clientProfileDesktopLayout=window.matchMedia('(min-width:821px) and (orientation:landscape)');
   const toast=document.getElementById('profileToast');
   let toastTimer;
+  let clientProfileMetricsChannel=null;
+  let clientProfileMetricsRefreshTimer=null;
 
   function readStorage(key,fallback){
     try{
@@ -134,6 +137,8 @@
     const chatUrl=isDeveloper?'devmatch-chat.html':'devmatch-chat.html?role=client';
     document.documentElement.lang='en';
     document.body.classList.toggle('client-shell-page',!isDeveloper);
+    document.body.classList.toggle('client-profile-view',!isDeveloper);
+    document.body.classList.toggle('developer-profile-view',isDeveloper);
     window.DEVMATCH_SIDEBAR_NAVIGATION?.setWorkspace(role);
     document.body.classList.toggle('profile-preview-mode',isPreview);
     document.title=`${displayName} — My Profile | DEV-MATCH`;
@@ -147,6 +152,7 @@
     setLink('userMenu',profileUrl);
     setLink('profileNavLink',profileUrl);
     setLink('settingsLink',settingsUrl.replace('#account',''));
+    setLink('manageConnectedAppsLink',settingsUrl.replace('#account','#integrations'));
     setLink('editSkillsLink',skillsUrl);
     setLink('editExperienceLink',experienceUrl);
     setLink('editProfileMobile',profileDetailsUrl);
@@ -172,6 +178,43 @@
     document.getElementById('workspaceBadge').classList.toggle('client-workspace-mode',!isDeveloper);
     document.querySelector('.workspace-icon').classList.toggle('client-workspace-icon',!isDeveloper);
     document.getElementById('identitySpecialty').hidden=!isDeveloper&&!profile.industry;
+    document.querySelector('.about-card').hidden=true;
+    document.getElementById('skillsCard').hidden=!isDeveloper;
+    document.getElementById('experienceCard').hidden=!isDeveloper;
+    const quickContactCard=document.querySelector('.contact-card');
+    const connectedAppsCard=document.getElementById('connectedAppsCard');
+    const profileShowcase=document.querySelector('.profile-showcase');
+    const profileDetails=document.querySelector('.profile-details');
+    const profileColumns=document.querySelector('.profile-columns');
+    const developerDetailsDesktop=document.getElementById('developerDetailsDesktop');
+    const developerDetailCards=[
+      document.getElementById('specializationCard'),
+      document.getElementById('skillsCard'),
+      document.getElementById('experienceCard')
+    ];
+    document.getElementById('clientProfileActions').append(document.querySelector('.profile-actions'));
+    document.getElementById('clientProfileSide').hidden=false;
+    document.getElementById('clientCompanyDetails').append(document.getElementById('roleInfoCard'));
+    const moveProfileContent=()=>{
+      const desktop=clientProfileDesktopLayout.matches;
+      const quickContactTarget=document.getElementById(desktop?'clientQuickContactDesktop':'clientQuickContactMobile');
+      if(quickContactCard.parentElement!==quickContactTarget)quickContactTarget.append(quickContactCard);
+      developerDetailsDesktop.hidden=!isDeveloper||!desktop;
+      if(desktop){
+        const connectedAppsTarget=document.getElementById('clientConnectedAppsDesktop');
+        const showcaseTarget=document.getElementById('clientShowcaseDesktop');
+        if(connectedAppsCard.parentElement!==connectedAppsTarget)connectedAppsTarget.append(connectedAppsCard);
+        if(profileShowcase.parentElement!==showcaseTarget)showcaseTarget.append(profileShowcase);
+        if(isDeveloper)developerDetailCards.forEach(card=>developerDetailsDesktop.append(card));
+      }else{
+        if(profileShowcase.parentElement!==profileColumns)profileColumns.append(profileShowcase);
+        if(isDeveloper)developerDetailCards.forEach(card=>profileDetails.append(card));
+        if(connectedAppsCard.parentElement!==profileDetails)profileDetails.append(connectedAppsCard);
+      }
+    };
+    moveProfileContent();
+    clientProfileDesktopLayout.addEventListener('change',moveProfileContent);
+    window.addEventListener('resize',moveProfileContent);
     if(!isDeveloper&&profile.industry)setText('identitySpecialty',profile.industry);
     setText('identityBio',bio||'No bio added yet.');
     setText('mobileIdentityBio',bio||'No bio added yet.');
@@ -187,13 +230,17 @@
     setText('reviewsHeading',isDeveloper?'Client Reviews':'Developer Reviews');
     setText('reviewsDescription',isDeveloper?'Feedback from clients after completed projects.':'Feedback from developers after completed projects.');
     setText('contactIntro',isDeveloper?'Have a project in mind? Let’s talk.':'Interested in working together? Get in touch.');
-    document.getElementById('editProfile').href=settingsUrl;
     const previewProfile=document.getElementById('previewProfile');
     previewProfile.href=`${profileUrl}&preview=1`;
     previewProfile.target=isDeveloper?'_blank':'_self';
+    previewProfile.rel='noopener noreferrer';
+    const editProfile=document.getElementById('editProfile');
+    editProfile.href=settingsUrl;
+    editProfile.removeAttribute('target');
+    editProfile.removeAttribute('rel');
     if(isPreview){
-      document.getElementById('editProfile').hidden=true;
-      document.getElementById('previewProfile').hidden=true;
+      previewProfile.hidden=true;
+      editProfile.hidden=true;
       document.getElementById('previewBanner').hidden=false;
       setLink('returnFromPreview',profileUrl);
     }
@@ -202,7 +249,7 @@
       document.getElementById('statSavesLabel').textContent='Request saves';
       document.getElementById('statRatingLabel').textContent='Developer rating';
     }
-    setLink('directMessageLink',chatUrl);
+    profileContact.configureDirectMessageLink(document.getElementById('directMessageLink'),chatUrl,true);
     setLink('whatsappLink',profile.whatsapp?`https://wa.me/${String(profile.whatsapp).replace(/\D/g,'')}`:'#');
     document.getElementById('whatsappLink').classList.toggle('disabled',!String(profile.whatsapp||'').replace(/\D/g,''));
     const instagramUrl=profileContact.instagramUrl(profile.instagram||'');
@@ -266,7 +313,6 @@
   }
 
   function renderIdentity(){
-    const availability=profile.availability||'';
     const avatar=initials(displayName);
     setAvatar('userAvatar',profile.avatar,avatar);
     setText('topUserName',username||displayName);
@@ -279,16 +325,17 @@
     const joined=formatJoined();
     setText('identityJoined',joined?`Joined ${joined}`:'');
     document.getElementById('identityJoined').hidden=!joined;
-    window.DEVMATCH_PROFILE_OVERVIEW.render(profileOverview,{
+    const identity={
       role:isDeveloper?'developer':'client',
       name:displayName,
       username,
       avatar:profile.avatar,
       initials:avatar,
-      availability,
       location,
       bio:bio||'No bio added yet.'
-    });
+    };
+    if(isDeveloper)identity.availability=profile.availability||'';
+    window.DEVMATCH_PROFILE_OVERVIEW.render(profileOverview,identity);
   }
 
   function setAvatar(id,imageUrl,fallback){
@@ -323,7 +370,7 @@
       root.innerHTML=`<div class="card-heading"><h2>Rates &amp; Work Terms</h2></div><div class="role-info-grid"><div class="role-info-item"><small>HOURLY RATE</small><strong>${escapeHtml(hourlyRate)}</strong></div><div class="role-info-item"><small>MINIMUM PROJECT</small><strong>${escapeHtml(profile.minProjectPrice||'Not provided')}</strong></div></div>${contracts.length?`<div class="contract-list">${contracts.map(item=>`<span>${escapeHtml(item)}</span>`).join('')}</div>`:'<p class="empty-state">No work terms added yet.</p>'}`;
     }else{
       const businessLocation=[city,country].filter(Boolean).join(', ')||'Not provided';
-      root.innerHTML=`<div class="card-heading"><h2>Company Details</h2></div><div class="role-info-grid"><div class="role-info-item"><small>BUSINESS NAME</small><strong>${escapeHtml(profile.companyName||profile.displayName||'Not provided')}</strong></div><div class="role-info-item"><small>INDUSTRY</small><strong>${escapeHtml(profile.industry||'Not provided')}</strong></div><div class="role-info-item"><small>NPWP STATUS</small><strong>${profile.npwp?'On file':'Not provided'}</strong></div><div class="role-info-item"><small>BUSINESS LOCATION</small><strong>${escapeHtml(businessLocation)}</strong></div></div>`;
+      root.innerHTML=`<div class="card-heading"><h2>Company Details</h2></div><div class="role-info-grid"><div class="role-info-item"><small>BUSINESS NAME</small><strong>${escapeHtml(profile.companyName||profile.displayName||'Not provided')}</strong></div><div class="role-info-item"><small>INDUSTRY</small><strong>${escapeHtml(profile.industry||'Not provided')}</strong></div><div class="role-info-item"><small>NPWP STATUS</small><strong>${profile.npwp?'On file':'-'}</strong></div><div class="role-info-item"><small>BUSINESS LOCATION</small><strong>${escapeHtml(businessLocation)}</strong></div></div>`;
     }
   }
 
@@ -374,17 +421,45 @@
     }).join('');
   }
 
+  const connectedAppIcons={
+    Instagram:{
+      color:'#c13584',
+      svg:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="18" cy="6" r="1" fill="currentColor" stroke="none"/></svg>'
+    },
+    WhatsApp:{
+      color:'#25d366',
+      svg:'<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path transform="translate(3.6 3.6) scale(.7)" d="M17.5 14.4c-.3-.1-1.8-.9-2.1-1-.3-.1-.5-.1-.7.1s-.8 1-.9 1.2c-.2.2-.4.2-.7.1s-1.3-.5-2.5-1.5c-.9-.8-1.5-1.8-1.7-2.1-.2-.3 0-.5.1-.7.1-.1.3-.3.4-.5.1-.2.2-.3.3-.5s0-.4-.1-.5c-.1-.1-.7-1.7-1-2.3-.3-.6-.5-.5-.7-.5h-.6c-.2 0-.6.1-.9.4s-1.2 1.2-1.2 2.9 1.2 3.4 1.4 3.6c.2.2 2.4 3.7 5.8 5.1 3.4 1.4 3.4.9 4 .9.6 0 2-.8 2.3-1.6.3-.8.3-1.5.2-1.6-.1-.1-.3-.2-.6-.3z" fill="currentColor"/></svg>'
+    },
+    GitHub:{
+      color:'#24292e',
+      svg:'<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0 1 12 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0 0 22 12.017C22 6.484 17.522 2 12 2z"/></svg>'
+    },
+    Google:{
+      color:'#ea4335',
+      svg:'<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12.48 10.92v3.28h7.84c-.24 1.84-.853 3.187-1.787 4.133-1.147 1.147-2.933 2.4-6.053 2.4-4.827 0-8.6-3.893-8.6-8.72s3.773-8.72 8.6-8.72c2.6 0 4.507 1.027 5.907 2.347l2.307-2.307C18.747 1.44 16.133 0 12.48 0 5.867 0 .307 5.387.307 12s5.56 12 12.173 12c3.573 0 6.267-1.173 8.373-3.36 2.16-2.16 2.84-5.213 2.84-7.667 0-.76-.053-1.467-.173-2.053H12.48z"/></svg>'
+    },
+    LinkedIn:{
+      color:'#0a66c2',
+      svg:'<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.28 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.75M6.88 8.56a1.68 1.68 0 0 0 1.68-1.68c0-.93-.75-1.69-1.68-1.69a1.69 1.69 0 0 0-1.69 1.69c0 .93.76 1.68 1.69 1.68m1.39 9.94v-8.37H5.5v8.37h2.77z"/></svg>'
+    }
+  };
+
   function renderConnectedApps(){
     const isConnected=(field,defaultValue)=>typeof profile[field]==='boolean'?profile[field]:defaultValue;
-    const apps=[
-      {name:'WhatsApp Business',icon:'WA',connected:isConnected('whatsappConnected',Boolean(String(profile.whatsapp||'').replace(/\D/g,''))),verified:Boolean(profile.whatsappVerified)},
-      {name:'GitHub',icon:'GH',connected:isConnected('githubConnected',Boolean(profile.github||profile.githubUrl)),verified:Boolean(profile.githubVerified)},
-      {name:'Google',icon:'G',connected:isConnected('googleConnected',false),verified:Boolean(profile.googleVerified)},
-      {name:'LinkedIn',icon:'in',connected:isConnected('linkedinConnected',Boolean(profile.linkedin||profile.linkedinUrl)),verified:Boolean(profile.linkedinVerified)}
+    const apps=isDeveloper?[
+      {name:'WhatsApp Business',icon:connectedAppIcons.WhatsApp,connected:isConnected('whatsappConnected',Boolean(String(profile.whatsapp||'').replace(/\D/g,''))),verified:Boolean(profile.whatsappVerified)},
+      {name:'GitHub',icon:connectedAppIcons.GitHub,connected:isConnected('githubConnected',Boolean(profile.github||profile.githubUrl)),verified:Boolean(profile.githubVerified)},
+      {name:'Google',icon:connectedAppIcons.Google,connected:isConnected('googleConnected',false),verified:Boolean(profile.googleVerified)},
+      {name:'LinkedIn',icon:connectedAppIcons.LinkedIn,connected:isConnected('linkedinConnected',Boolean(profile.linkedin||profile.linkedinUrl)),verified:Boolean(profile.linkedinVerified)}
+    ]:[
+      {name:'Instagram',icon:connectedAppIcons.Instagram,connected:isConnected('instagramConnected',Boolean(String(profile.instagram||'').trim()))},
+      {name:'WhatsApp Business',icon:connectedAppIcons.WhatsApp,connected:isConnected('whatsappConnected',Boolean(String(profile.whatsapp||'').replace(/\D/g,'')))},
+      {name:'Google Account',icon:connectedAppIcons.Google,connected:isConnected('googleConnected',/^[A-Z0-9._%+-]+@gmail\.com$/i.test(String(profile.email||'')))},
+      {name:'LinkedIn',icon:connectedAppIcons.LinkedIn,connected:isConnected('linkedinConnected',Boolean(profile.linkedinUrl||profile.linkedin))}
     ];
     document.getElementById('connectedList').innerHTML=apps.map(app=>{
       const status=app.verified?'Verified':app.connected?'Connected':'Not connected';
-      return `<div class="connected-app"><div class="connected-app-info"><span class="app-icon">${app.icon}</span><b>${app.name}</b></div><span class="app-status${app.connected?' connected':''}${app.verified?' verified':''}">${status}</span></div>`;
+      return `<div class="connected-app"><div class="connected-app-info"><span class="app-icon" style="color:${app.icon.color}">${app.icon.svg}</span><b>${app.name}</b></div><span class="app-status${app.connected?' connected':''}${app.verified?' verified':''}">${status}</span></div>`;
     }).join('');
   }
 
@@ -453,6 +528,60 @@
     });
   }
 
+  async function refreshClientProfileMetrics(userId){
+    try{
+      const metrics=await window.devMatchBackend.loadClientProfileMetrics(userId);
+      setText('mobileStatViews',formatCompact(metrics.views));
+      setText('mobileStatFavorites',formatCompact(metrics.favorites));
+    }catch(error){
+      console.error('Unable to load client profile metrics from Supabase.',error);
+      setText('mobileStatViews','—');
+      setText('mobileStatFavorites','—');
+    }
+    renderProfileOverviewStatistics();
+  }
+
+  function scheduleClientProfileMetricsRefresh(userId){
+    if(document.hidden||clientProfileMetricsRefreshTimer!==null)return;
+    clientProfileMetricsRefreshTimer=window.setTimeout(()=>{
+      clientProfileMetricsRefreshTimer=null;
+      if(!document.hidden)void refreshClientProfileMetrics(userId);
+    },250);
+  }
+
+  async function initializeClientProfileMetrics(){
+    if(isDeveloper)return;
+    try{
+      const user=await window.devMatchBackend.ready;
+      if(!user)return;
+      await refreshClientProfileMetrics(user.id);
+      const {data,error}=await window.devMatchBackend.client.auth.getSession();
+      if(error)throw error;
+      if(data.session?.user.id!==user.id)return;
+      await window.devMatchBackend.client.realtime.setAuth(data.session.access_token);
+      clientProfileMetricsChannel=window.devMatchBackend.client
+        .channel(`devmatch-client-profile-metrics:${user.id}`,{config:{private:true}})
+        .on('broadcast',{event:'refresh'},()=>scheduleClientProfileMetricsRefresh(user.id))
+        .subscribe(status=>{
+          if(status==='SUBSCRIBED')scheduleClientProfileMetricsRefresh(user.id);
+          else if(status==='CHANNEL_ERROR'||status==='TIMED_OUT'){
+            console.error('Unable to subscribe to client profile metric updates.',status);
+          }
+        });
+      window.addEventListener('pagehide',()=>{
+        if(clientProfileMetricsChannel){
+          void window.devMatchBackend.client.removeChannel(clientProfileMetricsChannel);
+          clientProfileMetricsChannel=null;
+        }
+      },{once:true});
+      document.addEventListener('visibilitychange',()=>{
+        if(!document.hidden)scheduleClientProfileMetricsRefresh(user.id);
+      });
+    }catch(error){
+      console.error('Unable to initialize live client profile metrics.',error);
+    }
+  }
+
   function renderActivity(){
     let activity=[];
     if(isDeveloper){
@@ -483,8 +612,8 @@
       setText('statSaves',formatCompact(saves));
       setText('statViews',formatCompact(views));
     }
-    setText('mobileStatFavorites',document.getElementById('statSaves').textContent.trim()||'0');
-    setText('mobileStatViews',document.getElementById('statViews').textContent.trim()||'0');
+    setText('mobileStatFavorites',isDeveloper?document.getElementById('statSaves').textContent.trim()||'0':'—');
+    setText('mobileStatViews',isDeveloper?document.getElementById('statViews').textContent.trim()||'0':'—');
     renderProfileOverviewStatistics();
   }
 
@@ -626,6 +755,7 @@
   void renderReviews();
   renderActivity();
   renderStats();
+  void initializeClientProfileMetrics();
   document.getElementById('shareProfile').addEventListener('click',shareProfile);
   document.getElementById('shareProfileMobile').addEventListener('click',shareProfile);
   const profileShareDialog=document.getElementById('profileShareDialog');

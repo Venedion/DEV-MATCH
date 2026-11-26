@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="assets/css/dashboard.css?v=20261126-rebase-merge-v1">
-  <link rel="stylesheet" href="assets/css/my-profile.css?v=20261127-desktop-back-navigation-v1">
+  <link rel="stylesheet" href="assets/css/my-profile.css?v=20261126-whatsapp-outline-v1">
   <link rel="stylesheet" href="assets/css/client-shell.css?v=20261125-responsive-orientation-v1">
   <link rel="stylesheet" href="assets/css/mode-switch-animation.css?v=20261030-client-mode-route">
   <link rel="stylesheet" href="assets/css/mobile-navigation.css?v=20261126-scrollbar-hidden-v1">
@@ -45,7 +45,7 @@
   </script>
   <script src="assets/js/i18n.js?v=20261126-client-whatsapp-instagram-v1"></script>
 <script src="assets/vendor/supabase-2.119.0.js"></script>
-<script src="assets/js/backend.js?v=20261126-username-validation-v1"></script>
+<script src="assets/js/backend.js?v=20261126-client-profile-metrics-v1"></script>
 <link rel="stylesheet" href="assets/css/form-controls.css?v=20261126-placeholder-unified-v1">
 <link rel="stylesheet" href="assets/css/developer-mode-icon.css?v=20261125-developer-mode-icon-v2">
 <link rel="stylesheet" href="assets/css/profile-overview.css?v=20261126-profile-overview-v11">
@@ -87,11 +87,13 @@
 
   <main class="dashboard profile-page">
     <header class="profile-page-heading">
-      <div><p class="eyebrow">Account</p><h1>My Profile</h1></div>
-      <a class="edit-profile-button" id="editProfile" href="devmatch-settings.html?role=dev#account"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m14 5 5 5M4 20l4-.8L19.2 8a2.8 2.8 0 0 0-4-4L4 15.2 4 20z"/></svg><span class="edit-profile-button-label">Edit Profile</span><span class="mobile-profile-settings-label">Settings</span></a>
+      <div><h1>My Profile</h1></div>
+      <a class="edit-profile-button" id="previewProfile" href="devmatch-my-profile.html?role=dev&amp;preview=1" target="_blank" rel="noopener noreferrer"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg><span class="edit-profile-button-label">Preview as Public</span><span class="mobile-profile-preview-label">Preview</span></a>
     </header>
     <div class="profile-public-banner" id="previewBanner" hidden><span>Public profile preview</span><a id="returnFromPreview" href="devmatch-my-profile.html">Back to My Profile</a></div>
 
+    <div class="client-profile-layout" id="clientProfileLayout">
+    <div class="client-profile-main">
     <section class="profile-identity-card profile-overview" data-profile-overview aria-labelledby="profileName">
       <div class="profile-cover"><span class="cover-code" aria-hidden="true"><span class="cover-role-icon cover-role-icon-developer"><span class="developer-mode-icon"></span></span><svg class="cover-role-icon cover-role-icon-client" viewBox="0 0 24 24"><rect x="3" y="7" width="18" height="14" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></span><span class="cover-orbit cover-orbit-one"></span><span class="cover-orbit cover-orbit-two"></span></div>
       <div class="identity-body">
@@ -104,7 +106,7 @@
             </div></div>
             <div class="profile-actions">
               <button class="button button-secondary" id="shareProfile" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.6 10.6 6.8-4.2m-6.8 7 6.8 4.2"/></svg>Share Profile</button>
-              <a class="button button-secondary" id="previewProfile" href="#" target="_blank" rel="noopener noreferrer"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>Preview as Public</a>
+              <a class="button button-secondary" id="editProfile" href="devmatch-settings.html?role=dev#account"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m14 5 5 5M4 20l4-.8L19.2 8a2.8 2.8 0 0 0-4-4L4 15.2 4 20z"/></svg>Edit Profile</a>
             </div>
           </div>
           <p class="identity-bio" id="identityBio"></p>
@@ -122,6 +124,17 @@
         </div>
       </div>
     </section>
+    <div id="clientQuickContactDesktop"></div>
+    <div class="client-profile-actions" id="clientProfileActions"></div>
+    <div id="clientConnectedAppsDesktop"></div>
+    <div id="developerDetailsDesktop" hidden></div>
+    </div>
+    <div class="client-profile-side" id="clientProfileSide" hidden>
+      <div id="clientCompanyDetails"></div>
+      <div id="clientQuickContactMobile"></div>
+      <div id="clientShowcaseDesktop"></div>
+    </div>
+    </div>
 
     <div class="profile-columns">
       <aside class="profile-details">
@@ -137,28 +150,28 @@
           </div>
           <div class="profile-specialty-grid" id="specializationList"></div>
         </section>
-        <section class="profile-card">
+        <section class="profile-card" id="skillsCard">
           <div class="card-heading">
             <h2 id="skillsHeading">Skills &amp; Tech Stacks</h2>
             <a class="profile-card-edit" id="editSkillsLink" href="devmatch-settings.html?role=dev#settingsSkillsCard"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L8 18l-4 1 1-4Z"/></svg>Edit</a>
           </div>
           <div class="skill-list" id="skillList"></div>
         </section>
-        <section class="profile-card">
+        <section class="profile-card" id="experienceCard">
           <div class="card-heading">
             <h2>Experience</h2>
             <a class="profile-card-edit" id="editExperienceLink" href="devmatch-settings.html?role=dev#settingsExperienceCard"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L8 18l-4 1 1-4Z"/></svg>Edit</a>
           </div>
           <ol class="experience-list" id="experienceList"></ol>
         </section>
-        <section class="profile-card">
+        <section class="profile-card" id="connectedAppsCard">
           <div class="card-heading"><h2>Connected Apps</h2><a class="connected-app-manage" id="manageConnectedAppsLink" href="devmatch-settings.html?role=dev#integrations"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>Manage</a></div>
           <div class="connected-list" id="connectedList"></div>
         </section>
         <section class="profile-card contact-card">
           <div class="card-heading"><h2>Quick Contact</h2></div>
           <p id="contactIntro">Have a project in mind? Let's talk.</p>
-          <a class="contact-whatsapp" id="whatsappLink" href="#" target="_blank" rel="noopener noreferrer"><span aria-hidden="true">◉</span>Chat on WhatsApp</a>
+          <a class="contact-whatsapp" id="whatsappLink" href="#" target="_blank" rel="noopener noreferrer"><svg id="whatsappIcon" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path transform="translate(3.6 3.6) scale(.7)" d="M17.5 14.4c-.3-.1-1.8-.9-2.1-1-.3-.1-.5-.1-.7.1s-.8 1-.9 1.2c-.2.2-.4.2-.7.1s-1.3-.5-2.5-1.5c-.9-.8-1.5-1.8-1.7-2.1-.2-.3 0-.5.1-.7.1-.1.3-.3.4-.5.1-.2.2-.3.3-.5s0-.4-.1-.5c-.1-.1-.7-1.7-1-2.3-.3-.6-.5-.5-.7-.5h-.6c-.2 0-.6.1-.9.4s-1.2 1.2-1.2 2.9 1.2 3.4 1.4 3.6c.2.2 2.4 3.7 5.8 5.1 3.4 1.4 3.4.9 4 .9.6 0 2-.8 2.3-1.6.3-.8.3-1.5.2-1.6-.1-.1-.3-.2-.6-.3z" fill="currentColor"/></svg>Chat on WhatsApp</a>
           <a class="contact-instagram" id="instagramLink" href="#" target="_blank" rel="noopener noreferrer" aria-label="Open Instagram profile" hidden>
             <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="18" cy="6" r="1" fill="currentColor" stroke="none"/></svg>
             <span>Instagram</span>
@@ -200,7 +213,7 @@
         <div class="profile-share-dialog-heading"><h2 id="profileShareTitle">Share profile</h2><button class="profile-share-close" id="closeProfileShare" type="button" aria-label="Close share options"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg></button></div>
         <p>Share your public DEV-MATCH profile.</p>
         <button class="profile-share-option" id="copyProfileLink" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="8" width="12" height="13" rx="2"/><path d="M16 8V5a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h2"/></svg>Copy Link</button>
-        <a class="profile-share-option" id="shareProfileWhatsapp" href="#" target="_blank" rel="noopener noreferrer"><span class="profile-share-whatsapp-icon" aria-hidden="true">WA</span>WhatsApp</a>
+        <a class="profile-share-option" id="shareProfileWhatsapp" href="#" target="_blank" rel="noopener noreferrer"><span class="profile-share-whatsapp-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path transform="translate(3.6 3.6) scale(.7)" d="M17.5 14.4c-.3-.1-1.8-.9-2.1-1-.3-.1-.5-.1-.7.1s-.8 1-.9 1.2c-.2.2-.4.2-.7.1s-1.3-.5-2.5-1.5c-.9-.8-1.5-1.8-1.7-2.1-.2-.3 0-.5.1-.7.1-.1.3-.3.4-.5.1-.2.2-.3.3-.5s0-.4-.1-.5c-.1-.1-.7-1.7-1-2.3-.3-.6-.5-.5-.7-.5h-.6c-.2 0-.6.1-.9.4s-1.2 1.2-1.2 2.9 1.2 3.4 1.4 3.6c.2.2 2.4 3.7 5.8 5.1 3.4 1.4 3.4.9 4 .9.6 0 2-.8 2.3-1.6.3-.8.3-1.5.2-1.6-.1-.1-.3-.2-.6-.3z" fill="currentColor"/></svg></span>WhatsApp</a>
       </div>
     </dialog>
     <div class="profile-toast" id="profileToast" role="status" aria-live="polite"></div>
@@ -208,9 +221,9 @@
   <a class="floating-chat" href="devmatch-chat.html" aria-label="Messages &amp; Chat" title="Open Messages &amp; Chat">
     <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5c-5 0-9 3.65-9 8.15 0 2.24 1.04 4.27 2.73 5.74L4.7 21l5.24-1.28c.67.12 1.36.18 2.06.18 5 0 9-3.65 9-8.15S17 3.5 12 3.5Z"/><circle cx="8.5" cy="11.7" r="1" fill="currentColor" stroke="none"/><circle cx="12" cy="11.7" r="1" fill="currentColor" stroke="none"/><circle cx="15.5" cy="11.7" r="1" fill="currentColor" stroke="none"/></svg>
   </a>
-  <script src="assets/js/profile-contact.js?v=20261126-client-whatsapp-instagram-v1"></script>
+  <script src="assets/js/profile-contact.js?v=20261127-direct-message-self-v1"></script>
   <script src="assets/js/profile-overview.js?v=20261126-profile-overview-v1"></script>
-  <script src="assets/js/my-profile.js?v=20261126-profile-overview-v1"></script>
+  <script src="assets/js/my-profile.js?v=20261126-whatsapp-outline-v2"></script>
   <script src="assets/js/nav-behavior.js?v=20261125-responsive-orientation-v1"></script>
 <script src="assets/js/presence.js?v=20261119-global"></script>
 </body>

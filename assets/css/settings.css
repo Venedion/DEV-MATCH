@@ -1538,6 +1538,10 @@
   border: 1px solid var(--line);
 }
 
+.settings-app-card[hidden] {
+  display: none;
+}
+
 .settings-app-info {
   display: flex;
   align-items: center;

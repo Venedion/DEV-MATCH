@@ -53,6 +53,13 @@ test('Connected Apps reflect setup profile contacts and Gmail addresses',()=>{
   assert.match(settingsJs,/save: value => \{\s*const username = profileContact\.normalizeInstagramUsername\(value\);\s*return \{instagram: username, instagramConnected: Boolean\(username\)\};/);
 });
 
+test('GitHub Connected Apps is available only in Developer Mode',()=>{
+  assert.match(settingsHtml,/<!-- GitHub -->\s*<div class="settings-app-card" id="settingsGithubAppCard">[\s\S]*?data-app-toggle="GitHub"[\s\S]*?<!-- Google -->/);
+  assert.match(settingsJs,/settingsGithubAppCard'\)\.hidden = !isDeveloper/);
+  assert.match(settingsJs,/GitHub: 'githubConnected'/);
+  assert.match(settingsCss,/\.settings-app-card\[hidden\]\s*\{\s*display:\s*none;\s*\}/);
+});
+
 test('settings show the setup fields belonging to the active developer or client mode',()=>{
   for(const id of ['settingsExperienceLevel','settingsIndustry']){
     assert.match(settingsHtml,new RegExp(`id="${id}"`));
@@ -87,8 +94,11 @@ test('client business and industry settings are editable from Profile Details',(
   assert.match(profileJs,/profile\.industry&&!industryOptions\.includes\(profile\.industry\)\?`<option value="\$\{escapeHtml\(profile\.industry\)\}"/);
 });
 
-test('settings wait for the active workspace cache before populating saved values',()=>{
-  assert.match(settingsJs,/const user = await window\.devMatchBackend\.ready;\s*if \(!user\) return;\s*profileData = getProfile\(\);/);
+test('settings fetch the active persisted workspace before populating saved values',()=>{
+  assert.match(settingsJs,/const user = await window\.devMatchBackend\.ready;\s*if \(!user\) return;\s*const row = await window\.devMatchBackend\.loadProfile\(user\);/);
+  assert.match(settingsJs,/if \(row\.account_role !== role\)/);
+  assert.match(settingsJs,/\.\.\.\(row\.profile_data \|\| \{\}\)/);
   assert.match(settingsJs,/Object\.assign\(profileData, await window\.devMatchBackend\.loadPrivateProfileFields\(\)\)/);
+  assert.match(settingsJs,/catch \(error\) \{\s*console\.error\('Unable to load saved profile settings\.', error\);\s*showToast/);
   assert.match(settingsHtml,/profile-contact\.js[\s\S]*?settings\.js/);
 });

@@ -303,6 +303,16 @@ test('Profile reviews are loaded from the public review RPC',async()=>{
   assert.equal(JSON.stringify(loaded),JSON.stringify([{id:'review-id',reviewerName:'Client',reviewerInitials:'CL',projectTitle:'Website',rating:5,text:'Great work',createdAt:'2026-11-17T00:00:00Z'}]));
   assert.equal(rpcCalls[0].name,'get_profile_reviews');
 });
+test('Client profile metrics use their database RPC and validate returned counts',async()=>{
+  const {backend,rpcCalls}=await setup({rpcResponses:{get_client_profile_metrics:{data:[{views:'12',favorites:3}],error:null}}});
+  assert.equal(JSON.stringify(await backend.loadClientProfileMetrics('client-id')),JSON.stringify({views:12,favorites:3}));
+  assert.equal(JSON.stringify(rpcCalls[0]),JSON.stringify({name:'get_client_profile_metrics',args:{p_client_id:'client-id'}}));
+});
+test('Client profile views are recorded through the database RPC',async()=>{
+  const {backend,rpcCalls}=await setup({rpcResponses:{record_client_profile_view:{data:null,error:null}}});
+  await backend.recordClientProfileView('client-id');
+  assert.equal(JSON.stringify(rpcCalls[0]),JSON.stringify({name:'record_client_profile_view',args:{p_client_id:'client-id'}}));
+});
 test('Project completion requires the linked conversation and confirms the current participant',async()=>{
   const engagement={id:'engagement-id',client_completed_at:'2026-11-17T00:00:00Z'};
   const {backend,rpcCalls}=await setup({rpcResponses:{
@@ -393,6 +403,41 @@ test('Ordinary profile saves preserve private fields unless explicitly updated',
   assert.equal(updates[1].profile_data.accountNumber,'0987654321');
   assert.equal(updates[1].profile_data.npwp,'new');
   assert.equal(updates[1].profile_data.birthday,'2000-02-03');
+});
+test('Developer Rates & Payouts reload saved values and update the authenticated profile row',async()=>{
+  const {backend,updates,row,user,values}=await setup();
+  row.profile_data={
+    displayName:'Owner',
+    hourlyRate:'Rp 250.000',
+    minProjectPrice:'Rp 1.500.000',
+    availability:'Full-time',
+    experience:'Senior',
+    bankName:'Example Bank',
+    accountNumber:'1234567890',
+    accountHolder:'Owner'
+  };
+  const loaded=await backend.loadProfile(user);
+  assert.equal(loaded.account_role,'dev');
+  assert.equal(loaded.profile_data.hourlyRate,'Rp 250.000');
+  assert.equal(loaded.profile_data.minProjectPrice,'Rp 1.500.000');
+  assert.equal(loaded.profile_data.accountNumber,'1234567890');
+
+  await backend.saveProfile({
+    ...loaded.profile_data,
+    hourlyRate:'Rp 300.000',
+    minProjectPrice:'Rp 2.000.000',
+    accountNumber:'0987654321'
+  },{includePrivateFields:true});
+  const reloaded=await backend.loadProfile(user);
+  assert.equal(reloaded.profile_data.hourlyRate,'Rp 300.000');
+  assert.equal(reloaded.profile_data.minProjectPrice,'Rp 2.000.000');
+  assert.equal(reloaded.profile_data.accountNumber,'0987654321');
+  assert.equal(updates[0].profile_data.hourlyRate,'Rp 300.000');
+  assert.equal(updates[0].profile_data.accountNumber,'0987654321');
+  const cached=JSON.parse(values['devmatch-profile-dev']);
+  assert.equal(cached.hourlyRate,'Rp 300.000');
+  assert.equal(Object.hasOwn(cached,'accountNumber'),false);
+  assert.equal(row.id,user.id);
 });
 test('Incorrect current password cannot update the password',async()=>{
   const {backend,passwords}=await setup();await assert.rejects(backend.changePassword('wrong','Next!Password1'),/Wrong password/);assert.equal(passwords.length,0);

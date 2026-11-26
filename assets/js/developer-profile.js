@@ -3,7 +3,9 @@
   const requestedId=new URLSearchParams(location.search).get('developer');
   const status=document.getElementById('profileStatus');
   const identity=document.querySelector('.profile-identity-card');
+  const profileLayout=document.getElementById('clientProfileLayout');
   const columns=document.querySelector('.profile-columns');
+  const desktopProfileLayout=window.matchMedia('(min-width:821px) and (orientation:landscape)');
   window.DEVMATCH_SKELETON?.status(status,'Loading developer profile');
   const favoriteToast=document.getElementById('favoriteActionToast');
   const favoriteRemoveDialog=document.getElementById('favoriteRemoveDialog');
@@ -26,6 +28,24 @@
     Mobile:{description:'Android & iOS',icon:'<rect x="5" y="2" width="14" height="20" rx="2"/><path d="M11 18h2"/>'},
     'Game Dev':{description:'Unity, Roblox...',icon:'<path d="m7 7 10 0a4 4 0 0 1 3.8 5.2l-1.2 4a2 2 0 0 1-3.3.9L14 15H10l-2.3 2.1a2 2 0 0 1-3.3-.9l-1.2-4A4 4 0 0 1 7 7z"/><path d="M7 10v4m-2-2h4m7-1h.01M17 13h.01"/>'},
     Other:{description:'Custom specialization',icon:'<path d="M12 5v14m-7-7h14"/>'}
+  };
+  const connectedAppIcons={
+    WhatsApp:{
+      color:'#25d366',
+      svg:'<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path transform="translate(3.6 3.6) scale(.7)" d="M17.5 14.4c-.3-.1-1.8-.9-2.1-1-.3-.1-.5-.1-.7.1s-.8 1-.9 1.2c-.2.2-.4.2-.7.1s-1.3-.5-2.5-1.5c-.9-.8-1.5-1.8-1.7-2.1-.2-.3 0-.5.1-.7.1-.1.3-.3.4-.5.1-.2.2-.3.3-.5s0-.4-.1-.5c-.1-.1-.7-1.7-1-2.3-.3-.6-.5-.5-.7-.5h-.6c-.2 0-.6.1-.9.4s-1.2 1.2-1.2 2.9 1.2 3.4 1.4 3.6c.2.2 2.4 3.7 5.8 5.1 3.4 1.4 3.4.9 4 .9.6 0 2-.8 2.3-1.6.3-.8.3-1.5.2-1.6-.1-.1-.3-.2-.6-.3z" fill="currentColor"/></svg>'
+    },
+    GitHub:{
+      color:'#24292e',
+      svg:'<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0 1 12 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0 0 22 12.017C22 6.484 17.522 2 12 2z"/></svg>'
+    },
+    Google:{
+      color:'#ea4335',
+      svg:'<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12.48 10.92v3.28h7.84c-.24 1.84-.853 3.187-1.787 4.133-1.147 1.147-2.933 2.4-6.053 2.4-4.827 0-8.6-3.893-8.6-8.72s3.773-8.72 8.6-8.72c2.6 0 4.507 1.027 5.907 2.347l2.307-2.307C18.747 1.44 16.133 0 12.48 0 5.867 0 .307 5.387.307 12s5.56 12 12.173 12c3.573 0 6.267-1.173 8.373-3.36 2.16-2.16 2.84-5.213 2.84-7.667 0-.76-.053-1.467-.173-2.053H12.48z"/></svg>'
+    },
+    LinkedIn:{
+      color:'#0a66c2',
+      svg:'<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.28 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.75M6.88 8.56a1.68 1.68 0 0 0 1.68-1.68c0-.93-.75-1.69-1.68-1.69a1.69 1.69 0 0 0-1.69 1.69c0 .93.76 1.68 1.69 1.68m1.39 9.94v-8.37H5.5v8.37h2.77z"/></svg>'
+    }
   };
   let projects=[],favoriteDeveloper=false,accountRole=null,publicProfileProjects=null,commenterRoles=new Map();
   let profileComments=[],profileCommentSort='newest';
@@ -53,7 +73,35 @@
   });
   function showError(message){
     status.hidden=false;status.textContent=message;
-    identity.hidden=true;columns.hidden=true;
+    identity.hidden=true;profileLayout.hidden=true;columns.hidden=true;
+  }
+  function moveProfileContent(){
+    const desktop=desktopProfileLayout.matches;
+    const profileActions=document.querySelector('.profile-actions');
+    const quickContactCard=document.querySelector('.contact-card');
+    const connectedAppsCard=document.getElementById('connectedAppsCard');
+    const profileShowcase=document.querySelector('.profile-showcase');
+    const profileDetails=document.querySelector('.profile-details');
+    const developerDetailsDesktop=document.getElementById('developerDetailsDesktop');
+    const developerDetailCards=[
+      document.getElementById('developerSpecialtiesCard'),
+      document.getElementById('developerSkillsCard'),
+      document.getElementById('developerExperienceCard')
+    ];
+    document.getElementById('clientProfileActions').append(profileActions);
+    document.getElementById('clientProfileSide').hidden=false;
+    document.getElementById('clientCompanyDetails').append(document.getElementById('roleInfoCard'));
+    document.getElementById(`clientQuickContact${desktop?'Desktop':'Mobile'}`).append(quickContactCard);
+    developerDetailsDesktop.hidden=!desktop;
+    if(desktop){
+      document.getElementById('clientConnectedAppsDesktop').append(connectedAppsCard);
+      document.getElementById('clientShowcaseDesktop').append(profileShowcase);
+      developerDetailCards.forEach(card=>developerDetailsDesktop.append(card));
+    }else{
+      columns.append(profileShowcase);
+      developerDetailCards.forEach(card=>profileDetails.append(card));
+      profileDetails.append(connectedAppsCard);
+    }
   }
   async function loadDeveloperDirectoryProfile(profileId){
     const directory=window.devMatchBackend.client.from('directory_people');
@@ -136,20 +184,32 @@
       return `<li><b>${escapeHtml(item.title||'Experience')}</b>${details?`<small>${escapeHtml(details)}</small>`:''}${href?`<a href="${escapeHtml(href)}" target="_blank" rel="noopener noreferrer">Portfolio link</a>`:''}</li>`;
     }).join(''):'<li class="empty-state">No public experience added.</li>';
   }
-  function renderPublicLinks(profile,experiences){
-    const links=[];
-    const add=(label,value,icon)=>{
-      const url=safeExternalUrl(value);
-      if(url&&!links.some(link=>link.url===url))links.push({label,url,icon});
-    };
-    const githubUsername=String(profile.githubUsername||'').trim().replace(/^@/,'');
-    if(profile.githubConnected!==false)add('GitHub',profile.githubUrl||profile.github||(githubUsername?`https://github.com/${encodeURIComponent(githubUsername)}`:''),'GH');
-    if(profile.linkedinConnected!==false)add('LinkedIn',profile.linkedinUrl||profile.linkedin,'in');
-    experiences.forEach((experience,index)=>add(`Portfolio ${index+1}`,experience.link,'↗'));
-    document.getElementById('developerLinks').innerHTML=links.length?links.map(link=>{
-      const url=new URL(link.url);
-      return `<a href="${escapeHtml(link.url)}" target="_blank" rel="noopener noreferrer"><span class="public-link-icon">${escapeHtml(link.icon)}</span><span><b>${escapeHtml(link.label)}</b><small>${escapeHtml(url.hostname.replace(/^www\./,''))}${escapeHtml(url.pathname)}</small></span><span aria-hidden="true">↗</span></a>`;
-    }).join(''):'<p class="empty-state">No public links added.</p>';
+  function renderConnectedApps(profile){
+    const isConnected=(field,defaultValue)=>typeof profile[field]==='boolean'?profile[field]:defaultValue;
+    const phone=String(profile.whatsapp||'').replace(/\D/g,'');
+    const githubValue=String(profile.githubUrl||profile.github||'').trim();
+    const githubUrl=safeExternalUrl(githubValue);
+    const githubUsername=String(profile.githubUsername||(!githubValue.includes('/')?githubValue:'')).trim().replace(/^@/,'');
+    const githubHref=githubUrl&&new URL(githubUrl).hostname.toLowerCase().endsWith('github.com')
+      ?githubUrl
+      :githubUsername?`https://github.com/${encodeURIComponent(githubUsername)}`:'https://github.com/';
+    const linkedinValue=String(profile.linkedinUrl||profile.linkedin||'').trim();
+    const linkedinUrl=safeExternalUrl(linkedinValue);
+    const linkedinUsername=String(profile.linkedinUsername||(!linkedinValue.includes('/')?linkedinValue:'')).trim().replace(/^@/,'');
+    const linkedinHref=linkedinUrl&&new URL(linkedinUrl).hostname.toLowerCase().endsWith('linkedin.com')
+      ?linkedinUrl
+      :linkedinUsername?`https://www.linkedin.com/in/${encodeURIComponent(linkedinUsername)}`:'https://www.linkedin.com/';
+    const apps=[
+      {name:'WhatsApp Business',icon:connectedAppIcons.WhatsApp,connected:isConnected('whatsappConnected',Boolean(phone)),href:phone?`https://wa.me/${phone}`:'https://www.whatsapp.com/'},
+      {name:'GitHub',icon:connectedAppIcons.GitHub,connected:isConnected('githubConnected',Boolean(profile.github||profile.githubUrl)),href:githubHref},
+      {name:'Google',icon:connectedAppIcons.Google,connected:isConnected('googleConnected',false),href:safeExternalUrl(profile.googleUrl)||'https://www.google.com/'},
+      {name:'LinkedIn',icon:connectedAppIcons.LinkedIn,connected:isConnected('linkedinConnected',Boolean(profile.linkedin||profile.linkedinUrl)),href:linkedinHref}
+    ];
+    const root=document.getElementById('developerConnectedApps');
+    const connectedApps=apps.filter(app=>app.connected);
+    root.innerHTML=connectedApps.length?connectedApps.map(app=>
+      `<a class="connected-app connected-app-link" href="${escapeHtml(app.href)}" target="_blank" rel="noopener noreferrer" aria-label="Open ${escapeHtml(app.name)}"><span class="connected-app-info"><span class="app-icon" style="color:${app.icon.color}">${app.icon.svg}</span><b>${escapeHtml(app.name)}</b></span><svg class="connected-app-arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg></a>`
+    ).join(''):'<p class="empty-state">No connected apps.</p>';
   }
   function renderFavoriteButton(){
     const button=document.getElementById('favoriteDeveloper');
@@ -364,9 +424,6 @@
     document.getElementById('developerRole').textContent=specialties.join(', ')||'Developer';
     document.getElementById('developerJoined').textContent='';
     document.getElementById('developerAbout').textContent=String(profile.bio||'No bio added yet.');
-    document.getElementById('developerAboutCard').textContent=String(profile.bio||'No biography provided.');
-    document.getElementById('developerExperience').textContent=experiences.length?`${experiences.length} ${experiences.length===1?'role':'roles'}`:'Not provided';
-    document.getElementById('developerLocationCard').textContent=location;
     const hourlyRate=String(profile.hourlyRate||'').trim();
     const minimumProject=String(profile.minProjectPrice||'').trim();
     document.getElementById('developerHourlyRate').textContent=hourlyRate?`${hourlyRate} / hour`:'Not provided';
@@ -407,8 +464,9 @@
       :profileReviews.length?`from ${profileReviews.length} reviews`:'no reviews yet';
     renderProfileReviews(profileReviews,reviewsLoadFailed);
     document.getElementById('portfolioCount').textContent=String(projects.length);
-    document.getElementById('contactDeveloper').href=user&&accountRole==='client'?`devmatch-chat.html?contact=${encodeURIComponent(person.id)}&role=client`:'devmatch-auth.html?mode=login';
-    document.getElementById('sidebarContactDeveloper').href=document.getElementById('contactDeveloper').href;
+    const contactUrl=user&&accountRole==='client'?`devmatch-chat.html?contact=${encodeURIComponent(person.id)}&role=client`:'devmatch-auth.html?mode=login';
+    const isOwnProfile=Boolean(user&&user.id===person.id);
+    window.DEVMATCH_PROFILE_CONTACT.configureDirectMessageLink(document.getElementById('sidebarContactDeveloper'),contactUrl,isOwnProfile);
     document.getElementById('developerSpecialties').innerHTML=specialties.length?specialties.map(value=>{
       const details=window.devMatchProfileSpecialties
         ?window.devMatchProfileSpecialties.getDetails(value)
@@ -417,7 +475,7 @@
     }).join(''):'<span>No specialization added yet.</span>';
     document.getElementById('developerSkills').innerHTML=skills.length?skills.map(value=>`<span>${escapeHtml(value)}</span>`).join(''):'<span>No skills added yet.</span>';
     renderExperience(experiences);
-    renderPublicLinks(profile,experiences);
+    renderConnectedApps(profile);
     const clientName=String(accountProfile?.display_name||accountProfile?.profile_data?.displayName||'Client').trim();
     document.getElementById('clientName').textContent=clientName;
     setAvatar('clientInitials',accountProfile?.profile_data?.avatar,initials(clientName));
@@ -488,7 +546,10 @@
       catch{document.getElementById('copyProfileLink').setAttribute('aria-label','Copying is not available in this browser');}
     });
     renderProjects();
-    status.hidden=true;identity.hidden=false;columns.hidden=false;
+    moveProfileContent();
+    desktopProfileLayout.addEventListener('change',moveProfileContent);
+    window.addEventListener('resize',moveProfileContent);
+    status.hidden=true;identity.hidden=false;profileLayout.hidden=false;columns.hidden=false;
     requestAnimationFrame(()=>updateTabIndicator());
     window.addEventListener('resize',()=>updateTabIndicator());
     document.querySelector('.portfolio-tabs').addEventListener('scroll',()=>updateTabIndicator(),{passive:true});

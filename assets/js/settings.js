@@ -83,8 +83,8 @@
   const role = params.get('role') === 'client' ? 'client' : 'dev';
   const isDeveloper = role === 'dev';
   const profileContact = window.DEVMATCH_PROFILE_CONTACT;
-  const storageKey = isDeveloper ? 'devmatch-profile-dev' : 'devmatch-profile-client';
   let privateProfileFieldsLoaded = false;
+  let resetPasswordDraft = () => {};
 
   function configureRoleSpecificSettings() {
     document.getElementById('developerSpecificFields').hidden = !isDeveloper;
@@ -104,28 +104,12 @@
     document.getElementById('settingsSkillsCard').hidden = !isDeveloper;
     document.getElementById('settingsExperienceCard').hidden = !isDeveloper;
     document.getElementById('settingsClientBusinessCard').hidden = isDeveloper;
+    document.getElementById('settingsGithubAppCard').hidden = !isDeveloper;
   }
 
   configureRoleSpecificSettings();
 
-  // Load profile from localStorage
-  function getProfile() {
-    try {
-      if (typeof localStorage !== 'undefined') {
-        const data = localStorage.getItem(storageKey);
-        if (data) {
-          const parsed = JSON.parse(data);
-          if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) return parsed;
-          console.warn('Stored profile data is not a valid profile object.');
-        }
-      }
-    } catch (e) {
-      console.warn('Failed to load profile', e);
-    }
-    return {};
-  }
-
-  let profileData = getProfile();
+  let profileData = {};
   function gmailAddress(value) {
     const email = String(value || '').trim();
     return /^[A-Z0-9._%+-]+@gmail\.com$/i.test(email) ? email : '';
@@ -147,8 +131,6 @@
       if (typeof profile[field] !== 'boolean') profile[field] = defaultValue;
     });
   }
-  applyConnectionDefaults(profileData);
-
   let profileSkills = [];
   let isEditingSkills = false;
   let experienceDraft = [];
@@ -686,6 +668,7 @@
         }
       });
     });
+
     return matches.length === 1 ? matches[0] : '';
   }
 
@@ -826,8 +809,7 @@
     if (option.dataset.locationOption === 'city' && settingsLocationGroup) {
       const city = settingsLocationGroup.cities.find(item => item.code === option.dataset.locationCode);
       if (!city) return;
-      profileData.city = `${settingsLocationGroup.name}, ${city.name}`;
-      settingsCityInput.value = profileData.city;
+      settingsCityInput.value = `${settingsLocationGroup.name}, ${city.name}`;
       settingsLocationError.hidden = true;
       settingsCityInput.removeAttribute('aria-invalid');
       closeSettingsLocationPicker();
@@ -839,10 +821,12 @@
     const country = settingsCountrySelect.value;
     const city = settingsCityInput.value.trim();
     const changed = country !== settingsLocationInitialValue.country || city !== settingsLocationInitialValue.city;
+    const knownLocation = settingsLocationDataReady
+      && (settingsLocationRegions[country] || []).some(group =>
+        group.cities.some(item => `${group.name}, ${item.name}` === city)
+      );
     const valid = !changed || !city || (
-      settingsLocationDataReady
-      && country === profileData.country
-      && city === profileData.city
+      knownLocation
     );
     settingsLocationError.hidden = valid;
     settingsCityInput.setAttribute('aria-invalid', String(!valid));
@@ -854,11 +838,11 @@
 
   settingsCountrySelect.addEventListener('change', () => {
     if (settingsCountrySelect.value === profileData.country) {
+      settingsCityInput.value = settingsLocationInitialValue.city;
       renderSettingsLocationControls();
       return;
     }
-    profileData.country = settingsCountrySelect.value;
-    profileData.city = '';
+    settingsCityInput.value = '';
     settingsLocationError.hidden = true;
     settingsCityInput.removeAttribute('aria-invalid');
     closeSettingsLocationPicker({restoreValue: false});
@@ -1063,7 +1047,10 @@
   // Tab switching
   function switchTab(tabId, updateLocation = true) {
     const activeTab = Array.from(navBtns).find(btn => btn.classList.contains('active'))?.dataset.tab;
-    if (activeTab === 'profile-details' && tabId !== activeTab) closeExperienceEditors();
+    if (activeTab && tabId !== activeTab && privateProfileFieldsLoaded) {
+      if (activeTab === 'profile-details') closeExperienceEditors();
+      populateForm();
+    }
 
     navBtns.forEach(btn => {
       btn.classList.toggle('active', btn.dataset.tab === tabId);
@@ -1156,6 +1143,22 @@
 
   // Populate Profile Inputs
   function populateForm() {
+    [accountForm, profileDetailsForm, roleForm, notifForm, privacyForm, preferencesForm, passwordForm]
+      .filter(Boolean)
+      .forEach(form => form.reset());
+    if (interfaceLanguageSelect && window.devMatchI18n) {
+      interfaceLanguageSelect.value = window.devMatchI18n.getLanguage();
+    }
+    closeSettingsBirthdayCalendar();
+    settingsBirthdayTrigger.setAttribute('aria-expanded', 'false');
+    closeSettingsLocationPicker({restoreValue: false});
+    setAvatarMenuOpen(false);
+    resetPasswordDraft();
+    appEditForm?.reset();
+    if (appEditDialog?.open) appEditDialog.close();
+    if (appDisconnectDialog?.open) appDisconnectDialog.close();
+    pendingDisconnect = null;
+
     const setVal = (id, val) => {
       const el = document.getElementById(id);
       if (el && val !== undefined) el.value = val;
@@ -1204,16 +1207,15 @@
     industrySelect.value = industry;
     industrySelect.dispatchEvent(new Event('change', {bubbles: true}));
     profileSkills = normalizeSkills(profileData.skills, []);
-    renderSkillTags();
+    skillInput.value = '';
+    setSkillsEditing(false);
     profileSpecialties = normalizeSpecialties(profileData.specialty);
     profileSpecialtyOther = typeof profileData.specialtyOther === 'string' ? profileData.specialtyOther : '';
     if (profileSpecialtyOther && !profileSpecialties.some(item => item.toLowerCase() === 'other')) {
       profileSpecialties.push('Other');
     }
-    specialtyDraft = [...profileSpecialties];
-    specialtyOtherDraft = profileSpecialtyOther;
     document.getElementById('settingsSpecialtyCard').hidden = !isDeveloper;
-    renderSpecialties();
+    setSpecialtiesEditing(false);
     const savedExperiences = Array.isArray(profileData.experiences)
       ? profileData.experiences
       : [];
@@ -1247,6 +1249,24 @@
       setVal('settingsCompanyName', profileData.companyName || '');
       setVal('settingsNpwp', profileData.npwp || '');
     }
+
+    [notifForm, preferencesForm].filter(Boolean).forEach(form => {
+      const saved = profileData.preferences?.[form.id] || {};
+      form.querySelectorAll('input,select,textarea').forEach((field, index) => {
+        const key = field.id || String(index);
+        if (Object.hasOwn(saved, key)) {
+          if (field.type === 'checkbox') field.checked = Boolean(saved[key]);
+          else {
+            field.value = saved[key];
+            field.dispatchEvent(new Event('change', {bubbles: true}));
+          }
+        }
+        if (field.type === 'checkbox' && !field.getAttribute('aria-label')) {
+          const label = field.closest('.settings-toggle-row')?.querySelector('h3')?.textContent;
+          if (label) field.setAttribute('aria-label', label.trim());
+        }
+      });
+    });
 
     saveButtonTrackers.forEach(tracker => tracker.markSaved());
     updateAvatarPreview();
@@ -1321,6 +1341,9 @@
   }
 
   async function persistProfile(value, options){
+    if (!privateProfileFieldsLoaded) {
+      throw new Error('Saved profile settings have not loaded.');
+    }
     await window.devMatchBackend.saveProfile(value, options);
   }
   const settingsUsernameInput = document.getElementById('settingsUsername');
@@ -1620,13 +1643,17 @@
         return;
       }
       try {
-        profileData.specialty = [...specialtyDraft];
-        profileData.specialtyOther = specialtyDraft.some(item => item.toLowerCase() === 'other')
+        const updatedProfile = {
+          ...profileData,
+          specialty: [...specialtyDraft],
+          specialtyOther: specialtyDraft.some(item => item.toLowerCase() === 'other')
           ? specialtyOtherDraft.trim()
-          : '';
-        await persistProfile(profileData);
+          : ''
+        };
+        await persistProfile(updatedProfile);
+        profileData = updatedProfile;
         profileSpecialties = [...specialtyDraft];
-        profileSpecialtyOther = profileData.specialtyOther;
+        profileSpecialtyOther = updatedProfile.specialtyOther;
         profileSpecialtySaveTracker.markSaved();
         setSpecialtiesEditing(false);
         showToast('Specialization saved successfully!');
@@ -1641,8 +1668,9 @@
       skillInput.value = '';
       profileSkillsSaveTracker.update();
       try {
-        profileData.skills = [...profileSkills];
-        await persistProfile(profileData);
+        const updatedProfile = {...profileData, skills: [...profileSkills]};
+        await persistProfile(updatedProfile);
+        profileData = updatedProfile;
         profileSkillsSaveTracker.markSaved();
         setSkillsEditing(false);
         showToast('Skills & Tech Stacks saved successfully!');
@@ -1756,7 +1784,6 @@
         const updatedProfile = {...profileData, experiences: savedExperiences};
         await persistProfile(updatedProfile);
         profileData = updatedProfile;
-        localStorage.setItem(storageKey, JSON.stringify(updatedProfile));
         experienceDraft = savedExperiences.map((savedEntry, index) => ({
           id: String(index + 1),
           persistedIndex: index,
@@ -1878,7 +1905,6 @@
         try {
           await persistProfile(updatedProfile);
           profileData = updatedProfile;
-          localStorage.setItem(storageKey, JSON.stringify(updatedProfile));
         } catch (error) {
           console.error('Unable to restore the deleted profile experience.', error);
           deletion.timeout = setTimeout(
@@ -1952,7 +1978,6 @@
           const updatedProfile = {...profileData, experiences: savedExperiences};
           await persistProfile(updatedProfile);
           profileData = updatedProfile;
-          localStorage.setItem(storageKey, JSON.stringify(updatedProfile));
           experienceDraft.forEach(item => {
             if (Number.isInteger(item.persistedIndex) && item.persistedIndex > entry.persistedIndex) {
               item.persistedIndex -= 1;
@@ -2253,23 +2278,26 @@
         showToast('Cannot save settings until private payout and tax details load successfully.');
         return;
       }
+      const updatedProfile = {...profileData};
       if (isDeveloper) {
-        profileData.hourlyRate = formatRupiah(document.getElementById('settingsHourlyRate').value);
-        profileData.minProjectPrice = formatRupiah(document.getElementById('settingsMinProject').value);
-        profileData.availability = document.getElementById('settingsAvailability').value;
-        profileData.experience = document.getElementById('settingsExperienceLevel').value;
-        profileData.bankName = document.getElementById('settingsBankName').value;
-        profileData.accountNumber = document.getElementById('settingsBankAccount').value.trim();
-        profileData.accountHolder = document.getElementById('settingsAccountHolder').value.trim();
+        updatedProfile.hourlyRate = formatRupiah(document.getElementById('settingsHourlyRate').value);
+        updatedProfile.minProjectPrice = formatRupiah(document.getElementById('settingsMinProject').value);
+        updatedProfile.availability = document.getElementById('settingsAvailability').value;
+        updatedProfile.experience = document.getElementById('settingsExperienceLevel').value;
+        updatedProfile.bankName = document.getElementById('settingsBankName').value;
+        updatedProfile.accountNumber = document.getElementById('settingsBankAccount').value.trim();
+        updatedProfile.accountHolder = document.getElementById('settingsAccountHolder').value.trim();
       } else {
-        profileData.npwp = document.getElementById('settingsNpwp').value.trim();
+        updatedProfile.npwp = document.getElementById('settingsNpwp').value.trim();
       }
 
       try {
-        await persistProfile(profileData, {includePrivateFields: true});
+        await persistProfile(updatedProfile, {includePrivateFields: true});
+        profileData = updatedProfile;
         roleSaveTracker.markSaved();
         showToast(isDeveloper ? 'Developer rates & payout settings updated!' : 'Company & billing details saved!');
       } catch (err) {
+        console.error('Unable to save role-specific settings.', err);
         showToast('Error saving settings');
       }
     });
@@ -2421,6 +2449,16 @@
       });
     });
 
+    resetPasswordDraft = () => {
+      passwordForm.reset();
+      updatePasswordStrength('');
+      passwordFields.forEach(field => {
+        field.error.hidden = true;
+        field.error.textContent = '';
+        field.input.removeAttribute('aria-invalid');
+      });
+    };
+
     passwordForm.addEventListener('passwordchange:rejected', () => {
       const currentPasswordField = passwordFields[0];
       currentPasswordField.error.textContent = 'Current password is incorrect.';
@@ -2522,15 +2560,6 @@
     preferencesForm.addEventListener('submit', async function(e) {
       e.preventDefault();
       if (!validateSettingsLocation()) return;
-      if (interfaceLanguageSelect && window.devMatchI18n) {
-        try {
-          window.devMatchI18n.setLanguage(interfaceLanguageSelect.value);
-        } catch (error) {
-          console.error('Unable to save interface language preference.', error);
-          showToast('Unable to save language preference. Please try again.');
-          return;
-        }
-      }
       try{
         await savePreferences(preferencesForm, {
           country: settingsCountrySelect.value,
@@ -2538,27 +2567,25 @@
         });
         settingsLocationInitialValue = {country: profileData.country, city: profileData.city};
         preferencesSaveTracker.markSaved();
+        if (interfaceLanguageSelect && window.devMatchI18n) {
+          try {
+            window.devMatchI18n.setLanguage(interfaceLanguageSelect.value);
+          } catch (error) {
+            console.error('Preferences were saved, but the interface language could not be applied.', error);
+            showToast('Preferences saved, but the language could not be applied.');
+            return;
+          }
+        }
         showToast('Platform preferences saved.');
       }
-      catch(error){showToast('Unable to save preferences. Please try again.');}
+      catch(error){
+        console.error('Unable to save platform preferences.', error);
+        showToast('Unable to save preferences. Please try again.');
+      }
     });
   }
 
   // Account removal requires a server operation; do not imitate it in browser storage.
-  [notifForm,preferencesForm].filter(Boolean).forEach(form=>{
-    const saved=profileData.preferences?.[form.id]||{};
-    form.querySelectorAll('input,select,textarea').forEach((field,index)=>{
-      const key=field.id||String(index);
-      if(Object.hasOwn(saved,key)){
-        if(field.type==='checkbox')field.checked=Boolean(saved[key]);
-        else{field.value=saved[key];field.dispatchEvent(new Event('change',{bubbles:true}));}
-      }
-      if(field.type==='checkbox'&&!field.getAttribute('aria-label')){
-        const label=field.closest('.settings-toggle-row')?.querySelector('h3')?.textContent;
-        if(label)field.setAttribute('aria-label',label.trim());
-      }
-    });
-  });
   privacyForm?.querySelectorAll('select,button[type="submit"]').forEach(field=>{field.disabled=true;});
   ['deactivateAccountBtn','deleteAccountBtn'].forEach(id=>{const button=document.getElementById(id);if(button){button.disabled=true;button.title='Account removal is not available yet.';}});
 
@@ -2980,26 +3007,50 @@
     try {
       const user = await window.devMatchBackend.ready;
       if (!user) return;
-      profileData = getProfile();
+      const row = await window.devMatchBackend.loadProfile(user);
+      if (row.account_role !== role) {
+        throw new Error('The active workspace changed while settings were loading.');
+      }
+      profileData = {
+        ...(row.profile_data || {}),
+        username: row.username || '',
+        usernameChangedAt: row.username_changed_at || '',
+        displayName: row.display_name || '',
+        phone: row.phone || '',
+        email: user.email || '',
+        role: row.account_role,
+        googleConnected: false
+      };
       applyConnectionDefaults(profileData);
-      ['bankName', 'accountNumber', 'accountHolder', 'npwp', 'birthday'].forEach(field => delete profileData[field]);
       Object.assign(profileData, await window.devMatchBackend.loadPrivateProfileFields());
       await settingsLocationDataPromise;
-      privateProfileFieldsLoaded = true;
+      const savedLanguage = profileData.preferences?.preferencesForm?.settingLanguage;
+      if (savedLanguage && interfaceLanguageSelect && window.devMatchI18n
+        && Array.from(interfaceLanguageSelect.options).some(option => option.value === savedLanguage)) {
+        try {
+          window.devMatchI18n.setLanguage(savedLanguage);
+        } catch (languageError) {
+          console.error('Unable to apply the saved interface language preference.', languageError);
+          showToast('Saved settings loaded, but the interface language could not be applied.');
+        }
+      }
       populateForm();
+      privateProfileFieldsLoaded = true;
       openProfileDetailsTarget();
     } catch (error) {
       console.error('Unable to load saved profile settings.', error);
-      await settingsLocationDataPromise;
-      populateForm();
-      openProfileDetailsTarget();
       showToast('Unable to load saved profile settings. Reload the page and try again.');
     } finally {
       document.body.classList.remove('devmatch-settings-loading');
-      settingsContent?.removeAttribute('inert');
-      settingsContent?.removeAttribute('aria-busy');
-      mobileSettingsDetailContent?.removeAttribute('inert');
+      if (privateProfileFieldsLoaded) {
+        settingsContent?.removeAttribute('inert');
+        mobileSettingsDetailContent?.removeAttribute('inert');
+      } else {
+        settingsContent?.setAttribute('inert', '');
+        mobileSettingsDetailContent?.setAttribute('inert', '');
+      }
       mobileSettingsDetailContent?.setAttribute('aria-busy', 'false');
+      settingsContent?.setAttribute('aria-busy', 'false');
       mobileSettingsDetailPage?.setAttribute('aria-busy', 'false');
       if (mobileSettingsDetailPage && !mobileSettingsDetailPage.hidden) {
         mobileSettingsDetailPage.querySelector('.mobile-settings-detail-back')?.focus();

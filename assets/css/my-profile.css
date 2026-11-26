@@ -1,9 +1,8 @@
 :root{--profile-green:#15934f;--profile-green-bg:#e7f6ed;--profile-page:#f7f7f8;--profile-line:#e5e5e8;--profile-muted:#777982;--profile-ink:#171719}
-.mobile-profile-settings-label{display:none}
+.mobile-profile-preview-label{display:none}
 .profile-page{padding-top:82px;padding-bottom:48px}
 .profile-page-heading{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:18px}
 .profile-page-heading h1{font-size:28px;font-weight:800;line-height:1.2;letter-spacing:-.035em}
-.profile-page-heading .eyebrow{margin-bottom:4px}
 .profile-public-banner{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:15px;padding:12px 15px;border:1px solid var(--profile-line);border-radius:11px;background:#fff;color:#5d5f67;font-size:11px}
 .profile-public-banner a{color:var(--profile-ink);font-weight:700}
 .profile-public-banner a:hover{text-decoration:underline}
@@ -94,7 +93,8 @@
 .connected-app-manage svg{width:13px;height:13px;fill:none;stroke:currentColor;stroke-linecap:round;stroke-linejoin:round;stroke-width:1.7}
 .connected-app{display:flex;align-items:center;justify-content:space-between;gap:8px}
 .connected-app-info{display:flex;align-items:center;gap:8px;min-width:0}
-.app-icon{width:27px;height:27px;display:grid;place-items:center;border-radius:8px;background:#f3f3f5;color:#42444b;font-size:10px;font-weight:800}
+.app-icon{width:27px;height:27px;display:grid;place-items:center;border:1px solid var(--profile-line);border-radius:8px;background:#fff}
+.app-icon svg{display:block;width:17px;height:17px}
 .connected-app-info b{font-size:10px}
 .app-status{padding:4px 7px;border-radius:99px;background:#f2f2f4;color:#777982;font-size:8px;font-weight:700;white-space:nowrap}
 .app-status.verified{background:var(--profile-green-bg);color:var(--profile-green)}
@@ -104,10 +104,13 @@
 .contact-whatsapp,.contact-message,.contact-instagram{min-height:39px;display:flex;align-items:center;justify-content:center;gap:8px;border-radius:9px;font-size:11px;font-weight:700}
 .contact-whatsapp{background:#25d366;color:#fff}
 .contact-whatsapp:hover{background:#1ebd59}
-.contact-whatsapp>span{font-size:15px}
+.contact-whatsapp>svg{width:18px;height:18px;display:block;flex:0 0 auto;fill:currentColor}
+body.developer-profile-view .contact-card .contact-whatsapp{display:none}
 .contact-whatsapp.disabled{background:#e8e8eb;color:#73757d;pointer-events:none}
 .contact-message,.contact-instagram{margin-top:7px;border:1px solid var(--profile-line);background:#fff}
 .contact-message:hover{background:#f6f6f7}
+.contact-message.disabled,.contact-message.disabled:hover{border-color:#e8e8eb;background:#e8e8eb;color:#73757d;cursor:not-allowed;pointer-events:none}
+.contact-message.disabled svg{opacity:.55}
 .contact-message svg{width:15px;height:15px}
 .contact-instagram{color:#c13584}
 .contact-instagram:hover{background:#fff5fa}
@@ -190,7 +193,7 @@
 .mobile-profile-menu-icon{display:none}
 @media(orientation: portrait){
   .edit-profile-button-label{display:none}
-  .mobile-profile-settings-label{display:inline}
+  .mobile-profile-preview-label{display:inline}
   body.account-return-enabled .profile-page-heading{align-items:flex-start}
   body.account-return-enabled .profile-page-heading>div{flex:1;min-width:0}
   body.account-return-enabled .profile-page-heading h1{white-space:nowrap}
@@ -221,7 +224,6 @@
 body{font-size:16px;line-height:1.55}
 .profile-page{font-size:15px;line-height:1.55}
 .profile-page-heading{margin-bottom:22px}
-.profile-page-heading .eyebrow{font-size:12px}
 .profile-page-heading h1{font-size:28px;font-weight:800;letter-spacing:-.035em}
 .profile-public-banner{margin-bottom:18px;padding:14px 17px;font-size:13px}
 .edit-profile-button,.button{min-height:40px;padding:0 16px;font-size:14px;font-weight:600}
@@ -261,12 +263,12 @@ body{font-size:16px;line-height:1.55}
 .connected-list{gap:12px}
 .connected-app{gap:10px}
 .connected-app-info{gap:10px}
-.app-icon{width:32px;height:32px;font-size:12px}
+.app-icon{width:32px;height:32px}
+.app-icon svg{width:20px;height:20px}
 .connected-app-info b{font-size:13px}
 .app-status{padding:5px 9px;font-size:12px}
 .contact-card>p{margin:-6px 0 15px;color:#5f626b;font-size:13px;line-height:1.6}
 .contact-whatsapp,.contact-message,.contact-instagram{min-height:44px;gap:9px;font-size:14px}
-.contact-whatsapp>span{font-size:17px}
 .contact-message,.contact-instagram{margin-top:9px}
 .contact-message svg{width:17px;height:17px}
 .contact-instagram svg{width:18px;height:18px}
@@ -891,12 +893,164 @@ body.my-profile-page .sidebar nav a{line-height:normal}
   .profile-share-whatsapp-icon{
     width:20px;
     height:20px;
-    display:grid;
-    place-items:center;
-    border-radius:50%;
-    background:#25d366;
-    color:#fff;
-    font-size:8px;
-    font-weight:800;
+    display:block;
+    color:#25d366;
   }
+  .profile-share-whatsapp-icon svg{display:block;width:100%;height:100%}
+}
+
+@media(min-width:821px) and (orientation:landscape){
+  :is(body.client-profile-view,body.developer-profile-view) .profile-overview .mobile-profile-details{
+    width:100%;
+    max-width:100%;
+    min-width:0;
+    margin-bottom:8px;
+  }
+  :is(body.client-profile-view,body.developer-profile-view) .profile-overview .mobile-profile-bio{
+    width:100%;
+    max-width:100%;
+    min-width:0;
+    white-space:pre-line;
+    overflow-wrap:anywhere;
+  }
+  :is(body.client-profile-view,body.developer-profile-view) .profile-overview .mobile-profile-location{
+    color:var(--profile-muted);
+  }
+  :is(body.client-profile-view,body.developer-profile-view) .client-profile-layout{
+    display:grid;
+    grid-template-columns:minmax(240px,.72fr) minmax(0,1.55fr);
+    align-items:stretch;
+    gap:20px;
+    margin-bottom:20px;
+  }
+  :is(body.client-profile-view,body.developer-profile-view) .profile-columns{display:none}
+  :is(body.client-profile-view,body.developer-profile-view) .client-profile-main{
+    min-width:0;
+    display:flex;
+    flex-direction:column;
+    gap:12px;
+    position:sticky;
+    top:0;
+    align-self:start;
+  }
+  :is(body.client-profile-view,body.developer-profile-view) .client-profile-main .profile-identity-card{
+    flex:0 0 auto;
+    margin-bottom:0;
+  }
+  :is(body.client-profile-view,body.developer-profile-view) #clientProfileActions{order:1}
+  :is(body.client-profile-view,body.developer-profile-view) #clientQuickContactDesktop{min-width:0;order:2}
+  :is(body.client-profile-view,body.developer-profile-view) #clientConnectedAppsDesktop{min-width:0;margin-top:8px;order:3}
+  :is(body.client-profile-view,body.developer-profile-view) #clientQuickContactMobile,
+  :is(body.client-profile-view,body.developer-profile-view) #clientConnectedAppsMobile{display:none}
+  :is(body.client-profile-view,body.developer-profile-view) .client-profile-main .contact-card{
+    height:auto;
+    min-height:0;
+    flex:0 0 auto;
+    align-self:stretch;
+    padding:0;
+    border:0;
+    background:transparent;
+    box-shadow:none;
+  }
+  :is(body.client-profile-view,body.developer-profile-view) .client-profile-main .contact-card .card-heading{display:none}
+  :is(body.client-profile-view,body.developer-profile-view) .client-profile-main .contact-card>p{margin:0 0 4px}
+  :is(body.client-profile-view,body.developer-profile-view) .client-profile-main .contact-message{margin-top:0}
+  body.client-profile-view .contact-card .contact-whatsapp,
+  body.client-profile-view .contact-card .contact-instagram{display:none}
+  :is(body.client-profile-view,body.developer-profile-view) .client-profile-actions{
+    display:flex;
+    justify-content:flex-start;
+  }
+  :is(body.client-profile-view,body.developer-profile-view) .client-profile-actions .profile-actions{
+    display:grid;
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    width:100%;
+    gap:6px;
+  }
+  :is(body.client-profile-view,body.developer-profile-view) .client-profile-actions .button{
+    width:100%;
+    min-width:0;
+    padding-right:8px;
+    padding-left:8px;
+    font-size:13px;
+  }
+  :is(body.client-profile-view,body.developer-profile-view) .client-profile-side{
+    min-width:0;
+    display:flex;
+    flex-direction:column;
+    gap:20px;
+  }
+  :is(body.client-profile-view,body.developer-profile-view) .client-profile-side[hidden]{display:none}
+  :is(body.client-profile-view,body.developer-profile-view) .client-profile-side>div{
+    min-width:0;
+    display:block;
+  }
+  :is(body.client-profile-view,body.developer-profile-view) .client-profile-side .profile-card{
+    width:100%;
+    height:auto;
+    min-height:0;
+  }
+  :is(body.client-profile-view,body.developer-profile-view) #roleInfoCard{
+    border-color:#dfe1e6;
+    background:transparent;
+  }
+  :is(body.client-profile-view,body.developer-profile-view) #roleInfoCard .role-info-item{
+    border:1px solid #e6e7eb;
+    background:#fff;
+  }
+  :is(body.client-profile-view,body.developer-profile-view) #roleInfoCard .role-info-grid{
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    gap:13px;
+  }
+  :is(body.client-profile-view,body.developer-profile-view) #roleInfoCard .role-info-item{padding:9px}
+  :is(body.client-profile-view,body.developer-profile-view) #developerDetailsDesktop[hidden]{display:none}
+  :is(body.client-profile-view,body.developer-profile-view) #developerDetailsDesktop:not([hidden]){display:grid;gap:12px}
+  body.developer-profile-view #developerDetailsDesktop:not([hidden]){order:4}
+}
+
+@media(max-width:980px) and (orientation:landscape){
+  :is(body.client-profile-view,body.developer-profile-view) .client-profile-layout{
+    grid-template-columns:minmax(205px,.7fr) minmax(0,1.3fr);
+    gap:12px;
+  }
+}
+
+@media(max-width:1180px) and (min-width:981px) and (orientation:landscape){
+  :is(body.client-profile-view,body.developer-profile-view) .client-profile-layout{
+    grid-template-columns:minmax(220px,.72fr) minmax(0,1.3fr);
+  }
+}
+
+@media(orientation:portrait){
+  :is(body.client-profile-view,body.developer-profile-view) .client-profile-main .profile-identity-card{margin-bottom:0}
+  :is(body.client-profile-view,body.developer-profile-view) #clientQuickContactDesktop,
+  :is(body.client-profile-view,body.developer-profile-view) #clientConnectedAppsDesktop,
+  :is(body.client-profile-view,body.developer-profile-view) #clientShowcaseDesktop{display:none}
+  :is(body.client-profile-view,body.developer-profile-view) #clientQuickContactMobile{display:block}
+  :is(body.client-profile-view,body.developer-profile-view) .client-profile-side{
+    display:grid;
+    grid-template-columns:minmax(0,1fr);
+    gap:clamp(12px,2.4vw,16px);
+    margin-top:clamp(12px,2.4vw,16px);
+  }
+  :is(body.client-profile-view,body.developer-profile-view) .client-profile-side[hidden]{display:none}
+  :is(body.client-profile-view,body.developer-profile-view) .client-profile-side>div{min-width:0}
+  :is(body.client-profile-view,body.developer-profile-view) .client-profile-side .profile-card{
+    height:auto;
+    min-height:0;
+  }
+  :is(body.client-profile-view,body.developer-profile-view) #roleInfoCard{
+    border-color:var(--profile-line);
+    background:#fff;
+  }
+  :is(body.client-profile-view,body.developer-profile-view) #roleInfoCard .role-info-item{
+    border-color:var(--profile-line);
+    background:#f7f7f8;
+  }
+  :is(body.client-profile-view,body.developer-profile-view) #roleInfoCard .role-info-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  :is(body.client-profile-view,body.developer-profile-view) #developerDetailsDesktop[hidden]{display:none}
+}
+
+@media(max-width:520px) and (orientation:portrait){
+  :is(body.client-profile-view,body.developer-profile-view) #roleInfoCard .role-info-grid{grid-template-columns:minmax(0,1fr)}
 }

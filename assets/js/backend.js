@@ -1197,6 +1197,33 @@
     return data;
   }
 
+  async function recordClientProfileView(profileId) {
+    if (typeof profileId !== 'string' || !profileId) {
+      throw new TypeError('A client profile ID is required.');
+    }
+    await currentAccount();
+    const {error} = await client.rpc('record_client_profile_view', {p_client_id: profileId});
+    if (error) throw error;
+  }
+
+  async function loadClientProfileMetrics(profileId) {
+    if (typeof profileId !== 'string' || !profileId) {
+      throw new TypeError('A client profile ID is required.');
+    }
+    await currentAccount();
+    const {data, error} = await client.rpc('get_client_profile_metrics', {p_client_id: profileId});
+    if (error) throw error;
+    if (!Array.isArray(data) || data.length !== 1) {
+      throw new Error('Supabase returned invalid client profile metrics.');
+    }
+    const views = Number(data[0].views);
+    const favorites = Number(data[0].favorites);
+    if (![views, favorites].every(value => Number.isSafeInteger(value) && value >= 0)) {
+      throw new Error('Supabase returned invalid client profile metric counts.');
+    }
+    return {views, favorites};
+  }
+
   async function addProjectComment(projectId, text) {
     if (typeof projectId !== 'string' || !projectId
       || typeof text !== 'string' || !text.trim() || text.trim().length > 5000) {
@@ -1573,6 +1600,8 @@
     loadCommentAuthorRoles,
     publicProfileUrl,
     recordProjectView,
+    recordClientProfileView,
+    loadClientProfileMetrics,
     addProjectComment,
     addProjectCommentReply,
     loadProfileReviews,

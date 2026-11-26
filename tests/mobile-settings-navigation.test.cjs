@@ -37,5 +37,5 @@ test('mobile settings detail page slides in from the right and respects reduced 
   assert.match(settingsCss,/@media\s*\(orientation:\s*portrait\)\s*and\s*\(prefers-reduced-motion:\s*reduce\)\s*\{[\s\S]*?\.mobile-settings-detail-page \{\s*transition: none/);
   assert.match(settingsHtml,/mobile-settings-route/);
   assert.match(settingsHtml,/settings\.css\?v=20261126-settings-birthday-calendar-v1/);
-  assert.match(settingsHtml,/settings\.js\?v=20261126-settings-birthday-calendar-v1/);
+  assert.match(settingsHtml,/settings\.js\?v=20261126-settings-navigation-discard-v2/);
 });

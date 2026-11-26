@@ -8,19 +8,20 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="assets/css/dashboard.css?v=20261126-rebase-merge-v1">
-  <link rel="stylesheet" href="assets/css/my-profile.css?v=20261127-desktop-back-navigation-v1">
+  <link rel="stylesheet" href="assets/css/my-profile.css?v=20261126-whatsapp-outline-v1">
   <link rel="stylesheet" href="assets/css/mode-switch-animation.css?v=20261030-active-indicator">
   <link rel="stylesheet" href="assets/css/mobile-navigation.css?v=20261126-scrollbar-hidden-v1">
-  <link rel="stylesheet" href="assets/css/client-profile.css?v=20261127-desktop-back-navigation-v1">
+  <link rel="stylesheet" href="assets/css/client-profile.css?v=20261127-developer-client-profile-layout-v1">
+  <link rel="stylesheet" href="assets/css/favorite-feedback.css?v=20261125-responsive-orientation-v1">
   <link rel="stylesheet" href="assets/css/project-detail-popup.css?v=20261125-responsive-orientation-v1">
   <script src="assets/js/i18n.js?v=20261103-profile-editor-v2"></script>
   <script src="assets/vendor/supabase-2.119.0.js"></script>
-  <script src="assets/js/backend.js?v=20261126-username-validation-v1"></script>
+  <script src="assets/js/backend.js?v=20261126-client-profile-metrics-v1"></script>
 <link rel="stylesheet" href="assets/css/form-controls.css?v=20261126-placeholder-unified-v1">
 <link rel="stylesheet" href="assets/css/developer-mode-icon.css?v=20261125-developer-mode-icon-v2">
 <link rel="stylesheet" href="assets/css/profile-overview.css?v=20261126-profile-overview-v11">
 </head>
-<body class="my-profile-page client-profile-public" data-workspace="dev">
+<body class="my-profile-page client-profile-public client-profile-view" data-workspace="dev">
   <header class="topbar">
     <a class="brand" href="devmatch-dashboard.html"><img class="brand-mark" src="assets/images/devmatch-logo.png" width="34" height="34" alt="" aria-hidden="true"><span>DEV-MATCH</span></a>
     <label class="search top-search"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg><input type="search" placeholder="Search projects, clients..." aria-label="Search projects and clients"><kbd>⌘K</kbd></label>
@@ -58,6 +59,8 @@
       <span aria-hidden="true">›</span>
       <b id="clientProfileBreadcrumbName">Client</b>
     </nav>
+    <div class="client-profile-layout" id="clientProfileLayout">
+      <div class="client-profile-main">
     <section class="profile-identity-card profile-overview" data-profile-overview aria-labelledby="profileName">
       <div class="profile-cover"><span class="cover-code" aria-hidden="true"><span class="cover-role-icon cover-role-icon-developer"><span class="developer-mode-icon"></span></span><svg class="cover-role-icon cover-role-icon-client" viewBox="0 0 24 24"><rect x="3" y="7" width="18" height="14" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></span><span class="cover-orbit cover-orbit-one"></span><span class="cover-orbit cover-orbit-two"></span></div>
       <div class="identity-body">
@@ -89,27 +92,46 @@
       </div>
     </section>
 
-    <div class="profile-columns">
-      <aside class="profile-details">
-        <section class="profile-card about-card">
-          <div class="card-heading"><h2>About the business</h2></div>
-          <p class="about-copy" id="aboutCopy"></p>
-        </section>
-        <section class="profile-card" id="roleInfoCard"></section>
-        <section class="profile-card">
-          <div class="card-heading"><h2>Services &amp; Focus</h2></div>
-          <div class="skill-list" id="skillList"></div>
-        </section>
-        <section class="profile-card contact-card">
-          <div class="card-heading"><h2>Quick Contact</h2></div>
-          <p>Have a project in mind? Let’s talk.</p>
-          <a class="contact-message" id="directMessageLink" href="devmatch-auth.html?mode=login">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 11.5a8.5 8.5 0 0 1-8.5 8.5H4l1.5-4A8.5 8.5 0 1 1 21 11.5z"/></svg>
-            Direct Message
-          </a>
-        </section>
-      </aside>
+      <div id="clientQuickContactDesktop"></div>
+      <div class="client-profile-actions" id="clientProfileActions">
+        <div class="profile-actions">
+          <button class="button button-secondary" id="shareClientProfile" type="button">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.6 10.6 6.8-4.2m-6.8 7 6.8 4.2"/></svg>
+            Share Profile
+          </button>
+          <button class="button button-secondary client-profile-favorite" id="favoriteClient" type="button" aria-label="Add client to favorites" aria-pressed="false">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+            <span>Favorite</span>
+          </button>
+        </div>
+      </div>
+      <div id="clientConnectedAppsDesktop"></div>
+      </div>
+      <div class="client-profile-side" id="clientProfileSide">
+        <div id="clientCompanyDetails">
+          <section class="profile-card" id="roleInfoCard"></section>
+        </div>
+        <div id="clientQuickContactMobile">
+          <section class="profile-card contact-card">
+            <div class="card-heading"><h2>Quick Contact</h2></div>
+            <p>Interested in working together? Get in touch.</p>
+            <a class="contact-message" id="directMessageLink" href="devmatch-auth.html?mode=login">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 11.5a8.5 8.5 0 0 1-8.5 8.5H4l1.5-4A8.5 8.5 0 1 1 21 11.5z"/></svg>
+              Direct Message
+            </a>
+          </section>
+        </div>
+        <div id="clientConnectedAppsMobile">
+          <section class="profile-card" id="connectedAppsCard">
+            <div class="card-heading"><h2>Connected Apps</h2></div>
+            <div class="connected-list" id="connectedList"></div>
+          </section>
+        </div>
+        <div id="clientShowcaseDesktop"></div>
+      </div>
+    </div>
 
+    <div class="profile-columns" id="clientProfileColumns">
       <section class="profile-showcase">
         <div class="profile-stats" aria-label="Profile statistics">
           <article class="profile-stat"><span>Showcase</span><strong id="statProjects">0</strong><small>open requests</small></article>
@@ -143,12 +165,24 @@
     </div>
   </main>
 
+  <div class="fav-toast" id="favoriteActionToast" role="status" aria-live="polite"></div>
+  <dialog class="fav-remove-dialog" id="favoriteRemoveDialog" aria-labelledby="favoriteRemoveTitle" aria-describedby="favoriteRemoveMessage">
+    <h2 id="favoriteRemoveTitle">Remove from favorites?</h2>
+    <p id="favoriteRemoveMessage">Are you sure you want to remove this item from your favorites?</p>
+    <form class="fav-remove-dialog-actions" method="dialog">
+      <button class="fav-remove-cancel" value="cancel">Cancel</button>
+      <button class="fav-remove-confirm" value="remove">Remove</button>
+    </form>
+  </dialog>
+
   <a class="floating-chat" id="floatingChatLink" href="devmatch-auth.html?mode=login" aria-label="Messages &amp; Chat" title="Open Messages &amp; Chat">
     <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5c-5 0-9 3.65-9 8.15 0 2.24 1.04 4.27 2.73 5.74L4.7 21l5.24-1.28c.67.12 1.36.18 2.06.18 5 0 9-3.65 9-8.15S17 3.5 12 3.5Z"/><circle cx="8.5" cy="11.7" r="1" fill="currentColor" stroke="none"/><circle cx="12" cy="11.7" r="1" fill="currentColor" stroke="none"/><circle cx="15.5" cy="11.7" r="1" fill="currentColor" stroke="none"/></svg>
   </a>
 
+  <script src="assets/js/profile-contact.js?v=20261127-direct-message-self-v1"></script>
   <script src="assets/js/profile-overview.js?v=20261126-profile-overview-v1"></script>
-  <script src="assets/js/client-profile.js?v=20261126-profile-overview-v1"></script>
+  <script src="assets/js/favorite-feedback.js?v=20261125-responsive-orientation-v1"></script>
+  <script src="assets/js/client-profile.js?v=20261126-whatsapp-outline-v2"></script>
   <script src="assets/js/project-detail-popup.js?v=20261126-rebase-merge-v1"></script>
   <script src="assets/js/nav-behavior.js?v=20261126-rebase-merge-v1"></script>
   <script src="assets/js/presence.js?v=20261119-global"></script>

@@ -66,6 +66,24 @@
       : '';
   }
 
+  function configureDirectMessageLink(link, href, isOwnProfile) {
+    if (!link) throw new TypeError('Direct message link was not found.');
+
+    link.classList.toggle('disabled', isOwnProfile);
+    if (isOwnProfile) {
+      link.removeAttribute('href');
+      link.setAttribute('aria-disabled', 'true');
+      link.setAttribute('tabindex', '-1');
+      link.setAttribute('title', 'You cannot message yourself.');
+      return;
+    }
+
+    link.href = href;
+    link.removeAttribute('aria-disabled');
+    link.removeAttribute('tabindex');
+    link.removeAttribute('title');
+  }
+
   window.DEVMATCH_PROFILE_CONTACT = Object.freeze({
     dialCodes,
     normalizeDialCode,
@@ -75,6 +93,7 @@
     combineWhatsappNumber,
     normalizeInstagramUsername,
     isValidInstagramUsername,
-    instagramUrl
+    instagramUrl,
+    configureDirectMessageLink
   });
 })();

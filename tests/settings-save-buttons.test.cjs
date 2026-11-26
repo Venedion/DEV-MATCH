@@ -38,3 +38,23 @@ test('custom profile and experience save buttons enable only for changed drafts'
   assert.match(settingsJs,/experienceSaveSnapshot\(entry\) === entry\.saveBaseline \? ' disabled' : ''/);
   assert.match(settingsJs,/appEditSaveTracker\.markSaved\(\)/);
 });
+
+test('settings hydrate from the active database workspace and do not fall back to stale browser profiles',()=>{
+  assert.match(settingsJs,/const row = await window\.devMatchBackend\.loadProfile\(user\)/);
+  assert.match(settingsJs,/if \(row\.account_role !== role\)/);
+  assert.match(settingsJs,/privateProfileFieldsLoaded = true;\s*openProfileDetailsTarget\(\)/);
+  assert.doesNotMatch(settingsJs,/localStorage\.(?:getItem|setItem)\(/);
+  const initializationCatch=settingsJs.slice(
+    settingsJs.indexOf("console.error('Unable to load saved profile settings.'"),
+    settingsJs.indexOf('} finally {',settingsJs.indexOf("console.error('Unable to load saved profile settings.'"))
+  );
+  assert.doesNotMatch(initializationCatch,/populateForm\(\)/);
+  assert.match(settingsJs,/if \(privateProfileFieldsLoaded\) \{\s*settingsContent\?\.removeAttribute\('inert'\)/);
+});
+
+test('leaving a settings category restores saved fields and resets save trackers',()=>{
+  assert.match(settingsJs,/if \(activeTab && tabId !== activeTab && privateProfileFieldsLoaded\) \{\s*if \(activeTab === 'profile-details'\) closeExperienceEditors\(\);\s*populateForm\(\);/);
+  assert.match(settingsJs,/\[accountForm, profileDetailsForm, roleForm, notifForm, privacyForm, preferencesForm, passwordForm\][\s\S]*?\.forEach\(form => form\.reset\(\)\)/);
+  assert.match(settingsJs,/setSkillsEditing\(false\);[\s\S]*?setSpecialtiesEditing\(false\)/);
+  assert.match(settingsJs,/saveButtonTrackers\.forEach\(tracker => tracker\.markSaved\(\)\)/);
+});

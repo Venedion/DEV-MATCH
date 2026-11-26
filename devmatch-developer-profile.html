@@ -8,11 +8,11 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="assets/css/dashboard.css?v=20261126-rebase-merge-v1">
-  <link rel="stylesheet" href="assets/css/my-profile.css?v=20261127-desktop-back-navigation-v1">
+  <link rel="stylesheet" href="assets/css/my-profile.css?v=20261126-whatsapp-outline-v1">
   <link rel="stylesheet" href="assets/css/client-shell.css?v=20261125-responsive-orientation-v1">
   <link rel="stylesheet" href="assets/css/mode-switch-animation.css?v=20261030-active-indicator">
   <link rel="stylesheet" href="assets/css/mobile-navigation.css?v=20261126-scrollbar-hidden-v1">
-  <link rel="stylesheet" href="assets/css/developer-public-profile.css?v=20261127-desktop-back-navigation-v1">
+  <link rel="stylesheet" href="assets/css/developer-public-profile.css?v=20261127-client-developer-profile-layout-v1">
   <link rel="stylesheet" href="assets/css/favorite-feedback.css?v=20261125-responsive-orientation-v1">
   <link rel="stylesheet" href="assets/css/custom-select.css?v=20261123-no-ring-select-v1">
   <link rel="stylesheet" href="assets/css/developer-profile.css?v=20261126-rebase-merge-v1">
@@ -25,7 +25,7 @@
 <link rel="stylesheet" href="assets/css/developer-mode-icon.css?v=20261125-developer-mode-icon-v2">
 <link rel="stylesheet" href="assets/css/profile-overview.css?v=20261126-profile-overview-v11">
 </head>
-<body class="client-shell-page page-scroll-shell">
+<body class="client-shell-page page-scroll-shell client-developer-profile-view developer-profile-view">
   <header class="topbar">
     <a class="brand" href="devmatch-client-dashboard.html"><img class="brand-mark" src="assets/images/devmatch-logo.png" width="34" height="34" alt="" aria-hidden="true"><span>DEV-MATCH</span></a>
     <label class="search top-search">
@@ -59,37 +59,48 @@
     <p id="profileStatus" role="status" aria-live="polite">Loading developer profile…</p>
     <header class="profile-page-heading"><div><p class="eyebrow">Developers</p><h1>Developer Profile</h1></div></header>
     <nav class="public-profile-breadcrumb" aria-label="Breadcrumb"><a href="devmatch-find-developers.html">Developers</a><span>›</span><b id="breadcrumbName">Developer</b></nav>
-    <section class="profile-identity-card profile-overview" data-profile-overview hidden>
-      <div class="profile-cover"><span class="cover-code" aria-hidden="true"><span class="cover-role-icon cover-role-icon-developer"><span class="developer-mode-icon"></span></span><svg class="cover-role-icon cover-role-icon-client" viewBox="0 0 24 24"><rect x="3" y="7" width="18" height="14" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></span><span class="cover-orbit cover-orbit-one"></span><span class="cover-orbit cover-orbit-two"></span></div>
-      <div class="identity-body">
-        <div class="identity-avatar" id="developerInitials" data-profile-overview-avatar>DM</div>
-        <div class="identity-main">
-          <div class="identity-title-row"><div class="identity-name-block"><h2 id="developerName" data-profile-overview-name>Developer</h2><span class="availability-badge" data-profile-overview-status hidden><i></i><span></span></span><span class="mobile-identity-handle" data-profile-overview-username hidden></span>
-            <div class="mobile-profile-stats" role="group" aria-label="Profile statistics">
-              <span class="mobile-profile-stat" data-profile-overview-stat="views" role="group" aria-label="Profile Views"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.6-6 10-6 10 6 10 6-3.6 6-10 6-10-6-10-6Z"/><circle cx="12" cy="12" r="2.5"/></svg><strong data-profile-overview-stat-value>0</strong></span>
-              <span class="mobile-profile-stat" data-profile-overview-stat="favorites" role="group" aria-label="Favorites"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.8 8.7c0 5.2-8.8 10.1-8.8 10.1S3.2 13.9 3.2 8.7A4.7 4.7 0 0 1 12 6.4a4.7 4.7 0 0 1 8.8 2.3Z"/></svg><strong data-profile-overview-stat-value>0</strong></span>
-              <span class="mobile-profile-stat" data-profile-overview-stat="rating" role="group" aria-label="Rating"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.5 14.9 8.3 21.3 9.2 16.65 13.75 17.75 20.2 12 17.15 6.25 20.2 7.35 13.75 2.7 9.2 9.1 8.3 12 2.5Z"/></svg><strong data-profile-overview-stat-value>-</strong></span>
+    <div class="client-profile-layout" id="clientProfileLayout" hidden>
+      <div class="client-profile-main">
+        <section class="profile-identity-card profile-overview" data-profile-overview hidden>
+          <div class="profile-cover"><span class="cover-code" aria-hidden="true"><span class="cover-role-icon cover-role-icon-developer"><span class="developer-mode-icon"></span></span><svg class="cover-role-icon cover-role-icon-client" viewBox="0 0 24 24"><rect x="3" y="7" width="18" height="14" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></span><span class="cover-orbit cover-orbit-one"></span><span class="cover-orbit cover-orbit-two"></span></div>
+          <div class="identity-body">
+            <div class="identity-avatar" id="developerInitials" data-profile-overview-avatar>DM</div>
+            <div class="identity-main">
+              <div class="identity-title-row"><div class="identity-name-block"><h2 id="developerName" data-profile-overview-name>Developer</h2><span class="availability-badge" data-profile-overview-status hidden><i></i><span></span></span><span class="mobile-identity-handle" data-profile-overview-username hidden></span>
+                <div class="mobile-profile-stats" role="group" aria-label="Profile statistics">
+                  <span class="mobile-profile-stat" data-profile-overview-stat="views" role="group" aria-label="Profile Views"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.6-6 10-6 10 6 10 6-3.6 6-10 6-10-6-10-6Z"/><circle cx="12" cy="12" r="2.5"/></svg><strong data-profile-overview-stat-value>0</strong></span>
+                  <span class="mobile-profile-stat" data-profile-overview-stat="favorites" role="group" aria-label="Favorites"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.8 8.7c0 5.2-8.8 10.1-8.8 10.1S3.2 13.9 3.2 8.7A4.7 4.7 0 0 1 12 6.4a4.7 4.7 0 0 1 8.8 2.3Z"/></svg><strong data-profile-overview-stat-value>0</strong></span>
+                  <span class="mobile-profile-stat" data-profile-overview-stat="rating" role="group" aria-label="Rating"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.5 14.9 8.3 21.3 9.2 16.65 13.75 17.75 20.2 12 17.15 6.25 20.2 7.35 13.75 2.7 9.2 9.1 8.3 12 2.5Z"/></svg><strong data-profile-overview-stat-value>-</strong></span>
+                </div>
+              </div>
+                <div class="profile-actions">
+                  <button class="button button-secondary" id="copyProfileLink" type="button" aria-label="Copy profile link">Share Profile</button>
+                  <button class="button button-secondary" id="favoriteDeveloper" type="button" aria-pressed="false">♡ <span>Favorite</span></button>
+                </div>
+              </div>
+              <p class="identity-bio" id="developerAbout"></p>
+              <div class="identity-meta"><span id="developerHandle"></span><span id="developerLocation"></span><span id="developerRole"></span><span id="developerJoined"></span></div>
             </div>
           </div>
-            <div class="profile-actions">
-              <button class="button button-secondary" id="copyProfileLink" type="button" aria-label="Copy profile link">Share Profile</button>
-              <button class="button button-secondary" id="favoriteDeveloper" type="button" aria-pressed="false">♡ <span>Favorite</span></button>
-              <a class="button button-primary" id="contactDeveloper" href="devmatch-client-dashboard.html">Contact Developer</a>
-            </div>
+          <div class="mobile-profile-details">
+            <div class="mobile-profile-location" data-profile-overview-location hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 10c0 5-8 12-8 12S4 15 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="2.5"/></svg><span data-profile-overview-location-value></span></div>
+            <p class="mobile-profile-bio" data-profile-overview-bio></p>
           </div>
-          <p class="identity-bio" id="developerAbout"></p>
-          <div class="identity-meta"><span id="developerHandle"></span><span id="developerLocation"></span><span id="developerRole"></span><span id="developerJoined"></span></div>
-        </div>
+        </section>
+        <div id="clientQuickContactDesktop"></div>
+        <div class="client-profile-actions" id="clientProfileActions"></div>
+        <div id="clientConnectedAppsDesktop"></div>
+        <div id="developerDetailsDesktop" hidden></div>
       </div>
-      <div class="mobile-profile-details">
-        <div class="mobile-profile-location" data-profile-overview-location hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 10c0 5-8 12-8 12S4 15 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="2.5"/></svg><span data-profile-overview-location-value></span></div>
-        <p class="mobile-profile-bio" data-profile-overview-bio></p>
+      <div class="client-profile-side" id="clientProfileSide" hidden>
+        <div id="clientCompanyDetails"></div>
+        <div id="clientQuickContactMobile"></div>
+        <div id="clientShowcaseDesktop"></div>
       </div>
-    </section>
+    </div>
     <div class="profile-columns" hidden>
       <aside class="profile-details">
-        <section class="profile-card about-card"><div class="card-heading"><h2>About</h2></div><p class="about-copy" id="developerAboutCard"></p><div class="role-info-grid"><div class="role-info-item"><small>EXPERIENCE</small><strong id="developerExperience"></strong></div><div class="role-info-item"><small>LOCATION</small><strong id="developerLocationCard"></strong></div></div></section>
-        <section class="profile-card" aria-labelledby="developerRatesHeading">
+        <section class="profile-card" id="roleInfoCard" aria-labelledby="developerRatesHeading">
           <div class="card-heading"><h2 id="developerRatesHeading">Rates &amp; Work Terms</h2></div>
           <div class="role-info-grid">
             <div class="role-info-item"><small>HOURLY RATE</small><strong id="developerHourlyRate">Not provided</strong></div>
@@ -97,11 +108,11 @@
           </div>
           <div class="empty-state" id="developerWorkTerms">No work terms added yet.</div>
         </section>
-        <section class="profile-card"><div class="card-heading"><h2>Specialization</h2></div><div class="profile-specialty-grid" id="developerSpecialties"></div></section>
-        <section class="profile-card"><div class="card-heading"><h2>Skills &amp; Tech Stacks</h2></div><div class="skill-list" id="developerSkills"></div></section>
-        <section class="profile-card"><div class="card-heading"><h2>Experience</h2></div><ol class="experience-list" id="developerExperienceList"></ol></section>
-        <section class="profile-card"><div class="card-heading"><h2>Links</h2></div><div class="public-links" id="developerLinks"></div></section>
-        <section class="profile-card contact-card"><div class="card-heading"><h2>Quick Contact</h2></div><p>Have a project in mind? Let's talk.</p><a class="contact-message" id="sidebarContactDeveloper" href="devmatch-client-dashboard.html">Contact developer</a></section>
+        <section class="profile-card" id="developerSpecialtiesCard"><div class="card-heading"><h2>Specialization</h2></div><div class="profile-specialty-grid" id="developerSpecialties"></div></section>
+        <section class="profile-card" id="developerSkillsCard"><div class="card-heading"><h2>Skills &amp; Tech Stacks</h2></div><div class="skill-list" id="developerSkills"></div></section>
+        <section class="profile-card" id="developerExperienceCard"><div class="card-heading"><h2>Experience</h2></div><ol class="experience-list" id="developerExperienceList"></ol></section>
+        <section class="profile-card" id="connectedAppsCard"><div class="card-heading"><h2>Connected Apps</h2></div><div class="connected-list" id="developerConnectedApps"></div></section>
+        <section class="profile-card contact-card"><div class="card-heading"><h2>Quick Contact</h2></div><p>Have a project in mind? Let's talk.</p><a class="contact-message" id="sidebarContactDeveloper" href="devmatch-client-dashboard.html"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11.5a7.5 7.5 0 0 1-7.5 7.5H6l-3 2v-6.5a7.5 7.5 0 1 1 17-3Z"/><path d="M8 11h8m-8 3h5"/></svg>Direct Message</a></section>
       </aside>
       <section class="profile-showcase">
         <div class="profile-stats" aria-label="Developer statistics">
@@ -144,8 +155,9 @@
   <script src="assets/js/profile-specialties.js?v=20261119-profile-specialization"></script>
   <script src="assets/js/favorite-feedback.js?v=20261125-responsive-orientation-v1"></script>
   <script src="assets/js/custom-select.js?v=20261028-custom-dropdowns-v3"></script>
+  <script src="assets/js/profile-contact.js?v=20261127-direct-message-self-v1"></script>
   <script src="assets/js/profile-overview.js?v=20261126-profile-overview-v1"></script>
-  <script src="assets/js/developer-profile.js?v=20261126-profile-overview-v1"></script>
+  <script src="assets/js/developer-profile.js?v=20261127-client-developer-profile-layout-v1"></script>
   <script src="assets/js/nav-behavior.js?v=20261125-responsive-orientation-v1"></script>
 <script src="assets/js/presence.js?v=20261119-global"></script>
 </body>
