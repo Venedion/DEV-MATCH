@@ -7,9 +7,10 @@
     sessionStorage.removeItem('devmatch-recovery');
     sessionStorage.setItem('devmatch-recovery-error','This email link is invalid or expired. Request a new reset link.');
   }
+  const deploymentConfig = window.DEVMATCH_PUBLIC_CONFIG || {};
   const client = window.supabase.createClient(
-    'https://yxwktllqbmhustmhdaqi.supabase.co',
-    'sb_publishable_9JeJarcXaZgNRiawz81gjw_PTaXtKli'
+    deploymentConfig.supabaseUrl || 'https://yxwktllqbmhustmhdaqi.supabase.co',
+    deploymentConfig.supabaseAnonKey || 'sb_publishable_9JeJarcXaZgNRiawz81gjw_PTaXtKli'
   );
   const page = location.pathname.split('/').pop();
   const protectedPage = /^devmatch-(dashboard|client-dashboard|profile|complete|verify-phone|my-profile|my-projects|settings|favorites|chat|notifications|developer-notifications)\.html$/.test(page);

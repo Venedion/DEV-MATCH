@@ -109,6 +109,7 @@
 
   const kindDetails = kind => {
     const value = String(kind || '').toLowerCase();
+    if (value.includes('payment')) return {filter: 'payments', label: 'DP received', badge: '✓'};
     if (value.includes('reply')) return {filter: 'comments', label: 'replied to your comment on', badge: '“'};
     if (value.includes('comment')) return {filter: 'comments', label: 'commented on', badge: '“'};
     if (value.includes('message') || value.includes('conversation')) return {filter: 'messages', label: 'sent you a message', badge: '✉'};
@@ -198,7 +199,8 @@
     const sentence = document.createElement('span');
     const name = document.createElement('b');
     name.textContent = actorName;
-    sentence.append(name, document.createTextNode(` ${detail.label}`));
+    if (detail.filter === 'payments') sentence.textContent = detail.label;
+    else sentence.append(name, document.createTextNode(` ${detail.label}`));
     if (['comments', 'favorites'].includes(detail.filter)) {
       sentence.append(document.createTextNode(' '));
       const project = document.createElement('strong');
@@ -215,7 +217,9 @@
     action.className = 'notification-action';
     action.href = actionHref(notification,projects);
     action.dataset.markRead = '';
-    action.textContent = detail.filter === 'comments' ? 'Reply' : detail.filter === 'messages' ? 'Open chat' : 'View';
+    action.textContent = detail.filter === 'comments' ? 'Reply'
+      : detail.filter === 'messages' ? 'Open chat'
+      : detail.filter === 'payments' ? 'Open project' : 'View';
     article.append(dot, avatar, content, action);
     row.append(article);
   }

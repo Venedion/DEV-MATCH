@@ -316,3 +316,46 @@ They mock SDK requests and do not prove delivery to a real inbox. A database
 transaction test confirmed that unconfirmed email cannot finish onboarding,
 confirmed email can finish without a verified phone, and phone status stays
 unverified. Fixture changes were rolled back.
+
+## Midtrans DP checkout (local source only)
+
+The DP payment changes in
+`migrations/20261126110000_payments.sql`,
+`functions/payments`, and `functions/midtrans-webhook` are local and have not
+been applied or deployed. Do not run database or deployment commands until the
+staging project reference is provided and the migration is approved. The
+`project_id` above is not a staging reference; do not use it for this work.
+
+The Vercel build script `npm run build` writes the ignored
+`assets/js/deployment-config.js` from these optional environment variables:
+
+- `DEVMATCH_SUPABASE_URL` and `DEVMATCH_SUPABASE_ANON_KEY` select the frontend's
+  Supabase project for that deployment. Both must be set for staging; otherwise
+  the existing production frontend defaults remain in effect.
+- `DEVMATCH_MIDTRANS_ENVIRONMENT` selects `sandbox` or `production` and defaults
+  to `sandbox`.
+- `DEVMATCH_MIDTRANS_CLIENT_KEY` is the public client key matching that
+  environment.
+- `DEVMATCH_MIDTRANS_SNAP_JS_URL` optionally overrides the Snap script URL,
+  which must use the matching Midtrans host.
+
+The embedded DP checkout is enabled only when the Supabase URL, Supabase anon
+key, and Midtrans client key are all provided. Without a staging build
+configuration, the frontend retains the existing production Supabase defaults
+and legacy checkout behavior.
+
+Configure `MIDTRANS_ENVIRONMENT`, `MIDTRANS_SERVER_KEY`, and
+`PAYMENT_RETURN_ORIGIN` only in the staging Edge Function environment.
+`PAYMENT_RETURN_ORIGIN` must be the HTTPS origin of that staging frontend; the
+function uses it to return the payer to the same conversation in Client mode.
+Never add the server key to frontend configuration. Before enabling the
+integration, deploy the migration and both Edge Functions explicitly to
+staging, after approval and once its project reference is known.
+The staging Edge Function `APP_ORIGINS` allowlist must also include the exact
+origin serving the staging frontend.
+
+For Midtrans Sandbox, set the dashboard's Payment Notification URL to
+`https://<STAGING_PROJECT_REF>.supabase.co/functions/v1/midtrans-webhook`.
+This is guidance only; the dashboard has not been changed. The rollback script
+removes payment-kind notification rows, so review their data impact before
+using it.

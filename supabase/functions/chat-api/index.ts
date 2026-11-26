@@ -437,7 +437,7 @@ async function attachMessageProjectContexts(
   });
 }
 
-function exposeProposal(row, agreement = null, paymentState = null) {
+function exposeProposal(row, agreement = null, paymentState = null, dpPayment = null) {
   const paymentRoom = paymentState?.room || null;
   const ratings = paymentRoom?.ratings || {};
   const payments = Array.isArray(paymentState?.payments) ? paymentState.payments : [];
@@ -475,6 +475,11 @@ function exposeProposal(row, agreement = null, paymentState = null) {
       final_proof_url: paymentRoom?.delivery?.links?.[0] || null,
       handover_status: paymentRoom?.handover?.status || null,
       dispute_status: paymentRoom?.dispute?.status || null,
+      cancellation_reason: paymentRoom?.cancellationReason || null,
+      dp_payment_id: dpPayment?.id || null,
+      dp_order_id: dpPayment?.midtrans_order_id || null,
+      dp_payment_status: dpPayment?.status || null,
+      dp_expires_at: dpPayment?.expires_at || null,
       client_rated: Boolean(ratings.client),
       developer_rated: Boolean(ratings.developer),
       created_at: agreement.created_at
@@ -499,18 +504,37 @@ async function getProposalDetailsByIds(supabaseUrl, serviceRoleKey, proposalIds)
   ]);
   const agreementsByProposal = new Map(agreements.map(agreement => [agreement.proposal_id, agreement]));
   const agreementIds = agreements.map(agreement => agreement.id);
-  const paymentRooms = agreementIds.length
-    ? await requestRows(supabaseUrl, serviceRoleKey, 'payment_agreement_rooms', {
-      select: 'agreement_id,state',
-      agreement_id: `in.(${agreementIds.join(',')})`
-    })
-    : [];
+  const [paymentRooms, dpPayments] = agreementIds.length
+    ? await Promise.all([
+      requestRows(supabaseUrl, serviceRoleKey, 'payment_agreement_rooms', {
+        select: 'agreement_id,state',
+        agreement_id: `in.(${agreementIds.join(',')})`
+      }),
+      requestRows(supabaseUrl, serviceRoleKey, 'payments', {
+        select: 'id,agreement_id,midtrans_order_id,status,expires_at,created_at',
+        agreement_id: `in.(${agreementIds.join(',')})`,
+        kind: 'eq.dp',
+        order: 'created_at.desc'
+      })
+    ])
+    : [[], []];
   const stateByAgreement = new Map(paymentRooms.map(paymentRoom => [
     paymentRoom.agreement_id, paymentRoom.state || null
   ]));
+  const dpPaymentByAgreement = new Map();
+  for (const payment of dpPayments) {
+    if (!dpPaymentByAgreement.has(payment.agreement_id)) {
+      dpPaymentByAgreement.set(payment.agreement_id, payment);
+    }
+  }
   return new Map(proposals.map(proposal => {
     const agreement = agreementsByProposal.get(proposal.id);
-    return [proposal.id, exposeProposal(proposal, agreement, stateByAgreement.get(agreement?.id))];
+    return [proposal.id, exposeProposal(
+      proposal,
+      agreement,
+      stateByAgreement.get(agreement?.id),
+      dpPaymentByAgreement.get(agreement?.id)
+    )];
   }));
 }
 

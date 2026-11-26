@@ -2667,6 +2667,13 @@ button.chat-attachment-card:hover {
   line-height: 1.5;
 }
 
+.chat-project-proposal-card > .chat-proposal-dp-expiry-note {
+  margin: 0 0 10px;
+  color: #8a5a00;
+  font-variant-numeric: tabular-nums;
+  font-weight: 650;
+}
+
 .chat-project-proposal-card > footer {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));

@@ -23,13 +23,13 @@
       id: 'dp-paid',
       label: '1 · DP paid',
       client: {
-        status: 'Waiting for progress',
+        status: 'In progress',
         note: name => `DP paid and held. Waiting for ${name} to submit progress.`,
-        actions: []
+        actions: ['Open project']
       },
       developer: {
-        status: 'DP paid',
-        note: () => 'DP paid and held. Upload progress to continue.',
+        status: 'In progress',
+        note: () => 'DP received. You can start working.',
         actions: ['Upload progress']
       }
     },
@@ -201,6 +201,9 @@
   let currentFilter = 'all';
   let searchQuery = '';
   let realtimeChannel = null;
+  let dpCountdownTimer = null;
+  const dpExpiryRefreshAfter = new Map();
+  const dpProposalRefreshes = new Map();
 
   function syncMobileChatRoomNavbar(isRoomOpen) {
     if (!window.matchMedia('(orientation: portrait)').matches) return;
@@ -566,17 +569,20 @@
     const projectStatus = agreement.project_status || 'NOT_STARTED';
     const reviewStatus = agreement.progress_review_status;
     const escrowStatus = agreement.escrow_status || 'AWAITING_DP';
+    const dpPaymentStatus = String(agreement.dp_payment_status || '').toLowerCase();
+    const isDpExpired = !isPreview && isAccepted &&
+      agreement.cancellation_reason === 'DP_EXPIRED' && dpPaymentStatus === 'expired';
+    const isDpFailed = ['failed', 'cancelled'].includes(dpPaymentStatus);
     const isAwaitingDp = !isPreview && isAccepted && projectStatus === 'NOT_STARTED' &&
       escrowStatus === 'AWAITING_DP';
-    const isDpExpired = isAwaitingDp && agreement.dp_payment_status === 'EXPIRED';
-    const isDpPaid = !isPreview && isAccepted && escrowStatus === 'DP_HELD';
+    const isDpPaid = !isPreview && isAccepted && dpPaymentStatus === 'paid' && escrowStatus === 'DP_HELD';
+    const isAgreementInProgress = isDpPaid && projectStatus === 'IN_PROGRESS';
     const isProgressPending = !isPreview && reviewStatus === 'PENDING';
     const isProgressUpdateRequested = !isPreview && reviewStatus === 'UPDATE_REQUESTED';
     const isProgressApproved = !isPreview && (
       agreement.progress_approved || ['APPROVED', 'AUTO_APPROVED'].includes(reviewStatus)
     );
-    const isAwaitingProgress = !isPreview && isDpPaid &&
-      ['IN_PROGRESS', 'REVISION'].includes(projectStatus) &&
+    const isAwaitingProgress = !isPreview && isAgreementInProgress &&
       !agreement.progress_submitted_at && !isProgressPending && !isProgressApproved;
     const isFinalProofShared = !isPreview && (
       projectStatus === 'AWAITING_REMAINING_PAYMENT' || agreement.final_proof_shared
@@ -595,6 +601,7 @@
     );
     const status = stageView?.status || (isDisputed ? 'Problem reported'
       : isCompleted ? 'Completed'
+      : isDpExpired ? 'DP expired · Agreement cancelled'
       : isAwaitingResult ? 'System handed over'
       : isRemainingPaid ? 'Remaining paid'
       : isRemainingExpired ? 'Payment expired'
@@ -604,6 +611,7 @@
       : isProgressApproved ? 'Progress approved'
       : isDpExpired ? 'DP checkout expired'
       : isAwaitingDp ? 'Awaiting DP'
+      : isAgreementInProgress ? 'In progress'
       : isAwaitingProgress ? (isDeveloper ? 'DP paid' : 'Waiting for progress')
       : isAccepted ? 'Accepted'
       : proposal.status === 'withdrawn' ? 'Withdrawn' : 'Pending approval');
@@ -640,13 +648,19 @@
       ? isDeveloper
         ? 'The DP has been released. Submit the final video when it is ready.'
         : `Progress approved. The DP has been released to ${contactName}.`
+      : isDpExpired
+      ? 'The DP payment expired and this agreement was cancelled. Create a new proposal to continue.'
       : isAwaitingDp
       ? isClient
-        ? 'Agreement created. Pay the DP to start the project. Pay within 48 hours.'
-        : `Waiting for ${contactName} to pay the DP. You can start once it is received.`
+        ? isDpFailed
+          ? 'The DP payment failed or was cancelled. Try again to start a new payment attempt.'
+          : 'Agreement created. Pay the DP to start the project.'
+        : isDpFailed
+          ? `The DP payment attempt failed. Waiting for ${contactName} to try again.`
+          : `Waiting for ${contactName} to pay the DP. You can start once it is received.`
       : isDpPaid
         ? isDeveloper
-          ? 'DP paid and held. Upload progress to continue.'
+          ? 'DP received. You can start working.'
           : `DP paid and held. Waiting for ${contactName} to submit progress.`
       : isPending
       ? isCreator
@@ -655,6 +669,22 @@
       : isAccepted
         ? 'Agreement created. The terms are locked. Open project payments to continue.'
         : 'This proposal was withdrawn by its creator and can no longer be accepted.';
+    const expiry = isAwaitingDp && dpPaymentStatus === 'pending' &&
+        typeof agreement.dp_expires_at === 'string' &&
+        UUID_PATTERN.test(agreement.dp_payment_id || '') &&
+        typeof agreement.dp_order_id === 'string'
+        ? `${isClient ? '<p class="chat-proposal-dp-expiry-note">' : '<span hidden>'}${
+          isClient ? 'Time left to pay: ' : ''
+        }<time
+            class="chat-proposal-dp-countdown"
+              data-dp-countdown
+            datetime="${escapeHtml(agreement.dp_expires_at)}"
+            data-dp-expires-at="${escapeHtml(agreement.dp_expires_at)}"
+            data-dp-payment-id="${escapeHtml(agreement.dp_payment_id)}"
+            data-dp-order-id="${escapeHtml(agreement.dp_order_id)}">Checking status…</time>${
+          isClient ? '</p>' : '</span>'
+        }`
+        : '';
     const cardId = escapeHtml(proposal.id);
     const paymentAction = (label, action, primary = false) =>
       `<button class="${primary ? 'chat-proposal-card-primary' : ''}" type="button" data-proposal-payments="${cardId}"${action ? ` data-proposal-payment-action="${action}"` : ''}>${escapeHtml(label)}</button>`;
@@ -667,8 +697,14 @@
       : [];
     if (!isPreview && isAccepted && agreement.id) {
       if (isAwaitingDp && isClient) {
-        actions.push(paymentAction(`${isDpExpired ? 'Retry DP' : 'Pay DP'} · ${formatProposalAmount(terms.dpAmount)}`, 'DP', true));
-      } else if (isDpPaid && isDeveloper && !isProgressPending) {
+        actions.push(paymentAction(
+          isDpFailed ? 'Try again' : `Pay DP · ${formatProposalAmount(terms.dpAmount)}`,
+          'DP',
+          true
+        ));
+      } else if (isAgreementInProgress && isClient) {
+        actions.push(`<button class="chat-proposal-card-primary" type="button" data-proposal-open-project="${cardId}">Open project</button>`);
+      } else if (isAgreementInProgress && isDeveloper && !isProgressPending) {
         actions.push(`<button class="chat-proposal-card-primary" type="button" data-proposal-progress="${cardId}">Upload progress</button>`);
       } else if (isProgressPending && isClient) {
         actions.push(`<button class="chat-proposal-card-primary" type="button" data-proposal-review-progress="${cardId}">Review progress</button>`);
@@ -719,9 +755,51 @@
       <h3>${escapeHtml(terms.projectName || 'Project proposal')}</h3>
       <strong class="chat-proposal-card-price">${escapeHtml(formatProposalAmount(terms.totalPrice))}</strong>
       <dl>${rows.map(([label, hint, amount]) => `<div><dt>${escapeHtml(label)}${hint ? ` (${escapeHtml(hint)})` : ''}</dt><dd>${typeof amount === 'number' ? escapeHtml(formatProposalAmount(amount)) : escapeHtml(amount)}</dd></div>`).join('')}</dl>
-      <p>${statusNote}</p>
+      <p>${statusNote}</p>${expiry}
       <footer class="${hasPrimaryAction ? 'has-primary' : ''}${actions.length === 2 ? ' is-two-actions' : ''}">${actions.join('')}</footer>
     </article>`;
+  }
+
+  async function refreshExpiredDp(paymentId, orderId) {
+    const nextAllowedAt = dpExpiryRefreshAfter.get(paymentId) || 0;
+    if (Date.now() < nextAllowedAt || document.visibilityState !== 'visible') return;
+    dpExpiryRefreshAfter.set(paymentId, Date.now() + 30000);
+    try {
+      const {data, error} = await client.functions.invoke('payments', {
+        body: {action: 'refresh-status', paymentId, orderId}
+      });
+      if (error) throw await edgeError(error, 'Unable to verify the expired DP payment.');
+      const result = data?.data;
+      if (result?.paymentId !== paymentId ||
+          !['pending', 'paid', 'expired', 'failed', 'cancelled'].includes(result.status)) {
+        throw new Error('Payment status service returned an invalid response.');
+      }
+      if (result.status !== 'pending') dpExpiryRefreshAfter.delete(paymentId);
+      if (activeConvId) await loadMessages(activeConvId);
+    } catch (error) {
+      console.error('Unable to verify an expired DP payment.', error);
+      setStatus(error.message || 'Unable to verify the DP payment status.', true);
+    }
+  }
+
+  function updateDpCountdowns() {
+    document.querySelectorAll('.chat-proposal-dp-countdown').forEach(countdown => {
+      const expiresAt = Date.parse(countdown.dataset.dpExpiresAt || '');
+      if (!Number.isFinite(expiresAt)) {
+        countdown.textContent = 'Expiry unavailable';
+        return;
+      }
+      const remaining = expiresAt - Date.now();
+      if (remaining <= 0) {
+        countdown.textContent = 'Checking payment status…';
+        void refreshExpiredDp(countdown.dataset.dpPaymentId, countdown.dataset.dpOrderId);
+        return;
+      }
+      const seconds = Math.floor(remaining / 1000);
+      const hours = Math.floor(seconds / 3600);
+      const minutes = Math.floor((seconds % 3600) / 60);
+      countdown.textContent = `${hours}h ${minutes}m ${seconds % 60}s`;
+    });
   }
 
   function renderProposalCardStagePreview() {
@@ -1926,6 +2004,7 @@
       if (cardPreview && threadContainerEl) threadContainerEl.scrollTop = 0;
       else scrollThreadToBottom();
     }
+    updateDpCountdowns();
     updateDetailPaneVisibility();
   }
 
@@ -2082,6 +2161,21 @@
     if (conversationId === activeConvId) renderMessagesThread();
   }
 
+  function refreshVisibleProposalAgreement(agreementId) {
+    if (typeof agreementId !== 'string' || !UUID_PATTERN.test(agreementId)) return;
+    const conversation = getActiveConversation();
+    if (!conversation?.id || !conversation.messages?.some(message =>
+      message.proposal?.agreement?.id === agreementId)) return;
+    if (dpProposalRefreshes.has(agreementId)) return;
+    const refresh = loadMessages(conversation.id)
+      .catch(error => {
+        console.error('Unable to refresh the DP proposal status.', error);
+        setStatus(error.message || 'Unable to refresh the DP proposal status.', true);
+      })
+      .finally(() => dpProposalRefreshes.delete(agreementId));
+    dpProposalRefreshes.set(agreementId, refresh);
+  }
+
   async function loadOlderMessages(conversation) {
     if (!conversation || conversation.loadingOlderMessages || conversation.loadedAllMessages) return;
     const oldestMessage = conversation.messages[0];
@@ -2124,6 +2218,7 @@
   }
 
   let activityTimer;
+  dpCountdownTimer = window.setInterval(updateDpCountdowns, 1000);
   async function syncActivity() {
     if (!currentUser || pendingConversationDraft || document.visibilityState !== 'visible') return;
     const conversation=getActiveConversation();
@@ -2140,7 +2235,10 @@
       if(changed)renderMessagesThread();
     }
   }
-  document.addEventListener('visibilitychange',()=>{if(currentUser)void syncActivity();});
+  document.addEventListener('visibilitychange',()=>{
+    if(currentUser)void syncActivity();
+    if(document.visibilityState === 'visible') updateDpCountdowns();
+  });
   async function startRealtime() {
     const {data, error} = await client.auth.getSession();
     if (error) throw error;
@@ -2196,6 +2294,15 @@
           console.error('Unable to refresh a project proposal.', error);
           setStatus(error.message || 'Unable to refresh the proposal.', true);
         }
+      })
+      .on('postgres_changes', {
+        event: 'UPDATE',
+        schema: 'public',
+        table: 'payments'
+      }, payload => {
+        const payment = payload.new;
+        if (!['paid', 'expired', 'failed', 'cancelled'].includes(payment?.status)) return;
+        refreshVisibleProposalAgreement(payment.agreement_id);
       })
       .on('postgres_changes', {
         event: '*',
@@ -2814,6 +2921,9 @@
 
   function bindControls() {
     window.addEventListener('devmatch:progress-review-updated', () => renderMessagesThread());
+    window.addEventListener('devmatch:dp-payment-status', event => {
+      refreshVisibleProposalAgreement(event.detail?.agreementId);
+    });
     filterBtns.forEach(button => {
       button.addEventListener('click', () => {
         filterBtns.forEach(item => item.classList.remove('active'));
@@ -3147,12 +3257,20 @@
         if (proposal) openProposalDetails(proposal);
         return;
       }
-      const progressButton = event.target.closest('[data-proposal-progress]');
-      if (progressButton && chatMessagesEl.contains(progressButton)) {
+      const proposalProjectButton = event.target.closest('[data-proposal-progress], [data-proposal-open-project]');
+      if (proposalProjectButton && chatMessagesEl.contains(proposalProjectButton)) {
         event.preventDefault();
         const proposal = getActiveConversation()?.messages
-          .find(message => message.proposal?.id === progressButton.dataset.proposalProgress)?.proposal;
-        if (proposal) openProposalProgress(proposal);
+          .find(message => message.proposal?.id ===
+            (proposalProjectButton.dataset.proposalProgress || proposalProjectButton.dataset.proposalOpenProject))?.proposal;
+        if (proposal?.agreement?.id) {
+          window.DEVMATCH_ROOM_PAYMENT?.openAgreement({
+            id: proposal.agreement.id,
+            conversationId: proposal.conversation_id,
+            proposalId: proposal.id,
+            title: proposal.terms?.projectName
+          });
+        }
         return;
       }
       const progressReviewButton = event.target.closest('[data-proposal-review-progress]');
@@ -3354,6 +3472,7 @@
 
   window.addEventListener('beforeunload', () => {
     clearInterval(activityTimer);
+    clearInterval(dpCountdownTimer);
     if (realtimeChannel) void client.removeChannel(realtimeChannel);
     presenceChannels.forEach(channel => void client.removeChannel(channel));
   });

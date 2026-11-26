@@ -18,7 +18,7 @@
   <script src="assets/js/i18n.js?v=20261125-backend-workspace"></script>
 <script src="assets/vendor/supabase-2.119.0.js"></script>
 <link rel="stylesheet" href="assets/css/form-controls.css?v=20261126-optional-unified-v1">
-<script src="assets/js/backend.js?v=20261126-username-validation-v1"></script>
+<script src="assets/js/deployment-config.js?v=20261126-env-config-v1"></script><script src="assets/js/backend.js?v=20261126-username-validation-v1"></script>
 <link rel="stylesheet" href="assets/css/developer-mode-icon.css?v=20261125-developer-mode-icon-v2">
   <script type="module" src="assets/js/site-motion.js?v=20261127-visible-motion"></script>
 </head>
@@ -275,13 +275,13 @@
         <div>
           <div class="room-payment-checkout-heading">
             <h2 id="roomPaymentCheckoutTitle">Pay DP</h2>
-            <span>Test mode</span>
+            <span id="roomPaymentCheckoutMode">Test mode</span>
           </div>
           <p id="roomPaymentCheckoutProject"></p>
         </div>
         <button type="button" data-checkout-close aria-label="Close payment details">×</button>
       </header>
-      <main>
+      <main data-checkout-summary>
         <div class="room-payment-checkout-amount">
           <span id="roomPaymentCheckoutAmountLabel"></span>
           <strong id="roomPaymentCheckoutAmount"></strong>
@@ -292,35 +292,30 @@
           <li>It is released after you approve the project progress.</li>
           <li>The remaining payment is due after the final video is shared.</li>
         </ul>
-        <p class="room-payment-checkout-note">Midtrans Sandbox is for testing; no real money moves. New checkouts expire in 10 minutes.</p>
+        <p class="room-payment-checkout-note" id="roomPaymentCheckoutNote"></p>
         <p id="roomPaymentCheckoutError" role="alert" hidden></p>
       </main>
-      <footer>
-        <button type="button" data-demo-payment>Demo payment</button>
-        <span class="room-payment-checkout-spacer"></span>
+      <section id="roomPaymentSnapStep" class="room-payment-snap-step" hidden aria-label="Midtrans payment">
+        <p id="roomPaymentSnapStatus" role="status" aria-live="polite" hidden></p>
+        <details id="roomPaymentDemoGuide" class="room-payment-demo-guide" hidden>
+          <summary>Panduan pembayaran Sandbox</summary>
+          <p>Gunakan pembayaran sebelum waktu checkout berakhir.</p>
+          <h3>BCA Virtual Account</h3>
+          <ol>
+            <li>Pilih BCA di Snap, lalu salin nomor virtual account.</li>
+            <li>Tempel nomor tadi di simulator, klik <strong>Inquire</strong>, cocokkan nominalnya, lalu klik <strong>Pay</strong>. <a href="https://simulator.sandbox.midtrans.com/bca/va/index" target="_blank" rel="noopener noreferrer">Buka simulator BCA ↗</a></li>
+            <li>Kembali ke DEV-MATCH; status pembayaran akan diperbarui otomatis.</li>
+          </ol>
+          <h3>Kartu tes</h3>
+          <p>Pilih kartu kredit atau debit. Isi <code>4811 1111 1111 1114</code>, masa berlaku <code>01/30</code>, CVV <code>123</code>, dan OTP <code>112233</code> jika diminta.</p>
+        </details>
+        <div id="roomPaymentSnapEmbed"></div>
+      </section>
+      <footer id="roomPaymentCheckoutActions">
         <button type="button" data-checkout-cancel>Cancel</button>
         <button type="button" data-checkout-continue>Continue to payment</button>
       </footer>
     </section>
-  </dialog>
-  <dialog id="roomPaymentSnapDialog" class="room-payment-snap-dialog" aria-labelledby="roomPaymentSnapTitle">
-    <header>
-      <h2 id="roomPaymentSnapTitle">Midtrans Sandbox</h2>
-      <button type="button" aria-label="Close Midtrans checkout">×</button>
-    </header>
-    <details class="room-payment-demo-guide">
-      <summary>Panduan pembayaran demo</summary>
-      <p>Gunakan versi Sandbox selama hitung mundur di Snap masih berjalan.</p>
-      <h3>BCA Virtual Account</h3>
-      <ol>
-        <li>Pilih BCA di Snap, lalu salin nomor virtual account.</li>
-        <li>Tempel nomor tadi di simulator, klik <strong>Inquire</strong>, cocokkan nominalnya, lalu klik <strong>Pay</strong>. <a href="https://simulator.sandbox.midtrans.com/bca/va/index" target="_blank" rel="noopener noreferrer">Buka simulator BCA ↗</a></li>
-        <li>Kembali ke DEV-MATCH, klik <strong>Check status</strong>, lalu cek hasilnya di <strong>Project payments</strong>.</li>
-      </ol>
-      <h3>Kartu tes</h3>
-      <p>Pilih kartu kredit atau debit. Isi <code>4811 1111 1111 1114</code>, masa berlaku <code>01/30</code>, CVV <code>123</code>, dan OTP <code>112233</code> jika diminta.</p>
-    </details>
-    <div id="roomPaymentSnap"></div>
   </dialog>
   <dialog id="proposalProgressDialog" class="proposal-progress-dialog" aria-labelledby="proposalProgressTitle">
     <form id="proposalProgressForm">

@@ -247,7 +247,7 @@ test('Snap checkout verifies authoritative status and records ledger once on con
 });
 
 test('accepted project agreements use the proposal terms for sandbox payments and project completion', async t => {
-  const {db, service, orders, event} = await fixture(t);
+  const {db, store, service, orders, event} = await fixture(t);
   const terms = {
     projectName: 'Proposal flow', description: 'Agreement-backed project', totalPrice: 100000,
     dpPercent: 25, dpAmount: 25000, remainingAmount: 75000, deadline: '2027-01-15',
@@ -280,6 +280,22 @@ test('accepted project agreements use the proposal terms for sandbox payments an
   const dpPaid = await handle(developer, 'snapshot');
   assert.equal(dpPaid.room.project, 'IN_PROGRESS');
   assert.equal(dpPaid.room.timeline.dpPaidAt, dpPaid.payments[0].paid_at);
+  const agreementRef = {agreementId};
+  const storedPaidState = await store.state(agreementRef);
+  assert.ok(storedPaidState.state.payments.some(payment =>
+    payment.kind === 'DP' && payment.status === 'PAID'));
+  const missingPaidEvidence = JSON.parse(JSON.stringify(storedPaidState.state));
+  missingPaidEvidence.payments = missingPaidEvidence.payments.filter(payment =>
+    payment.kind !== 'DP' || payment.status !== 'PAID');
+  assert.equal(await store.save(agreementRef, storedPaidState.version, missingPaidEvidence), true);
+  await assert.rejects(apply(developer, 'progress', {title: 'Early progress', notes: 'Not paid.'}), {status: 409});
+  const afterMissingEvidence = await store.state(agreementRef);
+  const wrongProjectStatus = JSON.parse(JSON.stringify(storedPaidState.state));
+  wrongProjectStatus.room.project = 'NOT_STARTED';
+  assert.equal(await store.save(agreementRef, afterMissingEvidence.version, wrongProjectStatus), true);
+  await assert.rejects(apply(developer, 'progress', {title: 'Early progress', notes: 'Not in progress.'}), {status: 409});
+  const afterWrongStatus = await store.state(agreementRef);
+  assert.equal(await store.save(agreementRef, afterWrongStatus.version, storedPaidState.state), true);
   const progressVideo = {
     path: `${agreementId}/${developer}/video.mp4`,
     name: 'progress.mp4',

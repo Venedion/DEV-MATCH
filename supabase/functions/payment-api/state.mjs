@@ -263,9 +263,12 @@ export function applyAction(state, role, {action, ...body}, actorId = null) {
     case 'progress':
       requireCondition(['IN_PROGRESS', 'REVISION'].includes(room.project), 'Progress tersedia setelah DP terverifikasi.');
       if (isAgreement) {
+        requireCondition(room.project === 'IN_PROGRESS' && room.escrow === 'DP_HELD' &&
+          state.payments?.some(payment => payment.kind === 'DP' && payment.status === 'PAID'),
+        'Progress tersedia setelah pembayaran DP berstatus paid dan agreement In progress.');
         requireCondition(room.progressReview?.status !== 'PENDING',
           'Progress sebelumnya masih menunggu review Client.');
-        requireCondition(!room.timeline.progressSubmittedAt && room.escrow === 'DP_HELD',
+        requireCondition(!room.timeline.progressSubmittedAt,
           'Progress tahap ini sudah dikirim.');
       }
       requireCondition(room.progress.length < 200, 'Batas pembaruan progress tercapai.');

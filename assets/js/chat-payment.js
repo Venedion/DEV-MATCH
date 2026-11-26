@@ -20,10 +20,15 @@
   const checkoutAmountLabel = document.getElementById('roomPaymentCheckoutAmountLabel');
   const checkoutAmount = document.getElementById('roomPaymentCheckoutAmount');
   const checkoutError = document.getElementById('roomPaymentCheckoutError');
-  const snapDialog = document.getElementById('roomPaymentSnapDialog');
-  const snapContainer = document.getElementById('roomPaymentSnap');
-  let snapScript;
-  let snapRoomKey;
+  const checkoutMode = document.getElementById('roomPaymentCheckoutMode');
+  const checkoutNote = document.getElementById('roomPaymentCheckoutNote');
+  const snapStatus = document.getElementById('roomPaymentSnapStatus');
+  const checkoutSummary = checkoutDialog.querySelector('[data-checkout-summary]');
+  const checkoutActions = document.getElementById('roomPaymentCheckoutActions');
+  const snapStep = document.getElementById('roomPaymentSnapStep');
+  const snapEmbed = document.getElementById('roomPaymentSnapEmbed');
+  const demoGuide = document.getElementById('roomPaymentDemoGuide');
+  let snapScriptPromise = null;
   let nextGatewayRefresh = 0;
   let roomKey;
   let chatRoomKey;
@@ -45,6 +50,9 @@
   let agreementRealtimeClient = null;
   let agreementRealtimeGeneration = 0;
   let agreementRefreshQueued = false;
+  let dpStatusTimer = null;
+  let dpStatusPayment = null;
+  let dpStatusRefreshPromise = null;
   const rupiah = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 });
   const formatTime = new Intl.DateTimeFormat('id-ID', { dateStyle: 'medium', timeStyle: 'short' });
   const formatDate = new Intl.DateTimeFormat('en-US', { dateStyle: 'medium' });
@@ -107,30 +115,6 @@
     checkoutError.hidden = !message;
   }
 
-  function loadSnap(clientKey) {
-    if (!/^(?:SB-)?Mid-client-[\w-]+$/.test(clientKey || '')) {
-      throw new Error('Midtrans Sandbox Client Key belum dikonfigurasi.');
-    }
-    if (!snapScript) {
-      const script = document.createElement('script');
-      script.src = 'https://app.sandbox.midtrans.com/snap/snap.js';
-      script.dataset.clientKey = clientKey;
-      snapScript = new Promise((resolve, reject) => {
-        script.onload = () => {
-          if (typeof window.snap?.embed === 'function') resolve(window.snap);
-          else reject(new Error('Checkout Midtrans tidak dapat dimuat.'));
-        };
-        script.onerror = () => reject(new Error('Checkout Midtrans tidak dapat dimuat.'));
-        document.head.append(script);
-      }).catch(cause => {
-        script.remove();
-        snapScript = undefined;
-        throw cause;
-      });
-    }
-    return snapScript;
-  }
-
   function showCheckoutConfirmation() {
     const proposal = snapshot?.room?.proposal;
     if (!proposal || snapshot.role !== 'client') {
@@ -147,8 +131,222 @@
     ].filter(Boolean).join(' · ');
     checkoutAmountLabel.textContent = `DP (${Number(proposal.dpPercent) || 0}% of ${rupiah.format(total)})`;
     checkoutAmount.textContent = rupiah.format(dp);
+    const environment = window.DEVMATCH_PUBLIC_CONFIG?.midtransEnvironment || 'sandbox';
+    const isSandbox = environment === 'sandbox';
+    const embeddedCheckoutAvailable = window.DEVMATCH_PUBLIC_CONFIG?.midtransPaymentsEnabled === true;
+    const checkoutDuration = embeddedCheckoutAvailable ? '48 hours' : '10 minutes';
+    checkoutMode.textContent = isSandbox ? 'Test mode' : 'Live mode';
+    checkoutNote.textContent = isSandbox
+      ? `Midtrans Sandbox is for testing; no real money moves. The checkout is valid for ${checkoutDuration}.${
+        embeddedCheckoutAvailable ? '' : ' Snap opens in a new tab.'
+      }`
+      : `The checkout is valid for ${checkoutDuration}.${
+        embeddedCheckoutAvailable ? '' : ' Snap opens in a new tab.'
+      }`;
+    demoGuide.hidden = !isSandbox;
     setCheckoutError();
+    snapEmbed.replaceChildren();
+    snapStep.hidden = true;
+    checkoutSummary.hidden = false;
+    checkoutActions.hidden = false;
     if (!checkoutDialog.open) checkoutDialog.showModal();
+  }
+
+  function loadSnap() {
+    const config = window.DEVMATCH_PUBLIC_CONFIG || {};
+    const environment = config.midtransEnvironment || 'sandbox';
+    const clientKey = config.midtransClientKey;
+    const snapJsUrl = config.midtransSnapJsUrl ||
+      (environment === 'sandbox'
+        ? 'https://app.sandbox.midtrans.com/snap/snap.js'
+        : 'https://app.midtrans.com/snap/snap.js');
+    const allowedHost = environment === 'sandbox'
+      ? 'app.sandbox.midtrans.com'
+      : 'app.midtrans.com';
+    if (!clientKey || !['sandbox', 'production'].includes(environment)) {
+      return Promise.reject(new Error('Midtrans Client Key belum dikonfigurasi untuk environment ini.'));
+    }
+    const expectedClientPrefix = environment === 'sandbox' ? 'SB-Mid-client-' : 'Mid-client-';
+    if (!clientKey.startsWith(expectedClientPrefix)) {
+      return Promise.reject(new Error('Midtrans Client Key tidak cocok dengan environment.'));
+    }
+
+    let url;
+    try {
+      url = new URL(snapJsUrl);
+    } catch {
+      return Promise.reject(new Error('Alamat Snap JavaScript tidak valid.'));
+    }
+    if (url.protocol !== 'https:' || url.hostname !== allowedHost || url.pathname !== '/snap/snap.js') {
+      return Promise.reject(new Error('Alamat Snap JavaScript tidak cocok dengan environment.'));
+    }
+    if (window.snap?.embed) return Promise.resolve(window.snap);
+    if (snapScriptPromise) return snapScriptPromise;
+
+    snapScriptPromise = new Promise((resolve, reject) => {
+      const script = document.createElement('script');
+      script.src = url.href;
+      script.dataset.clientKey = clientKey;
+      script.async = true;
+      script.onload = () => window.snap?.embed
+        ? resolve(window.snap)
+        : reject(new Error('Snap tidak menyediakan fungsi embed.'));
+      script.onerror = () => reject(new Error('Snap gagal dimuat. Periksa koneksi dan CSP.'));
+      document.head.append(script);
+    }).catch(cause => {
+      snapScriptPromise = null;
+      throw cause;
+    });
+    return snapScriptPromise;
+  }
+
+  async function invokePayments(body) {
+    const {data, error: failure} = await window.devMatchBackend.client.functions.invoke('payments', {body});
+    if (failure) {
+      const response = failure.context;
+      const details = await response?.clone?.().json().catch(() => null);
+      const cause = new Error(details?.error || 'Layanan pembayaran belum tersedia.');
+      cause.status = response?.status;
+      throw cause;
+    }
+    if (!data || !Object.hasOwn(data, 'data')) {
+      throw new Error('Respons layanan pembayaran tidak valid.');
+    }
+    return data.data;
+  }
+
+  function stopDpStatusPolling() {
+    if (dpStatusTimer !== null) window.clearInterval(dpStatusTimer);
+    dpStatusTimer = null;
+    dpStatusPayment = null;
+    dpStatusRefreshPromise = null;
+  }
+
+  function setSnapStatus(message, isError = false) {
+    if (!snapStatus) return;
+    snapStatus.textContent = message;
+    snapStatus.setAttribute('role', isError ? 'alert' : 'status');
+    snapStatus.dataset.error = isError ? 'true' : 'false';
+    snapStatus.hidden = !message;
+  }
+
+  function showDpStatusError(message) {
+    if (checkoutDialog.open && !snapStep.hidden) setSnapStatus(message, true);
+    else if (dialog.open) setError(message);
+  }
+
+  async function refreshDpStatus(payment) {
+    if (dpStatusRefreshPromise) return dpStatusRefreshPromise;
+    const request = invokePayments({
+      action: 'refresh-status',
+      paymentId: payment.paymentId,
+      orderId: payment.orderId
+    });
+    dpStatusRefreshPromise = request;
+    try {
+      const result = await request;
+      if (result?.paymentId !== payment.paymentId ||
+          !['pending', 'paid', 'expired', 'failed', 'cancelled'].includes(result.status)) {
+        throw new Error('Status pembayaran dari server tidak valid.');
+      }
+      if (dpStatusPayment?.paymentId !== payment.paymentId) return result.status;
+      if (result.status === 'pending') {
+        setSnapStatus('Payment is pending. We will keep checking securely.');
+        return result.status;
+      }
+
+      stopDpStatusPolling();
+      const messages = {
+        paid: 'DP received. Updating the project status…',
+        expired: 'This DP payment expired.',
+        failed: 'The bank declined this payment.',
+        cancelled: 'This payment was cancelled.'
+      };
+      if (checkoutDialog.open && !snapStep.hidden) {
+        setSnapStatus(messages[result.status] || 'Payment status updated.');
+      } else if (result.status !== 'paid' && dialog.open) {
+        setError(messages[result.status] || 'Payment status updated.');
+      }
+      if (result.status === 'paid' && checkoutDialog.open) checkoutDialog.close();
+      refreshAgreementRoom(roomKey);
+      window.dispatchEvent(new CustomEvent('devmatch:dp-payment-status', {
+        detail: {agreementId: payment.agreementId}
+      }));
+      return result.status;
+    } catch (cause) {
+      console.error('Unable to refresh the DP payment status.', cause);
+      if (dpStatusPayment?.paymentId === payment.paymentId) {
+        showDpStatusError(
+          'We could not verify the payment yet. This page will retry; do not pay again while it is checking.'
+        );
+      }
+      return null;
+    } finally {
+      if (dpStatusRefreshPromise === request) dpStatusRefreshPromise = null;
+    }
+  }
+
+  function startDpStatusPolling(payment) {
+    stopDpStatusPolling();
+    dpStatusPayment = payment;
+    setSnapStatus('Checking payment status with Midtrans…');
+    void refreshDpStatus(payment);
+    dpStatusTimer = window.setInterval(() => {
+      if (!dpStatusPayment ||
+          (!checkoutDialog.open && !(dialog.open && isAgreementContext()))) {
+        stopDpStatusPolling();
+        return;
+      }
+      if (document.visibilityState === 'visible' && !dpStatusRefreshPromise) {
+        void refreshDpStatus(dpStatusPayment);
+      }
+    }, 5000);
+  }
+
+  window.addEventListener('focus', () => {
+    if (dpStatusPayment && document.visibilityState === 'visible' && !dpStatusRefreshPromise) {
+      void refreshDpStatus(dpStatusPayment);
+    }
+  });
+  document.addEventListener('visibilitychange', () => {
+    if (dpStatusPayment && document.visibilityState === 'visible' && !dpStatusRefreshPromise) {
+      void refreshDpStatus(dpStatusPayment);
+    }
+  });
+
+  async function createDpCheckout(agreementId) {
+    const snap = await loadSnap();
+    const created = await invokePayments({action: 'create-dp-transaction', agreementId});
+    if (!created?.paymentId || !created?.orderId || !created?.snapToken) {
+      throw new Error('Respons transaksi pembayaran tidak valid.');
+    }
+    const statusPayment = {
+      paymentId: created.paymentId,
+      orderId: created.orderId,
+      agreementId
+    };
+    checkoutSummary.hidden = true;
+    checkoutActions.hidden = true;
+    snapStep.hidden = false;
+    snapEmbed.replaceChildren();
+    setSnapStatus('Checking payment status with Midtrans…');
+    startDpStatusPolling(statusPayment);
+    try {
+      await snap.embed(created.snapToken, {
+        embedId: 'roomPaymentSnapEmbed',
+        onSuccess: () => { void refreshDpStatus(statusPayment); },
+        onPending: () => { void refreshDpStatus(statusPayment); },
+        onError: () => { void refreshDpStatus(statusPayment); },
+        onClose: () => { void refreshDpStatus(statusPayment); }
+      });
+    } catch (cause) {
+      stopDpStatusPolling();
+      snapEmbed.replaceChildren();
+      snapStep.hidden = true;
+      checkoutSummary.hidden = false;
+      checkoutActions.hidden = false;
+      throw cause;
+    }
   }
 
   function isAgreementContext() {
@@ -214,7 +412,9 @@
     const held = Math.max(0, paid - released - refunded);
     const remaining = Math.max(0, total - paid);
     const canReviewProgress = client && progressReview?.status === 'PENDING';
-    const awaitingProgress = developer && room.project === 'IN_PROGRESS' && !timeline.progressSubmittedAt;
+    const dpPaid = payments.some(payment => payment.kind === 'DP' && payment.status === 'PAID');
+    const awaitingProgress = developer && dpPaid && room.project === 'IN_PROGRESS' &&
+      room.escrow === 'DP_HELD' && !timeline.progressSubmittedAt;
     const awaitingDp = client && room.project === 'NOT_STARTED';
     const canPayDp = awaitingDp && checkoutConfigured;
     const canSubmitFinal = developer && room.project === 'IN_PROGRESS' && progressReview?.approvedAt && !delivery;
@@ -229,9 +429,6 @@
     const submittedProgress = Boolean(timeline.progressSubmittedAt);
     const progressDone = Boolean(timeline.progressApprovedAt);
     const progressUpdateRequested = progressReview?.status === 'UPDATE_REQUESTED';
-    const dpPaid = Boolean(timeline.dpPaidAt) ||
-      payments.some(payment => payment.kind === 'DP' && payment.status === 'PAID') ||
-      room.releases?.some(release => release.kind === 'DP');
     const handoverDone = Boolean(timeline.resultAcceptedAt);
     const ratingsDone = Boolean(timeline.ratings?.clientAt && timeline.ratings?.developerAt);
     const agreementDate = dateLabel(timeline.agreementCreatedAt);
@@ -275,9 +472,7 @@
           ${button('review-progress', 'Review progress', true)}
         </div>`
       : awaitingProgress
-        ? `<div class="agreement-step-actions">${section('Upload progress', form('progress',
-            field('title', 'Title') + field('notes', 'Notes', true) +
-            field('links', 'Evidence links (one HTTPS URL per line, optional)', true, false), 'Upload progress'))}</div>`
+        ? '<p class="agreement-inline-note">Coming soon. Upload progress will be available here.</p>'
         : '';
     const finalProofAction = canSubmitFinal
       ? `<div class="agreement-step-actions">${section('Submit final video', form('deliver',
@@ -609,6 +804,8 @@
     }
     const key = roomKey;
     const isCheckout = action === 'DP' || action === 'REMAINING';
+    const isEmbeddedDp = action === 'DP' && isAgreementContext() &&
+      window.DEVMATCH_PUBLIC_CONFIG?.midtransPaymentsEnabled === true;
     const dpConfirmationOpen = action === 'DP' && fields.confirmed;
     busy = true;
     content.inert = true;
@@ -617,38 +814,38 @@
     checkoutButtons.forEach(checkoutButton => { checkoutButton.disabled = true; });
     setError();
     if (dpConfirmationOpen) setCheckoutError();
+    let checkoutTab;
+    let checkoutOpened = false;
     let updated = false;
     try {
-      if (isCheckout) {
+      if (isEmbeddedDp) {
+        await createDpCheckout(JSON.parse(key).agreementId);
+      } else if (isCheckout) {
+        // Open during the click so the browser can authorize the new tab.
+        checkoutTab = window.open('about:blank', '_blank');
+        if (checkoutTab) checkoutTab.opener = null;
         const checkout = await request(key, 'checkout', {kind: action});
         if (key !== roomKey) return;
-        if (!checkout.token) throw new Error('Token checkout Midtrans tidak tersedia.');
-        const snap = await loadSnap(checkout.clientKey);
-        if (key !== roomKey) return;
-        const close = () => {
-          if (snapRoomKey === key && snapDialog.open) snapDialog.close();
-        };
-        const refresh = () => {
-          if (key === roomKey && snapRoomKey === key) void perform('refresh');
-        };
-        snapRoomKey = key;
-        try {
-          snapDialog.showModal();
-          snap.embed(checkout.token, {
-            embedId: snapContainer.id,
-            uiMode: 'qr',
-            onSuccess: close,
-            onPending: refresh,
-            onError: refresh,
-            onClose: close
-          });
-        } catch (cause) {
-          close();
-          throw cause;
+        const target = new URL(checkout.redirectUrl);
+        if (target.origin !== 'https://app.sandbox.midtrans.com' || !target.pathname.startsWith('/snap/')) {
+          throw new Error('Tautan checkout Sandbox tidak valid.');
         }
-        if (dpConfirmationOpen) checkoutDialog.close();
+        if (checkoutTab && !checkoutTab.closed) {
+          checkoutTab.location.replace(target.href);
+          checkoutOpened = true;
+          if (dpConfirmationOpen) checkoutDialog.close();
+        } else {
+          const link = document.createElement('a');
+          link.href = target.href;
+          link.target = '_blank';
+          link.rel = 'noopener noreferrer';
+          link.textContent = 'Open Midtrans Sandbox in a new tab';
+          const message = dpConfirmationOpen ? checkoutError : error;
+          message.replaceChildren(link);
+          message.hidden = false;
+        }
       } else {
-          if (action === 'rate') fields.rating = Number(fields.rating);
+        if (action === 'rate') fields.rating = Number(fields.rating);
         const state = action === 'refresh' ? await request(key, 'refresh')
           : await request(key, 'apply', {...fields, action});
         if (key !== roomKey) return;
@@ -670,6 +867,7 @@
         }
       }
     } finally {
+      if (!checkoutOpened && checkoutTab && !checkoutTab.closed) checkoutTab.close();
       busy = false;
       content.inert = false;
       checkoutButtons.forEach(checkoutButton => { checkoutButton.disabled = false; });
@@ -678,22 +876,18 @@
     }
   }
 
-  snapDialog.querySelector('button').addEventListener('click', () => snapDialog.close());
-  snapDialog.addEventListener('close', () => {
-    const key = snapRoomKey;
-    snapRoomKey = undefined;
-    window.snap?.hide();
-    snapContainer.replaceChildren();
-    if (key && key === roomKey) void perform('refresh');
-  });
-
   checkoutDialog.querySelector('[data-checkout-close]').addEventListener('click', () => checkoutDialog.close());
   checkoutDialog.querySelector('[data-checkout-cancel]').addEventListener('click', () => checkoutDialog.close());
   checkoutDialog.querySelector('[data-checkout-continue]').addEventListener('click', () =>
     perform('DP', {confirmed: true}));
-  checkoutDialog.querySelector('[data-demo-payment]').addEventListener('click', () =>
-    perform('DP', {confirmed: true}));
-  checkoutDialog.addEventListener('close', () => setCheckoutError());
+  checkoutDialog.addEventListener('close', () => {
+    setCheckoutError();
+    setSnapStatus('');
+    snapEmbed.replaceChildren();
+    snapStep.hidden = true;
+    checkoutSummary.hidden = false;
+    checkoutActions.hidden = false;
+  });
   checkoutDialog.addEventListener('click', event => {
     if (event.target !== checkoutDialog) return;
     const rect = checkoutDialog.getBoundingClientRect();
@@ -982,6 +1176,7 @@
 
   dialog.addEventListener('close', () => {
     stopAgreementRealtime();
+    stopDpStatusPolling();
   });
   dialog.addEventListener('click', event => {
     if (event.target !== dialog) return;
@@ -1000,7 +1195,7 @@
     const key = roomKey;
     const previous = snapshot;
     try {
-      const checkGateway = snapshot?.role === 'client' && (pendingPayment || snapRoomKey === key) &&
+      const checkGateway = snapshot?.role === 'client' && pendingPayment &&
         Date.now() >= nextGatewayRefresh;
       if (checkGateway) nextGatewayRefresh = Date.now() + 36000;
       const state = await request(key, checkGateway ? 'refresh' : 'snapshot');
@@ -1148,6 +1343,8 @@
       const params = new URL(location.href);
       const returning = params.searchParams.get('payment') === 'return';
       const returnAgreement = returning && params.searchParams.get('paymentAgreement');
+      const returnPaymentId = returning && params.searchParams.get('paymentId');
+      const returnPaymentOrderId = returning && params.searchParams.get('paymentOrderId');
       const returnProject = returning && params.searchParams.get('paymentProject');
       const openConversation = params.searchParams.get('conversation');
       const matchedAgreement = returnAgreement && conversation && (
@@ -1156,7 +1353,10 @@
         openButton.hidden = true;
         const proposal = conversation.messages?.find(message =>
           message.proposal?.agreement?.id === returnAgreement)?.proposal;
-        for (const name of ['payment', 'paymentAgreement', 'paymentProject', 'order_id', 'status_code', 'transaction_status']) {
+        for (const name of [
+          'payment', 'paymentAgreement', 'paymentProject', 'paymentId', 'paymentOrderId',
+          'order_id', 'status_code', 'transaction_status'
+        ]) {
           params.searchParams.delete(name);
         }
         history.replaceState(history.state, '', params);
@@ -1165,7 +1365,14 @@
           conversationId: proposal?.conversation_id || conversation.id,
           proposalId: proposal?.id,
           title: proposal?.terms?.projectName
-        }, {operation: 'refresh'});
+        });
+        if (returnPaymentId && returnPaymentOrderId) {
+          startDpStatusPolling({
+            paymentId: returnPaymentId,
+            orderId: returnPaymentOrderId,
+            agreementId: returnAgreement
+          });
+        }
         return;
       }
       const matchedReturn = returnProject && conversation && (

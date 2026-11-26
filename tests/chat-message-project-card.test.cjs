@@ -198,7 +198,7 @@ test('Chat composer sends a proposal and renders role-specific proposal cards',(
   assert.match(chat,/chat-proposal-status\$\{isPending \? ' is-pending' : ''\}/);
   assert.match(styles,/\.chat-proposal-status\.is-pending\s*\{[\s\S]*?background:\s*#fff3d8;[\s\S]*?color:\s*#8b5c00;/);
   assert.match(chat,/const isAwaitingDp = !isPreview && isAccepted && projectStatus === 'NOT_STARTED'/);
-  assert.match(chat,/const isDpPaid = !isPreview && isAccepted && escrowStatus === 'DP_HELD'/);
+  assert.match(chat,/const isDpPaid = !isPreview && isAccepted && dpPaymentStatus === 'paid' && escrowStatus === 'DP_HELD'/);
   assert.match(chat,/Waiting for progress/);
   assert.match(chat,/DP paid and held\./);
   assert.match(chat,/Waiting for \$\{contactName\}/);
@@ -210,11 +210,12 @@ test('Chat composer sends a proposal and renders role-specific proposal cards',(
   assert.match(chat,/function openProposalDetails\(proposal, \{showDialog = true\} = \{\}\)/);
   assert.match(chat,/data-proposal-payments/);
   assert.match(chat,/>Project payments<\/button>/);
-  assert.match(chat,/isDpExpired \? 'Retry DP' : 'Pay DP'\} · \$\{formatProposalAmount\(terms\.dpAmount\)\}/);
   assert.match(chat,/isRemainingExpired \? 'Retry remaining payment' : 'Pay remaining'/);
   assert.match(chat,/devmatch:agreement-payment-status[\s\S]*?renderMessagesThread\(\)/);
   assert.match(api,/dp_payment_status: payments\.findLast\(payment => payment\.kind === 'DP'\)/);
   assert.match(chat,/data-proposal-payment-action="\$\{action\}"/);
+  assert.match(api,/select: 'id,agreement_id,midtrans_order_id,status,expires_at,created_at'[\s\S]*?kind: 'eq\.dp'[\s\S]*?order: 'created_at\.desc'/);
+  assert.match(api,/dp_payment_status: dpPayment\?\.status \|\| null/);
   assert.match(chat,/proposalPaymentsButton && chatMessagesEl\.contains\(proposalPaymentsButton\)\)\s*\{\s*event\.preventDefault\(\);\s*event\.stopPropagation\(\);/);
   assert.match(chat,/openAgreement\(\{/);
   assert.match(chat,/dataset\.proposalPaymentAction \|\| null/);
@@ -340,6 +341,7 @@ test('Proposal card stage preview renders all 16 role variants with inert action
     escapeHtml:value=>String(value??'').replace(/[&<>"']/g,character=>({
       '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
     }[character])),
+    UUID_PATTERN:/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i,
     currentUser:{id:'preview-developer'},
     currentProfile:profile,
     getActiveConversation:()=>({name:'Preview contact'}),
@@ -347,7 +349,7 @@ test('Proposal card stage preview renders all 16 role variants with inert action
     formatProposalDeadline:()=> 'Dec 10, 2026'
   });
   const expectedActions={
-    'dp-paid':{client:[],developer:['Upload progress']},
+    'dp-paid':{client:['Open project'],developer:['Upload progress']},
     'progress-submitted':{client:['Review progress'],developer:[]},
     'progress-approved':{client:[],developer:['Submit final video']},
     'final-video-shared':{
@@ -397,7 +399,13 @@ test('Proposal card stage preview renders all 16 role variants with inert action
   assert.equal((view.renderGallery().match(/<article class="chat-project-proposal-card"/g)||[]).length,16);
   const liveProposal = {
     ...proposal,
-    agreement: {id:'live-agreement',escrow_status:'DP_HELD',progress_review_status:null}
+    agreement: {
+      id:'live-agreement',
+      escrow_status:'DP_HELD',
+      project_status:'IN_PROGRESS',
+      dp_payment_status:'paid',
+      progress_review_status:null
+    }
   };
   assert.match(view.render(liveProposal),/data-proposal-progress="preview-proposal"/);
   liveProposal.agreement.progress_review_status='PENDING';
@@ -413,7 +421,39 @@ test('Proposal card stage preview renders all 16 role variants with inert action
   assert.match(awaitingDp,/Pay DP · Rp 1\.750\.000/);
   assert.match(awaitingDp,/data-proposal-payment-action="DP"/);
 
+  const pendingDp=view.render({...proposal,agreement:{
+    id:'live-agreement',escrow_status:'AWAITING_DP',project_status:'NOT_STARTED',
+    dp_payment_id:'123e4567-e89b-42d3-a456-426614174000',
+    dp_order_id:'devmatch-dp-123e4567-e89b-42d3-a456-426614174000',
+    dp_payment_status:'pending',dp_expires_at:'2026-11-27T12:00:00.000Z'
+  }});
+  assert.match(pendingDp,/data-dp-countdown/);
+  assert.match(pendingDp,/data-dp-expires-at="2026-11-27T12:00:00\.000Z"/);
+  assert.match(pendingDp,/Pay DP · Rp 1\.750\.000/);
+
+  const failedDp=view.render({...proposal,agreement:{
+    id:'live-agreement',escrow_status:'AWAITING_DP',project_status:'NOT_STARTED',
+    dp_payment_status:'failed'
+  }});
+  assert.match(failedDp,/Try again/);
+  assert.match(failedDp,/new payment attempt/);
+  assert.doesNotMatch(failedDp,/data-dp-countdown/);
+
+  const expiredDp=view.render({...proposal,agreement:{
+    id:'live-agreement',escrow_status:'AWAITING_DP',project_status:'CANCELLED',
+    cancellation_reason:'DP_EXPIRED',dp_payment_status:'expired'
+  }});
+  assert.match(expiredDp,/DP expired · Agreement cancelled/);
+  assert.match(expiredDp,/payment expired and this agreement was cancelled/);
+  assert.doesNotMatch(expiredDp,/data-proposal-payment-action="DP"/);
+
   profile.account_role='dev';
+  const developerAwaitingDp=view.render({...proposal,agreement:{
+    id:'live-agreement',escrow_status:'AWAITING_DP',project_status:'NOT_STARTED',
+    dp_payment_status:'pending'
+  }});
+  assert.match(developerAwaitingDp,/Waiting for .* to pay the DP/);
+
   const approved=view.render({...proposal,agreement:{
     id:'live-agreement',escrow_status:'DP_RELEASED',project_status:'IN_PROGRESS',
     progress_review_status:'APPROVED',progress_approved:true
@@ -456,25 +496,20 @@ test('Proposal card stage preview renders all 16 role variants with inert action
   assert.match(disputed,/Contact support/);
 });
 
-test('Developer progress card opens the agreement upload dialog and submits private evidence',()=>{
+test('Developer progress card opens the project timeline and server gates future uploads',()=>{
   const chat=fs.readFileSync('assets/js/chat.js','utf8');
   const payment=fs.readFileSync('assets/js/chat-payment.js','utf8');
   const api=fs.readFileSync('supabase/functions/chat-api/index.ts','utf8');
   const service=fs.readFileSync('supabase/functions/payment-api/service.mjs','utf8');
-  const html=fs.readFileSync('devmatch-chat.html','utf8');
-  const styles=fs.readFileSync('assets/css/chat.css','utf8');
+  const state=fs.readFileSync('supabase/functions/payment-api/state.mjs','utf8');
 
   assert.match(chat,/data-proposal-progress="\$\{cardId\}"/);
-  assert.match(chat,/progressButton && chatMessagesEl\.contains\(progressButton\)[\s\S]*?openProposalProgress\(proposal\)/);
-  assert.match(chat,/uploadProgressFile\(file, agreementId, userId, uploadedPaths\)[\s\S]*?agreement-progress/);
-  assert.match(chat,/submitProgress\(progressProposal\.agreement\.id,[\s\S]*?screenshots: screenshotFiles[\s\S]*?scope,[\s\S]*?notes/);
-  assert.match(chat,/remove\(uploadedPaths\)/);
-  assert.match(payment,/submitProgress: submitAgreementProgress/);
+  assert.match(chat,/proposalProjectButton && chatMessagesEl\.contains\(proposalProjectButton\)[\s\S]*?window\.DEVMATCH_ROOM_PAYMENT\?\.openAgreement\(\{/);
+  assert.doesNotMatch(chat,/proposalProjectButton[\s\S]*?openProposalProgress\(proposal\)/);
+  assert.match(payment,/Coming soon\. Upload progress will be available here\./);
+  assert.match(state,/room\.project === 'IN_PROGRESS' && room\.escrow === 'DP_HELD' &&\s*state\.payments\?\.some\(payment => payment\.kind === 'DP' && payment\.status === 'PAID'\)/);
   assert.match(api,/progress_review_status: paymentRoom\?\.progressReview\?\.status \|\| null/);
   assert.match(service,/applyAction\(state, role, body, user\)/);
-  assert.match(html,/<dialog id="proposalProgressDialog"[\s\S]*?id="proposalProgressVideo"[\s\S]*?id="proposalProgressNotes"[\s\S]*?id="proposalProgressScope"[\s\S]*?id="proposalProgressScreenshots"[\s\S]*?Submit progress/);
-  assert.match(styles,/\.proposal-progress-dialog\[open\]/);
-  assert.match(styles,/\.proposal-progress-scope/);
 });
 
 test('Client Review progress opens the illustrated review popup with both review actions',()=>{
