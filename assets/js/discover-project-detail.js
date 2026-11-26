@@ -26,6 +26,7 @@
   let currentUserId=null,repliesSupported=true,replyTo=null,expandedReplies=new Set();
   function readJson(key,fallback){try{const value=localStorage.getItem(key);return value?JSON.parse(value):fallback;}catch{return fallback;}}
   async function loadCommenterRoles(){
+    if(!currentUserId)return;
     try{commenterRoles=await window.devMatchBackend.loadCommentAuthorRoles(comments);}
     catch(error){console.error('Unable to load project commenter profiles from Supabase.',error);commenterRoles=new Map();}
   }
