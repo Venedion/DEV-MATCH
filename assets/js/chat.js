@@ -16,6 +16,120 @@
   const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, character => ({
     '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
   }[character]));
+  const PROPOSAL_CARD_STAGES = [
+    {
+      id: 'dp-paid',
+      label: '1 · DP paid',
+      client: {
+        status: 'Waiting for progress',
+        note: name => `DP paid and held. Waiting for ${name} to submit progress.`,
+        actions: []
+      },
+      developer: {
+        status: 'DP paid',
+        note: () => 'DP paid and held. Upload progress to continue.',
+        actions: ['Upload progress']
+      }
+    },
+    {
+      id: 'progress-submitted',
+      label: '2 · Progress submitted',
+      client: {
+        status: 'Progress submitted',
+        note: () => 'Review progress within 5 days. It will be automatically approved after that.',
+        actions: ['Review progress']
+      },
+      developer: {
+        status: 'Waiting for review',
+        note: name => `Progress submitted. Waiting for ${name} to review it.`,
+        actions: []
+      }
+    },
+    {
+      id: 'progress-approved',
+      label: '3 · Progress approved',
+      client: {
+        status: 'Progress approved',
+        note: name => `Progress approved. The DP has been released to ${name}.`,
+        actions: []
+      },
+      developer: {
+        status: 'Progress approved',
+        note: () => 'The DP has been released. Submit the final video when it is ready.',
+        actions: ['Submit final video']
+      }
+    },
+    {
+      id: 'final-video-shared',
+      label: '4 · Final video shared',
+      client: {
+        status: 'Final video shared',
+        note: () => 'Watch the final video, then pay the remaining balance.',
+        actions: ['Pay remaining · {remaining}', 'Watch video']
+      },
+      developer: {
+        status: 'Waiting for remaining payment',
+        note: name => `Final video shared. Waiting for ${name} to pay the remaining balance.`,
+        actions: []
+      }
+    },
+    {
+      id: 'remaining-paid',
+      label: '5 · Remaining paid',
+      client: {
+        status: 'Remaining paid',
+        note: () => 'The remaining payment is held until the system handover is complete.',
+        actions: []
+      },
+      developer: {
+        status: 'Remaining paid',
+        note: () => 'The remaining payment is held. Hand over the system to continue.',
+        actions: ['Hand over system']
+      }
+    },
+    {
+      id: 'system-handed-over',
+      label: '6 · System handed over',
+      client: {
+        status: 'System handed over',
+        note: () => 'Accept the result within 7 days or report a problem.',
+        actions: ['Accept result', 'Report a problem']
+      },
+      developer: {
+        status: 'Waiting for client',
+        note: name => `System handed over. Waiting for ${name} to respond within 7 days.`,
+        actions: []
+      }
+    },
+    {
+      id: 'completed',
+      label: '7 · Completed',
+      client: {
+        status: 'Completed',
+        note: () => 'Project completed. Rate your experience.',
+        actions: ['Rate']
+      },
+      developer: {
+        status: 'Completed',
+        note: () => 'Project completed. Rate your experience.',
+        actions: ['Rate']
+      }
+    },
+    {
+      id: 'problem-reported',
+      label: '8 · Problem reported',
+      client: {
+        status: 'Problem reported',
+        note: () => 'Payment is frozen while support reviews the reported problem.',
+        actions: ['Contact support']
+      },
+      developer: {
+        status: 'Problem reported',
+        note: () => 'Payment is frozen while support reviews the reported problem.',
+        actions: ['Contact support']
+      }
+    }
+  ];
 
   const convListEl = document.getElementById('chatConvList');
   const threadContainerEl = document.getElementById('chatThreadContainer');
@@ -198,9 +312,10 @@
     const project = conversation?.project;
     if (!proposalDialogEl || !conversation) return;
 
-    setProposalStatus(currentProfile?.account_role === 'dev'
-      ? 'Terms are saved with the proposal. Payment opens after the Client accepts.'
-      : 'Switch to Developer Mode to send a project proposal.');
+    const workspaceRole = currentProfile?.account_role;
+    setProposalStatus(workspaceRole === 'dev' || workspaceRole === 'client'
+      ? `Terms are saved with the proposal. ${workspaceRole === 'dev' ? 'The Client' : 'The Developer'} can accept to create an agreement.`
+      : 'Select a Client or Developer workspace to send a project proposal.');
     const requestProject = project?.project_kind === 'request' ? project : null;
     const contextId = `${conversation.id || 'draft'}:${project?.id || 'none'}:${conversation.contactId || conversation.participantId || ''}`;
     if (proposalContextId !== contextId) {
@@ -276,36 +391,70 @@
       : date.toLocaleDateString('en-US', {year: 'numeric', month: 'short', day: 'numeric'});
   }
 
-  function renderProjectProposalCard(proposal) {
+  function renderProjectProposalCard(proposal, preview = null) {
     if (!proposal?.terms) return '';
     const terms = proposal.terms;
-    const isCreator = proposal.developer_id === currentUser?.id;
+    const previewStage = preview
+      ? PROPOSAL_CARD_STAGES.find(stage => stage.id === preview.stageId)
+      : null;
+    const previewRole = preview?.role === 'client' ? 'client' : 'developer';
+    const stageView = previewStage?.[previewRole] || null;
+    const isPreview = Boolean(stageView);
+    const isCreator = (proposal.creator_id || proposal.developer_id) === currentUser?.id;
     const isPending = proposal.status === 'pending';
     const isAccepted = proposal.status === 'accepted';
-    const status = isAccepted ? 'Accepted' : proposal.status === 'withdrawn' ? 'Withdrawn' : 'Pending approval';
-    const statusNote = isPending
+    const isDpPaid = !isPreview && isAccepted && proposal.agreement?.escrow_status === 'DP_HELD';
+    const isAwaitingDp = !isPreview && isAccepted && currentProfile?.account_role === 'dev' &&
+      (!proposal.agreement?.escrow_status || proposal.agreement.escrow_status === 'AWAITING_DP');
+    const status = stageView?.status || (isAwaitingDp ? 'Awaiting DP'
+      : isDpPaid ? (currentProfile?.account_role === 'dev' ? 'DP paid' : 'Waiting for progress')
+      : isAccepted ? 'Accepted' : proposal.status === 'withdrawn' ? 'Withdrawn' : 'Pending approval');
+    const conversation = getActiveConversation();
+    const contactName = escapeHtml(conversation?.contactDisplayName || conversation?.name ||
+      (currentProfile?.account_role === 'client' ? 'the Developer' : 'the Client'));
+    const statusNote = stageView
+      ? stageView.note(contactName)
+      : isAwaitingDp
+      ? `Waiting for ${escapeHtml(getActiveConversation()?.contactDisplayName || getActiveConversation()?.name || 'the client')} to pay the DP. You can start once it is received.`
+      : isDpPaid
+        ? currentProfile?.account_role === 'dev'
+          ? 'DP paid and held. Upload progress to continue.'
+          : `DP paid and held. Waiting for ${escapeHtml(conversation?.contactDisplayName || conversation?.name || 'the Developer')} to submit progress.`
+      : isPending
       ? isCreator
-        ? `Waiting for ${escapeHtml(getActiveConversation()?.contactDisplayName || getActiveConversation()?.name || 'the client')} to accept. The terms are locked once accepted.`
+        ? `Waiting for ${escapeHtml(getActiveConversation()?.contactDisplayName || getActiveConversation()?.name || 'the other participant')} to accept. The terms are locked once accepted.`
         : 'After you accept, an agreement is created and the terms are locked. You can then open project payments.'
       : isAccepted
         ? 'Agreement created. The terms are locked. Open project payments to continue.'
-        : 'The proposal was withdrawn by its creator.';
-    const actions = [
-      isPending && !isCreator
-        ? `<button class="chat-proposal-card-primary" type="button" data-proposal-accept="${escapeHtml(proposal.id)}">Accept proposal</button>`
-        : '',
-      isAccepted && proposal.agreement?.id
-        ? `<button class="chat-proposal-card-primary" type="button" data-proposal-payments="${escapeHtml(proposal.id)}">Project payments</button>`
-        : '',
-      isPending && !isCreator
-        ? `<button type="button" data-proposal-ask-changes="${escapeHtml(proposal.id)}">Ask for changes</button>`
-        : '',
-      `<button type="button" data-proposal-view="${escapeHtml(proposal.id)}">View details</button>`,
-      isPending && isCreator
-        ? `<button type="button" data-proposal-withdraw="${escapeHtml(proposal.id)}">Withdraw proposal</button>`
-        : ''
-    ].filter(Boolean);
-    const hasPrimaryAction = (isPending && !isCreator) || (isAccepted && Boolean(proposal.agreement?.id));
+        : 'This proposal was withdrawn by its creator and can no longer be accepted.';
+    const actions = isPreview
+      ? stageView.actions.map((label, index) => {
+        const remaining = Math.max(0, Number(terms.totalPrice) - Number(terms.dpAmount));
+        const actionLabel = label.replace('{remaining}', formatProposalAmount(remaining));
+        return `<button class="${index === 0 ? 'chat-proposal-card-primary' : ''}" type="button">${escapeHtml(actionLabel)}</button>`;
+      })
+      : [
+        isDpPaid && currentProfile?.account_role === 'dev'
+          ? '<button class="chat-proposal-card-primary" type="button">Upload progress</button>'
+          : '',
+        isPending && !isCreator
+          ? `<button class="chat-proposal-card-primary" type="button" data-proposal-accept="${escapeHtml(proposal.id)}">Accept proposal</button>`
+          : '',
+        isAccepted && proposal.agreement?.id
+          ? `<button class="chat-proposal-card-primary" type="button" data-proposal-payments="${escapeHtml(proposal.id)}">Open project</button>`
+          : '',
+        isPending && !isCreator
+          ? `<button type="button" data-proposal-ask-changes="${escapeHtml(proposal.id)}">Ask for changes</button>`
+          : '',
+        `<button type="button" data-proposal-view="${escapeHtml(proposal.id)}">View details</button>`,
+        isPending && isCreator
+          ? `<button type="button" data-proposal-withdraw="${escapeHtml(proposal.id)}">Withdraw proposal</button>`
+          : ''
+      ].filter(Boolean);
+    const hasPrimaryAction = isPreview
+      ? actions.length > 0
+      : (isDpPaid && currentProfile?.account_role === 'dev') ||
+        (isPending && !isCreator) || (isAccepted && Boolean(proposal.agreement?.id));
     const rows = [
       ['DP', `${Number(terms.dpPercent) || 0}%`, terms.dpAmount],
       ['Remaining payment', '', Number(terms.totalPrice) - Number(terms.dpAmount)],
@@ -313,33 +462,93 @@
       ['Revisions', '', `${Number(terms.revisionCount) || 0} free rounds`],
       ['Scope of work', '', `${Array.isArray(terms.scope) ? terms.scope.length : 0} points`]
     ];
-    return `<article class="chat-project-proposal-card" data-project-proposal-card="${escapeHtml(proposal.id)}">
-      <header><span>Project proposal</span><strong class="chat-proposal-status">${status}</strong></header>
+    const cardLabel = isPreview
+      ? `${previewRole === 'client' ? 'Client' : 'Developer'} · ${previewStage.label}`
+      : 'Project proposal';
+    return `<article class="chat-project-proposal-card" data-project-proposal-card="${escapeHtml(proposal.id)}"${isPreview ? ` data-card-stage="${escapeHtml(previewStage.id)}" data-card-role="${previewRole}"` : ''}>
+      <header><span>${escapeHtml(cardLabel)}</span><strong class="chat-proposal-status${isAwaitingDp ? ' is-awaiting-dp' : ''}">${escapeHtml(status)}</strong></header>
       <h3>${escapeHtml(terms.projectName || 'Project proposal')}</h3>
       <strong class="chat-proposal-card-price">${escapeHtml(formatProposalAmount(terms.totalPrice))}</strong>
       <dl>${rows.map(([label, hint, amount]) => `<div><dt>${escapeHtml(label)}${hint ? ` (${escapeHtml(hint)})` : ''}</dt><dd>${typeof amount === 'number' ? escapeHtml(formatProposalAmount(amount)) : escapeHtml(amount)}</dd></div>`).join('')}</dl>
       <p>${statusNote}</p>
-      <footer class="${hasPrimaryAction ? 'has-primary' : ''}">${actions.join('')}</footer>
+      <footer class="${hasPrimaryAction ? 'has-primary' : ''}${actions.length === 2 ? ' is-two-actions' : ''}">${actions.join('')}</footer>
     </article>`;
   }
 
-  function openProposalDetails(proposal) {
+  function renderProposalCardStagePreview() {
+    const terms = {
+      projectName: 'Website redesign',
+      totalPrice: 7000000,
+      dpPercent: 25,
+      dpAmount: 1750000,
+      deadline: '2026-12-10',
+      revisionCount: 2,
+      scope: ['Responsive website and handover']
+    };
+    const cards = PROPOSAL_CARD_STAGES.flatMap(stage =>
+      ['client', 'developer'].map(role => {
+        const proposal = {
+          id: `preview-${role}-${stage.id}`,
+          developer_id: 'preview-developer',
+          status: 'accepted',
+          terms,
+          agreement: {id: 'preview-agreement'}
+        };
+        const card = renderProjectProposalCard(proposal, {stageId: stage.id, role});
+        return `<div class="chat-msg-row received chat-proposal-row chat-proposal-preview-row">
+          <div class="chat-msg-content"><div class="chat-msg-body-row">
+            <div class="chat-msg-body"><div class="chat-msg-bubble chat-proposal-message-bubble">${card}</div></div>
+          </div></div>
+        </div>`;
+      })
+    );
+    return `<section class="chat-proposal-stage-preview" aria-label="Proposal card visual preview">
+      <h2>Proposal card preview · 16 variants</h2>
+      ${cards.join('')}
+    </section>`;
+  }
+
+  function isLocalProposalCardPreview() {
+    const host = window.location.hostname;
+    return (host === 'localhost' || host === '127.0.0.1') &&
+      new URLSearchParams(window.location.search).get('preview') === 'proposal-card-states';
+  }
+
+  function updateProposalDetailsPrintContent() {
+    const printContent = document.getElementById('proposalDetailsPrintContent');
+    const dialog = document.getElementById('projectProposalDetailsDialog');
+    const content = document.getElementById('projectProposalDetailsContent');
+    const header = dialog?.firstElementChild?.cloneNode(true);
+    const details = content?.cloneNode(true);
+    if (!printContent || !header || !details) return false;
+    header.querySelector('[data-close-proposal-details]')?.remove();
+    header.querySelectorAll('[id]').forEach(element => element.removeAttribute('id'));
+    details.removeAttribute('id');
+    details.classList.add('proposal-details-print-body');
+    printContent.replaceChildren(header, details);
+    return true;
+  }
+
+  function openProposalDetails(proposal, {showDialog = true} = {}) {
     const dialog = document.getElementById('projectProposalDetailsDialog');
     const content = document.getElementById('projectProposalDetailsContent');
     if (!dialog || !content || !proposal?.terms) return;
     const terms = proposal.terms;
     const conversation = getActiveConversation();
-    const isCreator = proposal.developer_id === currentUser?.id;
+    const isCreator = (proposal.creator_id || proposal.developer_id) === currentUser?.id;
     const isPending = proposal.status === 'pending';
     const isAccepted = proposal.status === 'accepted';
     const status = isAccepted ? 'Accepted' : proposal.status === 'withdrawn' ? 'Withdrawn' : 'Pending approval';
     const sender = isCreator
       ? 'You'
-      : conversation?.contactDisplayName || conversation?.name || 'Developer';
+      : conversation?.contactDisplayName || conversation?.name ||
+        (currentProfile?.account_role === 'client' ? 'Developer' : 'Client');
     const statusLabel = document.getElementById('projectProposalDetailsStatus');
     const senderLabel = document.getElementById('projectProposalDetailsFrom');
     const statusNote = document.getElementById('projectProposalDetailsStatusNote');
     content.replaceChildren();
+    hideProposalAcceptConfirmation(false);
+    hideProposalWithdrawConfirmation(false);
     const addText = (tag, className, value) => {
       const element = document.createElement(tag);
       if (className) element.className = className;
@@ -480,19 +689,140 @@
     if (statusNote) {
       statusNote.textContent = isPending
         ? isCreator
-          ? `Waiting for ${conversation?.contactDisplayName || conversation?.name || 'the client'} to accept.`
+          ? `Waiting for ${conversation?.contactDisplayName || conversation?.name || 'the other participant'} to accept.`
           : 'Accepting creates an agreement and locks these terms.'
         : isAccepted
           ? 'Agreement created. Open project payments to continue.'
-          : 'This proposal was withdrawn by its creator.';
+          : 'This proposal was withdrawn by its creator and can no longer be accepted.';
     }
     setAction('projectProposalDetailsAskChanges', 'ask-changes', isPending && !isCreator);
     setAction('projectProposalDetailsWithdraw', 'withdraw', isPending && isCreator);
     setAction('projectProposalDetailsPayments', 'payments', isAccepted && Boolean(proposal.agreement?.id));
     setAction('projectProposalDetailsAccept', 'accept', isPending && !isCreator);
 
-    if (dialog.open) dialog.close();
-    dialog.showModal();
+    updateProposalDetailsPrintContent();
+    if (showDialog) {
+      if (dialog.open) dialog.close();
+      dialog.showModal();
+    }
+  }
+
+  function getActiveProposal(proposalId) {
+    return getActiveConversation()?.messages
+      ?.find(message => message.proposal?.id === proposalId)?.proposal || null;
+  }
+
+  window.DEVMATCH_PROPOSAL_DETAILS = {
+    open(proposalId) {
+      const proposal = getActiveProposal(proposalId);
+      if (!proposal) return false;
+      openProposalDetails(proposal);
+      return true;
+    },
+    preparePrint(proposalId) {
+      const proposal = getActiveProposal(proposalId);
+      if (!proposal) return false;
+      openProposalDetails(proposal, {showDialog: false});
+      return updateProposalDetailsPrintContent();
+    }
+  };
+
+  function showProposalWithdrawConfirmation(proposalId) {
+    const proposal = getActiveConversation()?.messages
+      ?.find(message => message.proposal?.id === proposalId)?.proposal;
+    if (proposal?.status !== 'pending'
+      || (proposal.creator_id || proposal.developer_id) !== currentUser?.id) return false;
+    const confirmation = document.getElementById('projectProposalWithdrawConfirmation');
+    const confirmButton = confirmation?.querySelector('[data-proposal-withdraw-confirm]');
+    const status = document.getElementById('projectProposalWithdrawStatus');
+    if (!confirmation || !confirmButton) return false;
+    confirmButton.dataset.proposalId = proposalId;
+    confirmButton.disabled = false;
+    const cancelButton = confirmation.querySelector('[data-proposal-withdraw-cancel]');
+    if (cancelButton) cancelButton.disabled = false;
+    if (status) {
+      status.textContent = '';
+      status.hidden = true;
+      status.classList.remove('is-error');
+    }
+    confirmation.hidden = false;
+    cancelButton?.focus();
+    return true;
+  }
+
+  function showProposalAcceptConfirmation(proposalId) {
+    const proposal = getActiveConversation()?.messages
+      ?.find(message => message.proposal?.id === proposalId)?.proposal;
+    if (proposal?.status !== 'pending'
+      || (proposal.creator_id || proposal.developer_id) === currentUser?.id) return false;
+    const confirmation = document.getElementById('projectProposalAcceptConfirmation');
+    const acceptButton = confirmation?.querySelector('[data-proposal-accept-confirm]');
+    const status = document.getElementById('projectProposalAcceptStatus');
+    if (!confirmation || !acceptButton) return false;
+
+    const terms = proposal.terms || {};
+    const totalPrice = proposalAmount(terms.totalPrice);
+    const dpPercent = Number(terms.dpPercent) || 0;
+    const dpAmount = proposalAmount(terms.dpAmount) || Math.round(totalPrice * dpPercent / 100);
+    document.getElementById('projectProposalAcceptName').textContent = terms.projectName || 'Project proposal';
+    document.getElementById('projectProposalAcceptPrice').textContent = formatProposalAmount(totalPrice);
+    document.getElementById('projectProposalAcceptDpLabel').textContent = `DP (${dpPercent}%)`;
+    document.getElementById('projectProposalAcceptDpAmount').textContent = formatProposalAmount(dpAmount);
+    document.getElementById('projectProposalAcceptDeadline').textContent =
+      formatProposalDeadline(terms.deadline);
+    document.getElementById('projectProposalAcceptPayer').textContent =
+      currentProfile?.account_role === 'client' ? 'You' : 'The Client';
+
+    acceptButton.dataset.proposalId = proposal.id;
+    acceptButton.disabled = false;
+    confirmation.querySelectorAll('[data-proposal-accept-cancel], [data-proposal-accept-close]')
+      .forEach(button => { button.disabled = false; });
+    if (status) {
+      status.textContent = '';
+      status.hidden = true;
+    }
+    if (!confirmation.open) confirmation.showModal();
+    confirmation.querySelector('[data-proposal-accept-cancel]')?.focus();
+    return true;
+  }
+
+  function hideProposalAcceptConfirmation(restoreFocus = true) {
+    const confirmation = document.getElementById('projectProposalAcceptConfirmation');
+    if (!confirmation) return;
+    if (confirmation.open) confirmation.close();
+    const acceptButton = confirmation.querySelector('[data-proposal-accept-confirm]');
+    if (acceptButton) {
+      acceptButton.disabled = false;
+      acceptButton.removeAttribute('data-proposal-id');
+    }
+    confirmation.querySelectorAll('[data-proposal-accept-cancel], [data-proposal-accept-close]')
+      .forEach(button => { button.disabled = false; });
+    const status = document.getElementById('projectProposalAcceptStatus');
+    if (status) {
+      status.textContent = '';
+      status.hidden = true;
+    }
+    if (restoreFocus) document.getElementById('projectProposalDetailsAccept')?.focus();
+  }
+
+  function hideProposalWithdrawConfirmation(restoreFocus = true) {
+    const confirmation = document.getElementById('projectProposalWithdrawConfirmation');
+    if (!confirmation) return;
+    confirmation.hidden = true;
+    const confirmButton = confirmation.querySelector('[data-proposal-withdraw-confirm]');
+    if (confirmButton) {
+      confirmButton.disabled = false;
+      confirmButton.removeAttribute('data-proposal-id');
+    }
+    const cancelButton = confirmation.querySelector('[data-proposal-withdraw-cancel]');
+    if (cancelButton) cancelButton.disabled = false;
+    const status = document.getElementById('projectProposalWithdrawStatus');
+    if (status) {
+      status.textContent = '';
+      status.hidden = true;
+      status.classList.remove('is-error');
+    }
+    if (restoreFocus) document.getElementById('projectProposalDetailsWithdraw')?.focus();
   }
 
   function setProposalStatus(message, isError = false) {
@@ -544,8 +874,8 @@
   async function submitProjectProposal(event) {
     event.preventDefault();
     if (!proposalFormEl || !proposalFormEl.reportValidity()) return;
-    if (currentProfile?.account_role !== 'dev') {
-      setProposalStatus('Switch to Developer Mode to send a project proposal.', true);
+    if (!['dev', 'client'].includes(currentProfile?.account_role)) {
+      setProposalStatus('Select a Client or Developer workspace to send a project proposal.', true);
       return;
     }
     const conversation = getActiveConversation();
@@ -620,7 +950,7 @@
       proposalScopeItems = [];
       renderProposalScopeItems();
       renderProposalAttachments();
-      setStatus('Proposal sent. Waiting for the client to accept.');
+      setStatus(`Proposal sent. Waiting for the ${currentProfile?.account_role === 'dev' ? 'client' : 'developer'} to accept.`);
     } catch (error) {
       console.error('Unable to send project proposal.', error);
       setProposalStatus(error.message || 'Unable to send this proposal. Please try again.', true);
@@ -1326,8 +1656,12 @@
         </div>`
       : '';
     if (chatMessagesEl) {
-      chatMessagesEl.innerHTML = `${messagesHtml || '<p class="chat-conv-empty">No messages yet. Send the first message.</p>'}${projectReplyDraft}`;
-      scrollThreadToBottom();
+      const cardPreview = isLocalProposalCardPreview();
+      chatMessagesEl.innerHTML = cardPreview
+        ? renderProposalCardStagePreview()
+        : `${messagesHtml || '<p class="chat-conv-empty">No messages yet. Send the first message.</p>'}${projectReplyDraft}`;
+      if (cardPreview && threadContainerEl) threadContainerEl.scrollTop = 0;
+      else scrollThreadToBottom();
     }
     updateDetailPaneVisibility();
   }
@@ -2236,6 +2570,7 @@
           - threadContainerEl.scrollTop;
         scrollBottomBtn.hidden = distanceFromBottom < 120;
       }
+      if (isLocalProposalCardPreview()) return;
       if (threadContainerEl.scrollTop > 80) return;
       const conversation = getActiveConversation();
       if (conversation && conversation !== pendingConversationDraft) {
@@ -2281,11 +2616,80 @@
       if (event.target === proposalDialogEl) proposalDialogEl.close();
     });
     const proposalDetailsDialog = document.getElementById('projectProposalDetailsDialog');
+    const proposalAcceptConfirmationDialog = document.getElementById('projectProposalAcceptConfirmation');
+    proposalAcceptConfirmationDialog?.addEventListener('cancel', event => {
+      event.preventDefault();
+      hideProposalAcceptConfirmation();
+    });
+    proposalAcceptConfirmationDialog?.addEventListener('click', event => {
+      if (event.target === proposalAcceptConfirmationDialog) {
+        const panel = proposalAcceptConfirmationDialog.querySelector('section');
+        const rect = panel?.getBoundingClientRect();
+        if (rect && (event.clientX < rect.left || event.clientX > rect.right
+          || event.clientY < rect.top || event.clientY > rect.bottom)) {
+          hideProposalAcceptConfirmation();
+        }
+        return;
+      }
+      const cancelButton = event.target.closest('[data-proposal-accept-cancel], [data-proposal-accept-close]');
+      if (cancelButton && proposalAcceptConfirmationDialog.contains(cancelButton)) {
+        hideProposalAcceptConfirmation();
+        return;
+      }
+      const confirmButton = event.target.closest('[data-proposal-accept-confirm]');
+      if (!confirmButton || !proposalAcceptConfirmationDialog.contains(confirmButton)) return;
+      const proposalId = confirmButton.dataset.proposalId;
+      const confirmationStatus = document.getElementById('projectProposalAcceptStatus');
+      const cancelButtons = proposalAcceptConfirmationDialog.querySelectorAll(
+        '[data-proposal-accept-cancel], [data-proposal-accept-close]'
+      );
+      cancelButtons.forEach(button => { button.disabled = true; });
+      void changeProjectProposal('accept-project-proposal', proposalId, confirmButton)
+        .then(updated => {
+          if (updated) {
+            hideProposalAcceptConfirmation(false);
+            proposalDetailsDialog?.close();
+            return;
+          }
+          cancelButtons.forEach(button => { button.disabled = false; });
+          if (confirmationStatus) {
+            confirmationStatus.textContent = statusEl?.textContent || 'Unable to accept this proposal. Please try again.';
+            confirmationStatus.hidden = false;
+          }
+        });
+    });
     proposalDetailsDialog?.querySelectorAll('[data-close-proposal-details]').forEach(button => {
       button.addEventListener('click', () => proposalDetailsDialog.close());
     });
     proposalDetailsDialog?.addEventListener('click', event => {
       if (event.target === proposalDetailsDialog) proposalDetailsDialog.close();
+    });
+    proposalDetailsDialog?.addEventListener('click', event => {
+      const cancelButton = event.target.closest('[data-proposal-withdraw-cancel]');
+      if (cancelButton && proposalDetailsDialog.contains(cancelButton)) {
+        hideProposalWithdrawConfirmation();
+        return;
+      }
+      const confirmButton = event.target.closest('[data-proposal-withdraw-confirm]');
+      if (!confirmButton || !proposalDetailsDialog.contains(confirmButton)) return;
+      const proposalId = confirmButton.dataset.proposalId;
+      const confirmationStatus = document.getElementById('projectProposalWithdrawStatus');
+      const keepButton = proposalDetailsDialog.querySelector('[data-proposal-withdraw-cancel]');
+      if (keepButton) keepButton.disabled = true;
+      void changeProjectProposal('withdraw-project-proposal', proposalId, confirmButton)
+        .then(updated => {
+          if (updated) {
+            proposalDetailsDialog.close();
+            hideProposalWithdrawConfirmation(false);
+            return;
+          }
+          if (keepButton) keepButton.disabled = false;
+          if (confirmationStatus) {
+            confirmationStatus.textContent = statusEl?.textContent || 'Unable to withdraw this proposal. Please try again.';
+            confirmationStatus.hidden = false;
+            confirmationStatus.classList.add('is-error');
+          }
+        });
     });
     proposalDetailsDialog?.addEventListener('click', event => {
       const actionButton = event.target.closest('[data-proposal-details-action]');
@@ -2296,15 +2700,9 @@
         proposalDetailsDialog.close();
         askForProposalChanges(proposalId);
       } else if (action === 'accept') {
-        proposalDetailsDialog.close();
-        void changeProjectProposal('accept-project-proposal', proposalId, actionButton);
+        showProposalAcceptConfirmation(proposalId);
       } else if (action === 'withdraw') {
-        if (window.confirm('Withdraw this proposal? The client will no longer be able to accept it.')) {
-          void changeProjectProposal('withdraw-project-proposal', proposalId, actionButton)
-            .then(updated => {
-              if (updated) proposalDetailsDialog.close();
-            });
-        }
+        showProposalWithdrawConfirmation(proposalId);
       } else if (action === 'payments') {
         const proposal = getActiveConversation()?.messages
           .find(message => message.proposal?.id === proposalId)?.proposal;
@@ -2313,6 +2711,7 @@
           window.DEVMATCH_ROOM_PAYMENT?.openAgreement({
             id: proposal.agreement.id,
             conversationId: proposal.conversation_id,
+            proposalId: proposal.id,
             title: proposal.terms?.projectName
           });
         }
@@ -2405,12 +2804,14 @@
       const proposalPaymentsButton = event.target.closest('[data-proposal-payments]');
       if (proposalPaymentsButton && chatMessagesEl.contains(proposalPaymentsButton)) {
         event.preventDefault();
+        event.stopPropagation();
         const proposal = getActiveConversation()?.messages
           .find(message => message.proposal?.id === proposalPaymentsButton.dataset.proposalPayments)?.proposal;
         if (proposal?.agreement?.id) {
           window.DEVMATCH_ROOM_PAYMENT?.openAgreement({
             id: proposal.agreement.id,
             conversationId: proposal.conversation_id,
+            proposalId: proposal.id,
             title: proposal.terms?.projectName
           });
         }
@@ -2419,22 +2820,22 @@
       const acceptProposalButton = event.target.closest('[data-proposal-accept]');
       if (acceptProposalButton && chatMessagesEl.contains(acceptProposalButton)) {
         event.preventDefault();
-        void changeProjectProposal(
-          'accept-project-proposal',
-          acceptProposalButton.dataset.proposalAccept,
-          acceptProposalButton
-        );
+        const proposal = getActiveConversation()?.messages
+          .find(message => message.proposal?.id === acceptProposalButton.dataset.proposalAccept)?.proposal;
+        if (proposal) {
+          openProposalDetails(proposal);
+          showProposalAcceptConfirmation(proposal.id);
+        }
         return;
       }
       const withdrawProposalButton = event.target.closest('[data-proposal-withdraw]');
       if (withdrawProposalButton && chatMessagesEl.contains(withdrawProposalButton)) {
         event.preventDefault();
-        if (window.confirm('Withdraw this proposal? The client will no longer be able to accept it.')) {
-          void changeProjectProposal(
-            'withdraw-project-proposal',
-            withdrawProposalButton.dataset.proposalWithdraw,
-            withdrawProposalButton
-          );
+        const proposal = getActiveConversation()?.messages
+          .find(message => message.proposal?.id === withdrawProposalButton.dataset.proposalWithdraw)?.proposal;
+        if (proposal) {
+          openProposalDetails(proposal);
+          showProposalWithdrawConfirmation(proposal.id);
         }
         return;
       }
@@ -2565,7 +2966,9 @@
     activityTimer=setInterval(()=>void syncActivity(),30000);
     await openFromQuery();
     await syncActivity();
-    if (legacyChatRemoved) {
+    if (isLocalProposalCardPreview()) {
+      setStatus('Visual preview only. Buttons and deadline text are not active.');
+    } else if (legacyChatRemoved) {
       setStatus('Previous device-only demo chats were cleared. New messages are stored securely in Supabase.');
     } else if (!activeConvId && !pendingConversationDraft) {
       setStatus('Select a conversation or open a project to start a secure chat.');

@@ -21,6 +21,7 @@ export function paymentService(store, gateway) {
 
   async function sync(ref, load, orderId, event) {
     const time = Date.now();
+    if (ref.agreementId && store.processDue) await store.processDue(ref);
     const verified = await gateway.status(orderId);
     await mutate(ref, load, state => reconcile(state, orderId, verified, event, time));
   }
@@ -104,7 +105,13 @@ export function paymentService(store, gateway) {
         ref = {conversationId: canonicalId, projectId};
       }
       let result = withPaymentState(ref, await load());
-      if (ref.agreementId) ref.conversationId = result.conversationId;
+      if (ref.agreementId) {
+        ref.conversationId = result.conversationId;
+        if (store.processDue) {
+          await store.processDue(ref);
+          result = withPaymentState(ref, await load());
+        }
+      }
       if (operation === 'checkout') {
         requireCondition(result.role === 'client', 'Pembayaran tersedia untuk Client.', 403);
         return makeCheckout(ref, load, body.kind);

@@ -8,8 +8,8 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="assets/css/dashboard.css?v=20261126-rebase-merge-v1">
-  <link rel="stylesheet" href="assets/css/chat.css?v=20261126-rebase-merge-v1">
-  <link rel="stylesheet" href="assets/css/chat-payment.css?v=20261126-rebase-merge-v1">
+  <link rel="stylesheet" href="assets/css/chat.css?v=20261126-proposal-approval-confirm-v1">
+  <link rel="stylesheet" href="assets/css/chat-payment.css?v=20261126-project-timeline-v20">
   <link rel="stylesheet" href="assets/css/project-detail-popup.css?v=20261126-rebase-merge-v1">
   <link rel="stylesheet" href="assets/css/client-shell.css?v=20261126-rebase-merge-v1">
   <link rel="stylesheet" href="assets/css/mode-switch-animation.css?v=20261030-client-mode-route">
@@ -262,7 +262,7 @@
     <header>
       <div>
         <h2 id="roomPaymentTitle">Pembayaran proyek</h2>
-        <p>Midtrans Sandbox</p>
+        <p id="roomPaymentSubtitle">Midtrans Sandbox</p>
       </div>
       <form method="dialog"><button type="submit" aria-label="Tutup pembayaran">Tutup</button></form>
     </header>
@@ -270,7 +270,42 @@
     <p id="roomPaymentError" role="alert" hidden></p>
     <div id="roomPaymentContent" aria-live="polite"></div>
   </dialog>
-  <script src="assets/js/chat-payment.js?v=20261126-proposal-agreement-payments-v1"></script>
+  <dialog id="roomPaymentCheckoutDialog" class="room-payment-checkout-dialog" aria-labelledby="roomPaymentCheckoutTitle">
+    <section class="room-payment-checkout-card">
+      <header>
+        <div>
+          <div class="room-payment-checkout-heading">
+            <h2 id="roomPaymentCheckoutTitle">Pay DP</h2>
+            <span>Test mode</span>
+          </div>
+          <p id="roomPaymentCheckoutProject"></p>
+        </div>
+        <button type="button" data-checkout-close aria-label="Close payment details">×</button>
+      </header>
+      <main>
+        <div class="room-payment-checkout-amount">
+          <span id="roomPaymentCheckoutAmountLabel"></span>
+          <strong id="roomPaymentCheckoutAmount"></strong>
+        </div>
+        <h3>What happens next?</h3>
+        <ul>
+          <li>Your DP is held and is not sent to the Developer yet.</li>
+          <li>It is released after you approve the project progress.</li>
+          <li>The remaining payment is due after the final video is shared.</li>
+        </ul>
+        <p class="room-payment-checkout-note">Midtrans Sandbox is for testing; no real money moves. The checkout link is valid for 24 hours.</p>
+        <p id="roomPaymentCheckoutError" role="alert" hidden></p>
+      </main>
+      <footer>
+        <button type="button" data-demo-payment>Demo payment</button>
+        <span class="room-payment-checkout-spacer"></span>
+        <button type="button" data-checkout-cancel>Cancel</button>
+        <button type="button" data-checkout-continue>Continue to payment</button>
+      </footer>
+    </section>
+  </dialog>
+  <div id="proposalDetailsPrintContent" class="proposal-details-print-content"></div>
+  <script src="assets/js/chat-payment.js?v=20261126-project-timeline-v15"></script>
   <dialog class="chat-proposal-dialog" id="proposeProjectDialog" aria-labelledby="proposeProjectTitle">
     <form class="chat-proposal-form" id="proposeProjectForm">
       <header class="chat-proposal-header">
@@ -390,9 +425,50 @@
         <button type="button" id="projectProposalDetailsAccept" class="is-primary" hidden>Accept proposal</button>
       </div>
     </footer>
+    <div id="projectProposalWithdrawConfirmation" class="chat-proposal-withdraw-confirmation" hidden>
+      <section role="alertdialog" aria-modal="true" aria-labelledby="projectProposalWithdrawTitle" aria-describedby="projectProposalWithdrawDescription">
+        <h2 id="projectProposalWithdrawTitle">Withdraw this proposal?</h2>
+        <p id="projectProposalWithdrawDescription">The other participant will no longer be able to accept it. You can send a new proposal later.</p>
+        <p id="projectProposalWithdrawStatus" role="status" aria-live="polite" hidden></p>
+        <div class="chat-proposal-withdraw-actions">
+          <button type="button" data-proposal-withdraw-cancel>Keep proposal</button>
+          <button type="button" class="is-danger" data-proposal-withdraw-confirm>Withdraw proposal</button>
+        </div>
+      </section>
+    </div>
+  </dialog>
+  <dialog id="projectProposalAcceptConfirmation" class="chat-proposal-accept-dialog" aria-labelledby="projectProposalAcceptTitle" aria-describedby="projectProposalAcceptDescription">
+    <section role="alertdialog" aria-modal="true">
+      <header>
+        <div>
+          <h2 id="projectProposalAcceptTitle">Accept this proposal?</h2>
+          <p id="projectProposalAcceptDescription">Please check the details before you accept.</p>
+        </div>
+        <button type="button" data-proposal-accept-close aria-label="Close approval confirmation">×</button>
+      </header>
+      <dl class="chat-proposal-accept-facts">
+        <div><dt>Project</dt><dd id="projectProposalAcceptName"></dd></div>
+        <div><dt>Total price</dt><dd id="projectProposalAcceptPrice"></dd></div>
+        <div><dt id="projectProposalAcceptDpLabel"></dt><dd id="projectProposalAcceptDpAmount"></dd></div>
+        <div><dt>Deadline</dt><dd id="projectProposalAcceptDeadline"></dd></div>
+      </dl>
+      <section class="chat-proposal-accept-next">
+        <h3>What happens next</h3>
+        <ul>
+          <li>An agreement is created and the terms are locked.</li>
+          <li>You can open project payments from the proposal card.</li>
+          <li><span id="projectProposalAcceptPayer">The Client</span> pays the DP to start the project.</li>
+        </ul>
+      </section>
+      <p id="projectProposalAcceptStatus" role="status" aria-live="polite" hidden></p>
+      <footer class="chat-proposal-accept-actions">
+        <button type="button" data-proposal-accept-cancel>Cancel</button>
+        <button type="button" class="is-primary" data-proposal-accept-confirm>Yes, accept proposal</button>
+      </footer>
+    </section>
   </dialog>
 
-  <script src="assets/js/chat.js?v=20261126-rebase-merge-v1"></script>
+  <script src="assets/js/chat.js?v=20261126-proposal-approval-confirm-v2"></script>
   <script src="assets/js/project-detail-popup.js?v=20261126-rebase-merge-v1"></script>
   <script src="assets/js/nav-behavior.js?v=20261126-rebase-merge-v1"></script>
 </body>

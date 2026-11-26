@@ -12,6 +12,8 @@ const PROPOSAL='bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
 const MESSAGE='cccccccc-cccc-4ccc-8ccc-cccccccccccc';
 const WITHDRAWN_PROPOSAL='dddddddd-dddd-4ddd-8ddd-dddddddddddd';
 const WITHDRAWN_MESSAGE='eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee';
+const CLIENT_PROPOSAL='ffffffff-ffff-4fff-8fff-ffffffffffff';
+const CLIENT_MESSAGE='99999999-9999-4999-8999-999999999999';
 
 const migration=fs.readFileSync(
   path.join(__dirname,'../supabase/migrations/202611240001_project_proposals.sql'),
@@ -19,6 +21,10 @@ const migration=fs.readFileSync(
 );
 const paymentMigration=fs.readFileSync(
   path.join(__dirname,'../supabase/migrations/202611260001_proposal_agreement_payments.sql'),
+  'utf8'
+);
+const clientProposalMigration=fs.readFileSync(
+  path.join(__dirname,'../supabase/migrations/202611260004_client_project_proposals.sql'),
   'utf8'
 );
 
@@ -59,6 +65,7 @@ async function setupDatabase(){
   `);
   await db.exec(migration);
   await db.exec(paymentMigration);
+  await db.exec(clientProposalMigration);
   return db;
 }
 
@@ -86,7 +93,7 @@ async function createProposal(db,id,messageId,actorId=DEV,role='dev'){
   `,[id,messageId,CONVERSATION,actorId,role,JSON.stringify(input)]);
 }
 
-test('Proposal creation is developer-only and persists the proposal card event atomically',async()=>{
+test('Client and Developer can create proposals and persist the correct creator atomically',async()=>{
   const db=await setupDatabase();
   try{
     await db.exec('set role service_role');
@@ -101,10 +108,41 @@ test('Proposal creation is developer-only and persists the proposal card event a
     assert.equal((await db.query(
       'select proposal_id from public.messages where id=$1',[MESSAGE]
     )).rows[0].proposal_id,PROPOSAL);
+    await createProposal(db,CLIENT_PROPOSAL,CLIENT_MESSAGE,CLIENT,'client');
+    const clientProposal=(await db.query(
+      'select developer_id,client_id,creator_id from public.project_proposals where id=$1',
+      [CLIENT_PROPOSAL]
+    )).rows[0];
+    assert.deepEqual(clientProposal,{developer_id:DEV,client_id:CLIENT,creator_id:CLIENT});
+    assert.equal((await db.query(
+      'select sender_id from public.messages where id=$1',[CLIENT_MESSAGE]
+    )).rows[0].sender_id,CLIENT);
     await assert.rejects(createProposal(
-      db,WITHDRAWN_PROPOSAL,WITHDRAWN_MESSAGE,CLIENT,'client'
+      db,WITHDRAWN_PROPOSAL,WITHDRAWN_MESSAGE,DEV,'client'
     ));
-    assert.equal((await db.query('select count(*)::int as n from public.project_proposals')).rows[0].n,1);
+    assert.equal((await db.query('select count(*)::int as n from public.project_proposals')).rows[0].n,2);
+  }finally{
+    await db.close();
+  }
+});
+
+test('The developer can accept a proposal created by the client',async()=>{
+  const db=await setupDatabase();
+  try{
+    await db.exec('set role service_role');
+    await createProposal(db,CLIENT_PROPOSAL,CLIENT_MESSAGE,CLIENT,'client');
+    await assert.rejects(db.query(
+      'select public.accept_project_proposal($1::uuid,$2::uuid,$3::text)',
+      [CLIENT_PROPOSAL,CLIENT,'client']
+    ));
+    const result=(await db.query(
+      'select public.accept_project_proposal($1::uuid,$2::uuid,$3::text) as result',
+      [CLIENT_PROPOSAL,DEV,'dev']
+    )).rows[0].result;
+    assert.equal(result.proposal.status,'accepted');
+    assert.equal(result.proposal.creator_id,CLIENT);
+    assert.equal(result.agreement.developer_id,DEV);
+    assert.equal(result.agreement.client_id,CLIENT);
   }finally{
     await db.close();
   }
@@ -174,6 +212,26 @@ test('Only the proposal creator can withdraw a pending proposal',async()=>{
     )).rows[0].proposal;
     assert.equal(withdrawn.status,'withdrawn');
     assert.ok(withdrawn.withdrawn_at);
+  }finally{
+    await db.close();
+  }
+});
+
+test('A client can withdraw their own pending proposal',async()=>{
+  const db=await setupDatabase();
+  try{
+    await db.exec('set role service_role');
+    await createProposal(db,CLIENT_PROPOSAL,CLIENT_MESSAGE,CLIENT,'client');
+    await assert.rejects(db.query(
+      'select public.withdraw_project_proposal($1::uuid,$2::uuid,$3::text)',
+      [CLIENT_PROPOSAL,DEV,'dev']
+    ));
+    const withdrawn=(await db.query(
+      'select to_jsonb(public.withdraw_project_proposal($1::uuid,$2::uuid,$3::text)) as proposal',
+      [CLIENT_PROPOSAL,CLIENT,'client']
+    )).rows[0].proposal;
+    assert.equal(withdrawn.status,'withdrawn');
+    assert.equal(withdrawn.creator_id,CLIENT);
   }finally{
     await db.close();
   }

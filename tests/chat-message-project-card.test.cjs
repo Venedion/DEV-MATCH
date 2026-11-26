@@ -1,6 +1,7 @@
 const {test}=require('node:test');
 const assert=require('node:assert/strict');
 const fs=require('node:fs');
+const vm=require('node:vm');
 
 test('Project reply context renders in a divided message bubble with a cancellable draft preview',()=>{
   const chat=fs.readFileSync('assets/js/chat.js','utf8');
@@ -169,6 +170,7 @@ test('Chat composer sends a proposal and renders role-specific proposal cards',(
   const styles=fs.readFileSync('assets/css/chat.css','utf8');
   const api=fs.readFileSync('supabase/functions/chat-api/index.ts','utf8');
   const migration=fs.readFileSync('supabase/migrations/202611240001_project_proposals.sql','utf8');
+  const proposalMigration=fs.readFileSync('supabase/migrations/202611260004_client_project_proposals.sql','utf8');
   const paymentMigration=fs.readFileSync('supabase/migrations/202611260001_proposal_agreement_payments.sql','utf8');
   const payment=fs.readFileSync('assets/js/chat-payment.js','utf8');
   assert.match(html,/id="chatComposerMenu"[^>]*hidden/);
@@ -182,6 +184,8 @@ test('Chat composer sends a proposal and renders role-specific proposal cards',(
   assert.doesNotMatch(html,/id="chatProjectTermsAction"[^>]*disabled/);
   assert.doesNotMatch(chat,/projectTermsButtonEl\.disabled\s*=/);
   assert.match(chat,/function openProposalForm\(\)[\s\S]*?if \(!proposalDialogEl \|\| !conversation\) return/);
+  assert.match(chat,/workspaceRole === 'dev' \|\| workspaceRole === 'client'/);
+  assert.match(chat,/proposal\.creator_id \|\| proposal\.developer_id/);
   assert.match(chat,/const requestProject = project\?\.project_kind === 'request' \? project : null/);
   assert.match(chat,/const contextId = `\$\{conversation\.id \|\| 'draft'\}:\$\{project\?\.id \|\| 'none'\}:/);
   assert.match(chat,/requestData: projectKind === 'request'[\s\S]*?project\.data/);
@@ -190,14 +194,28 @@ test('Chat composer sends a proposal and renders role-specific proposal cards',(
   assert.match(chat,/function renderProposalScopeItems\(\)[\s\S]*?input\.maxLength = 300/);
   assert.match(chat,/proposalFormEl\?\.addEventListener\('submit', event => void submitProjectProposal\(event\)\)/);
   assert.match(chat,/invokeChat\('create-project-proposal'[\s\S]*?terms:[\s\S]*?attachments/);
-  assert.match(chat,/function renderProjectProposalCard\(proposal\)/);
+  assert.match(chat,/function renderProjectProposalCard\(proposal, preview = null\)/);
+  assert.match(chat,/const isAwaitingDp = !isPreview && isAccepted && currentProfile\?\.account_role === 'dev'/);
+  assert.match(chat,/const isDpPaid = !isPreview && isAccepted && proposal\.agreement\?\.escrow_status === 'DP_HELD'/);
+  assert.match(chat,/Waiting for progress/);
+  assert.match(chat,/DP paid and held\./);
+  assert.match(chat,/Waiting for \$\{escapeHtml\(getActiveConversation\(\)\?\.contactDisplayName/);
+  assert.match(chat,/<footer class="\$\{hasPrimaryAction \? 'has-primary' : ''\}\$\{actions\.length === 2 \? ' is-two-actions' : ''\}"/);
   assert.match(chat,/data-proposal-accept/);
   assert.match(chat,/data-proposal-ask-changes/);
   assert.match(chat,/data-proposal-withdraw/);
   assert.match(chat,/function askForProposalChanges\(proposalId\)[\s\S]*?I'd like to discuss some changes/);
-  assert.match(chat,/function openProposalDetails\(proposal\)/);
+  assert.match(chat,/function openProposalDetails\(proposal, \{showDialog = true\} = \{\}\)/);
   assert.match(chat,/data-proposal-payments/);
+  assert.match(chat,/>Open project<\/button>/);
+  assert.doesNotMatch(chat,/>Project payments<\/button>/);
+  assert.match(chat,/proposalPaymentsButton && chatMessagesEl\.contains\(proposalPaymentsButton\)\)\s*\{\s*event\.preventDefault\(\);\s*event\.stopPropagation\(\);/);
   assert.match(chat,/openAgreement\(\{/);
+  const paymentScript=fs.readFileSync('assets/js/chat-payment.js','utf8');
+  assert.match(paymentScript,/function isAgreementContext\(\)[\s\S]*?JSON\.parse\(roomKey\)\?\.agreementId/);
+  assert.match(paymentScript,/function closeOtherDialogs\(\)[\s\S]*?document\.querySelectorAll\('dialog\[open\]'\)[\s\S]*?openDialog\.close\(\)/);
+  assert.match(paymentScript,/room && \(room\.timelineVersion === 2 \|\| room\.proposal\?\.agreementId \|\| isAgreementContext\(\)\)/);
+  assert.match(paymentScript,/agreementCreatedAt: proposal\.createdAt \|\| null/);
   assert.match(chat,/chat-proposal-details-status/);
   assert.match(chat,/Compared with your request/);
   assert.match(chat,/data-proposal-details-action/);
@@ -216,20 +234,29 @@ test('Chat composer sends a proposal and renders role-specific proposal cards',(
   assert.match(styles,/\.chat-proposal-dialog::backdrop/);
   assert.match(styles,/\.chat-proposal-scope-list/);
   assert.match(styles,/\.chat-project-proposal-card/);
+  assert.match(styles,/footer\.is-two-actions button\s*\{[\s\S]*?grid-column:\s*1\s*\/\s*-1;/);
   assert.match(styles,/\.chat-proposal-details-dialog/);
   assert.match(styles,/\.chat-proposal-details-status\.is-accepted/);
   assert.match(styles,/\.chat-proposal-details-actions/);
   assert.match(api,/body\.action === 'create-project-proposal'/);
+  assert.match(api,/if \(!\['dev', 'client'\]\.includes\(workspaceRole\)\)/);
+  assert.match(api,/const creatorRole = proposal\.creator_id === proposal\.developer_id \? 'dev' : 'client'/);
+  assert.match(api,/creator_id: row\.creator_id \|\| row\.developer_id/);
   assert.match(api,/body\.action === 'accept-project-proposal' \|\| body\.action === 'withdraw-project-proposal'/);
   assert.match(api,/body\.action === 'download-project-proposal-attachment'/);
   assert.match(api,/encryptBinary\([\s\S]*?proposalId/);
   assert.match(api,/function attachProposalDetails\(/);
+  assert.match(api,/payment_agreement_rooms/);
+  assert.match(api,/escrow_status: escrowStatus/);
+  assert.match(api,/paymentRoom\.state\?\.room\?\.escrow/);
   assert.match(api,/totalPrice < 40000 \|\| totalPrice > 1000000000/);
   assert.match(migration,/create table public\.project_proposals/);
   assert.match(migration,/create table public\.project_agreements/);
   assert.match(migration,/create function public\.accept_project_proposal/);
   assert.match(migration,/Only the proposal recipient can accept it/);
-  assert.match(migration,/Only the developer in a client conversation can create a proposal/);
+  assert.match(proposalMigration,/Only a participant in a Client-Developer conversation can create a proposal/);
+  assert.match(proposalMigration,/creator_id = developer_id/);
+  assert.match(proposalMigration,/sender_id, ciphertext, nonce, key_version, proposal_id[\s\S]*?p_actor_id/);
   assert.match(migration,/grant execute on function public\.accept_project_proposal[\s\S]*?to service_role/);
   assert.match(paymentMigration,/create table public\.payment_agreement_rooms/);
   assert.match(paymentMigration,/create function public\.payment_agreement_context/);
@@ -250,8 +277,109 @@ test('Proposal creators can withdraw pending proposals from both the card and de
   const cors=fs.readFileSync('supabase/functions/_shared/registration.mjs','utf8');
   assert.match(chat,/isPending && isCreator\s*\? `<button type="button" data-proposal-withdraw=/);
   assert.match(chat,/setAction\('projectProposalDetailsWithdraw', 'withdraw', isPending && isCreator\)/);
-  assert.match(chat,/action === 'withdraw'[\s\S]*?window\.confirm[\s\S]*?withdraw-project-proposal/);
-  assert.match(chat,/\.then\(updated => \{\s*if \(updated\) proposalDetailsDialog\.close\(\);/);
+  assert.match(chat,/action === 'withdraw'[\s\S]*?showProposalWithdrawConfirmation\(proposalId\)/);
+  assert.doesNotMatch(chat,/window\.confirm\(/);
+  assert.match(chat,/showProposalWithdrawConfirmation\(proposal\.id\)/);
+  assert.match(chat,/changeProjectProposal\('withdraw-project-proposal', proposalId, confirmButton\)[\s\S]*?if \(updated\) \{[\s\S]*?proposalDetailsDialog\.close\(\)/);
+  assert.match(chat,/proposal\.status === 'withdrawn' \? 'Withdrawn'/);
+  assert.match(chat,/This proposal was withdrawn by its creator and can no longer be accepted/);
   assert.match(html,/id="projectProposalDetailsWithdraw"[^>]*hidden>Withdraw proposal/);
+  assert.match(html,/id="projectProposalWithdrawConfirmation"[^>]*hidden/);
+  assert.match(html,/role="alertdialog"[^>]*aria-labelledby="projectProposalWithdrawTitle"/);
+  assert.match(html,/data-proposal-withdraw-confirm/);
+  assert.match(html,/data-proposal-withdraw-cancel/);
   assert.match(cors,/allowedOrigins\.push\([^;]*'http:\/\/127\.0\.0\.1:8080'/);
+});
+
+test('Accepting a proposal from either view requires reviewing and confirming its terms',()=>{
+  const chat=fs.readFileSync('assets/js/chat.js','utf8');
+  const html=fs.readFileSync('devmatch-chat.html','utf8');
+  const styles=fs.readFileSync('assets/css/chat.css','utf8');
+  const cardActionStart=chat.indexOf("const acceptProposalButton = event.target.closest('[data-proposal-accept]')");
+  const cardActionEnd=chat.indexOf("const withdrawProposalButton =",cardActionStart);
+  const cardAction=chat.slice(cardActionStart,cardActionEnd);
+  assert.match(cardAction,/openProposalDetails\(proposal\)[\s\S]*?showProposalAcceptConfirmation\(proposal\.id\)/);
+  assert.doesNotMatch(cardAction,/changeProjectProposal\('accept-project-proposal'/);
+  assert.match(chat,/action === 'accept'[\s\S]*?showProposalAcceptConfirmation\(proposalId\)/);
+  assert.match(chat,/function showProposalAcceptConfirmation\(proposalId\)[\s\S]*?projectProposalAcceptPrice[\s\S]*?projectProposalAcceptDpAmount[\s\S]*?projectProposalAcceptDeadline[\s\S]*?currentProfile\?\.account_role === 'client' \? 'You' : 'The Client'/);
+  assert.match(chat,/data-proposal-accept-confirm[\s\S]*?changeProjectProposal\('accept-project-proposal', proposalId, confirmButton\)/);
+  assert.match(html,/<dialog id="projectProposalAcceptConfirmation"[^>]*class="chat-proposal-accept-dialog"[\s\S]*?Accept this proposal\?[\s\S]*?Please check the details before you accept\.[\s\S]*?id="projectProposalAcceptPrice"[\s\S]*?id="projectProposalAcceptDpLabel"[\s\S]*?id="projectProposalAcceptDeadline"[\s\S]*?What happens next[\s\S]*?data-proposal-accept-cancel[\s\S]*?Yes, accept proposal/);
+  assert.match(html,/role="alertdialog" aria-modal="true"/);
+  assert.match(styles,/\.chat-proposal-accept-dialog\[open\]\s*\{[\s\S]*?position:\s*fixed;[\s\S]*?inset:\s*0/);
+  assert.match(styles,/\.chat-proposal-accept-actions button\.is-primary/);
+});
+
+test('Proposal card stage preview renders all 16 role variants with inert actions',()=>{
+  const chat=fs.readFileSync('assets/js/chat.js','utf8');
+  const stagesStart=chat.indexOf('  const PROPOSAL_CARD_STAGES = [');
+  const stagesEnd=chat.indexOf('  ];',stagesStart) + 4;
+  const rendererStart=chat.indexOf('  function renderProjectProposalCard(',stagesEnd);
+  const rendererEnd=chat.indexOf('  function isLocalProposalCardPreview(',rendererStart);
+  assert.ok(stagesStart >= 0 && stagesEnd > stagesStart && rendererStart > stagesEnd && rendererEnd > rendererStart);
+
+  const stageSource=chat.slice(stagesStart,stagesEnd);
+  const rendererSource=chat.slice(rendererStart,rendererEnd);
+  const view=vm.runInNewContext(`${stageSource}\n${rendererSource}\n({
+    stages: PROPOSAL_CARD_STAGES,
+    render: renderProjectProposalCard,
+    renderGallery: renderProposalCardStagePreview
+  })`,{
+    escapeHtml:value=>String(value??'').replace(/[&<>"']/g,character=>({
+      '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+    }[character])),
+    currentUser:{id:'preview-developer'},
+    currentProfile:{account_role:'dev'},
+    getActiveConversation:()=>({name:'Preview contact'}),
+    formatProposalAmount:value=>`Rp ${Math.round(Number(value)||0).toLocaleString('id-ID')}`,
+    formatProposalDeadline:()=> 'Dec 10, 2026'
+  });
+  const expectedActions={
+    'dp-paid':{client:[],developer:['Upload progress']},
+    'progress-submitted':{client:['Review progress'],developer:[]},
+    'progress-approved':{client:[],developer:['Submit final video']},
+    'final-video-shared':{
+      client:['Pay remaining · Rp 5.250.000','Watch video'],
+      developer:[]
+    },
+    'remaining-paid':{client:[],developer:['Hand over system']},
+    'system-handed-over':{
+      client:['Accept result','Report a problem'],
+      developer:[]
+    },
+    completed:{client:['Rate'],developer:['Rate']},
+    'problem-reported':{client:['Contact support'],developer:['Contact support']}
+  };
+  const proposal={
+    id:'preview-proposal',
+    developer_id:'preview-developer',
+    status:'accepted',
+    terms:{
+      projectName:'Website redesign',
+      totalPrice:7000000,
+      dpPercent:25,
+      dpAmount:1750000,
+      deadline:'2026-12-10',
+      revisionCount:2,
+      scope:['Responsive website and handover']
+    },
+    agreement:{id:'preview-agreement'}
+  };
+
+  assert.equal(Array.from(view.stages).length,8);
+  for(const stage of Array.from(view.stages)){
+    for(const role of ['client','developer']){
+      const html=view.render(proposal,{stageId:stage.id,role});
+      const actions=Array.from(html.matchAll(/<button\b[^>]*>([\s\S]*?)<\/button>/g),match=>
+        match[1].replace(/<[^>]*>/g,'').trim());
+      assert.deepEqual(actions,expectedActions[stage.id][role],`${role} ${stage.id} actions`);
+      assert.match(html,new RegExp(`data-card-stage="${stage.id}"`));
+      assert.match(html,new RegExp(`data-card-role="${role}"`));
+      assert.doesNotMatch(html,/is-awaiting-dp/);
+      assert.doesNotMatch(html,/data-proposal-/);
+      if(['final-video-shared','system-handed-over'].includes(stage.id) && role==='client'){
+        assert.match(html,/is-two-actions/);
+      }
+    }
+  }
+  assert.equal((view.renderGallery().match(/<article class="chat-project-proposal-card"/g)||[]).length,16);
 });

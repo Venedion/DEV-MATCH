@@ -53,6 +53,13 @@ export function supabasePaymentStore(url, key, request = fetch) {
       }
       return rpc('payment_save_room', {...args(ref), p_version: version, p_state: state, p_order_id: orderId});
     },
+    processDue(ref) {
+      if (!ref.agreementId) return Promise.resolve(0);
+      return rpc('payment_process_due_agreements', {
+        p_agreement: ref.agreementId,
+        p_now: new Date().toISOString()
+      });
+    },
     async state(ref) {
       if (ref.agreementId) {
         return await one('payment_agreement_rooms', {

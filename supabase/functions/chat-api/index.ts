@@ -437,7 +437,7 @@ async function attachMessageProjectContexts(
   });
 }
 
-function exposeProposal(row, agreement = null) {
+function exposeProposal(row, agreement = null, escrowStatus = null) {
   return {
     id: row.id,
     conversation_id: row.conversation_id,
@@ -451,6 +451,7 @@ function exposeProposal(row, agreement = null) {
       size: item.size
     })),
     status: row.status,
+    creator_id: row.creator_id || row.developer_id,
     created_at: row.created_at,
     updated_at: row.updated_at,
     accepted_at: row.accepted_at,
@@ -458,6 +459,7 @@ function exposeProposal(row, agreement = null) {
     agreement: agreement ? {
       id: agreement.id,
       payment_status: agreement.payment_status,
+      escrow_status: escrowStatus,
       created_at: agreement.created_at
     } : null
   };
@@ -470,7 +472,7 @@ async function getProposalDetailsByIds(supabaseUrl, serviceRoleKey, proposalIds)
   if (!ids.length) return new Map();
   const [proposals, agreements] = await Promise.all([
     requestRows(supabaseUrl, serviceRoleKey, 'project_proposals', {
-      select: 'id,conversation_id,developer_id,client_id,terms,attachments,status,created_at,updated_at,accepted_at,withdrawn_at',
+      select: 'id,conversation_id,developer_id,client_id,creator_id,terms,attachments,status,created_at,updated_at,accepted_at,withdrawn_at',
       id: `in.(${ids.join(',')})`
     }),
     requestRows(supabaseUrl, serviceRoleKey, 'project_agreements', {
@@ -479,9 +481,24 @@ async function getProposalDetailsByIds(supabaseUrl, serviceRoleKey, proposalIds)
     })
   ]);
   const agreementsByProposal = new Map(agreements.map(agreement => [agreement.proposal_id, agreement]));
+  const agreementIds = agreements.map(agreement => agreement.id);
+  const paymentRooms = agreementIds.length
+    ? await requestRows(supabaseUrl, serviceRoleKey, 'payment_agreement_rooms', {
+      select: 'agreement_id,state',
+      agreement_id: `in.(${agreementIds.join(',')})`
+    })
+    : [];
+  const escrowByAgreement = new Map(paymentRooms.map(paymentRoom => [
+    paymentRoom.agreement_id,
+    paymentRoom.state?.room?.escrow || 'AWAITING_DP'
+  ]));
   return new Map(proposals.map(proposal => [
     proposal.id,
-    exposeProposal(proposal, agreementsByProposal.get(proposal.id))
+    exposeProposal(
+      proposal,
+      agreementsByProposal.get(proposal.id),
+      escrowByAgreement.get(agreementsByProposal.get(proposal.id)?.id) || 'AWAITING_DP'
+    )
   ]));
 }
 
@@ -693,8 +710,8 @@ async function handleAction(body, user, keyring, supabaseUrl, serviceRoleKey, au
   const workspaceRole = account.account_role;
 
   if (body.action === 'create-project-proposal') {
-    if (workspaceRole !== 'dev') {
-      throw new ChatApiError('Switch to Developer Mode to create a project proposal.', 403);
+    if (!['dev', 'client'].includes(workspaceRole)) {
+      throw new ChatApiError('A Client or Developer workspace is required to create a project proposal.', 403);
     }
     const {conversation} = await requireParticipantConversation(
       body.conversationId, user, workspaceRole, supabaseUrl, serviceRoleKey
@@ -796,21 +813,28 @@ async function handleAction(body, user, keyring, supabaseUrl, serviceRoleKey, au
   }
 
   if (body.action === 'accept-project-proposal' || body.action === 'withdraw-project-proposal') {
-    const expectedRole = body.action === 'accept-project-proposal' ? 'client' : 'dev';
-    if (workspaceRole !== expectedRole || !UUID_PATTERN.test(body.proposalId || '')) {
+    if (!UUID_PATTERN.test(body.proposalId || '')) {
       throw new ChatApiError('This proposal action is not available in the selected workspace.', 403);
     }
     const {conversation, sourceConversations} = await requireParticipantConversation(
       body.conversationId, user, workspaceRole, supabaseUrl, serviceRoleKey
     );
     const proposals = await requestRows(supabaseUrl, serviceRoleKey, 'project_proposals', {
-      select: 'id,conversation_id,developer_id,client_id',
+      select: 'id,conversation_id,developer_id,client_id,creator_id',
       id: `eq.${body.proposalId}`,
       limit: '1'
     });
     const proposal = proposals[0];
     if (!proposal || !sourceConversations.some(source => source.id === proposal.conversation_id)) {
       throw new ChatApiError('Proposal not found.', 404);
+    }
+    const creatorRole = proposal.creator_id === proposal.developer_id ? 'dev' : 'client';
+    const recipientRole = creatorRole === 'dev' ? 'client' : 'dev';
+    const isCreator = proposal.creator_id === user.id;
+    if (body.action === 'accept-project-proposal'
+      ? workspaceRole !== recipientRole || isCreator
+      : workspaceRole !== creatorRole || !isCreator) {
+      throw new ChatApiError('This proposal action is not available in the selected workspace.', 403);
     }
 
     if (body.action === 'accept-project-proposal') {
@@ -854,7 +878,7 @@ async function handleAction(body, user, keyring, supabaseUrl, serviceRoleKey, au
       body.conversationId, user, workspaceRole, supabaseUrl, serviceRoleKey
     );
     const proposals = await requestRows(supabaseUrl, serviceRoleKey, 'project_proposals', {
-      select: 'id,conversation_id,developer_id,client_id,attachments',
+      select: 'id,conversation_id,developer_id,client_id,creator_id,attachments',
       id: `eq.${body.proposalId}`,
       limit: '1'
     });
@@ -882,7 +906,7 @@ async function handleAction(body, user, keyring, supabaseUrl, serviceRoleKey, au
     );
     const attachmentContext = {
       conversationId: `${proposal.id}:attachment:${item.id}`,
-      senderId: proposal.developer_id,
+      senderId: proposal.creator_id || proposal.developer_id,
       keyVersion: Number(item.key_version)
     };
     const bytes = await decryptBinary(

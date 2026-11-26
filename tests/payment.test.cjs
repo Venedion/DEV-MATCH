@@ -40,6 +40,7 @@ async function fixture(t) {
   await db.exec(readFileSync(path, 'utf8'));
   await db.exec(readFileSync(join(__dirname, '../supabase/migrations/20261125140000_payment_room_chat_context.sql'), 'utf8'));
   await db.exec(readFileSync(join(__dirname, '../supabase/migrations/202611260001_proposal_agreement_payments.sql'), 'utf8'));
+  await db.exec(readFileSync(join(__dirname, '../supabase/migrations/202611260002_project_payment_timeline.sql'), 'utf8'));
   await db.query('insert into auth.users values ($1), ($2), ($3)', [developer, client, reviewer]);
   await db.query("insert into public.projects values ($1, $2, 'portfolio', 'Project')", [projectId, developer]);
   await db.query(`insert into public.conversations
@@ -63,6 +64,10 @@ async function fixture(t) {
         [ref.agreementId, version, JSON.stringify(state), orderId])).saved
       : (await row('select public.payment_save_room($1, $2, $3, $4, $5) as saved',
         [...args(ref), version, JSON.stringify(state), orderId])).saved,
+    processDue: async ref => (await row(
+      'select public.payment_process_due_agreements($1, $2) as processed',
+      [ref.agreementId, new Date().toISOString()]
+    )).processed,
     state: async ref => ref.agreementId
       ? await row('select version, state from public.payment_agreement_rooms where agreement_id=$1',
         [ref.agreementId]) || {version: 0, state: null}
@@ -217,26 +222,190 @@ test('accepted project agreements use the proposal terms for sandbox payments an
   await assert.rejects(handle(client, 'checkout', {kind: 'REMAINING'}), {status: 409});
   dpOrder.transaction_status = 'settlement';
   await service.webhook(event(dpOrder));
-  assert.equal((await handle(developer, 'snapshot')).room.project, 'IN_PROGRESS');
+  const dpPaid = await handle(developer, 'snapshot');
+  assert.equal(dpPaid.room.project, 'IN_PROGRESS');
+  assert.equal(dpPaid.room.timeline.dpPaidAt, dpPaid.payments[0].paid_at);
+  await apply(developer, 'progress', {title: 'First milestone', notes: 'Initial work is ready for review.'});
+  const progressSubmitted = await handle(client, 'snapshot');
+  assert.equal(progressSubmitted.room.project, 'AWAITING_PROGRESS_REVIEW');
+  assert.equal(progressSubmitted.room.progressReview.status, 'PENDING');
+  await assert.rejects(handle(client, 'checkout', {kind: 'REMAINING'}), {status: 409});
+  await apply(client, 'approve-progress');
+  const progressApproved = await handle(developer, 'snapshot');
+  assert.equal(progressApproved.room.escrow, 'DP_RELEASED');
+  assert.equal(progressApproved.room.timeline.dpReleasedAt, progressApproved.room.timeline.progressApprovedAt);
+  await assert.rejects(handle(client, 'checkout', {kind: 'REMAINING'}), {status: 409});
 
+  await apply(developer, 'deliver', {links: 'https://example.test/finish', notes: 'Final video shared.'});
   const balanceCheckout = await handle(client, 'checkout', {kind: 'REMAINING'});
   const balanceOrder = [...orders.values()][1];
   assert.equal(balanceOrder.gross_amount, '75000.00');
   assert.match(balanceCheckout.redirectUrl, /app\.sandbox\.midtrans\.com/);
   balanceOrder.transaction_status = 'settlement';
   await service.webhook(event(balanceOrder));
-  await apply(developer, 'deliver', {links: 'https://example.test/finish', notes: 'Delivered'});
-  await apply(client, 'revision', {reason: 'Please adjust the color'});
-  await apply(developer, 'deliver', {links: 'https://example.test/finish-v2', notes: 'Updated'});
-  await assert.rejects(apply(client, 'revision', {reason: 'Another revision'}), {status: 409});
-  await apply(developer, 'verify-payout');
-  await apply(client, 'approve');
-  const completed = await apply(developer, 'complete-payout');
+  const remainingPaid = await handle(developer, 'snapshot');
+  assert.equal(remainingPaid.room.escrow, 'REMAINING_HELD');
+  assert.ok(remainingPaid.room.timeline.remainingPaidAt);
+  await apply(developer, 'handover', {notes: 'System credentials and source delivered.'});
+  const handedOver = await handle(client, 'snapshot');
+  assert.equal(handedOver.room.handover.status, 'AWAITING_CLIENT');
+  await apply(client, 'accept-result');
+  const completed = await handle(developer, 'snapshot');
   assert.equal(completed.room.project, 'COMPLETED');
+  assert.equal(completed.room.escrow, 'RELEASED');
+  assert.deepEqual(completed.room.releases.map(release => release.kind), ['DP', 'REMAINING']);
+  assert.deepEqual(completed.ledger.map(entry => entry.entry),
+    ['DP_HELD', 'DP_RELEASED', 'REMAINING_HELD', 'REMAINING_RELEASED']);
+  await apply(client, 'rate', {rating: 5, text: 'Great work.'});
+  await assert.rejects(apply(client, 'rate', {rating: 4}), {status: 409});
+  await apply(developer, 'rate', {rating: 5, text: 'Great collaboration.'});
+  const rated = await handle(client, 'snapshot');
+  assert.ok(rated.room.timeline.ratings.clientAt);
+  assert.ok(rated.room.timeline.ratings.developerAt);
   assert.deepEqual(await handle(reviewer, 'reviews'), []);
   const agreement = await db.query('select payment_status from public.project_agreements where id=$1', [agreementId]);
   assert.equal(agreement.rows[0].payment_status, 'paid');
   const refs = await db.query('select agreement_id from public.payment_agreement_order_refs order by order_id');
   assert.equal(refs.rows.length, 2);
   assert.ok(refs.rows.every(row => row.agreement_id === agreementId));
+});
+
+test('agreement review and handover deadlines advance once and release only the matching escrow', async t => {
+  const {db, store, service, orders, event} = await fixture(t);
+  const terms = {
+    projectName: 'Timed agreement', description: 'Deadline test', totalPrice: 100000,
+    dpPercent: 25, dpAmount: 25000, remainingAmount: 75000, deadline: '2027-01-15',
+    scope: ['Deliver the system'], revisionCount: 1
+  };
+  await db.query("insert into public.project_proposals (id,status) values ($1,'accepted')", [proposalId]);
+  await db.query(`insert into public.project_agreements
+    (id,proposal_id,conversation_id,developer_id,client_id,terms,total_price,dp_amount)
+    values ($1,$2,$3,$4,$5,$6,$7,$8)`,
+  [agreementId, proposalId, conversationId, developer, client,
+    JSON.stringify({terms, attachments: []}), terms.totalPrice, terms.dpAmount]);
+  const handle = (user, operation, body = {}) =>
+    service.handle(user, {agreementId, operation, ...body});
+  const apply = (user, action, fields = {}) => handle(user, 'apply', {action, ...fields});
+
+  const checkout = await handle(client, 'checkout', {kind: 'DP'});
+  const [dpOrder] = orders.values();
+  assert.ok(checkout.redirectUrl);
+  dpOrder.transaction_status = 'settlement';
+  await service.webhook(event(dpOrder));
+  await apply(developer, 'progress', {title: 'Milestone', notes: 'Ready for review.'});
+
+  let stored = await store.state({agreementId});
+  let nextState = JSON.parse(JSON.stringify(stored.state));
+  const progressDeadline = nextState.room.progressReview.deadlineAt;
+  assert.equal(Date.parse(progressDeadline) - Date.parse(nextState.room.progressReview.submittedAt),
+    5 * 24 * 60 * 60 * 1000);
+  nextState.room.progressReview.deadlineAt = new Date(Date.now() - 1000).toISOString();
+  assert.equal(await store.save({agreementId}, stored.version, nextState), true);
+
+  const autoApproved = await handle(client, 'snapshot');
+  assert.equal(autoApproved.room.progressReview.status, 'AUTO_APPROVED');
+  assert.equal(autoApproved.room.escrow, 'DP_RELEASED');
+  assert.equal(autoApproved.room.releases.filter(release => release.kind === 'DP').length, 1);
+  const versionAfterProgress = (await store.state({agreementId})).version;
+  await handle(developer, 'snapshot');
+  assert.equal((await store.state({agreementId})).version, versionAfterProgress);
+
+  await apply(developer, 'deliver', {links: 'https://example.test/video', notes: 'Final video.'});
+  await handle(client, 'checkout', {kind: 'REMAINING'});
+  const balanceOrder = [...orders.values()][1];
+  balanceOrder.transaction_status = 'settlement';
+  await service.webhook(event(balanceOrder));
+  await apply(developer, 'handover', {notes: 'Handover complete.'});
+
+  stored = await store.state({agreementId});
+  nextState = JSON.parse(JSON.stringify(stored.state));
+  const handoverDeadline = nextState.room.handover.deadlineAt;
+  assert.equal(Date.parse(handoverDeadline) - Date.parse(nextState.room.handover.at),
+    7 * 24 * 60 * 60 * 1000);
+  nextState.room.handover.deadlineAt = new Date(Date.now() - 1000).toISOString();
+  assert.equal(await store.save({agreementId}, stored.version, nextState), true);
+
+  const autoAccepted = await handle(client, 'snapshot');
+  assert.equal(autoAccepted.room.handover.status, 'AUTO_ACCEPTED');
+  assert.equal(autoAccepted.room.project, 'COMPLETED');
+  assert.equal(autoAccepted.room.escrow, 'RELEASED');
+  assert.equal(autoAccepted.room.releases.length, 2);
+  assert.equal(autoAccepted.ledger.filter(entry => entry.entry === 'REMAINING_RELEASED').length, 1);
+  const versionAfterHandover = (await store.state({agreementId})).version;
+  await handle(client, 'snapshot');
+  assert.equal((await store.state({agreementId})).version, versionAfterHandover);
+});
+
+test('a reported agreement problem freezes the handover deadline transition', async t => {
+  const {db} = await fixture(t);
+  const terms = {
+    projectName: 'Disputed agreement', description: 'Dispute deadline test', totalPrice: 100000,
+    dpPercent: 25, dpAmount: 25000, remainingAmount: 75000, deadline: '2027-01-15',
+    scope: ['Deliver the system'], revisionCount: 1
+  };
+  await db.query("insert into public.project_proposals (id,status) values ($1,'accepted')", [proposalId]);
+  await db.query(`insert into public.project_agreements
+    (id,proposal_id,conversation_id,developer_id,client_id,terms,total_price,dp_amount)
+    values ($1,$2,$3,$4,$5,$6,$7,$8)`,
+  [agreementId, proposalId, conversationId, developer, client,
+    JSON.stringify({terms, attachments: []}), terms.totalPrice, terms.dpAmount]);
+  const due = '2026-01-01T00:00:00.000Z';
+  const state = {
+    room: {
+      timelineVersion: 2,
+      project: 'DISPUTED',
+      escrow: 'REMAINING_HELD',
+      proposal: {dp: 25000, remaining: 75000},
+      progressReview: null,
+      handover: {status: 'AWAITING_CLIENT', deadlineAt: due},
+      dispute: {status: 'NEEDS_REVIEW', at: '2025-12-25T00:00:00.000Z'},
+      releases: [{kind: 'DP', amount: 25000, at: '2025-12-20T00:00:00.000Z'}],
+      timeline: {handoverAt: '2025-12-24T00:00:00.000Z'}
+    },
+    payments: [],
+    ledger: [{entry: 'DP_RELEASED', amount: 25000, recorded_at: '2025-12-20T00:00:00.000Z'}]
+  };
+  await db.query('insert into public.payment_agreement_rooms (agreement_id,state) values ($1,$2)',
+    [agreementId, JSON.stringify(state)]);
+
+  const result = await db.query(
+    'select public.payment_process_due_agreements($1, $2) as processed',
+    [agreementId, new Date().toISOString()]
+  );
+  assert.equal(result.rows[0].processed, 0);
+  const stored = await db.query('select state from public.payment_agreement_rooms where agreement_id=$1', [agreementId]);
+  assert.equal(stored.rows[0].state.room.handover.status, 'AWAITING_CLIENT');
+  assert.equal(stored.rows[0].state.room.escrow, 'REMAINING_HELD');
+  assert.equal(stored.rows[0].state.room.project, 'DISPUTED');
+  assert.equal(stored.rows[0].state.ledger.some(entry => entry.entry === 'REMAINING_RELEASED'), false);
+});
+
+test('a Client can report an agreement problem after DP and freeze later project actions', async t => {
+  const {db, service, orders, event} = await fixture(t);
+  const terms = {
+    projectName: 'Reported agreement', description: 'Problem report test', totalPrice: 100000,
+    dpPercent: 25, dpAmount: 25000, remainingAmount: 75000, deadline: '2027-01-15',
+    scope: ['Deliver the system'], revisionCount: 1
+  };
+  await db.query("insert into public.project_proposals (id,status) values ($1,'accepted')", [proposalId]);
+  await db.query(`insert into public.project_agreements
+    (id,proposal_id,conversation_id,developer_id,client_id,terms,total_price,dp_amount)
+    values ($1,$2,$3,$4,$5,$6,$7,$8)`,
+  [agreementId, proposalId, conversationId, developer, client,
+    JSON.stringify({terms, attachments: []}), terms.totalPrice, terms.dpAmount]);
+  const handle = (user, operation, body = {}) =>
+    service.handle(user, {agreementId, operation, ...body});
+  const apply = (user, action, fields = {}) => handle(user, 'apply', {action, ...fields});
+
+  await handle(client, 'checkout', {kind: 'DP'});
+  const [dpOrder] = orders.values();
+  dpOrder.transaction_status = 'settlement';
+  await service.webhook(event(dpOrder));
+  const reported = await apply(client, 'dispute', {reason: 'The agreed scope is unclear.'});
+
+  assert.equal(reported.room.project, 'DISPUTED');
+  assert.ok(reported.room.timeline.problemReportedAt);
+  assert.equal(reported.room.escrow, 'DP_HELD');
+  await assert.rejects(handle(client, 'checkout', {kind: 'REMAINING'}), {status: 409});
+  await assert.rejects(apply(developer, 'progress', {title: 'Milestone', notes: 'Ready.'}), {status: 409});
 });
