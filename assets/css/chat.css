@@ -2667,7 +2667,8 @@ button.chat-attachment-card:hover {
   gap: 7px;
 }
 
-.chat-project-proposal-card > footer button {
+.chat-project-proposal-card > footer button,
+.chat-project-proposal-card > footer a {
   min-width: 0;
   min-height: 38px;
   padding: 7px 9px;
@@ -2681,9 +2682,12 @@ button.chat-attachment-card:hover {
   line-height: 1.35;
   cursor: pointer;
   overflow-wrap: anywhere;
+  text-align: center;
+  text-decoration: none;
 }
 
-.chat-project-proposal-card > footer button:hover {
+.chat-project-proposal-card > footer button:hover,
+.chat-project-proposal-card > footer a:hover {
   background: #f4f5f6;
 }
 
@@ -2695,7 +2699,8 @@ button.chat-attachment-card:hover {
   color: #fff;
 }
 
-.chat-project-proposal-card > footer.is-two-actions button {
+.chat-project-proposal-card > footer.is-two-actions button,
+.chat-project-proposal-card > footer.is-two-actions a {
   grid-column: 1 / -1;
 }
 

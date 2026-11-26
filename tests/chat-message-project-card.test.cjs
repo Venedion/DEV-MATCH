@@ -195,11 +195,11 @@ test('Chat composer sends a proposal and renders role-specific proposal cards',(
   assert.match(chat,/proposalFormEl\?\.addEventListener\('submit', event => void submitProjectProposal\(event\)\)/);
   assert.match(chat,/invokeChat\('create-project-proposal'[\s\S]*?terms:[\s\S]*?attachments/);
   assert.match(chat,/function renderProjectProposalCard\(proposal, preview = null\)/);
-  assert.match(chat,/const isAwaitingDp = !isPreview && isAccepted && currentProfile\?\.account_role === 'dev'/);
-  assert.match(chat,/const isDpPaid = !isPreview && isAccepted && proposal\.agreement\?\.escrow_status === 'DP_HELD'/);
+  assert.match(chat,/const isAwaitingDp = !isPreview && isAccepted && projectStatus === 'NOT_STARTED'/);
+  assert.match(chat,/const isDpPaid = !isPreview && isAccepted && escrowStatus === 'DP_HELD'/);
   assert.match(chat,/Waiting for progress/);
   assert.match(chat,/DP paid and held\./);
-  assert.match(chat,/Waiting for \$\{escapeHtml\(getActiveConversation\(\)\?\.contactDisplayName/);
+  assert.match(chat,/Waiting for \$\{contactName\}/);
   assert.match(chat,/<footer class="\$\{hasPrimaryAction \? 'has-primary' : ''\}\$\{actions\.length === 2 \? ' is-two-actions' : ''\}"/);
   assert.match(chat,/data-proposal-accept/);
   assert.match(chat,/data-proposal-ask-changes/);
@@ -207,10 +207,14 @@ test('Chat composer sends a proposal and renders role-specific proposal cards',(
   assert.match(chat,/function askForProposalChanges\(proposalId\)[\s\S]*?I'd like to discuss some changes/);
   assert.match(chat,/function openProposalDetails\(proposal, \{showDialog = true\} = \{\}\)/);
   assert.match(chat,/data-proposal-payments/);
-  assert.match(chat,/>Open project<\/button>/);
-  assert.doesNotMatch(chat,/>Project payments<\/button>/);
+  assert.match(chat,/>Project payments<\/button>/);
+  assert.match(chat,/Pay DP · \$\{formatProposalAmount\(terms\.dpAmount\)\}/);
+  assert.match(chat,/data-proposal-payment-action="\$\{action\}"/);
   assert.match(chat,/proposalPaymentsButton && chatMessagesEl\.contains\(proposalPaymentsButton\)\)\s*\{\s*event\.preventDefault\(\);\s*event\.stopPropagation\(\);/);
   assert.match(chat,/openAgreement\(\{/);
+  assert.match(chat,/dataset\.proposalPaymentAction \|\| null/);
+  assert.match(payment,/function openAgreement\(agreement, \{action = null\} = \{\}\)/);
+  assert.match(payment,/if \(initialAction && dialog\.open\)/);
   const paymentScript=fs.readFileSync('assets/js/chat-payment.js','utf8');
   assert.match(paymentScript,/function isAgreementContext\(\)[\s\S]*?JSON\.parse\(roomKey\)\?\.agreementId/);
   assert.match(paymentScript,/function closeOtherDialogs\(\)[\s\S]*?document\.querySelectorAll\('dialog\[open\]'\)[\s\S]*?openDialog\.close\(\)/);
@@ -234,7 +238,7 @@ test('Chat composer sends a proposal and renders role-specific proposal cards',(
   assert.match(styles,/\.chat-proposal-dialog::backdrop/);
   assert.match(styles,/\.chat-proposal-scope-list/);
   assert.match(styles,/\.chat-project-proposal-card/);
-  assert.match(styles,/footer\.is-two-actions button\s*\{[\s\S]*?grid-column:\s*1\s*\/\s*-1;/);
+  assert.match(styles,/footer\.is-two-actions button,[\s\S]*?footer\.is-two-actions a\s*\{[\s\S]*?grid-column:\s*1\s*\/\s*-1;/);
   assert.match(styles,/\.chat-proposal-details-dialog/);
   assert.match(styles,/\.chat-proposal-details-status\.is-accepted/);
   assert.match(styles,/\.chat-proposal-details-actions/);
@@ -247,9 +251,11 @@ test('Chat composer sends a proposal and renders role-specific proposal cards',(
   assert.match(api,/encryptBinary\([\s\S]*?proposalId/);
   assert.match(api,/function attachProposalDetails\(/);
   assert.match(api,/payment_agreement_rooms/);
-  assert.match(api,/escrow_status: escrowStatus/);
-  assert.match(api,/paymentRoom\?\.escrow/);
-  assert.match(api,/progressReview\?\.status \|\| null/);
+  assert.match(api,/escrow_status: paymentRoom\?\.escrow \|\| 'AWAITING_DP'/);
+  assert.match(api,/project_status: paymentRoom\?\.project \|\| 'NOT_STARTED'/);
+  assert.match(api,/paymentRoom\?\.progressReview\?\.status \|\| null/);
+  assert.match(api,/final_proof_url: paymentRoom\?\.delivery\?\.links\?\.\[0\]/);
+  assert.match(api,/handover_status: paymentRoom\?\.handover\?\.status/);
   assert.match(api,/totalPrice < 40000 \|\| totalPrice > 1000000000/);
   assert.match(migration,/create table public\.project_proposals/);
   assert.match(migration,/create table public\.project_agreements/);
@@ -276,7 +282,7 @@ test('Proposal creators can withdraw pending proposals from both the card and de
   const chat=fs.readFileSync('assets/js/chat.js','utf8');
   const html=fs.readFileSync('devmatch-chat.html','utf8');
   const cors=fs.readFileSync('supabase/functions/_shared/registration.mjs','utf8');
-  assert.match(chat,/isPending && isCreator\s*\? `<button type="button" data-proposal-withdraw=/);
+  assert.match(chat,/if \(isPending && isCreator\) \{\s*actions\.push\(`<button type="button" data-proposal-withdraw=/);
   assert.match(chat,/setAction\('projectProposalDetailsWithdraw', 'withdraw', isPending && isCreator\)/);
   assert.match(chat,/action === 'withdraw'[\s\S]*?showProposalWithdrawConfirmation\(proposalId\)/);
   assert.doesNotMatch(chat,/window\.confirm\(/);
@@ -320,6 +326,7 @@ test('Proposal card stage preview renders all 16 role variants with inert action
 
   const stageSource=chat.slice(stagesStart,stagesEnd);
   const rendererSource=chat.slice(rendererStart,rendererEnd);
+  const profile={account_role:'dev'};
   const view=vm.runInNewContext(`${stageSource}\n${rendererSource}\n({
     stages: PROPOSAL_CARD_STAGES,
     render: renderProjectProposalCard,
@@ -329,7 +336,7 @@ test('Proposal card stage preview renders all 16 role variants with inert action
       '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
     }[character])),
     currentUser:{id:'preview-developer'},
-    currentProfile:{account_role:'dev'},
+    currentProfile:profile,
     getActiveConversation:()=>({name:'Preview contact'}),
     formatProposalAmount:value=>`Rp ${Math.round(Number(value)||0).toLocaleString('id-ID')}`,
     formatProposalDeadline:()=> 'Dec 10, 2026'
@@ -392,6 +399,56 @@ test('Proposal card stage preview renders all 16 role variants with inert action
   const submittedCard=view.render(liveProposal);
   assert.doesNotMatch(submittedCard,/data-proposal-progress=/);
   assert.match(submittedCard,/Progress submitted/);
+
+  profile.account_role='client';
+  const awaitingDp=view.render({...proposal,agreement:{
+    id:'live-agreement',escrow_status:'AWAITING_DP',project_status:'NOT_STARTED'
+  }});
+  assert.match(awaitingDp,/Awaiting DP/);
+  assert.match(awaitingDp,/Pay DP · Rp 1\.750\.000/);
+  assert.match(awaitingDp,/data-proposal-payment-action="DP"/);
+
+  profile.account_role='dev';
+  const approved=view.render({...proposal,agreement:{
+    id:'live-agreement',escrow_status:'DP_RELEASED',project_status:'IN_PROGRESS',
+    progress_review_status:'APPROVED',progress_approved:true
+  }});
+  assert.match(approved,/Submit final video/);
+  assert.match(approved,/data-proposal-payment-action="deliver"/);
+
+  profile.account_role='client';
+  const finalProof=view.render({...proposal,agreement:{
+    id:'live-agreement',escrow_status:'DP_RELEASED',project_status:'AWAITING_REMAINING_PAYMENT',
+    final_proof_shared:true,final_proof_url:'https://example.test/final.mp4'
+  }});
+  assert.match(finalProof,/Pay remaining · Rp 5\.250\.000/);
+  assert.match(finalProof,/data-proposal-payment-action="REMAINING"/);
+  assert.match(finalProof,/href="https:\/\/example\.test\/final\.mp4"[^>]*>Watch video/);
+
+  profile.account_role='dev';
+  const handover=view.render({...proposal,agreement:{
+    id:'live-agreement',escrow_status:'REMAINING_HELD',project_status:'AWAITING_HANDOVER'
+  }});
+  assert.match(handover,/Hand over system/);
+  assert.match(handover,/data-proposal-payment-action="handover"/);
+
+  profile.account_role='client';
+  const acceptance=view.render({...proposal,agreement:{
+    id:'live-agreement',escrow_status:'REMAINING_HELD',
+    project_status:'AWAITING_RESULT_ACCEPTANCE',handover_status:'AWAITING_CLIENT'
+  }});
+  assert.match(acceptance,/Accept result/);
+  assert.match(acceptance,/Report a problem/);
+
+  const completed=view.render({...proposal,agreement:{
+    id:'live-agreement',project_status:'COMPLETED',client_rated:false
+  }});
+  assert.match(completed,/>Rate</);
+
+  const disputed=view.render({...proposal,agreement:{
+    id:'live-agreement',project_status:'DISPUTED',dispute_status:'NEEDS_REVIEW'
+  }});
+  assert.match(disputed,/Contact support/);
 });
 
 test('Developer progress card opens the agreement upload dialog and submits private evidence',()=>{
@@ -402,13 +459,13 @@ test('Developer progress card opens the agreement upload dialog and submits priv
   const html=fs.readFileSync('devmatch-chat.html','utf8');
   const styles=fs.readFileSync('assets/css/chat.css','utf8');
 
-  assert.match(chat,/data-proposal-progress="\$\{escapeHtml\(proposal\.id\)\}"/);
+  assert.match(chat,/data-proposal-progress="\$\{cardId\}"/);
   assert.match(chat,/progressButton && chatMessagesEl\.contains\(progressButton\)[\s\S]*?openProposalProgress\(proposal\)/);
   assert.match(chat,/uploadProgressFile\(file, agreementId, userId, uploadedPaths\)[\s\S]*?agreement-progress/);
   assert.match(chat,/submitProgress\(progressProposal\.agreement\.id,[\s\S]*?screenshots: screenshotFiles[\s\S]*?scope,[\s\S]*?notes/);
   assert.match(chat,/remove\(uploadedPaths\)/);
   assert.match(payment,/submitProgress: submitAgreementProgress/);
-  assert.match(api,/progress_review_status: progressReviewStatus/);
+  assert.match(api,/progress_review_status: paymentRoom\?\.progressReview\?\.status \|\| null/);
   assert.match(service,/applyAction\(state, role, body, user\)/);
   assert.match(html,/<dialog id="proposalProgressDialog"[\s\S]*?id="proposalProgressVideo"[\s\S]*?id="proposalProgressNotes"[\s\S]*?id="proposalProgressScope"[\s\S]*?id="proposalProgressScreenshots"[\s\S]*?Submit progress/);
   assert.match(styles,/\.proposal-progress-dialog\[open\]/);
@@ -422,7 +479,7 @@ test('Client Review progress opens the illustrated review popup with both review
   const html=fs.readFileSync('devmatch-chat.html','utf8');
   const styles=fs.readFileSync('assets/css/chat-payment.css','utf8');
 
-  assert.match(chat,/data-proposal-review-progress="\$\{escapeHtml\(proposal\.id\)\}"/);
+  assert.match(chat,/data-proposal-review-progress="\$\{cardId\}"/);
   assert.match(chat,/openProgressReview\(\{[\s\S]*?\}, proposal\)/);
   assert.match(payment,/function renderProgressReview\(state\)[\s\S]*?Scope points shown \(\$\{shown\.size\} of \$\{scope\.length\}\)[\s\S]*?Approving releases the DP/);
   assert.match(payment,/data-review-action="request-update"[\s\S]*?data-review-action="approve-progress"/);

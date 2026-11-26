@@ -647,7 +647,7 @@
     if (outside) checkoutDialog.close();
   });
 
-  async function loadRoom(key, {scrollToTop = false} = {}) {
+  async function loadRoom(key, {scrollToTop = false, initialAction = null} = {}) {
     if (loading.has(key)) return;
     try {
       const pending = request(key);
@@ -658,6 +658,21 @@
       setError();
       render();
       if (dialog.open && scrollToTop) content.scrollTop = 0;
+      if (initialAction && dialog.open) {
+        if (['DP', 'REMAINING', 'accept-result', 'report-problem'].includes(initialAction)) {
+          void perform(initialAction);
+        } else {
+          const targetByAction = {
+            deliver: 'form[data-action="deliver"] input[name="links"]',
+            handover: 'form[data-action="handover"] textarea[name="notes"]',
+            rate: 'form[data-action="rate"] select[name="rating"]'
+          };
+          const selector = targetByAction[initialAction];
+          const target = selector ? content.querySelector(selector) : null;
+          target?.focus();
+          target?.scrollIntoView({block: 'center', behavior: 'smooth'});
+        }
+      }
     } catch (cause) {
       if (key !== roomKey || !dialog.open) return;
       content.textContent = '';
@@ -942,7 +957,7 @@
     }
   }, 12000);
 
-  function openPayments(operation = 'snapshot') {
+  function openPayments(operation = 'snapshot', initialAction = null) {
     if (!roomKey) return;
     title.textContent = roomTitle;
     const agreement = isAgreementContext();
@@ -957,7 +972,7 @@
     if (agreement) void watchAgreementRealtime(JSON.parse(roomKey).agreementId);
     else stopAgreementRealtime();
     if (operation === 'refresh') void perform(operation);
-    else void loadRoom(roomKey, {scrollToTop: true});
+    else void loadRoom(roomKey, {scrollToTop: true, initialAction});
   }
 
   let chatRoomTitle;
@@ -1058,13 +1073,13 @@
     progressReviewSnapshot = null;
   });
 
-  function openAgreement(agreement, operation = 'snapshot') {
+  function openAgreement(agreement, {action = null} = {}) {
     if (!agreement?.id) return;
     roomKey = JSON.stringify({agreementId: agreement.id});
     agreementConversationId = agreement.conversationId || null;
     agreementProposalId = agreement.proposalId || null;
     roomTitle = agreement.title || agreement.terms?.projectName || 'Project agreement';
-    openPayments(operation);
+    openPayments('snapshot', action);
   }
 
   window.DEVMATCH_ROOM_PAYMENT = {

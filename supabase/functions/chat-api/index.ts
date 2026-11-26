@@ -437,7 +437,9 @@ async function attachMessageProjectContexts(
   });
 }
 
-function exposeProposal(row, agreement = null, escrowStatus = null, progressReviewStatus = null) {
+function exposeProposal(row, agreement = null, paymentState = null) {
+  const paymentRoom = paymentState?.room || null;
+  const ratings = paymentRoom?.ratings || {};
   return {
     id: row.id,
     conversation_id: row.conversation_id,
@@ -459,8 +461,19 @@ function exposeProposal(row, agreement = null, escrowStatus = null, progressRevi
     agreement: agreement ? {
       id: agreement.id,
       payment_status: agreement.payment_status,
-      escrow_status: escrowStatus,
-      progress_review_status: progressReviewStatus,
+      escrow_status: paymentRoom?.escrow || 'AWAITING_DP',
+      project_status: paymentRoom?.project || 'NOT_STARTED',
+      progress_review_status: paymentRoom?.progressReview?.status || null,
+      progress_submitted_at: paymentRoom?.timeline?.progressSubmittedAt || null,
+      progress_approved: Boolean(paymentRoom?.progressReview?.approvedAt),
+      final_proof_shared: Boolean(
+        paymentRoom?.timeline?.finalProofSharedAt || paymentRoom?.delivery?.at
+      ),
+      final_proof_url: paymentRoom?.delivery?.links?.[0] || null,
+      handover_status: paymentRoom?.handover?.status || null,
+      dispute_status: paymentRoom?.dispute?.status || null,
+      client_rated: Boolean(ratings.client),
+      developer_rated: Boolean(ratings.developer),
       created_at: agreement.created_at
     } : null
   };
@@ -490,18 +503,11 @@ async function getProposalDetailsByIds(supabaseUrl, serviceRoleKey, proposalIds)
     })
     : [];
   const stateByAgreement = new Map(paymentRooms.map(paymentRoom => [
-    paymentRoom.agreement_id,
-    paymentRoom.state?.room || null
+    paymentRoom.agreement_id, paymentRoom.state || null
   ]));
   return new Map(proposals.map(proposal => {
     const agreement = agreementsByProposal.get(proposal.id);
-    const paymentRoom = stateByAgreement.get(agreement?.id);
-    return [proposal.id, exposeProposal(
-      proposal,
-      agreement,
-      paymentRoom?.escrow || 'AWAITING_DP',
-      paymentRoom?.progressReview?.status || null
-    )];
+    return [proposal.id, exposeProposal(proposal, agreement, stateByAgreement.get(agreement?.id))];
   }));
 }
 

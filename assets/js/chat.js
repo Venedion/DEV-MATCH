@@ -559,73 +559,145 @@
     const isCreator = (proposal.creator_id || proposal.developer_id) === currentUser?.id;
     const isPending = proposal.status === 'pending';
     const isAccepted = proposal.status === 'accepted';
-    const isDpPaid = !isPreview && isAccepted && proposal.agreement?.escrow_status === 'DP_HELD';
-    const isProgressPending = !isPreview && proposal.agreement?.progress_review_status === 'PENDING';
-    const isProgressUpdateRequested = !isPreview &&
-      proposal.agreement?.progress_review_status === 'UPDATE_REQUESTED';
-    const isAwaitingDp = !isPreview && isAccepted && currentProfile?.account_role === 'dev' &&
-      (!proposal.agreement?.escrow_status || proposal.agreement.escrow_status === 'AWAITING_DP');
-    const status = stageView?.status || (isProgressPending ? 'Progress submitted'
+    const agreement = proposal.agreement || {};
+    const role = currentProfile?.account_role;
+    const isClient = role === 'client';
+    const isDeveloper = role === 'dev';
+    const projectStatus = agreement.project_status || 'NOT_STARTED';
+    const reviewStatus = agreement.progress_review_status;
+    const escrowStatus = agreement.escrow_status || 'AWAITING_DP';
+    const isAwaitingDp = !isPreview && isAccepted && projectStatus === 'NOT_STARTED' &&
+      escrowStatus === 'AWAITING_DP';
+    const isDpPaid = !isPreview && isAccepted && escrowStatus === 'DP_HELD';
+    const isProgressPending = !isPreview && reviewStatus === 'PENDING';
+    const isProgressUpdateRequested = !isPreview && reviewStatus === 'UPDATE_REQUESTED';
+    const isProgressApproved = !isPreview && (
+      agreement.progress_approved || ['APPROVED', 'AUTO_APPROVED'].includes(reviewStatus)
+    );
+    const isAwaitingProgress = !isPreview && isDpPaid &&
+      ['IN_PROGRESS', 'REVISION'].includes(projectStatus) &&
+      !agreement.progress_submitted_at && !isProgressPending && !isProgressApproved;
+    const isFinalProofShared = !isPreview && (
+      projectStatus === 'AWAITING_REMAINING_PAYMENT' || agreement.final_proof_shared
+    );
+    const isRemainingPaid = !isPreview && (
+      projectStatus === 'AWAITING_HANDOVER' || escrowStatus === 'REMAINING_HELD'
+    );
+    const isAwaitingResult = !isPreview && (
+      projectStatus === 'AWAITING_RESULT_ACCEPTANCE' || agreement.handover_status === 'AWAITING_CLIENT'
+    );
+    const isCompleted = !isPreview && projectStatus === 'COMPLETED';
+    const isDisputed = !isPreview && (
+      projectStatus === 'DISPUTED' || agreement.dispute_status === 'NEEDS_REVIEW'
+    );
+    const status = stageView?.status || (isDisputed ? 'Problem reported'
+      : isCompleted ? 'Completed'
+      : isAwaitingResult ? 'System handed over'
+      : isRemainingPaid ? 'Remaining paid'
+      : isFinalProofShared ? 'Final video shared'
+      : isProgressPending ? (isClient ? 'Progress submitted' : 'Waiting for review')
       : isProgressUpdateRequested ? 'Update requested'
+      : isProgressApproved ? 'Progress approved'
       : isAwaitingDp ? 'Awaiting DP'
-      : isDpPaid ? (currentProfile?.account_role === 'dev' ? 'DP paid' : 'Waiting for progress')
-      : isAccepted ? 'Accepted' : proposal.status === 'withdrawn' ? 'Withdrawn' : 'Pending approval');
+      : isAwaitingProgress ? (isDeveloper ? 'DP paid' : 'Waiting for progress')
+      : isAccepted ? 'Accepted'
+      : proposal.status === 'withdrawn' ? 'Withdrawn' : 'Pending approval');
     const conversation = getActiveConversation();
     const contactName = escapeHtml(conversation?.contactDisplayName || conversation?.name ||
       (currentProfile?.account_role === 'client' ? 'the Developer' : 'the Client'));
     const statusNote = stageView
       ? stageView.note(contactName)
+      : isDisputed
+      ? 'Payment is frozen while support reviews the reported problem.'
+      : isCompleted
+      ? 'Project completed. You can rate your experience.'
+      : isAwaitingResult
+      ? isClient
+        ? 'The system was handed over. Accept the result or report a problem within 7 days.'
+        : `The system was handed over. Waiting for ${contactName} to respond within 7 days.`
+      : isRemainingPaid
+      ? isDeveloper
+        ? 'The remaining payment is held. Hand over the system to continue.'
+        : 'The remaining payment is held until the system handover is complete.'
+      : isFinalProofShared
+      ? isClient
+        ? 'The final video is ready. Watch it, then pay the remaining balance.'
+        : `Final video shared. Waiting for ${contactName} to pay the remaining balance.`
       : isProgressPending
-      ? currentProfile?.account_role === 'dev'
-        ? `Progress submitted. Waiting for ${escapeHtml(conversation?.contactDisplayName || conversation?.name || 'the Client')} to review it.`
+      ? isDeveloper
+        ? `Progress submitted. Waiting for ${contactName} to review it.`
         : 'The Developer submitted progress for your review.'
       : isProgressUpdateRequested
-      ? currentProfile?.account_role === 'dev'
+      ? isDeveloper
         ? 'The Client requested an update. Submit progress again when it is ready.'
         : 'You requested an update. The DP remains held while the Developer resubmits progress.'
+      : isProgressApproved
+      ? isDeveloper
+        ? 'The DP has been released. Submit the final video when it is ready.'
+        : `Progress approved. The DP has been released to ${contactName}.`
       : isAwaitingDp
-      ? `Waiting for ${escapeHtml(getActiveConversation()?.contactDisplayName || getActiveConversation()?.name || 'the client')} to pay the DP. You can start once it is received.`
+      ? isClient
+        ? 'Agreement created. Pay the DP to start the project. Pay within 48 hours.'
+        : `Waiting for ${contactName} to pay the DP. You can start once it is received.`
       : isDpPaid
-        ? currentProfile?.account_role === 'dev'
+        ? isDeveloper
           ? 'DP paid and held. Upload progress to continue.'
-          : `DP paid and held. Waiting for ${escapeHtml(conversation?.contactDisplayName || conversation?.name || 'the Developer')} to submit progress.`
+          : `DP paid and held. Waiting for ${contactName} to submit progress.`
       : isPending
       ? isCreator
-        ? `Waiting for ${escapeHtml(getActiveConversation()?.contactDisplayName || getActiveConversation()?.name || 'the other participant')} to accept. The terms are locked once accepted.`
+        ? `Waiting for ${contactName} to accept. The terms are locked once accepted.`
         : 'After you accept, an agreement is created and the terms are locked. You can then open project payments.'
       : isAccepted
         ? 'Agreement created. The terms are locked. Open project payments to continue.'
         : 'This proposal was withdrawn by its creator and can no longer be accepted.';
+    const cardId = escapeHtml(proposal.id);
+    const paymentAction = (label, action, primary = false) =>
+      `<button class="${primary ? 'chat-proposal-card-primary' : ''}" type="button" data-proposal-payments="${cardId}"${action ? ` data-proposal-payment-action="${action}"` : ''}>${escapeHtml(label)}</button>`;
     const actions = isPreview
       ? stageView.actions.map((label, index) => {
         const remaining = Math.max(0, Number(terms.totalPrice) - Number(terms.dpAmount));
         const actionLabel = label.replace('{remaining}', formatProposalAmount(remaining));
         return `<button class="${index === 0 ? 'chat-proposal-card-primary' : ''}" type="button">${escapeHtml(actionLabel)}</button>`;
       })
-      : [
-        isDpPaid && !isProgressPending && currentProfile?.account_role === 'dev'
-          ? `<button class="chat-proposal-card-primary" type="button" data-proposal-progress="${escapeHtml(proposal.id)}">Upload progress</button>`
-          : '',
-        isPending && !isCreator
-          ? `<button class="chat-proposal-card-primary" type="button" data-proposal-accept="${escapeHtml(proposal.id)}">Accept proposal</button>`
-          : '',
-        isAccepted && proposal.agreement?.id
-          ? isProgressPending && currentProfile?.account_role === 'client'
-            ? `<button class="chat-proposal-card-primary" type="button" data-proposal-review-progress="${escapeHtml(proposal.id)}">Review progress</button>`
-            : `<button class="chat-proposal-card-primary" type="button" data-proposal-payments="${escapeHtml(proposal.id)}">Open project</button>`
-          : '',
-        isPending && !isCreator
-          ? `<button type="button" data-proposal-ask-changes="${escapeHtml(proposal.id)}">Ask for changes</button>`
-          : '',
-        `<button type="button" data-proposal-view="${escapeHtml(proposal.id)}">View details</button>`,
-        isPending && isCreator
-          ? `<button type="button" data-proposal-withdraw="${escapeHtml(proposal.id)}">Withdraw proposal</button>`
-          : ''
-      ].filter(Boolean);
+      : [];
+    if (!isPreview && isAccepted && agreement.id) {
+      if (isAwaitingDp && isClient) {
+        actions.push(paymentAction(`Pay DP · ${formatProposalAmount(terms.dpAmount)}`, 'DP', true));
+      } else if (isDpPaid && isDeveloper && !isProgressPending) {
+        actions.push(`<button class="chat-proposal-card-primary" type="button" data-proposal-progress="${cardId}">Upload progress</button>`);
+      } else if (isProgressPending && isClient) {
+        actions.push(`<button class="chat-proposal-card-primary" type="button" data-proposal-review-progress="${cardId}">Review progress</button>`);
+      } else if (isProgressApproved && isDeveloper) {
+        actions.push(paymentAction('Submit final video', 'deliver', true));
+      } else if (isFinalProofShared && isClient) {
+        actions.push(paymentAction(`Pay remaining · ${formatProposalAmount(Number(terms.totalPrice) - Number(terms.dpAmount))}`, 'REMAINING', true));
+      } else if (isRemainingPaid && isDeveloper) {
+        actions.push(paymentAction('Hand over system', 'handover', true));
+      } else if (isAwaitingResult && isClient) {
+        actions.push(paymentAction('Accept result', 'accept-result', true));
+        actions.push(paymentAction('Report a problem', 'report-problem'));
+      } else if (isCompleted && !agreement[isClient ? 'client_rated' : 'developer_rated']) {
+        actions.push(paymentAction('Rate', 'rate', true));
+      } else if (isDisputed) {
+        actions.push(paymentAction('Contact support', null, true));
+      }
+      if (isFinalProofShared && agreement.final_proof_url) {
+        actions.push(`<a class="chat-proposal-card-link" href="${escapeHtml(agreement.final_proof_url)}" target="_blank" rel="noopener noreferrer">Watch video</a>`);
+      }
+      actions.push(`<button type="button" data-proposal-payments="${cardId}">Project payments</button>`);
+    } else if (!isPreview && isPending && !isCreator) {
+      actions.push(`<button class="chat-proposal-card-primary" type="button" data-proposal-accept="${cardId}">Accept proposal</button>`);
+      actions.push(`<button type="button" data-proposal-ask-changes="${cardId}">Ask for changes</button>`);
+    }
+    if (!isPreview) {
+      actions.push(`<button type="button" data-proposal-view="${cardId}">View details</button>`);
+      if (isPending && isCreator) {
+        actions.push(`<button type="button" data-proposal-withdraw="${cardId}">Withdraw proposal</button>`);
+      }
+    }
     const hasPrimaryAction = isPreview
       ? actions.length > 0
-      : (isDpPaid && !isProgressPending && currentProfile?.account_role === 'dev') ||
-        (isPending && !isCreator) || (isAccepted && Boolean(proposal.agreement?.id));
+      : actions.some(action => action.includes('chat-proposal-card-primary'));
     const rows = [
       ['DP', `${Number(terms.dpPercent) || 0}%`, terms.dpAmount],
       ['Remaining payment', '', Number(terms.totalPrice) - Number(terms.dpAmount)],
@@ -3091,6 +3163,8 @@
             conversationId: proposal.conversation_id,
             proposalId: proposal.id,
             title: proposal.terms?.projectName
+          }, {
+            action: proposalPaymentsButton.dataset.proposalPaymentAction || null
           });
         }
         return;

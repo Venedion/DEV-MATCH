@@ -666,6 +666,7 @@
 }
 
 .room-payment-checkout-dialog[open] {
+  box-sizing: border-box;
   position: fixed;
   inset: 0;
   width: min(30rem, calc(100vw - 2rem));
@@ -678,7 +679,9 @@
   border-radius: 1rem;
   background: transparent;
   color: #18233a;
-  font-family: inherit;
+  font-family: "Plus Jakarta Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-size: 14px;
+  -webkit-font-smoothing: antialiased;
 }
 
 .room-payment-checkout-dialog::backdrop {
@@ -687,6 +690,8 @@
 }
 
 .room-payment-checkout-card {
+  box-sizing: border-box;
+  min-width: 0;
   padding: 1.4rem;
   border: 1px solid #e2e8f0;
   border-radius: 1rem;
@@ -727,6 +732,7 @@
 }
 
 .room-payment-checkout-card button {
+  min-width: 0;
   border: 1px solid #c7d1e2;
   border-radius: .55rem;
   padding: .55rem .75rem;
@@ -735,7 +741,7 @@
   font: inherit;
   font-weight: 650;
   cursor: pointer;
-  white-space: nowrap;
+  overflow-wrap: anywhere;
 }
 
 .room-payment-checkout-card button:disabled {
@@ -793,11 +799,31 @@
 }
 
 .room-payment-checkout-card > footer {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1.1fr);
   margin-top: 1rem;
 }
 
 .room-payment-checkout-spacer {
-  flex: 1;
+  display: none;
+}
+
+.room-payment-checkout-card > footer [data-demo-payment] {
+  grid-column: 1;
+  grid-row: 1;
+  justify-self: start;
+}
+
+.room-payment-checkout-card > footer [data-checkout-cancel] {
+  grid-column: 2;
+  grid-row: 1;
+  justify-self: center;
+}
+
+.room-payment-checkout-card > footer [data-checkout-continue] {
+  grid-column: 3;
+  grid-row: 1;
+  width: 100%;
 }
 
 .room-payment-checkout-card button[data-checkout-continue] {
@@ -806,21 +832,28 @@
   color: #fff;
 }
 
-@media (max-width: 480px) and (orientation: portrait) {
+@media (max-width: 520px) {
   .room-payment-checkout-card {
     padding: 1rem;
   }
 
   .room-payment-checkout-card > footer {
-    flex-wrap: wrap;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .room-payment-checkout-spacer {
-    display: none;
+  .room-payment-checkout-card > footer [data-checkout-continue] {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+
+  .room-payment-checkout-card > footer [data-checkout-cancel] {
+    grid-column: 2;
   }
 
   .room-payment-checkout-card button[data-demo-payment] {
-    margin-right: auto;
+    grid-column: 1;
+    grid-row: 1;
+    justify-self: start;
   }
 }
 
