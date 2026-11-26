@@ -33,6 +33,7 @@
 .discover-purchase-price{font-size:23px;line-height:1.15}
 .discover-purchase-note{color:#777982;font-size:10px;line-height:1.5}
 .discover-purchase-card .discover-detail-contact{margin-top:2px}
+.discover-own-project-note{display:grid;gap:2px;margin:0;padding:10px 12px;border:1px solid #ead8a9;border-radius:8px;background:#fff8e8;color:#654919;font-size:12px;line-height:1.5}
 .discover-purchase-card .discover-detail-save-button{margin-top:0}
 .discover-detail-aside .discover-developer-card{position:static}
 .discover-developer-badges{display:flex;flex-wrap:wrap;gap:6px;margin-top:11px}

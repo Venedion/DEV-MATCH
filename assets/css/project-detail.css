@@ -191,6 +191,8 @@
 .project-detail-dialog .preview-delivery-note{display:flex;gap:9px;margin-top:15px;padding:11px;border-radius:9px;background:#f7f7f8;color:#6c7280;font-size:11px;line-height:1.45}
 .project-detail-dialog .preview-contact-button{width:100%;min-height:40px;display:flex!important;align-items:center;justify-content:center;gap:8px;margin-top:12px;padding:0 14px;border:1px solid #28292e;border-radius:9px;background:#28292e!important;color:#fff!important;font-size:12px;font-weight:700;text-decoration:none;line-height:40px}
 .project-detail-dialog .preview-contact-button span{display:inline;color:#fff!important}
+.project-detail-dialog .preview-contact-button[hidden]{display:none!important}
+.project-detail-dialog .preview-price-card .preview-own-project-note{display:grid;gap:2px;margin:12px 0 0;padding:10px 12px;border:1px solid #ead8a9;border-radius:8px;background:#fff8e8;color:#654919;font-size:12px;line-height:1.5}
 .project-detail-dialog .preview-contact-button svg{width:18px;height:18px;flex:none;fill:none;stroke:#fff;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
 .project-detail-dialog .preview-favorite-button{width:100%;min-height:40px;margin-top:8px;border:1px solid #e3e5ea;border-radius:9px;background:#fff;color:#666c78}
 .project-detail-dialog .preview-protection-note{padding:12px 14px;border:1px solid #eceef1;border-radius:10px;color:#777d89;font-size:10px;line-height:1.55}

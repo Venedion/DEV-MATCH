@@ -73,7 +73,8 @@
                 <strong id="projectPrice"></strong>
                 <p id="projectPriceDescription">Fixed project pricing. Confirm final scope with the developer.</p>
                 <div class="preview-delivery-note">◷ <span>Delivery time can be discussed with the developer.</span></div>
-                <a class="chat-developer preview-contact-button" id="chatDeveloperLink" href="devmatch-chat.html?role=client"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.5 11.5a8 8 0 0 1-8 8H6l-2.5 1.5.8-4.1a8 8 0 1 1 16.2-5.4Z"/><path d="M8.5 12h.01M12.5 12h.01M16.5 12h.01"/></svg><span>Contact Developer</span></a>
+                <a class="chat-developer preview-contact-button" id="chatDeveloperLink" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.5 11.5a8 8 0 0 1-8 8H6l-2.5 1.5.8-4.1a8 8 0 1 1 16.2-5.4Z"/><path d="M8.5 12h.01M12.5 12h.01M16.5 12h.01"/></svg><span>Contact Developer</span></a>
+                <p class="preview-own-project-note" id="previewOwnProjectNotice" role="status" hidden><strong>Your project</strong><span>You can’t buy your own project.</span></p>
                 <button class="project-favorite-action preview-favorite-button" id="projectFavoriteAction" type="button" aria-pressed="false" aria-label="Add project to favorites" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg><span>Add to Favorites</span></button>
               </section>
               <section class="preview-developer-card">
@@ -418,7 +419,12 @@
       document.getElementById('developerViews').textContent=formatMetric(developerMetrics.views);
       document.getElementById('developerFavorites').textContent=formatMetric(developerMetrics.favorites);
       document.getElementById('viewDeveloperProfile').href=`devmatch-developer-profile.html?developer=${encodeURIComponent(row.owner_id)}`;
-      document.getElementById('chatDeveloperLink').href=user?chatUrl(row.id):'devmatch-auth.html?mode=login';
+      const ownsProject=Boolean(user&&user.id===row.owner_id);
+      const contactLink=document.getElementById('chatDeveloperLink');
+      contactLink.hidden=ownsProject;
+      document.getElementById('previewOwnProjectNotice').hidden=!ownsProject;
+      if(ownsProject)contactLink.removeAttribute('href');
+      else contactLink.href=user?chatUrl(row.id):'devmatch-auth.html?mode=login';
       const clientName='Client';
       document.getElementById('clientInitials').textContent=initials(clientName);
       try{comments=(await window.devMatchBackend.loadProjectComments(row.id)).comments;}

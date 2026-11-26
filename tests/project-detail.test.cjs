@@ -89,11 +89,27 @@ test('Contact Developer carries the selected project into Messages',()=>{
   const chat=fs.readFileSync('assets/js/chat.js','utf8');
   const chatHtml=fs.readFileSync('devmatch-chat.html','utf8');
   assert.match(detail,/function chatUrl\(id\)\{return `devmatch-chat\.html\?role=client&project=\$\{encodeURIComponent\(id\)\}`;\}/);
-  assert.match(detail,/getElementById\('chatDeveloperLink'\)\.href=user\?chatUrl\(row\.id\)/);
+  assert.match(detail,/else contactLink\.href=user\?chatUrl\(row\.id\)/);
   assert.match(discover,/devmatch-chat\.html\?role=client&project=\$\{encodeURIComponent\(project\.id\)\}/);
   assert.match(chat,/params\.get\('project'\) \|\| params\.get\('request'\)/);
   assert.match(chat,/projectId: project\?\.id \|\| null/);
   assert.doesNotMatch(chatHtml,/chatDraftProjectId/);
+});
+
+test('A project owner gets a purchase notice instead of a chat link in both detail views',()=>{
+  const preview=fs.readFileSync('assets/js/project-detail.js','utf8');
+  const fullPage=fs.readFileSync('assets/js/discover-project-detail.js','utf8');
+  const html=fs.readFileSync('devmatch-discover-project-detail.html','utf8');
+  const styles=fs.readFileSync('assets/css/project-detail.css','utf8');
+  for(const view of [preview,fullPage]){
+    assert.match(view,/const ownsProject=Boolean\(user&&user\.id===row\.owner_id\)/);
+    assert.match(view,/contactLink\.hidden=ownsProject/);
+    assert.match(view,/OwnProjectNotice'\)\.hidden=!ownsProject/i);
+    assert.match(view,/if\(ownsProject\)contactLink\.removeAttribute\('href'\)/);
+  }
+  assert.match(preview,/id="previewOwnProjectNotice" role="status" hidden/);
+  assert.match(html,/id="ownProjectNotice" role="status" hidden/);
+  assert.match(styles,/\.preview-contact-button\[hidden\]\{display:none!important\}/);
 });
 
 test('Contact Developer keeps its project draft without rendering the removed context card',()=>{
@@ -140,8 +156,8 @@ test('Discover project detail popup separates the comments card from project det
   assert.match(styles,/\.project-detail-dialog \.comments-section\{margin:0;padding:24px;border:1px solid #e5e5e8;border-radius:16px;background:#fff;box-shadow:0 2px 6px #17171908\}/);
   assert.match(styles,/\.comments-section \.comment-system-heading h2>span\.comment-system-count\{color:#171719;font-size:15px\}/);
   assert.match(styles,/\.comments-section \.comment-reply-form\.comment-system-reply-form textarea\{min-height:108px/);
-  assert.match(discover,/assets\/css\/project-detail\.css\?v=20261126-rebase-merge-v1/);
-  assert.match(discover,/assets\/js\/project-detail\.js\?v=20261126-rebase-merge-v1/);
+  assert.match(discover,/assets\/css\/project-detail\.css\?v=20261127-own-project/);
+  assert.match(discover,/assets\/js\/project-detail\.js\?v=20261127-own-project/);
 });
 
 test('Every comment page loads the shared comment presentation',()=>{

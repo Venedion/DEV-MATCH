@@ -12,7 +12,7 @@
   <link rel="stylesheet" href="assets/css/client-shell.css?v=20261125-responsive-orientation-v1">
   <link rel="stylesheet" href="assets/css/mode-switch-animation.css?v=20261030-active-indicator">
   <link rel="stylesheet" href="assets/css/mobile-navigation.css?v=20261126-rebase-merge-v1">
-  <link rel="stylesheet" href="assets/css/discover-project-detail.css?v=20261127-desktop-back-navigation-v1">
+  <link rel="stylesheet" href="assets/css/discover-project-detail.css?v=20261127-own-project">
   <link rel="stylesheet" href="assets/css/project-detail-popup.css?v=20261126-rebase-merge-v1">
   <link rel="stylesheet" href="assets/css/arrow-motion.css?v=20261118-arrow-motion-global-v2">
   <link rel="stylesheet" href="assets/css/favorite-feedback.css?v=20261125-responsive-orientation-v1">
@@ -22,6 +22,7 @@
   <link rel="stylesheet" href="assets/css/form-controls.css?v=20261126-placeholder-unified-v1">
   <script src="assets/js/backend.js?v=20261126-username-validation-v1"></script>
 <link rel="stylesheet" href="assets/css/developer-mode-icon.css?v=20261125-developer-mode-icon-v2">
+  <script type="module" src="assets/js/site-motion.js?v=20261127-site-motion"></script>
 </head>
 <body class="marketplace-client-page client-shell-page page-scroll-shell" data-project-detail-route="true">
   <header class="topbar">
@@ -129,7 +130,8 @@
           <p class="discover-detail-aside-label">STARTING FROM</p>
           <strong class="discover-purchase-price" id="detailPrice"></strong>
           <p class="discover-purchase-note">Final price depends on project requirements and add-ons.</p>
-          <a class="discover-detail-contact" id="contactDeveloper" href="#">Contact developer</a>
+          <a class="discover-detail-contact" id="contactDeveloper" hidden>Contact developer</a>
+          <p class="discover-own-project-note" id="ownProjectNotice" role="status" hidden><strong>Your project</strong><span>You can’t buy your own project.</span></p>
           <button class="discover-detail-save-button" type="button" id="detailFavoriteAction" aria-pressed="false"><svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg><span>Add to Favorites</span></button>
         </section>
         <section class="discover-detail-card discover-developer-card">
@@ -157,7 +159,7 @@
     <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5c-5 0-9 3.65-9 8.15 0 2.24 1.04 4.27 2.73 5.74L4.7 21l5.24-1.28c.67.12 1.36.18 2.06.18 5 0 9-3.65 9-8.15S17 3.5 12 3.5Z"/><circle cx="8.5" cy="11.7" r="1" fill="currentColor" stroke="none"/><circle cx="12" cy="11.7" r="1" fill="currentColor" stroke="none"/><circle cx="15.5" cy="11.7" r="1" fill="currentColor" stroke="none"/></svg>
   </a>
   <script src="assets/js/favorite-feedback.js?v=20261126-rebase-merge-v1"></script>
-  <script src="assets/js/discover-project-detail.js?v=20261126-rebase-merge-v1"></script>
+  <script src="assets/js/discover-project-detail.js?v=20261127-own-project"></script>
   <script src="assets/js/project-detail-route-popup.js?v=20261120-popup-detail"></script>
   <script src="assets/js/nav-behavior.js?v=20261125-responsive-orientation-v1"></script>
 <script src="assets/js/presence.js?v=20261119-global"></script>

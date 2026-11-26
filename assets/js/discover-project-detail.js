@@ -208,7 +208,7 @@
       await window.devMatchBackend.setFavorite('project',project.id,!saved);
       favorites=saved?favorites.filter(id=>id!==project.id):[...favorites,project.id];
       localStorage.setItem(favoritesKey,JSON.stringify(favorites));
-      updateFavoriteButtons(!saved);document.getElementById('favoriteCount').textContent=String(favorites.length);
+      updateFavoriteButtons(!saved);
       window.DEVMATCH_NAV_BADGES?.updateFavorites();
       window.DEVMATCH_FAVORITE_FEEDBACK.showToast(
         favoriteToast,
@@ -223,7 +223,6 @@
           if(!favorites.includes(project.id))favorites=[...favorites,project.id];
           localStorage.setItem(favoritesKey,JSON.stringify(favorites));
           updateFavoriteButtons(true);
-          document.getElementById('favoriteCount').textContent=String(favorites.length);
           window.DEVMATCH_NAV_BADGES?.updateFavorites();
           return true;
         }:null,
@@ -291,7 +290,12 @@
     document.getElementById('detailDeveloperBio').textContent=developerBio;
     document.getElementById('asideDeveloperLocation').textContent=developerLocation;
     document.getElementById('asideDeveloperSpecialty').textContent=specialty;
-    document.getElementById('contactDeveloper').href=user&&accountRole==='client'?`devmatch-chat.html?role=client&project=${encodeURIComponent(project.id)}`:'devmatch-auth.html?mode=login';
+    const ownsProject=Boolean(user&&user.id===row.owner_id);
+    const contactLink=document.getElementById('contactDeveloper');
+    contactLink.hidden=ownsProject;
+    document.getElementById('ownProjectNotice').hidden=!ownsProject;
+    if(ownsProject)contactLink.removeAttribute('href');
+    else contactLink.href=user&&accountRole==='client'?`devmatch-chat.html?role=client&project=${encodeURIComponent(project.id)}`:'devmatch-auth.html?mode=login';
     document.getElementById('developerProfileLink').href=`devmatch-developer-profile.html?developer=${encodeURIComponent(row.owner_id)}`;
     document.getElementById('clientCommentAvatar').textContent=initials(readJson('devmatch-profile-client',{}).displayName||'Client');
     const liveLink=document.getElementById('detailLiveLink');
@@ -305,7 +309,6 @@
       .select('id').eq('owner_id',row.owner_id).eq('project_kind','portfolio').eq('status','published');
     if(projectsError)throw projectsError;
     document.getElementById('detailDeveloperProjects').textContent=String(rows.length);
-    document.getElementById('favoriteCount').textContent=String(favorites.length);
     const favoriteButton=document.getElementById('detailFavoriteAction');
     favoriteButton.hidden=!user||accountRole!=='client';
     updateFavoriteButtons(favorites.includes(project.id));

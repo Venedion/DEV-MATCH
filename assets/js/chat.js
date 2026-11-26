@@ -2744,12 +2744,12 @@
       if (!document.querySelector('link[data-project-detail-styles]')) {
         const styles = document.createElement('link');
         styles.rel = 'stylesheet';
-        styles.href = 'assets/css/project-detail.css?v=20261122-hide-replies-bottom-v1';
+        styles.href = 'assets/css/project-detail.css?v=20261127-own-project';
         styles.dataset.projectDetailStyles = 'true';
         document.head.append(styles);
       }
       const script = document.createElement('script');
-      script.src = 'assets/js/project-detail.js?v=20261122-view-reply-line-v1';
+      script.src = 'assets/js/project-detail.js?v=20261127-own-project';
       script.addEventListener('load', () => {
         if (typeof window.openProjectDetails === 'function') resolve();
         else reject(new Error('Project detail helper did not load.'));
