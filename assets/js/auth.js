@@ -8,7 +8,7 @@ const $=id=>document.getElementById(id);
 const copy={
  dev:{tag:'<span class="developer-mode-icon" aria-hidden="true"></span> Developer account',badge:'<span class="developer-mode-icon" aria-hidden="true"></span> Developer Mode',side:'Your portfolio,<br>now a storefront.',title:'Create your developer account',sub:'Start showcasing your projects in minutes.',
   q:'“My first project listing got 3 WhatsApp messages in the first week. Clients finally see what I can build.”',av:'RA',name:'Rizky Aditya',role:'Full-stack developer · Medan',other:'Not a developer?',sw:'Switch to client'},
- cli:{tag:'Client account',badge:'Client Mode',side:'Find the right<br>developer, priced upfront.',title:'Create your client account',sub:'Browse projects and post your request in minutes.',
+ cli:{tag:'Client account',badge:'<svg class="client-mode-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="7" width="18" height="14" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M12 12v5"/></svg> Client Mode',side:'Find the right<br>developer, priced upfront.',title:'Create your client account',sub:'Browse projects and post your request in minutes.',
   q:'“I compared three developers by price and portfolio in one evening, then sent my brief straight on WhatsApp.”',av:'AN',name:'Anindya',role:'Café owner · Medan',other:'Are you a developer?',sw:'Switch to developer'}
 };
 let role=params.get('role')==='client'?'cli':'dev';
