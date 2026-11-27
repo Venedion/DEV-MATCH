@@ -1,6 +1,36 @@
 const {test}=require('node:test');
 const assert=require('node:assert/strict');
 const fs=require('node:fs');
+const {runInNewContext}=require('node:vm');
+
+test('The deployment config accepts both Midtrans Sandbox Client Key formats',()=>{
+  const source=fs.readFileSync('scripts/build-deployment-config.cjs','utf8');
+  const build=(environment,clientKey)=>{
+    let output;
+    runInNewContext(source,{
+      __dirname:'scripts',
+      process:{env:{
+        DEVMATCH_MIDTRANS_ENVIRONMENT:environment,
+        DEVMATCH_MIDTRANS_CLIENT_KEY:clientKey,
+        DEVMATCH_SUPABASE_URL:'https://fixture.supabase.co',
+        DEVMATCH_SUPABASE_ANON_KEY:'public-test-key'
+      }},
+      URL,
+      require:module=>module==='node:fs'?{writeFileSync(_path,value){output=value;}}:require(module)
+    });
+    const window={};
+    runInNewContext(output,{window});
+    return window.DEVMATCH_PUBLIC_CONFIG;
+  };
+  for(const clientKey of ['SB-Mid-client-fixture','Mid-client-fixture']){
+    const config=build('sandbox',clientKey);
+    assert.equal(config.midtransPaymentsEnabled,true);
+    assert.equal(config.midtransClientKey,clientKey);
+    assert.equal(config.midtransSnapJsUrl,'https://app.sandbox.midtrans.com/snap/snap.js');
+  }
+  assert.throws(()=>build('sandbox','SB-Mid-server-fixture'),/supported format/);
+  assert.throws(()=>build('production','SB-Mid-client-fixture'),/supported format/);
+});
 
 test('Agreement created is complete even when the legacy agreement has no timestamp',()=>{
   const payment=fs.readFileSync('assets/js/chat-payment.js','utf8');

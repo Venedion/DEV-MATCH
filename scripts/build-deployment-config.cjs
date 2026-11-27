@@ -27,9 +27,9 @@ if (parsedSnapUrl.hostname !== new URL(snapHost).hostname) {
 }
 
 const clientKey = process.env.DEVMATCH_MIDTRANS_CLIENT_KEY || '';
-const expectedClientPrefix = environment === 'sandbox' ? 'SB-Mid-client-' : 'Mid-client-';
-if (clientKey && !clientKey.startsWith(expectedClientPrefix)) {
-  throw new Error('DEVMATCH_MIDTRANS_CLIENT_KEY does not match the selected environment.');
+const clientKeyPattern = environment === 'sandbox' ? /^(?:SB-)?Mid-client-[\w-]+$/ : /^Mid-client-[\w-]+$/;
+if (clientKey && !clientKeyPattern.test(clientKey)) {
+  throw new Error('DEVMATCH_MIDTRANS_CLIENT_KEY is not in a supported format. Use the Client Key from the selected Midtrans environment.');
 }
 
 const supabaseUrlValue = process.env.DEVMATCH_SUPABASE_URL || '';

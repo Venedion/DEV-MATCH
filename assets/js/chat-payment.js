@@ -397,9 +397,9 @@
     if (!clientKey || !['sandbox', 'production'].includes(environment)) {
       return Promise.reject(new Error('Midtrans Client Key belum dikonfigurasi untuk environment ini.'));
     }
-    const expectedClientPrefix = environment === 'sandbox' ? 'SB-Mid-client-' : 'Mid-client-';
-    if (!clientKey.startsWith(expectedClientPrefix)) {
-      return Promise.reject(new Error('Midtrans Client Key tidak cocok dengan environment.'));
+    const clientKeyPattern = environment === 'sandbox' ? /^(?:SB-)?Mid-client-[\w-]+$/ : /^Mid-client-[\w-]+$/;
+    if (!clientKeyPattern.test(clientKey)) {
+      return Promise.reject(new Error('Format Midtrans Client Key tidak valid.'));
     }
 
     let url;

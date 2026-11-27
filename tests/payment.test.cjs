@@ -95,7 +95,7 @@ async function fixture(t) {
   const {paymentService} = await import('../supabase/functions/payment-api/service.mjs');
   const key = 'SB-Mid-server-fixture';
   const orders = new Map();
-  const gateway = sandboxGateway({serverKey: key, clientKey: 'SB-Mid-client-fixture', returnOrigin: 'https://devm4tch.vercel.app',
+  const gateway = sandboxGateway({serverKey: key, clientKey: 'Mid-client-fixture', returnOrigin: 'https://devm4tch.vercel.app',
     request: async (url, options) => {
       assert.equal(options.headers.Authorization, 'Basic ' + Buffer.from(key + ':').toString('base64'));
       if (options.method === 'POST') {
@@ -216,7 +216,7 @@ test('Snap checkout verifies authoritative status and records ledger once on con
   const [dp] = orders.values();
   assert.match(checkout.redirectUrl, /app\.sandbox\.midtrans\.com/);
   assert.equal(checkout.token, dp.order_id);
-  assert.equal(checkout.clientKey, 'SB-Mid-client-fixture');
+  assert.equal(checkout.clientKey, 'Mid-client-fixture');
   assert.equal(dp.gross_amount, '25001.00');
   await assert.rejects(service.webhook({...event(dp), signature_key: '0'.repeat(128)}), {status: 401});
   Object.assign(dp, {transaction_status: 'pending'});
