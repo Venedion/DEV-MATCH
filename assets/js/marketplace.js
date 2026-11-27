@@ -28,6 +28,7 @@
   const categoryButtons = [...document.querySelectorAll('[data-category]')];
   const loadMoreButton = document.getElementById('loadMore');
   const remainingCount = document.getElementById('remainingCount');
+  const mobileDiscoverBreakpoint = window.matchMedia('(max-width: 600px) and (orientation: portrait)');
   const catalogStatus = document.getElementById('catalogStatus');
   const projectTabCount = document.getElementById('projectTabCount');
   const developerTabCount = document.getElementById('developerTabCount');
@@ -1079,7 +1080,7 @@
   function render() {
     const source = isRequestsPage ? requests : projects;
     const filtered = getItems();
-    const shown = filtered.slice(0, visibleCount);
+    const shown = filtered.slice(0, !isRequestsPage && mobileDiscoverBreakpoint.matches ? filtered.length : visibleCount);
     grid.classList.toggle('is-list', view === 'list');
     if (!catalogLoaded && !catalogError) window.DEVMATCH_SKELETON?.cards(grid,6,isRequestsPage?'request':'marketplace-project');
     else grid.innerHTML = shown.map(renderProject).join('');
@@ -1117,6 +1118,7 @@
     loadMoreButton.hidden = !catalogLoaded || remaining === 0;
     updateCategoryCounts();
   }
+  if (!isRequestsPage) mobileDiscoverBreakpoint.addEventListener('change', render);
 
   function selectedItem(id) {
     const source = isRequestsPage ? requests : projects;

@@ -633,6 +633,7 @@
   let mobileSettingsDetailPanel;
   let mobileSettingsDetailPlaceholder;
   let mobileSettingsDetailCloseTimer;
+  let mobileSettingsReturnTimer;
   let mobileSettingsPreviousOverflow = '';
   let mobileSettingsPreviousInert = [];
   let closeExperienceEditors = () => {};
@@ -927,8 +928,19 @@
       closeMobileSettingsDetail();
       return;
     }
+    if (mobileSettingsReturnTimer !== undefined) return;
     const menuRole = isDeveloper ? 'dev' : 'client';
-    window.location.assign(`devmatch-my-profile.html?role=${menuRole}&openSettings=1`);
+    const returnToSettingsMenu = () => {
+      window.location.assign(`devmatch-my-profile.html?role=${menuRole}&openSettings=1&settingsReturn=1`);
+    };
+    if (!mobileSettingsDetailPage || mobileSettingsDetailPage.hidden
+      || window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      returnToSettingsMenu();
+      return;
+    }
+
+    mobileSettingsDetailPage.classList.remove('is-open');
+    mobileSettingsReturnTimer = window.setTimeout(returnToSettingsMenu, 240);
   }
 
   function createMobileSettingsDetailPage() {

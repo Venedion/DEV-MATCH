@@ -1439,7 +1439,7 @@ body > .client-sidebar .post-request .sidebar-action-label {
   header.client-topbar > .client-search.mobile-header-search,
   header.profile-topbar > .top-search.mobile-header-search {
     position: absolute;
-    left: 48px;
+    left: 38px;
     right: auto;
     box-sizing: border-box;
     width: min(256px, calc(100vw - 134px)) !important;
@@ -2052,6 +2052,12 @@ body > .client-sidebar .post-request .sidebar-action-label {
     grid-column: 1;
   }
 
+  body.has-mobile-bottom-navigation > header.topbar > .search.mobile-header-search,
+  body.has-mobile-bottom-navigation > header.client-topbar > .client-search.mobile-header-search,
+  body.has-mobile-bottom-navigation > header.profile-topbar > .top-search.mobile-header-search {
+    left: 0;
+  }
+
   body.has-mobile-bottom-navigation .floating-chat {
     --mobile-chat-edge-inset: 16px;
   }
@@ -2204,11 +2210,14 @@ body > .client-sidebar .post-request .sidebar-action-label {
 }
 
 @media (orientation: portrait){
+  body.client-explore-page > header.topbar > .top-actions > .notification-button,
+  body.client-explore-page > header.topbar > .top-actions > .user-menu,
   body.developer-explore-page > header.topbar > .top-actions > .notification-button,
   body.developer-explore-page > header.topbar > .top-actions > .user-menu {
     display: none;
   }
 
+  body.client-explore-page > header.topbar > .top-actions > .mobile-explore-favorites,
   body.developer-explore-page > header.topbar > .top-actions > .mobile-explore-favorites {
     width: 32px;
     height: 32px;
@@ -2222,6 +2231,7 @@ body > .client-sidebar .post-request .sidebar-action-label {
     color: var(--ink);
   }
 
+  body.client-explore-page > header.topbar > .top-actions > .mobile-explore-favorites svg,
   body.developer-explore-page > header.topbar > .top-actions > .mobile-explore-favorites svg {
     width: 20px;
     height: 20px;

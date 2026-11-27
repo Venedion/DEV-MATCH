@@ -195,6 +195,8 @@ test('Chat composer sends a proposal and renders role-specific proposal cards',(
   assert.match(chat,/proposalFormEl\?\.addEventListener\('submit', event => void submitProjectProposal\(event\)\)/);
   assert.match(chat,/invokeChat\('create-project-proposal'[\s\S]*?terms:[\s\S]*?attachments/);
   assert.match(chat,/function renderProjectProposalCard\(proposal, preview = null\)/);
+  assert.match(chat,/chat-proposal-status\$\{isPending \? ' is-pending' : ''\}/);
+  assert.match(styles,/\.chat-proposal-status\.is-pending\s*\{[\s\S]*?background:\s*#fff3d8;[\s\S]*?color:\s*#8b5c00;/);
   assert.match(chat,/const isAwaitingDp = !isPreview && isAccepted && projectStatus === 'NOT_STARTED'/);
   assert.match(chat,/const isDpPaid = !isPreview && isAccepted && escrowStatus === 'DP_HELD'/);
   assert.match(chat,/Waiting for progress/);

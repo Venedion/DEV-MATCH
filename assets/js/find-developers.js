@@ -19,6 +19,7 @@
   let selectedSpecialization = 'all';
   let selectedGender = 'all';
   let selectedStatus = 'all';
+  let mobileDeveloperFilterDraft = null;
   let currentSort = 'projects';
   let currentPage = 1;
   let directoryLoaded = false;
@@ -134,6 +135,55 @@
     }).sort((a, b) => currentSort === 'projects'
       ? b.projectsCount - a.projectsCount || a.name.localeCompare(b.name)
       : a.name.localeCompare(b.name));
+  }
+
+  function getDeveloperFilterValues() {
+    return {
+      specialization: selectedSpecialization,
+      gender: selectedGender,
+      status: selectedStatus
+    };
+  }
+
+  function syncDeveloperFilterControls(values) {
+    [
+      [specDropdown, 'specialization', 'Specialization'],
+      [genderDropdown, 'gender', 'Gender'],
+      [statusDropdown, 'status', 'Status']
+    ].forEach(([dropdown, key, defaultLabel]) => {
+      if (!dropdown) return;
+      const value = values[key];
+      dropdown.querySelectorAll('.dropdown-item').forEach(item => {
+        item.classList.toggle('selected', item.dataset.value === value);
+      });
+      const label = dropdown.querySelector('.filter-label-text');
+      if (label) {
+        label.textContent = value === 'all'
+          ? defaultLabel
+          : key === 'specialization' ? `${defaultLabel}: ${value}` : value;
+      }
+      dropdown.querySelector('.filter-pill-btn')?.classList.toggle('has-value', value !== 'all');
+    });
+  }
+
+  function isMobileDeveloperFilterPanelOpen() {
+    const panel = document.getElementById('mobileDevsFilterPanel');
+    return window.matchMedia('(orientation: portrait)').matches && Boolean(panel && !panel.hidden);
+  }
+
+  function updateDeveloperFilter(key, value) {
+    if (isMobileDeveloperFilterPanelOpen()) {
+      if (!mobileDeveloperFilterDraft) mobileDeveloperFilterDraft = getDeveloperFilterValues();
+      mobileDeveloperFilterDraft[key] = value;
+      syncDeveloperFilterControls(mobileDeveloperFilterDraft);
+      return;
+    }
+
+    if (key === 'specialization') selectedSpecialization = value;
+    if (key === 'gender') selectedGender = value;
+    if (key === 'status') selectedStatus = value;
+    syncDeveloperFilterControls(getDeveloperFilterValues());
+    renderDevelopers();
   }
 
   function renderPagination(pageCount) {
@@ -324,21 +374,12 @@
     // Specialization Dropdown
     if (specDropdown) {
       const trigger = specDropdown.querySelector('.filter-pill-btn');
-      const label = trigger ? trigger.querySelector('.filter-label-text') : null;
 
       specDropdown.addEventListener('click', e => {
         const item = e.target.closest('.dropdown-item');
         if (item) {
-          const val = item.dataset.value;
-          selectedSpecialization = val;
-          specDropdown.querySelectorAll('.dropdown-item').forEach(el => el.classList.remove('selected'));
-          item.classList.add('selected');
-          if (label) {
-            label.textContent = val === 'all' ? 'Specialization' : `Specialization: ${val}`;
-          }
-          trigger.classList.toggle('has-value', val !== 'all');
+          updateDeveloperFilter('specialization', item.dataset.value);
           specDropdown.classList.remove('open');
-          renderDevelopers();
           return;
         }
 
@@ -353,21 +394,12 @@
     // Gender Dropdown
     if (genderDropdown) {
       const trigger = genderDropdown.querySelector('.filter-pill-btn');
-      const label = trigger ? trigger.querySelector('.filter-label-text') : null;
 
       genderDropdown.addEventListener('click', e => {
         const item = e.target.closest('.dropdown-item');
         if (item) {
-          const val = item.dataset.value;
-          selectedGender = val;
-          genderDropdown.querySelectorAll('.dropdown-item').forEach(el => el.classList.remove('selected'));
-          item.classList.add('selected');
-          if (label) {
-            label.textContent = val === 'all' ? 'Gender' : val;
-          }
-          trigger.classList.toggle('has-value', val !== 'all');
+          updateDeveloperFilter('gender', item.dataset.value);
           genderDropdown.classList.remove('open');
-          renderDevelopers();
           return;
         }
 
@@ -382,21 +414,12 @@
     // Status Dropdown
     if (statusDropdown) {
       const trigger = statusDropdown.querySelector('.filter-pill-btn');
-      const label = trigger ? trigger.querySelector('.filter-label-text') : null;
 
       statusDropdown.addEventListener('click', e => {
         const item = e.target.closest('.dropdown-item');
         if (item) {
-          const val = item.dataset.value;
-          selectedStatus = val;
-          statusDropdown.querySelectorAll('.dropdown-item').forEach(el => el.classList.remove('selected'));
-          item.classList.add('selected');
-          if (label) {
-            label.textContent = val === 'all' ? 'Status' : val;
-          }
-          trigger.classList.toggle('has-value', val !== 'all');
+          updateDeveloperFilter('status', item.dataset.value);
           statusDropdown.classList.remove('open');
-          renderDevelopers();
           return;
         }
 
@@ -512,30 +535,10 @@
         selectedSpecialization = 'all';
         selectedGender = 'all';
         selectedStatus = 'all';
+        mobileDeveloperFilterDraft = null;
         if (searchInput) searchInput.value = '';
         if (topSearchInput) topSearchInput.value = '';
-
-        const sTrig = specDropdown ? specDropdown.querySelector('.filter-label-text') : null;
-        if (sTrig) sTrig.textContent = 'Specialization';
-        if (specDropdown) {
-          specDropdown.querySelector('.filter-pill-btn').classList.remove('has-value');
-          specDropdown.querySelectorAll('.dropdown-item').forEach(el => el.classList.toggle('selected', el.dataset.value === 'all'));
-        }
-
-        const gTrig = genderDropdown ? genderDropdown.querySelector('.filter-label-text') : null;
-        if (gTrig) gTrig.textContent = 'Gender';
-        if (genderDropdown) {
-          genderDropdown.querySelector('.filter-pill-btn').classList.remove('has-value');
-          genderDropdown.querySelectorAll('.dropdown-item').forEach(el => el.classList.toggle('selected', el.dataset.value === 'all'));
-        }
-
-        const stTrig = statusDropdown ? statusDropdown.querySelector('.filter-label-text') : null;
-        if (stTrig) stTrig.textContent = 'Status';
-        if (statusDropdown) {
-          statusDropdown.querySelector('.filter-pill-btn').classList.remove('has-value');
-          statusDropdown.querySelectorAll('.dropdown-item').forEach(el => el.classList.toggle('selected', el.dataset.value === 'all'));
-        }
-
+        syncDeveloperFilterControls(getDeveloperFilterValues());
         renderDevelopers();
       });
     }
@@ -555,10 +558,9 @@
     const sortControl = actions?.querySelector('.mobile-devs-sort-control');
     const resetButton = document.getElementById('mobileDevsFilterReset');
     const applyButton = document.getElementById('mobileDevsFilterApply');
-    const existingResetButton = document.getElementById('btnResetDevs');
     if (!actions || !filterRow || !filterPills || !sortOptions || !filterFields
       || !filterToggle || !filterPanel || !sortToggle || !sortMenu || !sortControl
-      || !resetButton || !applyButton || !existingResetButton) return;
+      || !resetButton || !applyButton) return;
 
     const filterPlaceholder = document.createComment('developer filters placement');
     const sortPlaceholder = document.createComment('developer sort placement');
@@ -569,7 +571,12 @@
       filterPanel.hidden = !isOpen;
       filterToggle.setAttribute('aria-expanded', String(isOpen));
       actions.classList.toggle('mobile-filter-open', isOpen);
-      if (!isOpen) {
+      if (isOpen) {
+        mobileDeveloperFilterDraft = getDeveloperFilterValues();
+        syncDeveloperFilterControls(mobileDeveloperFilterDraft);
+      } else {
+        mobileDeveloperFilterDraft = null;
+        syncDeveloperFilterControls(getDeveloperFilterValues());
         filterPills.querySelectorAll('.filter-dropdown-container.open').forEach(dropdown => {
           dropdown.classList.remove('open');
           dropdown.querySelector('.filter-pill-btn')?.setAttribute('aria-expanded', 'false');
@@ -628,11 +635,22 @@
       closeSortMenu();
     });
     resetButton.addEventListener('click', () => {
-      existingResetButton.click();
-      setFilterPanelOpen(false);
-      filterToggle.focus();
+      mobileDeveloperFilterDraft = {
+        specialization: 'all',
+        gender: 'all',
+        status: 'all'
+      };
+      syncDeveloperFilterControls(mobileDeveloperFilterDraft);
     });
     applyButton.addEventListener('click', () => {
+      const filters = mobileDeveloperFilterDraft || getDeveloperFilterValues();
+      selectedSpecialization = filters.specialization;
+      selectedGender = filters.gender;
+      selectedStatus = filters.status;
+      mobileDeveloperFilterDraft = null;
+      currentPage = 1;
+      syncDeveloperFilterControls(getDeveloperFilterValues());
+      renderDevelopers();
       setFilterPanelOpen(false);
       filterToggle.focus();
     });

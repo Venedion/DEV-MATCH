@@ -10,8 +10,8 @@
   <link rel="stylesheet" href="assets/css/dashboard.css?v=20261126-rebase-merge-v1">
   <link rel="stylesheet" href="assets/css/client-shell.css?v=20261125-responsive-orientation-v1">
   <link rel="stylesheet" href="assets/css/mode-switch-animation.css?v=20261030-active-indicator">
-  <link rel="stylesheet" href="assets/css/find-developers.css?v=20261127-client-mobile-explore-v1">
-  <link rel="stylesheet" href="assets/css/mobile-navigation.css?v=20261126-square-mobile-v1">
+  <link rel="stylesheet" href="assets/css/find-developers.css?v=20261127-mobile-devs-dock-under-header-v1">
+  <link rel="stylesheet" href="assets/css/mobile-navigation.css?v=20261127-mobile-search-icon-aligned-v1">
   <link rel="stylesheet" href="assets/css/arrow-motion.css?v=20261118-arrow-motion-global-v2">
   <link rel="stylesheet" href="assets/css/favorite-feedback.css?v=20261125-responsive-orientation-v1">
   <script src="assets/js/i18n.js?v=20261102-profile-details"></script>
@@ -21,7 +21,7 @@
 <link rel="stylesheet" href="assets/css/developer-mode-icon.css?v=20261125-developer-mode-icon-v2">
   <script type="module" src="assets/js/site-motion.js?v=20261127-visible-motion"></script>
 </head>
-<body class="client-shell-page client-nav-home-layout page-scroll-shell">
+<body class="client-shell-page client-nav-home-layout client-explore-page page-scroll-shell">
   <!-- Topbar Header -->
   <header class="topbar">
     <a class="brand" href="devmatch-client-dashboard.html"><img class="brand-mark" src="assets/images/devmatch-logo.png" width="34" height="34" alt="" aria-hidden="true"><span>DEV-MATCH</span></a>
@@ -43,6 +43,7 @@
         <span class="user-copy"><b id="clientName">Client</b><small>Client</small></span>
         <svg viewBox="0 0 24 24"><path d="m7 10 5 5 5-5"/></svg>
       </a>
+      <a class="mobile-explore-favorites" href="devmatch-favorites.html?role=client" aria-label="Favorites" title="Favorites"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78Z"/></svg></a>
     </div>
   </header>
   <!-- Sidebar Navigation -->
@@ -138,7 +139,8 @@
             <span class="filter-label-text">Specialization: Full-stack</span>
             <svg class="icon-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m6 9 6 6 6-6"/></svg>
           </button>
-          <div class="dropdown-menu" role="listbox">
+          <span class="mobile-devs-filter-heading" role="heading" aria-level="3">Specialization</span>
+          <div class="dropdown-menu" role="listbox" aria-label="Specialization">
             <button class="dropdown-item" type="button" data-value="all">All Specializations</button>
             <button class="dropdown-item selected" type="button" data-value="Full-stack">Full-stack</button>
             <button class="dropdown-item" type="button" data-value="Frontend">Frontend</button>
@@ -167,7 +169,8 @@
             <span class="filter-label-text">Status</span>
             <svg class="icon-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m6 9 6 6 6-6"/></svg>
           </button>
-          <div class="dropdown-menu" role="listbox">
+          <span class="mobile-devs-filter-heading" role="heading" aria-level="3">Status</span>
+          <div class="dropdown-menu" role="listbox" aria-label="Status">
             <button class="dropdown-item selected" type="button" data-value="all">All Statuses</button>
             <button class="dropdown-item" type="button" data-value="Open for hiring">Open for hiring</button>
             <button class="dropdown-item" type="button" data-value="Freelance">Freelance</button>
@@ -202,12 +205,12 @@
     <p id="directoryStatus" role="status" aria-live="polite">Loading developer directory…</p>
     <div class="devs-empty-state" id="devsEmptyState" hidden>
       <div class="devs-empty-icon">
-        <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
       </div>
-      <h3>Tidak ada developer yang sesuai</h3>
-      <p>Coba sesuaikan kata kunci pencarian atau ubah filter spesialisasi dan status di atas.</p>
+      <h3>No developers match your filters</h3>
+      <p>Try changing your search or resetting the filters to see more developers.</p>
       <button class="btn-search-devs" id="btnResetDevs" type="button" style="margin:0 auto;display:inline-flex;align-items:center;">
-        Reset Filter
+        Reset Filters
       </button>
     </div>
 
@@ -233,8 +236,8 @@
 
   <!-- Scripts -->
   <script src="assets/js/favorite-feedback.js?v=20261125-responsive-orientation-v1"></script>
-  <script src="assets/js/find-developers.js?v=20261127-client-mobile-explore-v1"></script>
-  <script src="assets/js/nav-behavior.js?v=20261125-responsive-orientation-v1"></script>
+  <script src="assets/js/find-developers.js?v=20261127-client-mobile-filter-apply-v1"></script>
+  <script src="assets/js/nav-behavior.js?v=20261127-mobile-devs-dock-under-header-v1"></script>
 <script src="assets/js/presence.js?v=20261119-global"></script>
 </body>
 </html>

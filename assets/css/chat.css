@@ -2590,6 +2590,11 @@ button.chat-attachment-card:hover {
   font-weight: 650;
 }
 
+.chat-proposal-status.is-pending {
+  background: #fff3d8;
+  color: #8b5c00;
+}
+
 .chat-proposal-status.is-awaiting-dp {
   background: #111;
   color: #fff;

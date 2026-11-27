@@ -9,13 +9,13 @@
   const mobileNavigationBreakpoint = window.matchMedia('(orientation: portrait)');
   const favoritesTabs = document.querySelector('.favorites-page-layout .fav-tabs');
   const exploreSwitch = document.querySelector(
-    '.find-projects-page .find-projects-switch, .find-clients-main .clients-tabs-toggle'
+    '.find-projects-page .find-projects-switch, .find-clients-main .clients-tabs-toggle, .marketplace-main[data-marketplace="discover"] .market-discovery-tabs, .find-developers-main .devs-tabs-toggle'
   ) || favoritesTabs;
   const isFavoritesTabSwitch = exploreSwitch === favoritesTabs;
   const explorePageHeader = exploreSwitch?.closest('header') || exploreSwitch?.closest('.favorites-page');
   const exploreScrollContainer = exploreSwitch?.closest('main');
-  const exploreFilterActions = document.querySelector(
-    '.find-projects-page .mobile-market-sticky-actions, .find-clients-main .mobile-clients-actions'
+  const exploreFilterActions = document.querySelectorAll(
+    '.find-projects-page .mobile-market-actions, .find-projects-page .mobile-market-sticky-actions, .find-clients-main .mobile-clients-actions, .marketplace-main[data-marketplace="discover"] .mobile-market-actions, .marketplace-main[data-marketplace="discover"] .mobile-market-sticky-actions, .find-developers-main .mobile-devs-actions'
   );
   const exploreSwitchBreakpoint = window.matchMedia('(orientation: portrait)');
 
@@ -28,7 +28,7 @@
 
     function setExploreSwitchHidden(isHidden) {
       exploreSwitch.classList.toggle('scroll-aware-switch-hidden', isHidden);
-      exploreFilterActions?.classList.toggle('switch-hidden', isHidden);
+      exploreFilterActions.forEach(actions => actions.classList.toggle('switch-hidden', isHidden));
     }
 
     function syncExploreSwitchBreakpoint() {
@@ -46,7 +46,7 @@
           );
         }
         exploreSwitch.classList.remove('scroll-aware-switch', 'scroll-aware-switch-hidden');
-        exploreFilterActions?.classList.remove('switch-hidden');
+        exploreFilterActions.forEach(actions => actions.classList.remove('switch-hidden'));
       }
       previousScrollTop = exploreScrollContainer.scrollTop;
       scrollDirection = 0;
@@ -660,7 +660,7 @@
     {id: 'preferences', label: 'Preferences & Region', icon: '<circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15 15 0 0 1 0 20M12 2a15 15 0 0 0 0 20"/>'}
   ];
 
-  function setMobileSettingsDrawerOpen(isOpen) {
+  function setMobileSettingsDrawerOpen(isOpen, immediate = false) {
     if (!mobileSettingsDrawer || !mobileSettingsBackdrop) return;
     window.clearTimeout(mobileSettingsDrawerCloseTimer);
     if (isOpen) {
@@ -668,16 +668,28 @@
       mobileSettingsDrawer.querySelectorAll('.mobile-settings-item').forEach(link => {
         link.href = `devmatch-settings.html?role=${role}&returnTo=profile-settings#panel-${link.dataset.settingsCategory}`;
       });
+      if (immediate) {
+        mobileSettingsDrawer.classList.add('mobile-settings-no-transition');
+        mobileSettingsBackdrop.classList.add('mobile-settings-no-transition');
+      }
       mobileSettingsDrawer.hidden = false;
       mobileSettingsBackdrop.hidden = false;
       previousBodyOverflow = document.body.style.overflow;
       document.body.style.overflow = 'hidden';
       headerUserLink?.setAttribute('aria-expanded', 'true');
-      requestAnimationFrame(() => {
+      const finishOpening = () => {
         mobileSettingsDrawer?.classList.add('is-open');
         mobileSettingsBackdrop?.classList.add('is-open');
         mobileSettingsDrawer?.querySelector('.mobile-settings-back')?.focus();
-      });
+        if (immediate) {
+          requestAnimationFrame(() => {
+            mobileSettingsDrawer?.classList.remove('mobile-settings-no-transition');
+            mobileSettingsBackdrop?.classList.remove('mobile-settings-no-transition');
+          });
+        }
+      };
+      if (immediate) finishOpening();
+      else requestAnimationFrame(finishOpening);
       return;
     }
 
@@ -761,9 +773,15 @@
 
   createMobileSettingsDrawer();
   if (mobileSearchBreakpoint.matches) prepareMobileAccountModeSwitch();
-  if (mobileSearchBreakpoint.matches
-    && new URLSearchParams(window.location.search).get('openSettings') === '1') {
-    setMobileSettingsDrawerOpen(true);
+  const profileSearchParams = new URLSearchParams(window.location.search);
+  if (mobileSearchBreakpoint.matches && profileSearchParams.get('openSettings') === '1') {
+    const returningFromSettings = profileSearchParams.get('settingsReturn') === '1';
+    setMobileSettingsDrawerOpen(true, returningFromSettings);
+    if (returningFromSettings) {
+      const currentUrl = new URL(window.location.href);
+      currentUrl.searchParams.delete('settingsReturn');
+      history.replaceState(null, '', `${currentUrl.pathname}${currentUrl.search}${currentUrl.hash}`);
+    }
   }
 
   function getAccountReturnUrl() {

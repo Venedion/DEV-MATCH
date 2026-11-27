@@ -715,7 +715,7 @@
       ? `${previewRole === 'client' ? 'Client' : 'Developer'} · ${previewStage.label}`
       : 'Project proposal';
     return `<article class="chat-project-proposal-card" data-project-proposal-card="${escapeHtml(proposal.id)}"${isPreview ? ` data-card-stage="${escapeHtml(previewStage.id)}" data-card-role="${previewRole}"` : ''}>
-      <header><span>${escapeHtml(cardLabel)}</span><strong class="chat-proposal-status${isAwaitingDp ? ' is-awaiting-dp' : ''}">${escapeHtml(status)}</strong></header>
+      <header><span>${escapeHtml(cardLabel)}</span><strong class="chat-proposal-status${isPending ? ' is-pending' : ''}${isAwaitingDp ? ' is-awaiting-dp' : ''}">${escapeHtml(status)}</strong></header>
       <h3>${escapeHtml(terms.projectName || 'Project proposal')}</h3>
       <strong class="chat-proposal-card-price">${escapeHtml(formatProposalAmount(terms.totalPrice))}</strong>
       <dl>${rows.map(([label, hint, amount]) => `<div><dt>${escapeHtml(label)}${hint ? ` (${escapeHtml(hint)})` : ''}</dt><dd>${typeof amount === 'number' ? escapeHtml(formatProposalAmount(amount)) : escapeHtml(amount)}</dd></div>`).join('')}</dl>
@@ -1619,8 +1619,6 @@
     if (!convListEl) return;
     let filtered = conversations;
     if (currentFilter === 'unread') filtered = filtered.filter(conversation => conversation.unreadCount > 0);
-    else if (currentFilter === 'clients') filtered = filtered.filter(conversation => conversation.roleType === 'client');
-    else if (currentFilter === 'devs') filtered = filtered.filter(conversation => conversation.roleType === 'dev');
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
       filtered = filtered.filter(conversation =>

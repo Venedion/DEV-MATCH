@@ -667,6 +667,7 @@ function renderRequests(){
     const secondUpdated=Number(second.updated)||0;
     return activeRequestSort==='oldest'?firstUpdated-secondUpdated:secondUpdated-firstUpdated;
   });
+  document.getElementById('requestShowingCount').textContent=`Showing ${filtered.length} projects`;
   if(!filtered.length){
     container.replaceChildren();
     const empty=document.getElementById('requestsEmpty');
@@ -821,6 +822,7 @@ function showClientView(view){
   const viewingRequests=view==='requests'||viewingDetail;
   const viewingHome=!discovering&&!composingRequest&&!viewingRequests&&!viewingDetail;
   document.body.classList.toggle('request-composer-open',composingRequest);
+  document.body.classList.toggle('client-requests-view',view==='requests');
   document.getElementById('discover').hidden=!discovering;
   document.getElementById('homeDashboard').hidden=!viewingHome;
   document.getElementById('requests').hidden=!viewingRequests;

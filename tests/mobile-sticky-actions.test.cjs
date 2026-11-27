@@ -10,18 +10,33 @@ const marketplaceJs=fs.readFileSync(path.join(__dirname,'../assets/js/marketplac
 const findClientsJs=fs.readFileSync(path.join(__dirname,'../assets/js/find-clients.js'),'utf8');
 const navBehaviorJs=fs.readFileSync(path.join(__dirname,'../assets/js/nav-behavior.js'),'utf8');
 
-test('mobile project categories stay in flow while only sort and filter actions stick',()=>{
+test('mobile project categories and sort/filter actions stay sticky together',()=>{
   assert.match(marketplaceJs,/actions\.append\(categories\);\s*stickyActions\.append\(sortControl, toggle, panel\)/);
   assert.match(marketplaceCss,/\.find-projects-page \.marketplace-main\[data-marketplace="requests"\] #resultsSummary\{\s*width:100%;\s*text-align:left;/);
-  const actionStyles=marketplaceCss.match(/\.mobile-market-actions\{\s*display:block;[^}]*\}/);
+  const actionStyles=marketplaceCss.match(/\.find-projects-page \.marketplace-main\[data-marketplace="requests"\] \.mobile-market-actions\{\s*display:block;[^}]*\}/);
   const stickyStyles=marketplaceCss.match(/\.mobile-market-sticky-actions\{\s*--mobile-actions-edge-gap:14px;[^}]*\}/);
-  assert.ok(actionStyles,'mobile project categories should have a non-sticky wrapper');
-  assert.doesNotMatch(actionStyles[0],/position:\s*sticky/);
+  assert.ok(actionStyles,'mobile project categories should have a sticky wrapper');
+  assert.match(actionStyles[0],/position:sticky/);
+  assert.match(actionStyles[0],/top:42px/);
+  assert.match(actionStyles[0],/z-index:31/);
+  assert.match(actionStyles[0],/pointer-events:none/);
+  assert.match(actionStyles[0],/transition:top 240ms cubic-bezier\(\.22,\.61,\.36,1\)/);
+  assert.match(marketplaceCss,/\.find-projects-page \.marketplace-main\[data-marketplace="requests"\] \.mobile-market-actions \.market-categories\{[^}]*pointer-events:auto;/);
   assert.match(stickyStyles?.[0]||'',/position:sticky/);
   assert.match(stickyStyles?.[0]||'',/width:42px/);
   assert.match(stickyStyles?.[0]||'',/margin-top:-92px;/);
   assert.match(marketplaceCss,/mobile-market-sticky-actions::before\{[^}]*border-radius:10px 0 0 10px;/);
   assert.doesNotMatch(marketplaceCss,/mobile-actions-background-bleed|mobile-market-actions::after/);
+});
+
+test('developer project request categories and filters move directly under the header when the switch hides',()=>{
+  assert.match(marketplaceCss,/\.find-projects-page \.marketplace-main\[data-marketplace="requests"\] \.mobile-market-actions\.switch-hidden\{\s*top:calc\(56px - var\(--page-scroll-mobile-top\)\);/);
+  assert.match(marketplaceCss,/\.find-projects-page \.marketplace-main\[data-marketplace="requests"\] \.mobile-market-sticky-actions\{\s*--mobile-actions-edge-gap:14px;[\s\S]*?top:42px;[\s\S]*?z-index:32;/);
+  assert.match(marketplaceCss,/\.find-projects-page \.marketplace-main\[data-marketplace="requests"\] \.mobile-market-sticky-actions\.switch-hidden\{\s*top:calc\(56px - var\(--page-scroll-mobile-top\)\);/);
+  assert.match(marketplaceCss,/\.find-projects-page \.marketplace-main\[data-marketplace="requests"\] \.mobile-market-actions,\s*\.find-projects-page \.marketplace-main\[data-marketplace="requests"\] \.mobile-market-sticky-actions\{\s*transition-duration:1ms;/);
+  assert.match(navBehaviorJs,/\.find-projects-page \.find-projects-switch/);
+  assert.match(navBehaviorJs,/\.find-projects-page \.mobile-market-actions/);
+  assert.match(navBehaviorJs,/exploreFilterActions\.forEach\(actions => actions\.classList\.toggle\('switch-hidden', isHidden\)\)/);
 });
 
 test('square viewports explicitly use the shared mobile navigation layout',()=>{
@@ -163,6 +178,12 @@ test('mobile Favorites uses an Explore header, active Explore navigation, and st
   assert.match(favoritesHtml,/client-profile-options\.js[\s\S]*?favorites\.js/);
   assert.match(favoritesHtml,/nav-behavior\.js\?v=/);
   assert.match(favoritesHtml,/id="favClearAllBtn" data-favorites-clear-all/);
+  assert.match(favoritesCss,/@media \(max-width: 600px\) and \(orientation: portrait\),\s*\(aspect-ratio: 1 \/ 1\) \{/);
+  assert.match(favoritesCss,/body\.favorites-page-layout > main\.dashboard\.favorites-page \{\s*padding: 0 13px 90px 12px !important;/);
+  assert.match(favoritesCss,/body\.favorites-page-layout \.fav-grid \{\s*grid-template-columns: minmax\(0, 1fr\);/);
+  assert.match(favoritesCss,/body\.favorites-page-layout \.fav-client-card \{\s*box-sizing: border-box;\s*width: 100%;\s*min-width: 0;/);
+  assert.match(favoritesCss,/body\.favorites-page-layout \.fav-client-meta-box \{\s*min-width: 0;\s*grid-template-columns: repeat\(3, minmax\(0, 1fr\)\);/);
+  assert.match(favoritesHtml,/favorites\.css\?v=20261127-favorites-square-mobile-cards-v1/);
   assert.match(favoritesJs,/new URL\(document\.referrer \|\| window\.location\.href\)/);
   assert.match(favoritesJs,/querySelectorAll\('\[data-favorites-clear-all\]'\)/);
   assert.match(favoritesJs,/mobileFavCountEl\.textContent = savedCountText/);
@@ -182,7 +203,6 @@ test('mobile Favorites uses an Explore header, active Explore navigation, and st
   assert.match(favoritesCss,/body\.favorites-page-layout \.mobile-favorites-title \{\s*display: block;/);
   assert.match(favoritesCss,/body\.favorites-page-layout \.fav-toolbar \{\s*position: sticky;\s*top: 42px;/);
   assert.match(favoritesCss,/body\.favorites-page-layout \.mobile-favorites-sticky-actions \{\s*position: relative;/);
-  assert.match(favoritesCss,/body\.favorites-page-layout > main\.dashboard\.favorites-page \{\s*padding-top: 0 !important;/);
   assert.match(favoritesCss,/body\.favorites-page-layout \.fav-tabs \{\s*position: sticky;\s*top: 0;\s*z-index: 20;/);
   assert.match(navBehaviorJs,/document\.querySelector\('\.favorites-page-layout \.fav-tabs'\)/);
   assert.match(navBehaviorJs,/const exploreSwitchBreakpoint = window\.matchMedia\('\(orientation: portrait\)'\)/);

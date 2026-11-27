@@ -603,6 +603,8 @@ body.my-profile-page .sidebar nav a{line-height:normal}
     opacity:0;
     transition:opacity 240ms ease;
   }
+  .mobile-settings-backdrop.mobile-settings-no-transition,
+  .mobile-settings-drawer.mobile-settings-no-transition{transition:none}
   .mobile-settings-backdrop[hidden],
   .mobile-settings-drawer[hidden]{display:none}
   .mobile-settings-backdrop.is-open{opacity:1}
@@ -1056,6 +1058,7 @@ body.my-profile-page .sidebar nav a{line-height:normal}
 }
 
 @media(orientation:portrait),(aspect-ratio:1 / 1){
+  .my-profile-page .profile-page-heading #previewProfile{display:none}
   .my-profile-page:not(.profile-preview-mode) .contact-card .contact-whatsapp,
   .my-profile-page:not(.profile-preview-mode) .contact-card .contact-instagram{display:none}
   .my-profile-page.client-profile-view #clientQuickContactMobile{order:-1}
@@ -1066,4 +1069,6 @@ body.my-profile-page .sidebar nav a{line-height:normal}
     box-shadow:none;
   }
   .my-profile-page.client-profile-view #clientQuickContactMobile .contact-card .card-heading{display:none}
+  .my-profile-page.client-profile-view #clientQuickContactMobile .contact-card>p{margin:0 0 4px}
+  .my-profile-page.client-profile-view #clientQuickContactMobile .contact-card .contact-message{margin-top:0}
 }

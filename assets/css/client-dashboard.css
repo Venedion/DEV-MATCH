@@ -194,6 +194,7 @@ nav a[href^="devmatch-favorites.html"] #favoriteCount{display:none!important}
 .requests-tools>select[hidden]{display:none}
 .requests-tools{width:100%;display:flex;align-items:center;gap:7px}
 .request-search{width:auto;min-width:0;flex:1;height:36px;display:flex;align-items:center;gap:7px;padding:0 9px;border:1px solid #e2e3e7;border-radius:8px;background:#fff}
+.requests-showing-count{display:none}
 .request-search:focus-within{border-color:#9a9da6;box-shadow:0 0 0 2px #17171912}
 .request-search svg{width:14px;height:14px;flex:none;color:#858a95}
 .request-search input{width:100%;min-width:0;border:0;outline:0;background:transparent;color:#30333c;font-size:12px}
@@ -558,6 +559,19 @@ body{font-size:16px}
 .request-detail-dialog-bar strong{color:#171719;font-size:14px;font-weight:700}
 .request-detail-dialog-close{width:34px;height:34px;display:grid;place-items:center;margin-left:auto;border:0;border-radius:8px;background:transparent;color:#626772;font-size:25px;line-height:1;cursor:pointer}
 .request-detail-dialog-close:hover{background:#f1f1f3;color:#22252c}
+.client-top-actions>.mobile-add-request{display:none}
+@media(orientation: portrait){
+  body.client-requests-view .client-top-actions>.client-icon-button:not(.mobile-add-request),
+  body.client-requests-view .client-top-actions>.client-user{display:none}
+  body.client-requests-view .client-top-actions>.mobile-add-request{display:grid;border:0}
+  body.client-requests-view .client-top-actions>.mobile-add-request svg{width:22px;height:22px}
+}
+@media(max-width:600px) and (orientation: portrait){
+  .requests-page > #requestStats{grid-template-columns:repeat(2,minmax(0,1fr))}
+  #requests .request-search{display:none}
+  #requests .requests-showing-count{display:block;flex:1;min-width:0;color:#777c87;font-size:12px;line-height:1.4}
+  body.client-requests-view .requests-page-heading .request-primary-button{display:none}
+}
 .request-detail-breadcrumb{display:flex;align-items:center;gap:9px;margin:0 0 17px;color:#858a95;font-size:12px}
 .request-detail-breadcrumb button{padding:0;border:0;background:none;color:#555a64;font:inherit;cursor:pointer}
 .request-detail-breadcrumb button:hover{text-decoration:underline;text-underline-offset:3px}

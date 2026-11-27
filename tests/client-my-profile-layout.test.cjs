@@ -89,6 +89,9 @@ test('Mobile profile keeps stacked contact cards and visible WhatsApp action',()
   assert.match(profileCss,/@media\(orientation:portrait\)\{[\s\S]*?:is\(body\.client-profile-view,body\.developer-profile-view\) \.client-profile-side\{[\s\S]*?grid-template-columns:minmax\(0,1fr\)/);
   assert.match(profileCss,/@media\(orientation:portrait\)\{[\s\S]*?:is\(body\.client-profile-view,body\.developer-profile-view\) #clientQuickContactDesktop,[\s\S]*?#clientShowcaseDesktop\{display:none\}/);
   assert.match(profileCss,/:is\(body\.client-profile-view,body\.developer-profile-view\) #clientQuickContactMobile\{display:block\}/);
+  assert.match(profileCss,/@media\(orientation:portrait\),\(aspect-ratio:1 \/ 1\)\{[\s\S]*?\.my-profile-page \.profile-page-heading #previewProfile\{display:none\}/);
+  assert.match(profileCss,/@media\(orientation:portrait\),\(aspect-ratio:1 \/ 1\)[\s\S]*?\.my-profile-page\.client-profile-view #clientQuickContactMobile \.contact-card>p\{margin:0 0 4px\}/);
+  assert.match(profileCss,/@media\(orientation:portrait\),\(aspect-ratio:1 \/ 1\)[\s\S]*?\.my-profile-page\.client-profile-view #clientQuickContactMobile \.contact-card \.contact-message\{margin-top:0\}/);
   assert.match(profileCss,/@media\(max-width:520px\) and \(orientation:portrait\)\{[\s\S]*?:is\(body\.client-profile-view,body\.developer-profile-view\) #roleInfoCard \.role-info-grid\{grid-template-columns:minmax\(0,1fr\)\}/);
   assert.match(profileHtml,/id="whatsappIcon" viewBox="0 0 24 24"[\s\S]*?stroke="currentColor" stroke-width="1\.8"[\s\S]*?fill="currentColor"/);
   assert.match(profileHtml,/profile-share-whatsapp-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"/);
