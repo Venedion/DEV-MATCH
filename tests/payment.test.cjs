@@ -394,10 +394,15 @@ test('accepted project agreements use the proposal terms for sandbox payments an
     notes: 'System credentials and source delivered.',
     scope: terms.scope,
     files: [{
-      path: `${agreementId}/${developer}/12345678-1234-4234-8234-123456789abc-company-profile-source.zip`,
+      path: `${agreementId}/${developer}/company-profile-source.zip`,
       name: 'company-profile-source.zip',
       type: 'application/zip',
       size: 18 * 1024 * 1024
+    }, {
+      path: `${agreementId}/${developer}/12345678-1234-4234-8234-123456789abc-setup-guide.pdf`,
+      name: 'setup-guide.pdf',
+      type: 'application/pdf',
+      size: 1024
     }],
     links: {
       website: 'https://chetiya-company.example',
@@ -405,6 +410,10 @@ test('accepted project agreements use the proposal terms for sandbox payments an
     }
   };
   await assert.rejects(apply(developer, 'handover', {...handover, scope: []}), {status: 400});
+  await assert.rejects(apply(developer, 'handover', {
+    ...handover,
+    files: [{...handover.files[0], path: `${agreementId}/${developer}/../project.zip`}]
+  }), {status: 400});
   await assert.rejects(apply(developer, 'handover', {
     ...handover, links: {...handover.links, website: 'http://example.test'}
   }), {status: 400});

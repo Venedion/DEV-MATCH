@@ -112,6 +112,20 @@
     }[c]));
   }
 
+  function safeAvatarUrl(value) {
+    if (typeof value !== 'string') return '';
+    if (/^data:image\/(?:jpeg|png);base64,/.test(value)) return value;
+    if (!value.startsWith('https://')) return '';
+    try {
+      const url = new URL(value);
+      return url.origin === 'https://yxwktllqbmhustmhdaqi.supabase.co'
+        && url.pathname.startsWith('/storage/v1/object/public/project-media/')
+        ? url.href : '';
+    } catch {
+      return '';
+    }
+  }
+
   function showToast(msg, undoCallback, favoriteLink) {
     window.DEVMATCH_FAVORITE_FEEDBACK.showToast(favoriteToastEl, msg, undoCallback, favoriteLink);
   }
@@ -669,7 +683,10 @@
           <article class="client-card" data-client-id="${escapeHtml(client.id)}" data-profile-url="${escapeHtml(clientProfileUrl)}" tabindex="0" aria-label="View ${escapeHtml(client.name)} profile">
             <div class="client-card-top">
               <div class="client-profile-group">
-                <a class="client-avatar-badge" href="${clientProfileUrl}" aria-label="View ${escapeHtml(client.name)} profile">${escapeHtml(client.initials)}</a>
+                <a class="client-avatar-badge" href="${clientProfileUrl}" aria-label="View ${escapeHtml(client.name)} profile">
+                  ${client.avatar ? `<img src="${escapeHtml(client.avatar)}" alt="" loading="lazy">` : ''}
+                  <span>${escapeHtml(client.initials)}</span>
+                </a>
                 <div class="client-name-business">
                   <h2 class="client-name-title"><a href="${clientProfileUrl}" aria-label="View ${escapeHtml(client.name)} profile">${escapeHtml(client.name)}</a></h2>
                   <p class="client-business-tag">${escapeHtml(client.business)}</p>
@@ -717,6 +734,9 @@
           </article>
         `;
       }).join('');
+      clientsGrid.querySelectorAll('.client-avatar-badge img').forEach(image => {
+        image.addEventListener('error', () => image.remove(), {once:true});
+      });
     }
 
     // Update count heading
@@ -1196,6 +1216,7 @@
         const name = String(person.display_name || 'DEV-MATCH member');
         const category = String(profile.industry || '');
         return {id:person.id,contactId:person.id,name,initials:(name.match(/\b\p{L}/gu)||[]).slice(0,2).join('').toUpperCase()||'DM',
+          avatar:safeAvatarUrl(profile.avatar),
           business:String(profile.companyName || name),category,businessType:category||'Business type not provided',type:'Client',
           country:String(profile.country || ''),profileCity:String(profile.city || ''),
           openRequestsCount:Number(person.open_request_count)||0,location:String(profile.city || 'Location not provided'),activeText:'Profile listed',

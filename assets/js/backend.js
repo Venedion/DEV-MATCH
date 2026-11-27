@@ -105,6 +105,8 @@
     }
     .devmatch-skeleton-row { display: grid; grid-template-columns: 34px minmax(0, 1fr); align-items: center; gap: 10px; min-height: 55px; padding: 9px 0; border-top: 1px solid #efeff1; }
     .devmatch-skeleton-avatar { width: 32px; height: 32px; border-radius: 50%; }
+    body .user-avatar, body .client-avatar { position: relative; overflow: hidden; }
+    body .user-avatar > img, body .client-avatar > img { position: absolute; inset: 0; width: 100%; height: 100%; border-radius: inherit; object-fit: cover; }
     .devmatch-skeleton-row-lines { display: grid; gap: 8px; }
     .devmatch-skeleton-sr { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
     html[data-theme="dark"] .devmatch-shimmer { background-color: #303137; background-image: linear-gradient(90deg, #303137 0%, #3c3d44 42%, #28292e 50%, #3c3d44 58%, #303137 100%); }
@@ -732,6 +734,74 @@
       location.replace('devmatch-auth.html?mode=login&error=connection');
     }
     return null;
+  });
+  void ready.then(async user => {
+    if (!user) return;
+    let profile;
+    if (activeAccountRole) {
+      const cached = localStorage.getItem(`devmatch-profile-${activeAccountRole}`);
+      if (cached) profile = JSON.parse(cached);
+    }
+    if (!profile) {
+      const row = await loadProfile(user);
+      activeAccountRole = row.account_role;
+      cache(row, user);
+      profile = {
+        ...profileDataForCache(row.profile_data),
+        displayName: row.display_name,
+        role: row.account_role
+      };
+    }
+    document.querySelectorAll('.user-avatar, .client-avatar').forEach(avatar => {
+      const readAvatarUrl = () => {
+        const cached = localStorage.getItem(`devmatch-profile-${activeAccountRole}`);
+        const currentProfile = cached ? JSON.parse(cached) : profile;
+        const imageUrl = currentProfile.avatar;
+        if (typeof imageUrl === 'string' && /^data:image\/(?:jpeg|png);base64,/.test(imageUrl)) {
+          return imageUrl;
+        }
+        if (typeof imageUrl === 'string' && imageUrl.startsWith('https://')) {
+          try {
+            const url = new URL(imageUrl);
+            if (url.origin === 'https://yxwktllqbmhustmhdaqi.supabase.co'
+              && url.pathname.startsWith('/storage/v1/object/public/project-media/')) {
+              return imageUrl;
+            }
+          } catch {
+            return '';
+          }
+        }
+        return '';
+      };
+      const imageUrl = readAvatarUrl();
+      if (!imageUrl) return;
+
+      const observer = new MutationObserver(() => renderAvatar());
+      const renderAvatar = () => {
+        const currentUrl = readAvatarUrl();
+        if (!currentUrl) {
+          observer.disconnect();
+          return;
+        }
+        const currentImage = avatar.firstElementChild;
+        if (currentImage?.tagName === 'IMG' && currentImage.src === currentUrl) return;
+
+        const fallback = avatar.textContent;
+        const image = document.createElement('img');
+        image.src = currentUrl;
+        image.alt = '';
+        image.setAttribute('aria-hidden', 'true');
+        image.onerror = () => {
+          observer.disconnect();
+          avatar.textContent = fallback;
+        };
+        avatar.replaceChildren(image);
+      };
+      observer.observe(avatar, {childList: true});
+      renderAvatar();
+    });
+  }).catch(error => {
+    console.error('Unable to load the account profile photo for the page header.', error);
   });
   let onlinePresenceChannel = null;
   let onlinePresenceUserId = null;

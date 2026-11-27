@@ -160,7 +160,9 @@ function handoverFile(file, agreementId, actorId) {
   const name = text(file.name, 'Nama file', 120);
   const storedName = typeof file.path === 'string' && file.path.startsWith(prefix)
     ? file.path.slice(prefix.length) : '';
-  requireCondition(/^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}-[A-Za-z0-9._-]{1,120}$/i.test(storedName),
+  const generatedName = /^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}-[A-Za-z0-9._-]{1,120}$/i.test(storedName);
+  const legacyName = /^[A-Za-z0-9._-]{1,120}$/.test(storedName);
+  requireCondition(generatedName || legacyName,
     'Lokasi file handover tidak valid.', 400);
   const extension = name.toLowerCase().match(/\.[^.]+$/)?.[0];
   const supportedTypes = handoverFileTypes.get(extension);

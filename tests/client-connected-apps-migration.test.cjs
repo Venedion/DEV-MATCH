@@ -4,9 +4,9 @@ const fs=require('node:fs');
 const path=require('node:path');
 const {PGlite}=require('@electric-sql/pglite');
 
-const migration=fs.readFileSync(path.join(__dirname,'../supabase/migrations/20261126170716_public_connected_apps.sql'),'utf8');
+const migration=fs.readFileSync(path.join(__dirname,'../supabase/migrations/202611280004_public_profile_avatars.sql'),'utf8');
 
-test('public client profiles expose connected-app status without exposing phone or account email',async()=>{
+test('public client profiles expose avatars and connected-app status without exposing phone or account email',async()=>{
   const db=new PGlite();
   try{
     await db.exec(`
@@ -52,7 +52,7 @@ test('public client profiles expose connected-app status without exposing phone 
       create view public.directory_people as select * from private.read_directory_people();
       insert into public.profiles values
         ('11111111-1111-4111-8111-111111111111','client','client-a','Client A',
-            '{"city":"Medan","country":"Indonesia","whatsapp":"+628123456789","whatsappConnected":false,"googleEmail":"private@example.invalid","googleConnected":false,"instagram":"client.ig","instagramConnected":false,"githubUsername":"client-gh","githubConnected":true,"linkedinUrl":"https://www.linkedin.com/in/client","linkedinConnected":false}',
+            '{"city":"Medan","country":"Indonesia","avatar":"https://yxwktllqbmhustmhdaqi.supabase.co/storage/v1/object/public/project-media/client/avatar.png","whatsapp":"+628123456789","whatsappConnected":false,"googleEmail":"private@example.invalid","googleConnected":false,"instagram":"client.ig","instagramConnected":false,"githubUsername":"client-gh","githubConnected":true,"linkedinUrl":"https://www.linkedin.com/in/client","linkedinConnected":false}',
           true),
         ('22222222-2222-4222-8222-222222222222','client','client-b','Client B',
             '{"city":"Denpasar","country":"Indonesia","whatsapp":"+628987654321","googleEmail":"private-b@example.invalid","instagram":"client_b","githubUsername":"client-b","linkedinUrl":"https://www.linkedin.com/in/client-b"}',
@@ -72,6 +72,7 @@ test('public client profiles expose connected-app status without exposing phone 
     );
     assert.equal(explicit.city,'Medan');
     assert.equal(explicit.country,'Indonesia');
+    assert.equal(explicit.avatar,'https://yxwktllqbmhustmhdaqi.supabase.co/storage/v1/object/public/project-media/client/avatar.png');
     assert.equal(explicit.instagram,'client.ig');
     assert.equal(explicit.whatsapp,undefined);
     assert.equal(explicit.googleEmail,undefined);

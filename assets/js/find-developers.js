@@ -88,6 +88,20 @@
     }[c]));
   }
 
+  function safeAvatarUrl(value) {
+    if (typeof value !== 'string') return '';
+    if (/^data:image\/(?:jpeg|png);base64,/.test(value)) return value;
+    if (!value.startsWith('https://')) return '';
+    try {
+      const url = new URL(value);
+      return url.origin === 'https://yxwktllqbmhustmhdaqi.supabase.co'
+        && url.pathname.startsWith('/storage/v1/object/public/project-media/')
+        ? url.href : '';
+    } catch {
+      return '';
+    }
+  }
+
   function showToast(msg, undoCallback, favoriteLink) {
     window.DEVMATCH_FAVORITE_FEEDBACK.showToast(toastEl, msg, undoCallback, favoriteLink);
   }
@@ -248,7 +262,10 @@
           <article class="dev-card" tabindex="0" aria-label="Open developer profile: ${escapeHtml(dev.name)}" data-dev-id="${escapeHtml(dev.id)}" data-profile-url="${escapeHtml(profileUrl.href)}">
             <div class="dev-card-top">
               <div class="dev-profile-group">
-                <div class="dev-avatar-badge">${escapeHtml(dev.initials)}</div>
+                <div class="dev-avatar-badge">${dev.avatar
+                  ? `<img src="${escapeHtml(dev.avatar)}" alt="" loading="lazy">` : ''}
+                  <span>${escapeHtml(dev.initials)}</span>
+                </div>
                 <div class="dev-name-location">
                   <h2 class="dev-name-title">${escapeHtml(dev.name)}</h2>
                   <span class="dev-location-tag">
@@ -305,6 +322,9 @@
           </article>
         `;
       }).join('');
+      devsGrid.querySelectorAll('.dev-avatar-badge img').forEach(image => {
+        image.addEventListener('error', () => image.remove(), {once:true});
+      });
     }
     renderPagination(pageCount);
 
@@ -716,6 +736,7 @@
         const favoritesCount=Number(person.published_portfolio_favorites_count)||0;
         return {id:person.id,handle:person.username?`@${String(person.username).replace(/^@/,'')}`:'',contactId:person.id,
           initials:(name.match(/\b\p{L}/gu)||[]).slice(0,2).join('').toUpperCase()||'DM',name,
+          avatar:safeAvatarUrl(profile.avatar),
           location:String(profile.city || 'Location not provided'),city:String(profile.city || ''),status:availability || 'Availability not provided',statusType,
           specialization,gender:'',bio:String(profile.bio || 'No biography provided.'),skills,
           projectsCount:Number(person.published_portfolio_count)||0,

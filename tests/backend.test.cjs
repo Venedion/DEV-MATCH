@@ -13,10 +13,10 @@ function createElement(){
     querySelectorAll:()=>[],
     getBoundingClientRect:()=>({height:58}),cloneNode:()=>createElement(),getAttribute:name=>attributes.get(name)};
 }
-async function setup({verified=true,page='devmatch-settings.html',role='dev',userRole='dev',changeAccount=false,legacySensitiveCache=false,commentResults=[],directoryPeople=[],notifications=[],favorites=[],notificationReadIds=[],metrics=[],metricsError=null,rpcResponses={},projectEngagement=null,workspaceRole=null,workspaces=[],headerPosition=null,hasMobileBottomNavigation=false,deferAuth=false,querySelectorResults={}}={}){
-  let gets=0,releaseAuth;const redirects=[],updates=[],passwords=[],rpcCalls=[],tableCalls=[],uploads=[];
+async function setup({verified=true,page='devmatch-settings.html',role='dev',userRole='dev',changeAccount=false,legacySensitiveCache=false,profileAvatar=null,commentResults=[],directoryPeople=[],notifications=[],favorites=[],notificationReadIds=[],metrics=[],metricsError=null,rpcResponses={},projectEngagement=null,workspaceRole=null,workspaces=[],headerPosition=null,hasMobileBottomNavigation=false,deferAuth=false,querySelectorResults={}}={}){
+  let gets=0,releaseAuth;const redirects=[],updates=[],passwords=[],rpcCalls=[],tableCalls=[],uploads=[],mutationObservers=[];
   const user={id:'fixture',email:'owner@example.invalid',email_confirmed_at:verified?'2026-11-08':null};
-  const row={id:user.id,account_role:userRole,account_verified:false,onboarding_complete:true,profile_data:{displayName:'Owner'},display_name:'Owner',username:'owner',username_changed_at:'',phone:'+6281234567890'};
+  const row={id:user.id,account_role:userRole,account_verified:false,onboarding_complete:true,profile_data:{displayName:'Owner',...(profileAvatar?{avatar:profileAvatar}:{})},display_name:'Owner',username:'owner',username_changed_at:'',phone:'+6281234567890'};
   const cachedProfile={...row.profile_data,username:row.username,usernameChangedAt:row.username_changed_at||'',displayName:row.display_name,phone:row.phone,email:user.email,role:userRole,googleConnected:false};
   if(legacySensitiveCache)Object.assign(cachedProfile,{accountNumber:'1234567890',npwp:'09.254.891.2-121.000',birthday:'1990-01-02'});
   const values={['devmatch-profile-'+userRole]:JSON.stringify(cachedProfile)};
@@ -69,7 +69,13 @@ async function setup({verified=true,page='devmatch-settings.html',role='dev',use
     querySelectorAll:selector=>querySelectorResults[selector]||[],
     createTreeWalker:()=>({nextNode:()=>false}),getElementById:id=>elements.get(id)||null,
     addEventListener:(name,handler)=>documentEvents[name]=handler};
-  const context={URLSearchParams,Blob,crypto:{randomUUID:()=>`upload-${uploads.length+1}`},window:{supabase:{createClient:()=>client},addEventListener(){}},location:{pathname:'/'+page,search:'?role='+role,hash:'',replace:url=>redirects.push(url),assign:url=>redirects.push(url),reload:()=>redirects.push('reload')},
+  class TestMutationObserver{
+    constructor(callback){this.callback=callback;this.target=null;this.disconnected=false;mutationObservers.push(this);}
+    observe(target){this.target=target;}
+    disconnect(){this.disconnected=true;}
+    trigger(){if(!this.disconnected)this.callback();}
+  }
+  const context={URL,URLSearchParams,Blob,MutationObserver:TestMutationObserver,crypto:{randomUUID:()=>`upload-${uploads.length+1}`},window:{supabase:{createClient:()=>client},addEventListener(){}},location:{pathname:'/'+page,search:'?role='+role,hash:'',replace:url=>redirects.push(url),assign:url=>redirects.push(url),reload:()=>redirects.push('reload')},
     localStorage:storage,sessionStorage:{getItem:key=>sessionValues[key]??null,removeItem:key=>delete sessionValues[key],setItem:(key,value)=>sessionValues[key]=value},document,
     getComputedStyle:element=>({position:element.position||'static',width:'220px',height:'58px',flex:'0 0 auto'}),
     fetch:async()=>({ok:true,json:async()=>({})})};
@@ -80,7 +86,7 @@ async function setup({verified=true,page='devmatch-settings.html',role='dev',use
     await new Promise(resolve=>setImmediate(resolve));
   }
   return {backend,skeletons:context.window.DEVMATCH_SKELETON,document,elements,redirects,updates,passwords,rpcCalls,tableCalls,values,sessionValues,row,user,commentSelects,
-    authChangeHandler,removedPresenceChannels:()=>removedPresenceChannels,presenceChannels,presenceTracks,uploads,releaseAuth};
+    authChangeHandler,removedPresenceChannels:()=>removedPresenceChannels,presenceChannels,presenceTracks,uploads,releaseAuth,mutationObservers};
 }
 test('shared skeletons are accessible without a generic auth overlay',async()=>{
   const {skeletons,document,elements}=await setup();
@@ -93,6 +99,41 @@ test('shared skeletons are accessible without a generic auth overlay',async()=>{
   assert.equal(elements.get('devmatch-auth-skeleton'),undefined);
   assert.match(elements.get('devmatch-skeleton-styles').textContent,/data-devmatch-auth-mask="field"/);
   assert.doesNotMatch(elements.get('devmatch-skeleton-styles').textContent,/body\{visibility:hidden\}/);
+});
+test('authenticated page headers render the saved account profile photo',async()=>{
+  const avatar=createElement();
+  avatar.textContent='OW';
+  const imageUrl='https://yxwktllqbmhustmhdaqi.supabase.co/storage/v1/object/public/project-media/fixture/avatar.png';
+  await setup({profileAvatar:imageUrl,querySelectorResults:{'.user-avatar, .client-avatar':[avatar]}});
+  assert.equal(avatar.children.length,1);
+  assert.equal(avatar.children[0].src,imageUrl);
+  assert.equal(avatar.children[0].alt,'');
+});
+test('authenticated page headers restore the saved photo when page scripts reset the avatar to initials',async()=>{
+  const avatar=createElement();
+  avatar.textContent='OW';
+  const imageUrl='https://yxwktllqbmhustmhdaqi.supabase.co/storage/v1/object/public/project-media/fixture/avatar.png';
+  const {mutationObservers}=await setup({profileAvatar:imageUrl,querySelectorResults:{'.user-avatar, .client-avatar':[avatar]}});
+  avatar.replaceChildren();
+  avatar.textContent='OW';
+  mutationObservers.find(observer=>observer.target===avatar).trigger();
+  assert.equal(avatar.children.length,1);
+  assert.equal(avatar.children[0].src,imageUrl);
+});
+test('authenticated page headers allow a saved profile photo reset',async()=>{
+  const avatar=createElement();
+  avatar.textContent='OW';
+  const imageUrl='https://yxwktllqbmhustmhdaqi.supabase.co/storage/v1/object/public/project-media/fixture/avatar.png';
+  const {mutationObservers,values}=await setup({profileAvatar:imageUrl,querySelectorResults:{'.user-avatar, .client-avatar':[avatar]}});
+  const profile=JSON.parse(values['devmatch-profile-dev']);
+  delete profile.avatar;
+  values['devmatch-profile-dev']=JSON.stringify(profile);
+  avatar.replaceChildren();
+  avatar.textContent='OW';
+  const observer=mutationObservers.find(item=>item.target===avatar);
+  observer.trigger();
+  assert.equal(avatar.children.length,0);
+  assert.equal(observer.disconnected,true);
 });
 test('card skeletons follow directory and mobile project card layouts',async()=>{
   const {skeletons,document}=await setup();

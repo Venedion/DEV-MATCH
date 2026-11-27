@@ -17,3 +17,18 @@ test('Find Clients loads request details only when their modal is opened',()=>{
   assert.match(openRequests,/\.eq\('owner_id',client\.id\)\.eq\('project_kind','request'\)\.eq\('status','open'\)/);
   assert.match(openRequests,/client\.requestsTask/);
 });
+
+test('developer and client directory cards render validated public profile photos',()=>{
+  const developerJs=fs.readFileSync('assets/js/find-developers.js','utf8');
+  const clientJs=fs.readFileSync('assets/js/find-clients.js','utf8');
+  const developerCss=fs.readFileSync('assets/css/find-developers.css','utf8');
+  const clientCss=fs.readFileSync('assets/css/find-clients.css','utf8');
+  for(const [source,cardClass] of [[developerJs,'dev-avatar-badge'],[clientJs,'client-avatar-badge']]){
+    assert.match(source,/avatar:safeAvatarUrl\(profile\.avatar\)/);
+    assert.match(source,new RegExp(`class="${cardClass}"[\\s\\S]*?<img src="\\$\\{escapeHtml\\(`));
+    assert.match(source,new RegExp(`\\.${cardClass} img`));
+    assert.match(source,/url\.origin === 'https:\/\/yxwktllqbmhustmhdaqi\.supabase\.co'/);
+  }
+  assert.match(developerCss,/\.dev-avatar-badge img\s*\{[^}]*object-fit:\s*cover/s);
+  assert.match(clientCss,/\.client-avatar-badge img\s*\{[^}]*object-fit:\s*cover/s);
+});
