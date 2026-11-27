@@ -370,7 +370,16 @@ test('accepted project agreements use the proposal terms for sandbox payments an
   assert.equal(revision.room.revisionsUsed, 1);
   assert.equal(revision.room.revision.reason, 'Update the final video to show the contact form.');
   await assert.rejects(handle(client, 'checkout', {kind: 'REMAINING'}), {status: 409});
-  await apply(developer, 'deliver', {links: 'https://example.test/finish-v2', notes: 'Revised video shared.'});
+  const video = {
+    path: `${agreementId}/${developer}/final-12345678-1234-4234-8234-123456789abc-finish-v2.mp4`,
+    name: 'finish-v2.mp4', type: 'video/mp4', size: 2 * 1024 * 1024, durationSeconds: 35
+  };
+  await assert.rejects(apply(developer, 'deliver', {
+    video: {...video, path: video.path.replace(developer, client)}, notes: 'Invalid final video.'
+  }), {status: 400});
+  const revised = await apply(developer, 'deliver', {video, notes: 'Revised video shared.'});
+  assert.deepEqual(revised.room.delivery.video, video);
+  assert.deepEqual(revised.room.deliveredVideoPaths, [video.path]);
   await assert.rejects(apply(client, 'revision', {reason: 'All free revisions are used.'}), {status: 409});
   const balanceCheckout = await handle(client, 'checkout', {kind: 'REMAINING'});
   const balanceOrder = [...orders.values()][1];

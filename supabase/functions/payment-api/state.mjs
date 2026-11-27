@@ -403,7 +403,16 @@ export function applyAction(state, role, {action, ...body}, actorId = null) {
       if (isAgreement) {
         requireCondition(room.progressReview?.approvedAt, 'Progress harus disetujui sebelum final proof.');
       }
-      room.delivery = {links: deliveryLinks(body.links), notes: text(body.notes, 'Catatan pengiriman'), at: now()};
+      if (isAgreement && body.video !== undefined) {
+        const video = progressFile(body.video, room.proposal.agreementId, actorId, 'video', 50 * 1024 * 1024);
+        requireCondition(video.path.split('/').at(-1).startsWith('final-'), 'Lokasi video final tidak valid.', 400);
+        room.deliveredVideoPaths = [...new Set([
+          ...(room.deliveredVideoPaths || []), room.delivery?.video?.path, video.path
+        ].filter(Boolean))];
+        room.delivery = {links: [], video, notes: text(body.notes, 'Catatan pengiriman', 500), at: now()};
+      } else {
+        room.delivery = {links: deliveryLinks(body.links), notes: text(body.notes, 'Catatan pengiriman'), at: now()};
+      }
       room.timeline && (room.timeline.finalProofSharedAt = room.delivery.at);
       room.project = isAgreement ? 'AWAITING_REMAINING_PAYMENT' : 'AWAITING_CLIENT_APPROVAL';
       break;

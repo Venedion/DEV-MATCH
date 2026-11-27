@@ -340,7 +340,14 @@
     const scope = document.getElementById('proposalProgressScope');
     const screenshots = document.getElementById('proposalProgressScreenshotList');
     if (videoStatus) videoStatus.textContent = '';
-    if (project) project.textContent = proposal.terms?.projectName || 'Project agreement';
+    const contact = getActiveConversation()?.contactDisplayName || 'the client';
+    if (project) project.textContent = 'Share what you finished so ' + contact + ' can review it. They have 5 days to respond.';
+    const request = document.getElementById('proposalProgressRequest');
+    if (request) {
+      const reason = proposal.agreement.progress_update_reason;
+      request.hidden = !reason;
+      request.textContent = reason ? contact + ' asked for an update: ' + reason : '';
+    }
     if (notesCount) notesCount.textContent = '0';
     screenshots?.replaceChildren();
     scope?.replaceChildren();
@@ -565,17 +572,11 @@
           if (!retry && !['pending', 'processing'].includes(remainingStatus)) {
             if (revisionsLeft) {
               const label = `Request revision (${revisionsLeft} left)`;
-              extra = example ? button(label) : `<details class="chat-proposal-revision">
-                <summary>${escapeHtml(label)}</summary>
-                <form data-proposal-revision="${cardId}">
-                  <label>What should be revised?<textarea name="reason" maxlength="500" rows="3" required></textarea></label>
-                  <p role="status" hidden></p>
-                  <button type="submit" class="chat-proposal-card-primary">Send revision request</button>
-                </form></details>`;
+              extra = example ? button(label) : button(label, ` data-proposal-revision="${cardId}"`);
             } else actions.push('<button type="button" disabled>No revisions left</button>');
           }
-          const video = /^https:\/\/[^\s]+$/i.test(agreement.final_proof_url || '') && agreement.final_proof_url;
-          if (video && !example) actions.push(`<a class="chat-proposal-card-link" href="${escapeHtml(video)}" target="_blank" rel="noopener noreferrer">Watch video</a>`);
+          const video = agreement.final_proof_shared || agreement.final_proof_url;
+          if (video) actions.push(button('Watch video', ` data-proposal-final-video="${cardId}"`));
           actions.push(action(retry ? `Retry remaining payment · ${formatProposalAmount(remaining)}` : 'Accept & pay remaining', 'REMAINING'));
         } else {
           note = revisionsUsed ? `Revised video submitted (revision ${revisionsUsed}).` : 'Final video submitted (version 1).';
@@ -2128,7 +2129,7 @@
   let activityTimer;
   dpCountdownTimer = window.setInterval(updateDpCountdowns, 1000);
   const proposalCardTimer = window.setInterval(() => {
-    if (document.hidden || document.querySelector('.chat-proposal-revision[open]')) return;
+    if (document.hidden) return;
     const activeProposal = getActiveConversation()?.messages?.findLast(({proposal}) =>
       proposal?.status === 'accepted' && proposal.agreement?.id &&
       !['COMPLETED', 'CANCELLED', 'DISPUTE_RESOLVED'].includes(proposal.agreement.project_status));
@@ -2976,6 +2977,23 @@
     progressDialogEl?.querySelectorAll('[data-progress-close]').forEach(button => {
       button.addEventListener('click', () => progressDialogEl.close());
     });
+    const progressDrop = document.getElementById('proposalProgressDrop');
+    progressDrop?.addEventListener('dragover', event => {
+      event.preventDefault();
+      progressDrop.classList.add('is-dragging');
+    });
+    progressDrop?.addEventListener('dragleave', () => progressDrop.classList.remove('is-dragging'));
+    progressDrop?.addEventListener('drop', event => {
+      event.preventDefault();
+      progressDrop.classList.remove('is-dragging');
+      const input = document.getElementById('proposalProgressVideo');
+      const file = event.dataTransfer.files[0];
+      if (!input || !file) return;
+      const selection = new DataTransfer();
+      selection.items.add(file);
+      input.files = selection.files;
+      input.dispatchEvent(new Event('change', {bubbles: true}));
+    });
     progressDialogEl?.addEventListener('click', event => {
       if (event.target === progressDialogEl &&
           !progressFormEl?.querySelector('[type="submit"]')?.disabled) progressDialogEl.close();
@@ -3173,31 +3191,14 @@
       renderAttachmentPreview();
       setStatus('Attachment ready. Files are encrypted before storage.');
     });
-    chatMessagesEl?.addEventListener('submit', async event => {
-      const form = event.target.closest('[data-proposal-revision]');
-      if (!form) return;
-      event.preventDefault();
-      const proposal = getActiveProposal(form.dataset.proposalRevision);
-      const reason = form.elements.reason.value.trim();
-      const status = form.querySelector('[role="status"]');
-      const submit = form.querySelector('button[type="submit"]');
-      if (!proposal?.agreement?.id || !reason || submit.disabled) return;
-      submit.disabled = true;
-      status.hidden = true;
-      try {
-        const {error} = await client.functions.invoke('payment-api', {body: {
-          operation: 'apply', agreementId: proposal.agreement.id, action: 'revision', reason
-        }});
-        if (error) throw await edgeError(error, 'Unable to send the revision request.');
-        form.closest('details').open = false;
-        refreshVisibleProposalAgreement(proposal.agreement.id);
-      } catch (error) {
-        status.textContent = error.message || 'Unable to send the revision request.';
-        status.hidden = false;
-        submit.disabled = false;
-      }
-    });
     chatMessagesEl?.addEventListener('click', event => {
+      const videoButton = event.target.closest('[data-proposal-final-video], [data-proposal-revision]');
+      if (videoButton && chatMessagesEl.contains(videoButton)) {
+        const id = videoButton.dataset.proposalFinalVideo || videoButton.dataset.proposalRevision;
+        window.DEVMATCH_PROPOSAL_VIDEO?.open(getActiveProposal(id),
+          videoButton.hasAttribute('data-proposal-revision') ? 'revision' : 'review');
+        return;
+      }
       const viewProposalButton = event.target.closest('[data-proposal-view]');
       if (viewProposalButton && chatMessagesEl.contains(viewProposalButton)) {
         event.preventDefault();
@@ -3235,6 +3236,10 @@
         const conversation = getActiveConversation();
         const proposal = conversation?.messages
           .find(message => message.proposal?.id === proposalPaymentsButton.dataset.proposalPayments)?.proposal;
+        if (proposal?.agreement?.id && proposalPaymentsButton.dataset.proposalPaymentAction === 'deliver') {
+          window.DEVMATCH_PROPOSAL_VIDEO?.open(proposal, 'submit');
+          return;
+        }
         if (proposal?.agreement?.id) {
           window.DEVMATCH_ROOM_PAYMENT?.openAgreement({
             id: proposal.agreement.id,

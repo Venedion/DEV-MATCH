@@ -60,6 +60,7 @@
   let busy = false;
   let handoverDialog = null;
   let handoverSelectedFiles = [];
+  let packingHandoverFolder = false;
   let reviews = [];
   let returnedRoom;
   const loading = new Map();
@@ -67,6 +68,7 @@
   let agreementRealtimeClient = null;
   let agreementRealtimeGeneration = 0;
   let agreementRefreshQueued = false;
+  let checkoutKind = 'DP';
   let dpStatusTimer = null;
   let dpStatusPayment = null;
   let dpStatusRefreshPromise = null;
@@ -114,6 +116,70 @@
   const handoverSize = bytes => bytes >= 1024 * 1024
     ? `${(bytes / (1024 * 1024)).toFixed(1)} MB`
     : `${Math.max(1, Math.round(bytes / 1024))} KB`;
+  async function zipHandoverFolder(files) {
+    if (!files.length || files.length > 10000) throw new Error('Choose a folder with 1 to 10,000 files.');
+    if (files.reduce((total, file) => total + file.size, 0) >= handoverMaxFileBytes) {
+      throw new Error('The project folder must fit in a 50 MB ZIP.');
+    }
+    const crcTable = Array.from({length: 256}, (_, index) => {
+      let crc = index;
+      for (let bit = 0; bit < 8; bit++) crc = (crc >>> 1) ^ (crc & 1 ? 0xedb88320 : 0);
+      return crc;
+    });
+    const localParts = [];
+    const directoryParts = [];
+    const names = new Set();
+    const encoder = new TextEncoder();
+    let offset = 0;
+    let directorySize = 0;
+    for (const file of files) {
+      const path = file.webkitRelativePath || file.name;
+      if (path.split('/').some(part => !part || part === '..' || part === '.' || /[\\:\x00-\x1f]/.test(part)) || names.has(path)) {
+        throw new Error('The folder contains an invalid or duplicate file path.');
+      }
+      names.add(path);
+      const name = encoder.encode(path);
+      if (name.length > 65535) throw new Error('One file name is too long.');
+      let crc = 0xffffffff;
+      for (const byte of new Uint8Array(await file.arrayBuffer())) crc = (crc >>> 8) ^ crcTable[(crc ^ byte) & 255];
+      crc = (crc ^ 0xffffffff) >>> 0;
+      const local = new DataView(new ArrayBuffer(30));
+      local.setUint32(0, 0x04034b50, true);
+      local.setUint16(4, 20, true);
+      local.setUint16(6, 0x0800, true);
+      local.setUint16(12, 33, true);
+      local.setUint32(14, crc, true);
+      local.setUint32(18, file.size, true);
+      local.setUint32(22, file.size, true);
+      local.setUint16(26, name.length, true);
+      const entry = new DataView(new ArrayBuffer(46));
+      entry.setUint32(0, 0x02014b50, true);
+      entry.setUint16(4, 20, true);
+      entry.setUint16(6, 20, true);
+      entry.setUint16(8, 0x0800, true);
+      entry.setUint16(14, 33, true);
+      entry.setUint32(16, crc, true);
+      entry.setUint32(20, file.size, true);
+      entry.setUint32(24, file.size, true);
+      entry.setUint16(28, name.length, true);
+      entry.setUint32(42, offset, true);
+      localParts.push(local.buffer, name, file);
+      directoryParts.push(entry.buffer, name);
+      offset += local.byteLength + name.length + file.size;
+      directorySize += entry.byteLength + name.length;
+    }
+    const end = new DataView(new ArrayBuffer(22));
+    end.setUint32(0, 0x06054b50, true);
+    end.setUint16(8, files.length, true);
+    end.setUint16(10, files.length, true);
+    end.setUint32(12, directorySize, true);
+    end.setUint32(16, offset, true);
+    if (offset + directorySize + end.byteLength > handoverMaxFileBytes) throw new Error('The ZIP exceeds 50 MB.');
+    const folder = files[0].webkitRelativePath?.split('/')[0] || 'project';
+    const zip = new File([...localParts, ...directoryParts, end.buffer], safeHandoverFileName(folder).slice(0, 100) + '.zip', {type: 'application/zip'});
+    zip.handoverFileCount = files.length;
+    return zip;
+  }
   const labels = {
     PENDING: 'Menunggu', ACCEPTED: 'Diterima', DECLINED: 'Ditolak', NOT_STARTED: 'Belum dimulai',
     IN_PROGRESS: 'Sedang dikerjakan', AWAITING_CLIENT_APPROVAL: 'Menunggu persetujuan Client',
@@ -170,7 +236,7 @@
     if (!list) return;
     list.innerHTML = handoverSelectedFiles.map((file, index) => `
       <li class="handover-file-row">
-        <span><strong>${safe(file.name)}</strong><small>${handoverSize(file.size)}</small></span>
+        <span><strong>${safe(file.name)}</strong><small>${file.handoverFileCount ? file.handoverFileCount + ' files · ' : ''}${handoverSize(file.size)}</small></span>
         <button type="button" data-handover-remove-file="${index}" aria-label="Remove ${safe(file.name)}">×</button>
       </li>`).join('');
   }
@@ -180,17 +246,26 @@
     handoverDialog = document.createElement('dialog');
     handoverDialog.className = 'agreement-handover-dialog';
     document.body.append(handoverDialog);
-    handoverDialog.addEventListener('change', event => {
-      if (!event.target.matches('[data-handover-files]')) return;
+    handoverDialog.addEventListener('change', async event => {
+      const isFolder = event.target.matches('[data-handover-folder]');
+      if (!isFolder && !event.target.matches('[data-handover-files]')) return;
       const selected = Array.from(event.target.files || []);
-      if (handoverSelectedFiles.length + selected.length > 5) {
+      event.target.value = '';
+      if (!selected.length || packingHandoverFolder || busy) return;
+      if (handoverSelectedFiles.length + (isFolder ? 1 : selected.length) > 5) {
         setHandoverError('Choose up to 5 handover files.');
-      } else {
-        handoverSelectedFiles.push(...selected);
+        return;
+      }
+      packingHandoverFolder = true;
+      try {
+        handoverSelectedFiles.push(...(isFolder ? [await zipHandoverFolder(selected)] : selected));
         setHandoverError();
         renderHandoverFiles();
+      } catch (cause) {
+        setHandoverError(cause.message);
+      } finally {
+        packingHandoverFolder = false;
       }
-      event.target.value = '';
     });
     handoverDialog.addEventListener('input', event => {
       if (event.target.name !== 'notes') return;
@@ -200,7 +275,7 @@
     handoverDialog.addEventListener('click', event => {
       const closeButton = event.target.closest('[data-handover-close]');
       if (closeButton) {
-        if (!busy) handoverDialog.close();
+        if (!busy && !packingHandoverFolder) handoverDialog.close();
         return;
       }
       const removeButton = event.target.closest('[data-handover-remove-file]');
@@ -210,7 +285,15 @@
         renderHandoverFiles();
         return;
       }
-      if (event.target === handoverDialog && !busy) {
+      const addLink = event.target.closest('[data-handover-add-link]');
+      if (addLink) {
+        const repository = handoverDialog.querySelector('[data-handover-second-link]');
+        repository.hidden = false;
+        addLink.hidden = true;
+        repository.querySelector('input').focus();
+        return;
+      }
+      if (event.target === handoverDialog && !busy && !packingHandoverFolder) {
         const rect = handoverDialog.getBoundingClientRect();
         if (event.clientX < rect.left || event.clientX > rect.right ||
             event.clientY < rect.top || event.clientY > rect.bottom) handoverDialog.close();
@@ -219,6 +302,7 @@
     handoverDialog.addEventListener('submit', event => {
       if (!event.target.matches('[data-handover-form]')) return;
       event.preventDefault();
+      if (busy || packingHandoverFolder) return;
       const form = event.target;
       const notes = form.elements.notes.value.trim();
       const scope = Array.from(form.querySelectorAll('[name="scope"]:checked'), input => input.value);
@@ -260,7 +344,7 @@
       });
     });
     handoverDialog.addEventListener('cancel', event => {
-      if (busy) event.preventDefault();
+      if (busy || packingHandoverFolder) event.preventDefault();
     });
     handoverDialog.addEventListener('close', () => {
       if (!busy) handoverSelectedFiles = [];
@@ -295,20 +379,23 @@
         <form data-handover-form>
           <div class="handover-dialog-content">
             <section class="handover-dialog-field">
-              <p class="handover-dialog-label">Files</p>
+              <p class="handover-dialog-label">Project folder or ZIP</p>
+              <div class="proposal-progress-drop">
+                <label class="handover-add-files"><input type="file" data-handover-folder webkitdirectory>
+                  <span>Choose folder</span></label>
+                <label class="handover-add-files"><input type="file" data-handover-files multiple
+                  accept=".zip,.7z,.rar,.tar,.gz,.tgz,.pdf,.doc,.docx,.txt,.md"><span>Choose ZIP or files</span></label>
+                <small>Source code, design files and setup guide · up to 50 MB per file</small>
+              </div>
               <ul class="handover-file-list" data-handover-file-list></ul>
-              <label class="handover-add-files">
-                <input type="file" data-handover-files multiple
-                  accept=".zip,.7z,.rar,.tar,.gz,.tgz,.pdf,.doc,.docx,.txt,.md">
-                <span>＋ Add files</span>
-              </label>
             </section>
             <section class="handover-dialog-field">
               <p class="handover-dialog-label">Links (optional)</p>
               <label><span class="visually-hidden">Website link</span>
                 <input name="website" type="url" maxlength="2048" placeholder="https://your-website.example"></label>
-              <label><span class="visually-hidden">Repository link</span>
+              <label data-handover-second-link hidden><span class="visually-hidden">Repository link</span>
                 <input name="repository" type="url" maxlength="2048" placeholder="Repository link"></label>
+              <button type="button" data-handover-add-link>Add another link</button>
             </section>
             <section class="handover-dialog-field">
               <label class="handover-dialog-label" for="handoverNotes">Handover notes</label>
@@ -329,7 +416,7 @@
           </div>
           <footer class="handover-dialog-footer">
             <button type="button" data-handover-close>Cancel</button>
-            <button type="submit" data-primary>Hand over system</button>
+            <button type="submit" data-primary>Submit handover</button>
           </footer>
         </form>
       </section>`;
@@ -346,34 +433,32 @@
     checkoutError.hidden = !message;
   }
 
-  function showCheckoutConfirmation() {
+  function showCheckoutConfirmation(kind = 'DP') {
     const proposal = snapshot?.room?.proposal;
     if (!proposal || snapshot.role !== 'client') {
-      setError('DP payment is not available for this account.');
+      setError('Payment is not available for this account.');
       return;
     }
     const total = Number(proposal.total) || 0;
     const dp = Number(proposal.dp) || 0;
+    checkoutKind = kind;
     const developerName = snapshot.room.developerName || snapshot.room.developer?.displayName ||
       snapshot.room.developer?.name || proposal.developerName;
     checkoutProject.textContent = [
       proposal.name || roomTitle,
       developerName ? `Developer ${developerName}` : ''
     ].filter(Boolean).join(' · ');
-    checkoutAmountLabel.textContent = `DP (${Number(proposal.dpPercent) || 0}% of ${rupiah.format(total)})`;
-    checkoutAmount.textContent = rupiah.format(dp);
+    checkoutAmountLabel.textContent = kind === 'DP'
+      ? `DP (${Number(proposal.dpPercent) || 0}% of ${rupiah.format(total)})` : 'Remaining payment';
+    checkoutAmount.textContent = rupiah.format(kind === 'DP' ? dp : Math.max(0, total - dp));
     const environment = window.DEVMATCH_PUBLIC_CONFIG?.midtransEnvironment || 'sandbox';
     const isSandbox = environment === 'sandbox';
-    const embeddedCheckoutAvailable = window.DEVMATCH_PUBLIC_CONFIG?.midtransPaymentsEnabled === true;
+    const embeddedCheckoutAvailable = kind === 'DP' && window.DEVMATCH_PUBLIC_CONFIG?.midtransPaymentsEnabled === true;
     const checkoutDuration = embeddedCheckoutAvailable ? '48 hours' : '10 minutes';
     checkoutMode.textContent = isSandbox ? 'Test mode' : 'Live mode';
     checkoutNote.textContent = isSandbox
-      ? `Midtrans Sandbox is for testing; no real money moves. The checkout is valid for ${checkoutDuration}.${
-        embeddedCheckoutAvailable ? '' : ' Snap opens in a new tab.'
-      }`
-      : `The checkout is valid for ${checkoutDuration}.${
-        embeddedCheckoutAvailable ? '' : ' Snap opens in a new tab.'
-      }`;
+      ? `Demo only. No real money is charged. The checkout is valid for ${checkoutDuration}.`
+      : `The checkout is valid for ${checkoutDuration}.`;
     demoGuide.hidden = !isSandbox;
     setCheckoutError();
     snapEmbed.replaceChildren();
@@ -383,10 +468,10 @@
     if (!checkoutDialog.open) checkoutDialog.showModal();
   }
 
-  function loadSnap() {
+  function loadSnap(checkoutClientKey) {
     const config = window.DEVMATCH_PUBLIC_CONFIG || {};
     const environment = config.midtransEnvironment || 'sandbox';
-    const clientKey = config.midtransClientKey;
+    const clientKey = checkoutClientKey || config.midtransClientKey;
     const snapJsUrl = config.midtransSnapJsUrl ||
       (environment === 'sandbox'
         ? 'https://app.sandbox.midtrans.com/snap/snap.js'
@@ -713,7 +798,9 @@
           field('notes', 'Notes', true) + field('links', 'Video URL (HTTPS)', true),
           finalVideoActionLabel))}</div>`
       : '';
-    const finalProofDescription = delivery?.links?.length
+    const finalProofDescription = delivery?.video
+      ? 'The developer shared an uploaded final video. Open it from the proposal card.'
+      : delivery?.links?.length
       ? `The developer shared the finished work. <a href="${safe(delivery.links[0])}" target="_blank" rel="noopener noreferrer">Watch video</a>.`
       : 'The developer shares a video of the finished work.';
     const remainingDescription = timeline.remainingPaidAt
@@ -1075,8 +1162,8 @@
 
   async function perform(action, fields = {}) {
     if (busy || !roomKey) return;
-    if (action === 'DP' && !fields.confirmed && isAgreementContext()) {
-      showCheckoutConfirmation();
+    if (['DP', 'REMAINING'].includes(action) && !fields.confirmed && isAgreementContext()) {
+      showCheckoutConfirmation(action);
       return;
     }
     if (action === 'back-to-chat') {
@@ -1131,9 +1218,10 @@
     }
     const key = roomKey;
     const isCheckout = action === 'DP' || action === 'REMAINING';
+    const isLegacyCheckout = isCheckout && !isAgreementContext();
     const isEmbeddedDp = action === 'DP' && isAgreementContext() &&
       window.DEVMATCH_PUBLIC_CONFIG?.midtransPaymentsEnabled === true;
-    const dpConfirmationOpen = action === 'DP' && fields.confirmed;
+    const dpConfirmationOpen = isCheckout && fields.confirmed;
     busy = true;
     content.inert = true;
     if (action === 'handover' && handoverDialog?.open) {
@@ -1166,8 +1254,7 @@
         updated = true;
       } else if (isEmbeddedDp) {
         await createDpCheckout(JSON.parse(key).agreementId);
-      } else if (isCheckout) {
-        // Open during the click so the browser can authorize the new tab.
+      } else if (isLegacyCheckout) {
         checkoutTab = window.open('about:blank', '_blank');
         if (checkoutTab) checkoutTab.opener = null;
         const checkout = await request(key, 'checkout', {kind: action});
@@ -1179,16 +1266,42 @@
         if (checkoutTab && !checkoutTab.closed) {
           checkoutTab.location.replace(target.href);
           checkoutOpened = true;
-          if (dpConfirmationOpen) checkoutDialog.close();
         } else {
           const link = document.createElement('a');
           link.href = target.href;
           link.target = '_blank';
           link.rel = 'noopener noreferrer';
           link.textContent = 'Open Midtrans Sandbox in a new tab';
-          const message = dpConfirmationOpen ? checkoutError : error;
-          message.replaceChildren(link);
-          message.hidden = false;
+          error.replaceChildren(link);
+          error.hidden = false;
+        }
+      } else if (isCheckout) {
+        const checkout = await request(key, 'checkout', {kind: action});
+        if (key !== roomKey) return;
+        if (!checkout.token) throw new Error('Token checkout Midtrans tidak tersedia.');
+        const snap = await loadSnap(checkout.clientKey);
+        if (key !== roomKey || !checkoutDialog.open) return;
+        checkoutSummary.hidden = true;
+        checkoutActions.hidden = true;
+        snapStep.hidden = false;
+        const refresh = async () => {
+          try {
+            const state = await request(key, 'refresh');
+            if (key !== roomKey) return;
+            snapshot = state;
+            render();
+          } catch (cause) {
+            if (key === roomKey && checkoutDialog.open) setSnapStatus(cause.message, true);
+          }
+        };
+        try {
+          await snap.embed(checkout.token, {embedId: snapEmbed.id, uiMode: 'qr',
+            onSuccess: refresh, onPending: refresh, onError: refresh, onClose: refresh});
+        } catch (cause) {
+          snapStep.hidden = true;
+          checkoutSummary.hidden = false;
+          checkoutActions.hidden = false;
+          throw cause;
         }
       } else {
         let applyFields = fields;
@@ -1251,6 +1364,7 @@
         }
       }
     } finally {
+      if (!checkoutOpened && checkoutTab && !checkoutTab.closed) checkoutTab.close();
       if (uploadedHandoverPaths.length && !handoverSaved) {
         const client = window.devMatchBackend?.client;
         try {
@@ -1262,7 +1376,6 @@
           console.error('Unable to remove unsubmitted handover files.', cleanupError);
         }
       }
-      if (!checkoutOpened && checkoutTab && !checkoutTab.closed) checkoutTab.close();
       busy = false;
       content.inert = false;
       checkoutButtons.forEach(checkoutButton => { checkoutButton.disabled = false; });
@@ -1270,7 +1383,7 @@
         const submitButton = handoverDialog.querySelector('[data-primary]');
         if (submitButton) {
           submitButton.disabled = false;
-          submitButton.textContent = 'Hand over system';
+          submitButton.textContent = 'Submit handover';
         }
       }
       if (action === 'rate') {
@@ -1289,7 +1402,7 @@
   checkoutDialog.querySelector('[data-checkout-close]').addEventListener('click', () => checkoutDialog.close());
   checkoutDialog.querySelector('[data-checkout-cancel]').addEventListener('click', () => checkoutDialog.close());
   checkoutDialog.querySelector('[data-checkout-continue]').addEventListener('click', () =>
-    perform('DP', {confirmed: true}));
+    perform(checkoutKind, {confirmed: true}));
   checkoutDialog.addEventListener('close', () => {
     setCheckoutError();
     setSnapStatus('');
@@ -1431,15 +1544,18 @@
       : '';
     const deadline = review.deadlineAt && !Number.isNaN(Date.parse(review.deadlineAt))
       ? progressReviewDate.format(new Date(review.deadlineAt)) : 'the deadline';
-    progressReviewFrom.textContent = `From ${developerName}${submittedAt ? ` · submitted ${submittedAt}` : ''}`;
+    progressReviewDialog.querySelector('h2').textContent = 'Review progress';
+    progressReviewDialog.querySelector('.progress-review-title-row > span').hidden = false;
+    progressReviewFrom.textContent = `Submitted by ${developerName} · You have 5 days to respond${submittedAt ? ` · ${submittedAt}` : ''}.`;
     progressReviewContent.innerHTML = `
       ${video}
+      ${progress.video?.url ? `<a href="${safe(progress.video.url)}" class="progress-video-download" target="_blank" rel="noopener noreferrer">Video not playing? Download video</a>` : ''}
       <section>
-        <p class="progress-review-section-label">Note from ${safe(developerName)}</p>
+        <p class="progress-review-section-label">Notes from ${safe(developerName)}</p>
         <p class="progress-review-note">${safe(progress.notes || '')}</p>
       </section>
       <section>
-        <p class="progress-review-section-label">Scope points shown (${shown.size} of ${scope.length})</p>
+        <p class="progress-review-section-label">Scope completed (${shown.size} of ${scope.length})</p>
         <ul class="progress-review-scope">${scopeItems}</ul>
       </section>
       ${screenshotHtml}
@@ -1568,15 +1684,20 @@
   }
 
   function renderProgressUpdateForm() {
+    const developer = progressReviewDeveloperName || 'the developer';
+    progressReviewDialog.querySelector('h2').textContent = 'Request update';
+    progressReviewDialog.querySelector('.progress-review-title-row > span').hidden = true;
+    progressReviewFrom.textContent = `Tell ${developer} what to add or change. They will upload a new progress update.`;
     progressReviewContent.innerHTML = `
       <div class="progress-review-request-form">
-        <label for="progressReviewUpdateReason">What needs to be updated?</label>
-        <textarea id="progressReviewUpdateReason" maxlength="500" rows="4" required></textarea>
+        <label for="progressReviewUpdateReason">What should be updated?</label>
+        <textarea id="progressReviewUpdateReason" maxlength="500" rows="4" placeholder="Describe what should be updated." required></textarea>
+        <small><span data-progress-update-count>0</span> / 500</small>
         <p id="progressReviewActionError" class="progress-review-request-error" role="alert" hidden></p>
       </div>`;
     progressReviewFooter.innerHTML = `
-      <button type="button" data-review-action="cancel-request">Back</button>
-      <button type="button" data-review-action="send-request" data-primary>Send request</button>`;
+      <button type="button" data-review-action="cancel-request">Cancel</button>
+      <button type="button" data-review-action="send-request" data-primary>Send update request</button>`;
     progressReviewContent.querySelector('textarea')?.focus();
   }
 
@@ -1911,6 +2032,10 @@
   });
   progressReviewDialog.querySelector('[data-review-close]').addEventListener('click', () => {
     if (!progressReviewBusy) progressReviewDialog.close();
+  });
+  progressReviewDialog.addEventListener('input', event => {
+    const count = progressReviewContent.querySelector('[data-progress-update-count]');
+    if (count && event.target.id === 'progressReviewUpdateReason') count.textContent = String(event.target.value.length);
   });
   progressReviewDialog.addEventListener('click', event => {
     const closeButton = event.target.closest('[data-review-close]');

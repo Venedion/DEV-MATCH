@@ -474,7 +474,8 @@ test('Proposal card preview renders all 36 role variants with inert actions',()=
   assert.match(finalProof,/Accept &amp; pay remaining/);
   assert.match(finalProof,/data-proposal-revision=/);
   assert.match(finalProof,/data-proposal-payment-action="REMAINING"/);
-  assert.match(finalProof,/href="https:\/\/example\.test\/final\.mp4"[^>]*>Watch video/);
+  assert.match(finalProof,/data-proposal-final-video="preview-proposal"[^>]*>Watch video/);
+  assert.doesNotMatch(finalProof,/href="https:\/\/example\.test\/final\.mp4"/);
 
   profile.account_role='dev';
   const handover=view.render({...proposal,agreement:{
@@ -528,7 +529,7 @@ test('Client Review progress opens the illustrated review popup with both review
 
   assert.match(chat,/data-proposal-review-progress="\$\{cardId\}"/);
   assert.match(chat,/openProgressReview\(\{[\s\S]*?\}, proposal\)/);
-  assert.match(payment,/function renderProgressReview\(state\)[\s\S]*?Scope points shown \(\$\{shown\.size\} of \$\{scope\.length\}\)[\s\S]*?Approving releases the DP/);
+  assert.match(payment,/function renderProgressReview\(state\)[\s\S]*?Scope completed \(\$\{shown\.size\} of \$\{scope\.length\}\)[\s\S]*?Approving releases the DP/);
   assert.match(payment,/data-review-action="request-update"[\s\S]*?data-review-action="approve-progress"/);
   assert.match(payment,/submitProgressReviewAction\('request-progress-update', \{reason\}\)/);
   assert.match(payment,/submitProgressReviewAction\('approve-progress'\)/);

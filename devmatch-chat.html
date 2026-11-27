@@ -8,8 +8,8 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="assets/css/dashboard.css?v=20261126-rebase-merge-v1">
-  <link rel="stylesheet" href="assets/css/chat.css?v=20261127-proposal-card-flow">
-  <link rel="stylesheet" href="assets/css/chat-payment.css?v=20261128-integrated-rating-v1">
+  <link rel="stylesheet" href="assets/css/chat.css?v=20261127-proposal-popups">
+  <link rel="stylesheet" href="assets/css/chat-payment.css?v=20261127-proposal-popups">
   <link rel="stylesheet" href="assets/css/project-detail-popup.css?v=20261126-rebase-merge-v1">
   <link rel="stylesheet" href="assets/css/client-shell.css?v=20261126-rebase-merge-v1">
   <link rel="stylesheet" href="assets/css/mode-switch-animation.css?v=20261030-client-mode-route">
@@ -311,7 +311,7 @@
       <header>
         <div>
           <div class="room-payment-checkout-heading">
-            <h2 id="roomPaymentCheckoutTitle">Pay DP</h2>
+            <h2 id="roomPaymentCheckoutTitle">Complete payment</h2>
             <span id="roomPaymentCheckoutMode">Test mode</span>
           </div>
           <p id="roomPaymentCheckoutProject"></p>
@@ -323,11 +323,11 @@
           <span id="roomPaymentCheckoutAmountLabel"></span>
           <strong id="roomPaymentCheckoutAmount"></strong>
         </div>
-        <h3>What happens next?</h3>
-        <ul>
-          <li>Your DP is held and is not sent to the Developer yet.</li>
-          <li>It is released after you approve the project progress.</li>
-          <li>The remaining payment is due after the final video is shared.</li>
+        <h3>Midtrans Snap</h3>
+        <ul class="proposal-checkout-methods">
+          <li>Virtual account</li>
+          <li>QRIS</li>
+          <li>Credit or debit card</li>
         </ul>
         <p class="room-payment-checkout-note" id="roomPaymentCheckoutNote"></p>
         <p id="roomPaymentCheckoutError" role="alert" hidden></p>
@@ -349,8 +349,8 @@
         <div id="roomPaymentSnapEmbed"></div>
       </section>
       <footer id="roomPaymentCheckoutActions">
-        <button type="button" data-checkout-cancel>Cancel</button>
-        <button type="button" data-checkout-continue>Continue to payment</button>
+        <button type="button" data-checkout-cancel>Close</button>
+        <button type="button" data-checkout-continue>Pay now</button>
       </footer>
     </section>
   </dialog>
@@ -358,29 +358,33 @@
     <form id="proposalProgressForm">
       <header>
         <div>
-          <h2 id="proposalProgressTitle">Upload progress</h2>
+          <h2 id="proposalProgressTitle">Submit progress</h2>
           <p id="proposalProgressProject"></p>
         </div>
         <button type="button" data-progress-close aria-label="Close upload progress">×</button>
       </header>
       <div class="proposal-progress-body">
-        <label class="proposal-progress-field">
+        <p id="proposalProgressRequest" class="proposal-progress-request" hidden></p>
+        <div class="proposal-progress-field">
           <strong>Progress video</strong>
-          <input id="proposalProgressVideo" type="file" accept="video/mp4,video/quicktime,video/webm,.mp4,.mov,.webm" required>
-          <small>MP4, MOV, or WebM · up to 50 MB · maximum 5 minutes</small>
-        </label>
+          <label id="proposalProgressDrop" class="proposal-progress-drop">
+            <span>Drop a video here</span>
+            <input id="proposalProgressVideo" type="file" accept="video/mp4,video/quicktime,video/webm,.mp4,.mov,.webm" required>
+            <small>MP4, MOV or WebM · up to 5 minutes · 50 MB</small>
+          </label>
+        </div>
         <video id="proposalProgressVideoPreview" controls playsinline hidden></video>
         <p id="proposalProgressVideoStatus" class="proposal-progress-hint" role="status"></p>
-        <label class="proposal-progress-field">
-          <strong>Notes</strong>
-          <textarea id="proposalProgressNotes" maxlength="500" rows="3" required></textarea>
-          <small><span id="proposalProgressNotesCount">0</span> / 500</small>
-        </label>
         <fieldset class="proposal-progress-field">
-          <legend>Scope points shown</legend>
+          <legend>Scope completed</legend>
           <div id="proposalProgressScope" class="proposal-progress-scope"></div>
           <small>Select at least one point.</small>
         </fieldset>
+        <label class="proposal-progress-field">
+          <strong>Notes for the client</strong>
+          <textarea id="proposalProgressNotes" maxlength="500" rows="3" placeholder="Add a short note for the client." required></textarea>
+          <small><span id="proposalProgressNotesCount">0</span> / 500</small>
+        </label>
         <label class="proposal-progress-field">
           <strong>Screenshots <span>(optional)</span></strong>
           <input id="proposalProgressScreenshots" type="file" accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp" multiple>
@@ -432,7 +436,7 @@
     </section>
   </dialog>
   <div id="proposalDetailsPrintContent" class="proposal-details-print-content"></div>
-  <script src="assets/js/chat-payment.js?v=20261127-proposal-card-flow"></script>
+  <script src="assets/js/chat-payment.js?v=20261127-proposal-popups"></script>
   <dialog class="chat-proposal-dialog" id="proposeProjectDialog" aria-labelledby="proposeProjectTitle">
     <form class="chat-proposal-form" id="proposeProjectForm">
       <header class="chat-proposal-header">
@@ -595,7 +599,18 @@
     </section>
   </dialog>
 
-  <script src="assets/js/chat.js?v=20261127-proposal-card-flow"></script>
+  <dialog id="proposalVideoDialog" class="proposal-video-dialog" aria-labelledby="proposalVideoTitle">
+    <form>
+      <header>
+        <div><h2 id="proposalVideoTitle"></h2><p data-video-subtitle></p></div>
+        <button type="button" aria-label="Close" data-video-action="cancel">×</button>
+      </header>
+      <div class="proposal-video-body" data-video-body></div>
+      <footer></footer>
+    </form>
+  </dialog>
+  <script src="assets/js/chat-proposal-video.js?v=20261127-proposal-popups"></script>
+  <script src="assets/js/chat.js?v=20261127-proposal-popups"></script>
   <script src="assets/js/project-detail-popup.js?v=20261126-rebase-merge-v1"></script>
   <script src="assets/js/nav-behavior.js?v=20261126-rebase-merge-v1"></script>
 </body>

@@ -3606,3 +3606,98 @@ button.chat-attachment-card:hover {
     font-size: 22px;
   }
 }
+.proposal-video-dialog {
+  width: min(510px, calc(100vw - 28px));
+  max-height: calc(100dvh - 32px);
+  margin: auto;
+  padding: 0;
+  border: 1px solid #d5d8df;
+  border-radius: 12px;
+  background: #fff;
+  color: #141924;
+  box-shadow: 0 16px 50px #11182740;
+}
+.proposal-video-dialog::backdrop { background: #1118278c; }
+.proposal-video-dialog[open] { display: flex; }
+.proposal-video-dialog form { display: flex; flex: 1; min-width: 0; flex-direction: column; }
+.proposal-video-dialog header, .proposal-video-dialog footer {
+  display: flex;
+  gap: 8px;
+  padding: 14px 18px;
+}
+.proposal-video-dialog header { justify-content: space-between; align-items: flex-start; }
+.proposal-video-dialog h2 { margin: 0 0 4px; font-size: 18px; }
+.proposal-video-dialog p { margin: 0; font-size: 13px; overflow-wrap: anywhere; }
+.proposal-video-dialog header p { color: #555d6b; }
+.proposal-video-dialog header button { min-width: 32px; padding: 4px; }
+.proposal-video-body { display: grid; gap: 9px; padding: 0 18px; overflow: auto; }
+.proposal-video-body [hidden] { display: none; }
+.proposal-video-dialog button, .proposal-video-link-box a {
+  min-height: 34px;
+  border-radius: 7px;
+  border: 1px solid #9da4b0;
+  background: #fff;
+  color: #141924;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 650;
+  cursor: pointer;
+}
+.proposal-video-dialog footer > button { flex: 1; }
+.proposal-video-dialog button.is-primary, .proposal-video-modes button[aria-pressed="true"] {
+  background: #131a29;
+  color: #fff;
+  border-color: #131a29;
+}
+.proposal-video-dialog button:disabled { cursor: wait; opacity: .55; }
+.proposal-video-field { display: grid; gap: 4px; font-size: 13px; }
+.proposal-video-field input, .proposal-video-field textarea {
+  min-width: 0;
+  padding: 8px;
+  font: inherit;
+  border: 1px solid #b8bec8;
+  border-radius: 7px;
+}
+.proposal-video-field textarea { resize: vertical; }
+.proposal-video-field small, .proposal-video-link-box small { color: #555d6b; }
+.proposal-video-modes { display: flex; }
+.proposal-video-modes button { flex: 1; }
+.proposal-video-modes button:first-child { border-radius: 7px 0 0 7px; }
+.proposal-video-modes button:last-child { border-radius: 0 7px 7px 0; }
+.proposal-video-notice, .proposal-progress-request {
+  padding: 7px 9px;
+  border-radius: 6px;
+  background: #fff3ce;
+  color: #623e06;
+}
+.proposal-video-file { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-top: 4px; font-size: 12px; }
+.proposal-video-file span { overflow-wrap: anywhere; }
+.proposal-video-file button { padding-inline: 8px; min-height: 27px; }
+.proposal-video-body video { width: 100%; max-height: 48dvh; border-radius: 6px; background: #1d2635; }
+.proposal-video-download, .progress-video-download { font-size: 12px; color: #303944; text-decoration: underline; }
+.proposal-video-link-box { display: grid; gap: 5px; padding: 8px; background: #f5f6f8; border-radius: 7px; font-size: 13px; }
+.proposal-video-link-box a { display: grid; place-content: center; }
+.proposal-video-summary { padding-top: 5px; border-top: 1px solid #dde0e5; color: #596170; }
+.proposal-video-error { color: #a82021; }
+.chat-project-proposal-card > button[data-proposal-revision] { margin-top: 8px; }
+.proposal-progress-drop {
+  display: grid;
+  justify-items: center;
+  gap: 5px;
+  padding: 15px 8px;
+  border: 1px dashed #929aa7;
+  border-radius: 7px;
+  text-align: center;
+}
+.proposal-progress-drop.is-dragging { background: #eef2f7; }
+.room-payment-checkout-card .proposal-checkout-methods {
+  display: grid;
+  gap: 5px;
+  padding: 0;
+  list-style: none;
+}
+.proposal-checkout-methods li {
+  padding: 7px 9px;
+  border-radius: 6px;
+  border: 1px solid #d5d8df;
+}

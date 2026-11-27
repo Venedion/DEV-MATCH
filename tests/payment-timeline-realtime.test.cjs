@@ -103,8 +103,8 @@ test('Client DP checkout embeds Snap in the existing payment dialog',()=>{
   const html=fs.readFileSync('devmatch-chat.html','utf8');
   assert.match(html,/<dialog id="roomPaymentCheckoutDialog"/);
   assert.match(html,/id="roomPaymentSnapEmbed"/);
-  assert.match(html,/data-checkout-continue>Continue to payment/);
-  assert.match(payment,/if \(action === 'DP' && !fields\.confirmed && isAgreementContext\(\)\)\s*\{\s*showCheckoutConfirmation\(\)/);
+  assert.match(html,/data-checkout-continue>Pay now/);
+  assert.match(payment,/if \(\['DP', 'REMAINING'\]\.includes\(action\) && !fields\.confirmed && isAgreementContext\(\)\)\s*\{\s*showCheckoutConfirmation\(action\)/);
   assert.match(payment,/snap\.embed\(created\.snapToken, \{\s*embedId: 'roomPaymentSnapEmbed'/);
   assert.match(payment,/script\.dataset\.clientKey = clientKey/);
   assert.match(payment,/onSuccess: \(\) => \{ void refreshDpStatus/);
@@ -117,7 +117,8 @@ test('Client DP checkout embeds Snap in the existing payment dialog',()=>{
   assert.match(payment,/refreshAgreementRoom\(roomKey\)/);
   assert.match(payment,/window\.DEVMATCH_PUBLIC_CONFIG\?\.midtransPaymentsEnabled === true/);
   assert.doesNotMatch(payment,/request\(key, 'demo-payment'/);
-  assert.match(payment,/Midtrans Sandbox is for testing; no real money moves/);
+  assert.match(payment,/Demo only\. No real money is charged/);
+  assert.match(payment,/snap\.embed\(checkout\.token, \{embedId: snapEmbed\.id/);
   assert.match(payment,/const checkoutDuration = embeddedCheckoutAvailable \? '48 hours' : '10 minutes'/);
   assert.match(html,/id="roomPaymentDemoGuide"[\s\S]*?https:\/\/simulator\.sandbox\.midtrans\.com\/bca\/va\/index/);
   assert.match(html,/id="roomPaymentCheckoutNote"/);
