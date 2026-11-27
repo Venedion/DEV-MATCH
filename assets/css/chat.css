@@ -3619,6 +3619,8 @@ button.chat-attachment-card:hover {
 }
 .proposal-video-dialog::backdrop { background: #1118278c; }
 .proposal-video-dialog[open] { display: flex; }
+.proposal-video-dialog[data-video-screen="review"] { width: min(590px, calc(100vw - 28px)); }
+.proposal-video-dialog[data-video-screen="revision"] { width: min(460px, calc(100vw - 28px)); }
 .proposal-video-dialog form { display: flex; flex: 1; min-width: 0; flex-direction: column; }
 .proposal-video-dialog header, .proposal-video-dialog footer {
   display: flex;
@@ -3700,4 +3702,42 @@ button.chat-attachment-card:hover {
   padding: 7px 9px;
   border-radius: 6px;
   border: 1px solid #d5d8df;
+}
+.chat-proposal-details-stage {
+  padding: 14px;
+  border: 1px solid #d5d8df;
+  border-radius: 10px;
+  background: #f8f9fb;
+}
+.chat-proposal-details-stage-summary { display: grid; gap: 10px; }
+.chat-proposal-details-stage-summary .chat-proposal-step-track { margin: 0; }
+.chat-proposal-step-track .visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+.chat-proposal-details-stage-summary > footer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.chat-proposal-details-stage-summary button {
+  min-height: 34px;
+  padding: 6px 10px;
+  border: 1px solid #aeb5c0;
+  border-radius: 7px;
+  background: #fff;
+  color: #141924;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 650;
+  cursor: pointer;
+}
+.chat-proposal-details-stage-summary button.chat-proposal-card-primary {
+  background: #131a29;
+  color: #fff;
+  border-color: #131a29;
 }

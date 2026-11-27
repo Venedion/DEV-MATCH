@@ -28,6 +28,7 @@
 
   function selectScreen(name, heading, description, content, actions) {
     screen = name;
+    dialog.dataset.videoScreen = name;
     title.textContent = heading;
     subtitle.textContent = description;
     body.innerHTML = content + '<p class="proposal-video-error" role="alert" hidden></p>';
@@ -91,10 +92,13 @@
         <button type="button" data-video-action="link" aria-pressed="false">Paste link</button>
       </div>
       <div data-video-upload>
-        <label class="proposal-video-field"><strong>Video file</strong>
-          <input name="video" type="file" accept=".mp4,.mov,.webm,video/mp4,video/quicktime,video/webm">
-          <small>MP4, MOV or WebM · up to 5 minutes · 50 MB</small>
-        </label>
+        <div class="proposal-video-field"><strong>Video file</strong>
+          <label class="proposal-progress-drop" data-video-drop>
+            <span>Drop a video here</span>
+            <input name="video" type="file" accept=".mp4,.mov,.webm,video/mp4,video/quicktime,video/webm">
+            <small>MP4, MOV or WebM · up to 5 minutes · 50 MB</small>
+          </label>
+        </div>
         <div class="proposal-video-file" data-video-file hidden>
           <span></span>${action('Remove', 'remove')}
         </div>
@@ -240,6 +244,27 @@
   });
   dialog.addEventListener('cancel', event => { if (busy) event.preventDefault(); });
   dialog.addEventListener('close', () => { ++readVersion; clearFile(); });
+  dialog.addEventListener('dragover', event => {
+    const target = event.target.closest('[data-video-drop]');
+    if (!target || busy) return;
+    event.preventDefault();
+    target.classList.add('is-dragging');
+  });
+  dialog.addEventListener('dragleave', event => {
+    event.target.closest('[data-video-drop]')?.classList.remove('is-dragging');
+  });
+  dialog.addEventListener('drop', event => {
+    const target = event.target.closest('[data-video-drop]');
+    if (!target || busy) return;
+    event.preventDefault();
+    target.classList.remove('is-dragging');
+    const selected = event.dataTransfer.files[0];
+    if (!selected) return;
+    const selection = new DataTransfer();
+    selection.items.add(selected);
+    form.elements.video.files = selection.files;
+    form.elements.video.dispatchEvent(new Event('change', {bubbles: true}));
+  });
   form.addEventListener('input', event => {
     const count = body.querySelector('[data-video-count]');
     if (count && event.target.name === 'reason') count.textContent = String(event.target.value.length);

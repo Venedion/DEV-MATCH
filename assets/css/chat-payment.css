@@ -1344,6 +1344,12 @@
   color: #fff;
 }
 
+.progress-review-dialog[data-progress-screen="request"] {
+  width: min(460px, calc(100vw - 28px));
+  height: auto;
+  max-height: calc(100dvh - 32px);
+}
+
 .handover-review-content {
   gap: 13px;
 }

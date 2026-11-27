@@ -743,10 +743,72 @@
     if (!printContent || !header || !details) return false;
     header.querySelector('[data-close-proposal-details]')?.remove();
     header.querySelectorAll('[id]').forEach(element => element.removeAttribute('id'));
+    details.querySelector('.chat-proposal-details-stage')?.remove();
     details.removeAttribute('id');
     details.classList.add('proposal-details-print-body');
     printContent.replaceChildren(header, details);
     return true;
+  }
+
+  function openProposalCardAction(event, scope) {
+    const videoButton = event.target.closest('[data-proposal-final-video], [data-proposal-revision]');
+    if (videoButton && scope.contains(videoButton)) {
+      if (scope instanceof HTMLDialogElement) scope.close();
+      const id = videoButton.dataset.proposalFinalVideo || videoButton.dataset.proposalRevision;
+      window.DEVMATCH_PROPOSAL_VIDEO?.open(getActiveProposal(id),
+        videoButton.hasAttribute('data-proposal-revision') ? 'revision' : 'review');
+      return true;
+    }
+    const proposalProjectButton = event.target.closest('[data-proposal-progress]');
+    if (proposalProjectButton && scope.contains(proposalProjectButton)) {
+      if (scope instanceof HTMLDialogElement) scope.close();
+      event.preventDefault();
+      openProposalProgress(getActiveProposal(proposalProjectButton.dataset.proposalProgress));
+      return true;
+    }
+    const progressReviewButton = event.target.closest('[data-proposal-review-progress]');
+    if (progressReviewButton && scope.contains(progressReviewButton)) {
+      if (scope instanceof HTMLDialogElement) scope.close();
+      event.preventDefault();
+      const proposal = getActiveConversation()?.messages
+        .find(message => message.proposal?.id === progressReviewButton.dataset.proposalReviewProgress)?.proposal;
+      if (proposal?.agreement?.id) {
+        window.DEVMATCH_ROOM_PAYMENT?.openProgressReview({
+          id: proposal.agreement.id,
+          conversationId: proposal.conversation_id,
+          proposalId: proposal.id,
+          title: proposal.terms?.projectName,
+          developerName: getActiveConversation()?.contactDisplayName || getActiveConversation()?.name
+        }, proposal);
+      }
+      return true;
+    }
+    const proposalPaymentsButton = event.target.closest('[data-proposal-payments]');
+    if (proposalPaymentsButton && scope.contains(proposalPaymentsButton)) {
+      if (scope instanceof HTMLDialogElement) scope.close();
+      event.preventDefault();
+      event.stopPropagation();
+      const conversation = getActiveConversation();
+      const proposal = conversation?.messages
+        .find(message => message.proposal?.id === proposalPaymentsButton.dataset.proposalPayments)?.proposal;
+      if (proposal?.agreement?.id && proposalPaymentsButton.dataset.proposalPaymentAction === 'deliver') {
+        window.DEVMATCH_PROPOSAL_VIDEO?.open(proposal, 'submit');
+        return true;
+      }
+      if (proposal?.agreement?.id) {
+        window.DEVMATCH_ROOM_PAYMENT?.openAgreement({
+          id: proposal.agreement.id,
+          conversationId: proposal.conversation_id,
+          proposalId: proposal.id,
+          title: proposal.terms?.projectName,
+          clientName: conversation?.contactDisplayName || conversation?.name
+        }, {
+          action: proposalPaymentsButton.dataset.proposalPaymentAction || null
+        });
+      }
+      return true;
+    }
+    return false;
   }
 
   function openProposalDetails(proposal, {showDialog = true} = {}) {
@@ -759,6 +821,7 @@
     const isPending = proposal.status === 'pending';
     const isAccepted = proposal.status === 'accepted';
     const status = isAccepted ? 'Accepted' : proposal.status === 'withdrawn' ? 'Withdrawn' : 'Pending approval';
+    dialog.dataset.proposalId = proposal.id;
     const sender = isCreator
       ? 'You'
       : conversation?.contactDisplayName || conversation?.name ||
@@ -811,6 +874,12 @@
     addText('p', 'chat-proposal-details-eyebrow', 'PROJECT PROPOSAL');
     addText('h3', '', terms.projectName || 'Project proposal');
     if (terms.description) addText('p', 'chat-proposal-details-description', terms.description);
+
+    if (isAccepted && proposal.agreement?.id) {
+      const current = addSection('Current project stage');
+      current.classList.add('chat-proposal-details-stage');
+      renderProposalDetailsStage(proposal, dialog);
+    }
 
     const pricing = addSection('Price and payment');
     const totalPrice = document.createElement('strong');
@@ -890,7 +959,7 @@
     }
 
     if (statusLabel) {
-      statusLabel.textContent = status;
+      if (!dialog.querySelector('.chat-proposal-details-stage-summary')) statusLabel.textContent = status;
       statusLabel.className = `chat-proposal-details-status is-${proposal.status}`;
     }
     if (senderLabel) {
@@ -912,7 +981,7 @@
           ? `Waiting for ${conversation?.contactDisplayName || conversation?.name || 'the other participant'} to accept.`
           : 'Accepting creates an agreement and locks these terms.'
         : isAccepted
-          ? 'Agreement created. Open project payments to continue.'
+          ? ''
           : 'This proposal was withdrawn by its creator and can no longer be accepted.';
     }
     setAction('projectProposalDetailsAskChanges', 'ask-changes', isPending && !isCreator);
@@ -925,6 +994,23 @@
       if (dialog.open) dialog.close();
       dialog.showModal();
     }
+  }
+
+  function renderProposalDetailsStage(proposal, dialog) {
+    const stage = dialog.querySelector('.chat-proposal-details-stage');
+    if (!stage) return;
+    const template = document.createElement('template');
+    template.innerHTML = renderProjectProposalCard(proposal);
+    const card = template.content.firstElementChild;
+    if (!card) return;
+    const currentStatus = card.querySelector('.chat-proposal-status');
+    const status = dialog.querySelector('#projectProposalDetailsStatus');
+    if (currentStatus && status) status.textContent = currentStatus.textContent;
+    const content = document.createElement('div');
+    content.className = 'chat-proposal-details-stage-summary';
+    card.querySelectorAll(':scope > ol, :scope > p, :scope > button, :scope > footer').forEach(element => content.append(element));
+    stage.querySelector('.chat-proposal-details-stage-summary')?.remove();
+    stage.append(content);
   }
 
   function getActiveProposal(proposalId) {
@@ -1709,6 +1795,11 @@
   function redrawProposalCard(proposal) {
     const card = chatMessagesEl?.querySelector(`[data-project-proposal-card="${CSS.escape(proposal.id)}"]`);
     if (card) card.outerHTML = renderProjectProposalCard(proposal);
+    const details = document.getElementById('projectProposalDetailsDialog');
+    if (details?.open && details.dataset.proposalId === proposal.id &&
+      !details.querySelector('.chat-proposal-details-stage-summary')?.contains(document.activeElement)) {
+      renderProposalDetailsStage(proposal, details);
+    }
   }
 
   window.addEventListener('devmatch:agreement-payment-status', ({detail}) => {
@@ -3089,6 +3180,7 @@
         });
     });
     proposalDetailsDialog?.addEventListener('click', event => {
+      if (openProposalCardAction(event, proposalDetailsDialog)) return;
       const actionButton = event.target.closest('[data-proposal-details-action]');
       if (!actionButton || !proposalDetailsDialog.contains(actionButton)) return;
       const proposalId = actionButton.dataset.proposalId;
@@ -3192,65 +3284,13 @@
       setStatus('Attachment ready. Files are encrypted before storage.');
     });
     chatMessagesEl?.addEventListener('click', event => {
-      const videoButton = event.target.closest('[data-proposal-final-video], [data-proposal-revision]');
-      if (videoButton && chatMessagesEl.contains(videoButton)) {
-        const id = videoButton.dataset.proposalFinalVideo || videoButton.dataset.proposalRevision;
-        window.DEVMATCH_PROPOSAL_VIDEO?.open(getActiveProposal(id),
-          videoButton.hasAttribute('data-proposal-revision') ? 'revision' : 'review');
-        return;
-      }
+      if (openProposalCardAction(event, chatMessagesEl)) return;
       const viewProposalButton = event.target.closest('[data-proposal-view]');
       if (viewProposalButton && chatMessagesEl.contains(viewProposalButton)) {
         event.preventDefault();
         const proposal = getActiveConversation()?.messages
           .find(message => message.proposal?.id === viewProposalButton.dataset.proposalView)?.proposal;
         if (proposal) openProposalDetails(proposal);
-        return;
-      }
-      const proposalProjectButton = event.target.closest('[data-proposal-progress]');
-      if (proposalProjectButton && chatMessagesEl.contains(proposalProjectButton)) {
-        event.preventDefault();
-        openProposalProgress(getActiveProposal(proposalProjectButton.dataset.proposalProgress));
-        return;
-      }
-      const progressReviewButton = event.target.closest('[data-proposal-review-progress]');
-      if (progressReviewButton && chatMessagesEl.contains(progressReviewButton)) {
-        event.preventDefault();
-        const proposal = getActiveConversation()?.messages
-          .find(message => message.proposal?.id === progressReviewButton.dataset.proposalReviewProgress)?.proposal;
-        if (proposal?.agreement?.id) {
-          window.DEVMATCH_ROOM_PAYMENT?.openProgressReview({
-            id: proposal.agreement.id,
-            conversationId: proposal.conversation_id,
-            proposalId: proposal.id,
-            title: proposal.terms?.projectName,
-            developerName: getActiveConversation()?.contactDisplayName || getActiveConversation()?.name
-          }, proposal);
-        }
-        return;
-      }
-      const proposalPaymentsButton = event.target.closest('[data-proposal-payments]');
-      if (proposalPaymentsButton && chatMessagesEl.contains(proposalPaymentsButton)) {
-        event.preventDefault();
-        event.stopPropagation();
-        const conversation = getActiveConversation();
-        const proposal = conversation?.messages
-          .find(message => message.proposal?.id === proposalPaymentsButton.dataset.proposalPayments)?.proposal;
-        if (proposal?.agreement?.id && proposalPaymentsButton.dataset.proposalPaymentAction === 'deliver') {
-          window.DEVMATCH_PROPOSAL_VIDEO?.open(proposal, 'submit');
-          return;
-        }
-        if (proposal?.agreement?.id) {
-          window.DEVMATCH_ROOM_PAYMENT?.openAgreement({
-            id: proposal.agreement.id,
-            conversationId: proposal.conversation_id,
-            proposalId: proposal.id,
-            title: proposal.terms?.projectName,
-            clientName: conversation?.contactDisplayName || conversation?.name
-          }, {
-            action: proposalPaymentsButton.dataset.proposalPaymentAction || null
-          });
-        }
         return;
       }
       const acceptProposalButton = event.target.closest('[data-proposal-accept]');

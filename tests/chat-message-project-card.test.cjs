@@ -213,7 +213,7 @@ test('Chat composer sends a proposal and renders role-specific proposal cards',(
   assert.match(chat,/data-proposal-payment-action="\$\{value\}"/);
   assert.match(api,/select: 'id,agreement_id,midtrans_order_id,status,expires_at,created_at'[\s\S]*?kind: 'eq\.dp'[\s\S]*?order: 'created_at\.desc'/);
   assert.match(api,/dp_payment_status: dpPayment\?\.status \?\? payments\.findLast/);
-  assert.match(chat,/proposalPaymentsButton && chatMessagesEl\.contains\(proposalPaymentsButton\)\)\s*\{\s*event\.preventDefault\(\);\s*event\.stopPropagation\(\);/);
+  assert.match(chat,/proposalPaymentsButton && scope\.contains\(proposalPaymentsButton\)\)[\s\S]*?event\.preventDefault\(\);\s*event\.stopPropagation\(\);/);
   assert.match(chat,/openAgreement\(\{/);
   assert.match(chat,/dataset\.proposalPaymentAction \|\| null/);
   assert.match(payment,/function openAgreement\(agreement, \{action = null, operation = 'snapshot'\} = \{\}\)/);
@@ -513,7 +513,7 @@ test('Developer progress card opens the existing upload form and server gates fu
   const state=fs.readFileSync('supabase/functions/payment-api/state.mjs','utf8');
 
   assert.match(chat,/data-proposal-progress="\$\{cardId\}"/);
-  assert.match(chat,/proposalProjectButton && chatMessagesEl\.contains\(proposalProjectButton\)[\s\S]*?openProposalProgress\(getActiveProposal/);
+  assert.match(chat,/proposalProjectButton && scope\.contains\(proposalProjectButton\)[\s\S]*?openProposalProgress\(getActiveProposal/);
   assert.match(payment,/Coming soon\. Upload progress will be available here\./);
   assert.match(state,/room\.project === 'IN_PROGRESS' && room\.escrow === 'DP_HELD' &&\s*state\.payments\?\.some\(payment => payment\.kind === 'DP' && payment\.status === 'PAID'\)/);
   assert.match(api,/progress_review_status: paymentRoom\?\.progressReview\?\.status \|\| null/);

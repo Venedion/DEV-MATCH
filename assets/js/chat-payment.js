@@ -1506,6 +1506,7 @@
   }
 
   function renderProgressReview(state) {
+    progressReviewDialog.dataset.progressScreen = 'review';
     const room = state.room;
     const progress = room.progress?.[room.progress.length - 1];
     const review = room.progressReview;
@@ -1551,12 +1552,12 @@
       ${video}
       ${progress.video?.url ? `<a href="${safe(progress.video.url)}" class="progress-video-download" target="_blank" rel="noopener noreferrer">Video not playing? Download video</a>` : ''}
       <section>
-        <p class="progress-review-section-label">Notes from ${safe(developerName)}</p>
-        <p class="progress-review-note">${safe(progress.notes || '')}</p>
-      </section>
-      <section>
         <p class="progress-review-section-label">Scope completed (${shown.size} of ${scope.length})</p>
         <ul class="progress-review-scope">${scopeItems}</ul>
+      </section>
+      <section>
+        <p class="progress-review-section-label">Notes from ${safe(developerName)}</p>
+        <p class="progress-review-note">${safe(progress.notes || '')}</p>
       </section>
       ${screenshotHtml}
       <p class="progress-review-notice">
@@ -1684,6 +1685,7 @@
   }
 
   function renderProgressUpdateForm() {
+    progressReviewDialog.dataset.progressScreen = 'request';
     const developer = progressReviewDeveloperName || 'the developer';
     progressReviewDialog.querySelector('h2').textContent = 'Request update';
     progressReviewDialog.querySelector('.progress-review-title-row > span').hidden = true;
@@ -1760,6 +1762,8 @@
       progressReviewProposal?.developerName || 'Developer';
     progressReviewSnapshot = null;
     progressReviewBusy = false;
+    progressReviewDialog.dataset.progressScreen = 'review';
+    progressReviewDialog.querySelector('h2').textContent = 'Review progress';
     progressReviewFrom.textContent = '';
     progressReviewContent.textContent = 'Loading progress…';
     progressReviewFooter.replaceChildren();
