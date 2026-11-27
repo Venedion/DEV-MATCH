@@ -2571,7 +2571,6 @@ button.chat-attachment-card:hover {
   margin-bottom: 10px;
 }
 
-.chat-project-proposal-card > header > span,
 .chat-proposal-details-eyebrow {
   color: #717681;
   font-size: 11px;
@@ -2599,6 +2598,10 @@ button.chat-attachment-card:hover {
   background: #111;
   color: #fff;
 }
+
+.chat-proposal-status.is-success { background: #d9f5e5; color: #16653d; }
+.chat-proposal-status.is-warning { background: #fff3d8; color: #8b5c00; }
+.chat-proposal-status.is-awaiting-dp.is-warning { background: #fff3d8; color: #8b5c00; }
 
 .chat-project-proposal-card h3 {
   margin: 0 0 2px;
@@ -2673,6 +2676,69 @@ button.chat-attachment-card:hover {
   font-variant-numeric: tabular-nums;
   font-weight: 650;
 }
+
+.chat-proposal-step-track {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 4px;
+  margin: 12px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.chat-proposal-step-track li {
+  border-top: 3px solid #d6d9df;
+  padding-top: 5px;
+  color: #555b68;
+  font-size: 10px;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+.chat-proposal-step-track .is-complete { border-top-color: #17191f; color: #17191f; }
+.chat-project-proposal-card:has(.chat-proposal-status.is-success) .chat-proposal-step-track .is-complete {
+  border-top-color: #20754c;
+}
+.chat-project-proposal-card > .chat-proposal-card-reason {
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: #fff3d8;
+  color: #68470a;
+  overflow-wrap: anywhere;
+}
+.chat-proposal-card-wait {
+  display: grid;
+  min-height: 38px;
+  place-items: center;
+  padding: 7px 9px;
+  border-radius: 10px;
+  background: #eef0f3;
+  color: #525866;
+  text-align: center;
+  font-size: 12px;
+  line-height: 1.35;
+}
+.chat-project-proposal-card > footer > .chat-proposal-card-wait:only-child,
+.chat-project-proposal-card > footer.is-two-actions > .chat-proposal-card-wait { grid-column: 1 / -1; }
+.chat-proposal-card-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 9px;
+}
+.chat-proposal-card-links button {
+  padding: 4px 0;
+  border: 0;
+  background: transparent;
+  color: #4b5260;
+  font: inherit;
+  font-size: 12px;
+  text-decoration: underline;
+  cursor: pointer;
+}
+.chat-proposal-revision { margin: 8px 0; font-size: 12px; }
+.chat-proposal-revision summary { font-weight: 700; cursor: pointer; }
+.chat-proposal-revision form { display: grid; gap: 7px; margin-top: 7px; }
+.chat-proposal-revision textarea { display: block; width: 100%; margin-top: 5px; }
+.chat-proposal-revision form button { justify-self: start; }
 
 .chat-project-proposal-card > footer {
   display: grid;

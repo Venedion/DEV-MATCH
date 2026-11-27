@@ -452,12 +452,19 @@ export function applyAction(state, role, {action, ...body}, actorId = null) {
       requireCondition(acceptResult(state, now()), 'Hasil proyek tidak dapat diterima.');
       break;
     case 'revision':
-      requireCondition(reviewing, 'Final delivery sudah disetujui atau belum tersedia.');
+      if (isAgreement) {
+        requireCondition(room.project === 'AWAITING_REMAINING_PAYMENT' && room.escrow === 'DP_RELEASED' &&
+          room.delivery && !room.delivery.approvedAt, 'Final video belum menunggu review Client.');
+        requireCondition(!state.payments.some(payment => payment.kind === 'REMAINING' && !terminal(payment.status)),
+          'Pelunasan masih aktif. Tunggu status pembayaran sebelum meminta revisi.');
+      } else {
+        requireCondition(reviewing, 'Final delivery sudah disetujui atau belum tersedia.');
+      }
       if (Number.isInteger(room.proposal.revisionCount)) {
         requireCondition((room.revisionsUsed || 0) < room.proposal.revisionCount,
           'Jumlah revisi gratis sesuai proposal sudah habis.');
       }
-      room.revision = {reason: text(body.reason, 'Alasan revisi'), at: now()};
+      room.revision = {reason: text(body.reason, 'Alasan revisi', isAgreement ? 500 : 2000), at: now()};
       room.revisionsUsed = (room.revisionsUsed || 0) + 1;
       room.project = 'REVISION';
       break;

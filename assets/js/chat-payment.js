@@ -648,7 +648,9 @@
       room.escrow === 'DP_HELD' && !timeline.progressSubmittedAt;
     const awaitingDp = client && room.project === 'NOT_STARTED';
     const canPayDp = awaitingDp && checkoutConfigured;
-    const canSubmitFinal = developer && room.project === 'IN_PROGRESS' && progressReview?.approvedAt && !delivery;
+    const canSubmitFinal = developer && progressReview?.approvedAt &&
+      ((room.project === 'IN_PROGRESS' && !delivery) || room.project === 'REVISION');
+    const finalVideoActionLabel = room.project === 'REVISION' ? 'Submit revised video' : 'Submit final video';
     const canPayRemaining = client && room.project === 'AWAITING_REMAINING_PAYMENT' &&
       room.escrow === 'DP_RELEASED' && checkoutConfigured;
     const canHandover = developer && room.project === 'AWAITING_HANDOVER' && room.escrow === 'REMAINING_HELD';
@@ -707,9 +709,9 @@
         ? '<p class="agreement-inline-note">Coming soon. Upload progress will be available here.</p>'
         : '';
     const finalProofAction = canSubmitFinal
-      ? `<div class="agreement-step-actions">${section('Submit final video', form('deliver',
+      ? `<div class="agreement-step-actions">${section(finalVideoActionLabel, form('deliver',
           field('notes', 'Notes', true) + field('links', 'Video URL (HTTPS)', true),
-          'Submit final video'))}</div>`
+          finalVideoActionLabel))}</div>`
       : '';
     const finalProofDescription = delivery?.links?.length
       ? `The developer shared the finished work. <a href="${safe(delivery.links[0])}" target="_blank" rel="noopener noreferrer">Watch video</a>.`
@@ -931,7 +933,17 @@
           projectStatus: room.project,
           escrowStatus: room.escrow,
           dpStatus: payments.findLast(payment => payment.kind === 'DP')?.status ?? null,
-          remainingStatus: payments.findLast(payment => payment.kind === 'REMAINING')?.status ?? null
+          remainingStatus: payments.findLast(payment => payment.kind === 'REMAINING')?.status ?? null,
+          cardState: {
+            progress_review_status: room.progressReview?.status ?? null,
+            progress_update_reason: room.progressReview?.requestReason ?? null,
+            progress_approved: Boolean(room.progressReview?.approvedAt),
+            final_proof_url: room.delivery?.links?.[0] ?? null,
+            final_revision_reason: room.revision?.reason ?? null,
+            revisions_used: room.revisionsUsed ?? 0,
+            handover_status: room.handover?.status ?? null,
+            dispute_status: room.dispute?.status ?? null
+          }
         }
       }));
     }
@@ -1150,6 +1162,7 @@
         if (!agreementId) throw new Error('This agreement cannot be rated.');
         await window.devMatchBackend.submitAgreementReview(agreementId, criteria, fields.text || '');
         snapshot.room.ratingState = await window.devMatchBackend.loadAgreementReviewState(agreementId);
+        window.dispatchEvent(new CustomEvent('devmatch:proposal-card-updated', {detail: {agreementId}}));
         updated = true;
       } else if (isEmbeddedDp) {
         await createDpCheckout(JSON.parse(key).agreementId);
@@ -1323,6 +1336,8 @@
           };
           const selector = targetByAction[initialAction];
           const target = selector ? content.querySelector(selector) : null;
+          const details = target?.closest('details');
+          if (details) details.open = true;
           target?.focus();
           target?.scrollIntoView({block: 'center', behavior: 'smooth'});
         }
@@ -1597,6 +1612,9 @@
         if (dialog.open) render();
       }
       window.dispatchEvent(new Event('devmatch:progress-review-updated'));
+      window.dispatchEvent(new CustomEvent('devmatch:proposal-card-updated', {
+        detail: {agreementId: state.room.proposal.agreementId}
+      }));
       progressReviewDialog.close();
     } catch (cause) {
       if (key === progressReviewKey) showProgressReviewError(

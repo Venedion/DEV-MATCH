@@ -364,6 +364,14 @@ test('accepted project agreements use the proposal terms for sandbox payments an
   await assert.rejects(handle(client, 'checkout', {kind: 'REMAINING'}), {status: 409});
 
   await apply(developer, 'deliver', {links: 'https://example.test/finish', notes: 'Final video shared.'});
+  await assert.rejects(apply(developer, 'revision', {reason: 'A developer cannot request a revision.'}), {status: 403});
+  const revision = await apply(client, 'revision', {reason: 'Update the final video to show the contact form.'});
+  assert.equal(revision.room.project, 'REVISION');
+  assert.equal(revision.room.revisionsUsed, 1);
+  assert.equal(revision.room.revision.reason, 'Update the final video to show the contact form.');
+  await assert.rejects(handle(client, 'checkout', {kind: 'REMAINING'}), {status: 409});
+  await apply(developer, 'deliver', {links: 'https://example.test/finish-v2', notes: 'Revised video shared.'});
+  await assert.rejects(apply(client, 'revision', {reason: 'All free revisions are used.'}), {status: 409});
   const balanceCheckout = await handle(client, 'checkout', {kind: 'REMAINING'});
   const balanceOrder = [...orders.values()][1];
   assert.equal(balanceOrder.gross_amount, '75000.00');

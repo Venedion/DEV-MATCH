@@ -165,11 +165,13 @@ async function downloadEncryptedAttachment(supabaseUrl, serviceRoleKey, path) {
 }
 
 async function requestRows(supabaseUrl, serviceRoleKey, path, query, init = {}) {
+  const {allowMissingTable, ...request} = init;
   const response = await fetch(resourceUrl(supabaseUrl, path, query), {
-    ...init,
-    headers: supabaseHeaders(serviceRoleKey, init.headers)
+    ...request,
+    headers: supabaseHeaders(serviceRoleKey, request.headers)
   });
   if (!response.ok) {
+    if (allowMissingTable && response.status === 404) return [];
     console.error(`Chat database request failed (${response.status}).`);
     throw new ChatApiError('Chat service is temporarily unavailable.', 503);
   }
@@ -437,7 +439,7 @@ async function attachMessageProjectContexts(
   });
 }
 
-function exposeProposal(row, agreement = null, paymentState = null, dpPayment = null) {
+function exposeProposal(row, agreement = null, paymentState = null, dpPayment = null, ownReview = null) {
   const paymentRoom = paymentState?.room || null;
   const ratings = paymentRoom?.ratings || {};
   const payments = Array.isArray(paymentState?.payments) ? paymentState.payments : [];
@@ -462,24 +464,33 @@ function exposeProposal(row, agreement = null, paymentState = null, dpPayment = 
     agreement: agreement ? {
       id: agreement.id,
       payment_status: agreement.payment_status,
-      dp_payment_status: payments.findLast(payment => payment.kind === 'DP')?.status ?? null,
+      dp_payment_status: dpPayment?.status ?? payments.findLast(payment => payment.kind === 'DP')?.status ?? null,
       remaining_payment_status: payments.findLast(payment => payment.kind === 'REMAINING')?.status ?? null,
       escrow_status: paymentRoom?.escrow || 'AWAITING_DP',
       project_status: paymentRoom?.project || 'NOT_STARTED',
       progress_review_status: paymentRoom?.progressReview?.status || null,
+      progress_update_reason: paymentRoom?.progressReview?.requestReason ?? null,
       progress_submitted_at: paymentRoom?.timeline?.progressSubmittedAt || null,
       progress_approved: Boolean(paymentRoom?.progressReview?.approvedAt),
       final_proof_shared: Boolean(
         paymentRoom?.timeline?.finalProofSharedAt || paymentRoom?.delivery?.at
       ),
       final_proof_url: paymentRoom?.delivery?.links?.[0] || null,
+      revisions_used: paymentRoom?.revisionsUsed ?? 0,
+      final_revision_reason: paymentRoom?.revision?.reason ?? null,
       handover_status: paymentRoom?.handover?.status || null,
       dispute_status: paymentRoom?.dispute?.status || null,
       cancellation_reason: paymentRoom?.cancellationReason || null,
       dp_payment_id: dpPayment?.id || null,
       dp_order_id: dpPayment?.midtrans_order_id || null,
-      dp_payment_status: dpPayment?.status || null,
       dp_expires_at: dpPayment?.expires_at || null,
+      own_rating: ownReview
+        ? ownReview.legacy_rating ?? (
+          ownReview.reviewer_role === 'client'
+            ? ownReview.quality_of_work + ownReview.communication + ownReview.meeting_deadline
+            : ownReview.clarity_of_brief + ownReview.responsiveness + ownReview.respecting_scope
+        ) / 3
+        : null,
       client_rated: Boolean(ratings.client),
       developer_rated: Boolean(ratings.developer),
       created_at: agreement.created_at
@@ -487,24 +498,27 @@ function exposeProposal(row, agreement = null, paymentState = null, dpPayment = 
   };
 }
 
-async function getProposalDetailsByIds(supabaseUrl, serviceRoleKey, proposalIds) {
+async function getProposalDetailsByIds(supabaseUrl, serviceRoleKey, proposalIds, viewerId = null, sourceFilter = null) {
   const ids = [...new Set(proposalIds.filter(id =>
     typeof id === 'string' && UUID_PATTERN.test(id)
   ))];
   if (!ids.length) return new Map();
+  const conversationFilter = sourceFilter ? {conversation_id: sourceFilter} : {};
   const [proposals, agreements] = await Promise.all([
     requestRows(supabaseUrl, serviceRoleKey, 'project_proposals', {
       select: 'id,conversation_id,developer_id,client_id,creator_id,terms,attachments,status,created_at,updated_at,accepted_at,withdrawn_at',
-      id: `in.(${ids.join(',')})`
+      id: `in.(${ids.join(',')})`,
+      ...conversationFilter
     }),
     requestRows(supabaseUrl, serviceRoleKey, 'project_agreements', {
       select: 'id,proposal_id,payment_status,created_at',
-      proposal_id: `in.(${ids.join(',')})`
+      proposal_id: `in.(${ids.join(',')})`,
+      ...conversationFilter
     })
   ]);
   const agreementsByProposal = new Map(agreements.map(agreement => [agreement.proposal_id, agreement]));
   const agreementIds = agreements.map(agreement => agreement.id);
-  const [paymentRooms, dpPayments] = agreementIds.length
+  const [paymentRooms, dpPayments, ownReviews] = agreementIds.length
     ? await Promise.all([
       requestRows(supabaseUrl, serviceRoleKey, 'payment_agreement_rooms', {
         select: 'agreement_id,state',
@@ -515,13 +529,19 @@ async function getProposalDetailsByIds(supabaseUrl, serviceRoleKey, proposalIds)
         agreement_id: `in.(${agreementIds.join(',')})`,
         kind: 'eq.dp',
         order: 'created_at.desc'
-      })
+      }, {allowMissingTable: true}),
+      viewerId ? requestRows(supabaseUrl, serviceRoleKey, 'agreement_reviews', {
+        select: 'agreement_id,reviewer_role,legacy_rating,quality_of_work,communication,meeting_deadline,clarity_of_brief,responsiveness,respecting_scope',
+        reviewer_id: `eq.${viewerId}`,
+        agreement_id: `in.(${agreementIds.join(',')})`
+      }, {allowMissingTable: true}) : []
     ])
-    : [[], []];
+    : [[], [], []];
   const stateByAgreement = new Map(paymentRooms.map(paymentRoom => [
     paymentRoom.agreement_id, paymentRoom.state || null
   ]));
   const dpPaymentByAgreement = new Map();
+  const ownReviewByAgreement = new Map(ownReviews.map(review => [review.agreement_id, review]));
   for (const payment of dpPayments) {
     if (!dpPaymentByAgreement.has(payment.agreement_id)) {
       dpPaymentByAgreement.set(payment.agreement_id, payment);
@@ -533,16 +553,18 @@ async function getProposalDetailsByIds(supabaseUrl, serviceRoleKey, proposalIds)
       proposal,
       agreement,
       stateByAgreement.get(agreement?.id),
-      dpPaymentByAgreement.get(agreement?.id)
+      dpPaymentByAgreement.get(agreement?.id),
+      ownReviewByAgreement.get(agreement?.id)
     )];
   }));
 }
 
-async function attachProposalDetails(messages, rows, supabaseUrl, serviceRoleKey) {
+async function attachProposalDetails(messages, rows, supabaseUrl, serviceRoleKey, viewerId) {
   const proposalsById = await getProposalDetailsByIds(
     supabaseUrl,
     serviceRoleKey,
-    rows.map(row => row.proposal_id).filter(Boolean)
+    rows.map(row => row.proposal_id).filter(Boolean),
+    viewerId
   );
   return messages.map((message, index) => {
     const proposal = proposalsById.get(rows[index]?.proposal_id);
@@ -1244,6 +1266,7 @@ async function handleAction(body, user, keyring, supabaseUrl, serviceRoleKey, au
   }
 
   if (body.action === 'list-messages'
+    || body.action === 'refresh-proposal-cards'
     || body.action === 'mark-messages-read'
     || body.action === 'send-message'
     || body.action === 'download-attachment') {
@@ -1257,6 +1280,16 @@ async function handleAction(body, user, keyring, supabaseUrl, serviceRoleKey, au
     const sourceConversations = await getThreadSources(supabaseUrl, serviceRoleKey, conversation);
     const sourceIds = sourceConversations.map(source => source.id);
     const sourceFilter = `in.(${sourceIds.join(',')})`;
+
+    if (body.action === 'refresh-proposal-cards') {
+      if (!Array.isArray(body.proposalIds) || body.proposalIds.length > 25) {
+        throw new ChatApiError('Provide up to 25 proposal IDs.', 400);
+      }
+      const cards = await getProposalDetailsByIds(
+        supabaseUrl, serviceRoleKey, body.proposalIds, user.id, sourceFilter
+      );
+      return [...cards.values()].map(({id, status, agreement}) => ({id, status, agreement}));
+    }
 
     if (body.action === 'mark-messages-read') {
       await requestRows(supabaseUrl, serviceRoleKey, 'messages', {
@@ -1304,7 +1337,7 @@ async function handleAction(body, user, keyring, supabaseUrl, serviceRoleKey, au
         messages, orderedRows, conversation, supabaseUrl, serviceRoleKey
       );
       return attachProposalDetails(
-        withProjectContexts, orderedRows, supabaseUrl, serviceRoleKey
+        withProjectContexts, orderedRows, supabaseUrl, serviceRoleKey, user.id
       );
     }
 

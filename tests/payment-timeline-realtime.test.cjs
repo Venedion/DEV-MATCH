@@ -62,14 +62,11 @@ test('DP paid notifications open the participant conversation',()=>{
   assert.match(notifications,/detail\.filter === 'payments' \? 'Open project'/);
 });
 
-test('Paid agreement proposal cards open the project timeline for both participants',()=>{
+test('Paid proposal cards keep role-specific upload and payment timeline actions',()=>{
   const chat=fs.readFileSync('assets/js/chat.js','utf8');
-  assert.match(chat,/const isDpPaid = !isPreview && isAccepted && dpPaymentStatus === 'paid' && escrowStatus === 'DP_HELD'/);
-  assert.match(chat,/const isAgreementInProgress = isDpPaid && projectStatus === 'IN_PROGRESS'/);
-  assert.match(chat,/isAgreementInProgress \? 'In progress'/);
-  assert.match(chat,/data-proposal-open-project="\$\{cardId\}">Open project/);
-  assert.match(chat,/data-proposal-progress="\$\{cardId\}">Upload progress/);
-  assert.match(chat,/proposalProjectButton\.dataset\.proposalProgress \|\| proposalProjectButton\.dataset\.proposalOpenProject/);
+  assert.match(chat,/project === 'IN_PROGRESS' && escrow === 'DP_HELD'/);
+  assert.match(chat,/button\('Upload progress', ` data-proposal-progress="\$\{cardId\}"/);
+  assert.match(chat,/button\('Project payments', ` data-proposal-payments="\$\{cardId\}"/);
   assert.match(chat,/window\.DEVMATCH_ROOM_PAYMENT\?\.openAgreement\(\{/);
 });
 
